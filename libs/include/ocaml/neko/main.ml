@@ -24,24 +24,35 @@ let report (msg,p) etype printer =
 	prerr_endline (sprintf "%s : %s %s" epos etype (printer msg));
 	exit 1
 
+let rec unique = function
+	| [] -> []
+	| x :: l when List.exists (( = ) x) l -> unique l
+	| x :: l -> x :: (unique l)
+
 ;;
 try	
 	let usage = "Neko Interpreter v0.1 - (c)2005 Nicolas Cannasse\n Usage : interp.exe [options] <files...>\n Options :" in
 	let files = ref [] in
 	let time = Sys.time() in
+	let paths = ref [""] in
 	let args_spec = [
 		("-msvc",Arg.Unit (fun () -> print_style := StyleMSVC),": use MSVC style errors");
 	] in
-	Arg.parse args_spec (fun file -> files := file :: !files) usage;
+	Arg.parse args_spec (fun file ->
+		paths := normalize_path (Filename.dirname file) :: !paths;
+		files := file :: !files
+	) usage;
 	if !files = [] then begin
 		Arg.usage args_spec usage
 	end else begin
-		let ctx = Interp.create() in
+		let ctx = Interp.create (unique (List.rev !paths)) in
 		List.iter (fun file ->
-			let ch = (try open_in file with _ -> failwith ("File not found " ^ file)) in
-			let ast = Parser.parse (Lexing.from_channel ch) file in
-			let v = Interp.interp ctx ast in
-			()
+			let mname = Filename.chop_extension (Filename.basename file) in
+			try
+				ignore(Interp.execute ctx mname Ast.null_pos);				
+			with
+				Interp.Error (Interp.Module_not_found m,_) when m = mname -> 
+					failwith ("File not found " ^ file)
 		) (List.rev !files);
 	end;
 with	

@@ -80,6 +80,8 @@ and expr = parser
 		| [< >] -> expr_next (EBreak None,p1) s)
 	| [< '(Keyword Continue,p1); s >] ->
 		expr_next (EContinue,p1) s
+	| [< '(Keyword Try,p1); e = expr; '(Keyword Catch,_); '(Const (Ident name),_); e2 = expr; s >] ->
+		expr_next (ETry (e,name,e2),punion p1 (pos e2)) s
 
 and expr_next e = parser
 	| [< '(Dot,_); '(Const (Ident name),p); s >] ->

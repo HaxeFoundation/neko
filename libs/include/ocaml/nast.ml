@@ -15,6 +15,7 @@ type constant =
 	| String of string
 	| Builtin of string
 	| Ident of string
+	| Module of string
 
 type keyword =
 	| Var
@@ -29,6 +30,8 @@ type keyword =
 	| Break
 	| Continue
 	| Default
+	| Try
+	| Catch
 
 type token =
 	| Eof
@@ -64,6 +67,7 @@ type expr_decl =
 	| EWhile of expr * expr * while_flag
 	| EIf of expr * expr * expr option
 	| ESwitch of expr * (expr * expr) list * expr option
+	| ETry of expr * string * expr
 	| EFunction of string list * expr
 	| EBinop of string * expr * expr
 	| EReturn of expr option
@@ -104,6 +108,7 @@ let s_constant = function
 	| String s -> "\"" ^ escape s ^ "\""
 	| Builtin s -> "$" ^ s
 	| Ident s -> s
+	| Module s -> "#" ^ s
 
 let s_keyword = function
 	| Var -> "var"
@@ -118,6 +123,8 @@ let s_keyword = function
 	| Break -> "break"
 	| Continue -> "continue"
 	| Default -> "default"
+	| Try -> "try"
+	| Catch -> "catch"
 
 let s_token = function
 	| Eof -> "<eof>"

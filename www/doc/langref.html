@@ -56,10 +56,10 @@ The syntax is parsed using a left-to-right LL(1) parser. That means that after r
 		| &epsilon;
 
 	    <i>ident</i> :=
-		| [a-zA-Z_@] [a-zA-Z0-9_@]*
+		| [a-zA-Z_@] [a-zA-Z0-9_@:]*
 
 	    <i>binop</i> :=
-		| [!=*/&lt;&gt;&|^%+-]+
+		| [!=*/&lt;&gt;&|^%+:-]+
 
 	    <i>value</i> :=
 		| [0-9]+
@@ -68,6 +68,7 @@ The syntax is parsed using a left-to-right LL(1) parser. That means that after r
 		| <b>DOT</b> [0-9]+
 		| <b>DOUBLEQUOTE</b> <i>characters</i> <b>DOUBLEQUOTE</b>
 		| <b>DOLLAR</b> <i>ident</i>
+		| <b>SHARP</b> <i>ident</i>
 		| <b>true</b>
 		| <b>false</b>
 		| <b>null</b>
@@ -88,7 +89,8 @@ The syntax is parsed using a left-to-right LL(1) parser. That means that after r
 		| <b>do</b> <i>expr</i> <b>while</b> <i>expr</i>
 		| <b>if</b> <i>expr</i> <i>expr</i> [<b>else</b> <i>expr</i>]
 		| <b>switch</b> <i>expr</i> <b>{</b> <i>cases</i> <b>}</b>
-		| <b>function (</b> <i>parameter-names</i> <b>)</b> <i>expr</i>
+		| <b>try</b> <i>expr</i> <b>catch</b> <i>ident</i> <i>expr</i>
+		| <b>function (</b> <i>parameters-names</i> <b>)</b> <i>expr</i>
 		| <b>return</b> [<i>expr</i>]
 		| <b>break</b> [<i>expr</i>]
 		| <b>continue</b>
@@ -103,12 +105,12 @@ The syntax is parsed using a left-to-right LL(1) parser. That means that after r
 		| <b>COMMA</b> <i>parameters</i>
 		| &epsilon;
 
-	    <i>parameter-names</i> :=
-		| <i>ident</i> <i>parameter-names</i>
-		| <b>COMMA</b> <i>parameter-names</i>
+	    <i>parameters-names</i> :=
+		| <i>ident</i> <i>parameters-names</i>
+		| <b>COMMA</b> <i>parameters-names</i>
 		| &epsilon;
 
-		<i>cases</i> :=
+	    <i>cases</i> :=
 		| <i>expr</i> <b>=></b> <i>expr</i> <i>cases</i>
 		| <b>default</b> <b>=></b> <i>expr</i> <i>cases</i>
 		| &epsilon;
@@ -136,12 +138,12 @@ A value in Neko can be one of the following :
 <li><b>Integer :</b> integers can be represented in either decimal form (such as <code>12345</code>, <code>-12</code>) or hexadecimal (<code>0x1A2B3C4D</code>).</li>
 <li><b>Floating point :</b> floating point values are represented using a dot (such as <code>12.345</code> or <code>-0.123</code>)</li>
 <li><b>String :</b> strings are double quoted (such as <code>"foo"</code>, or <code>"hello,\nworld !"</code>, or <code>"My name is \"Bond\\James Bond\"."</code>).</li>
-<li><b>Character :</b> characters are single quoted (such as <code>'a'</code> or <code>'\n'</code> or <code>'\''</code>).</li>
 <li><b>Boolean :</b> the two booleans are available as specific lowercased identifiers : <code>true</code> and <code>false</code>.</li>
 <li><b>Null :</b> the special value <code>null</code> is used for uninitialized variables as well as programmer/langage specific coding techniques.</li>
 <li><b>This :</b> the specific identifier <code>this</code> refer to local object context. See the OO features of Neko below.</li>
-<li><b>Object :</b> an object is also an association table, which bind an ident or a string to an expression (such as <code>&lt;{ a => 1, b => 2, c => "hello" }&gt;</code> or <code>&lt;{ "jack" => 29, "ben" => 24, "superman" => 100 }&gt;</code> ).</li>
-<li><b>Array :</b> arrays are indexed table of values, starting at index 0 (such as <code>&lt;[1,33,-20,4,5]&gt;</code> or <code>&lt;["some","array","of",5,"words"]&gt;</code>).</li>
+<li><b>Object :</b> an object is also an association table, which bind an ident or a string to a value.</li>
+<li><b>Array :</b> arrays are indexed table of values, starting at index 0.</li>
+<li><b>Module :</b> a module is a particular kind of global object.</li>
 </ul>
 
 <i>(c)2004-2005 Nicolas Cannasse</i>

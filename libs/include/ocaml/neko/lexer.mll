@@ -26,7 +26,7 @@ let error e pos =
 let keywords =
 	let h = Hashtbl.create 3 in
 	List.iter (fun k -> Hashtbl.add h (s_keyword k) k)
-	[Var;For;While;Do;If;Else;Switch;Function;Return;Break;Continue;Default]
+	[Var;For;While;Do;If;Else;Switch;Function;Return;Break;Continue;Default;Try;Catch]
 	; h
 
 let init file =
@@ -86,14 +86,13 @@ let mk lexbuf t =
 	mk_tok t (lexeme_start lexbuf) (lexeme_end lexbuf)
 
 let mk_ident lexbuf =
-	match lexeme lexbuf with
-	| s ->
-		mk lexbuf (try Keyword (Hashtbl.find keywords s) with Not_found -> Const (Ident s))
+	let s = lexeme lexbuf in
+	mk lexbuf (try Keyword (Hashtbl.find keywords s) with Not_found -> Const (Ident s))
 
 }
 
-let ident = ['a'-'z' 'A'-'Z' '_' '@'] ['a'-'z' 'A'-'Z' '0'-'9' '_' '@']*
-let binop = ['!' '=' '*' '/' '<' '>' '&' '|' '^' '%' '+' '-' ]+
+let ident = ['a'-'z' 'A'-'Z' '_' '@'] ['a'-'z' 'A'-'Z' '0'-'9' '_' '@' ':']*
+let binop = ['!' '=' '*' '/' '<' '>' '&' '|' '^' '%' '+' ':' '-']+
 let number = ['0'-'9']
 
 rule token = parse
@@ -115,6 +114,7 @@ rule token = parse
 	| number+ '.' number*
 	| '.' number+ { mk lexbuf (Const (Float (lexeme lexbuf))) }
 	| '$' (ident as v) { mk lexbuf (Const (Builtin v)) }
+	| '#' (ident as v) { mk lexbuf (Const (Module v)) }
 	| "true" { mk lexbuf (Const True) } 
 	| "false" { mk lexbuf (Const False) }
 	| "null" { mk lexbuf (Const Null) }
@@ -137,6 +137,9 @@ rule token = parse
 			let s = lexeme lexbuf in
 			let n = (if s.[String.length s - 1] = '\r' then 3 else 2) in
 			mk lexbuf (CommentLine (String.sub s 2 ((String.length s)-n)))
+		}
+	| _ {
+			error (Invalid_character (lexeme_char lexbuf 0)) (lexeme_start lexbuf)
 		}
 
 and comment = parse
