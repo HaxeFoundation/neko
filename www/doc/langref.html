@@ -46,7 +46,7 @@ In particular, there is not multiple levels of expression, as in C. Every statem
 </p>
 
 <p>
-The syntax is parsed using a left-to-right LL(1) parser. That means that after reading a token we have enough information to know which expresion it will produce. This enable very lightweight parser which is easy to improve without creating ambiguities. Here's an Abstract Syntax Tree description of the language syntax :
+The syntax is parsed using a left-to-right LL(1) parser. That means that after reading a token we have enough information to know which expresion it will produce. This enable very lightweight parser which is easy to improve without creating ambiguities. Here's an Abstract Syntax Tree description of the language syntax, with the additionnal constraint that a program must be terminated by EOF :
 </p>
 
 <pre>
@@ -59,26 +59,23 @@ The syntax is parsed using a left-to-right LL(1) parser. That means that after r
 		| [a-zA-Z_@] [a-zA-Z0-9_@]*
 
 	    <i>binop</i> :=
-		| [!=*/&lt;&gt;+-]+
+		| [!=*/&lt;&gt;&|^%+-]+
 
 	    <i>value</i> :=
 		| [0-9]+
 		| 0x[0-9A-Fa-f]+
 		| [0-9]+ <b>DOT</b> [0-9]*
 		| <b>DOT</b> [0-9]+
-		| <b>QUOTE</b> <i>character</i> <b>QUOTE</b>
 		| <b>DOUBLEQUOTE</b> <i>characters</i> <b>DOUBLEQUOTE</b>
 		| <b>DOLLAR</b> <i>ident</i>
 		| <b>true</b>
 		| <b>false</b>
 		| <b>null</b>
 		| <b>this</b>
-		| <b>&lt;{</b> <i>values</i> <b>}&gt;</b>
-		| <b>&lt;[</b> <i>parameters</i> <b>]&gt;</b>
+		| <i>ident</i>
 
 	    <i>expr</i> :=
 		| <i>value</i>
-		| <i>ident</i>
 		| <b>{</b> <i>program</i> <b>}</b>
 		| <i>expr</i> <b>DOT</b> <i>ident</i>
 		| <i>expr</i> <b>(</b> <i>parameters</i> <b>)</b>
@@ -111,13 +108,23 @@ The syntax is parsed using a left-to-right LL(1) parser. That means that after r
 		| <b>COMMA</b> <i>parameter-names</i>
 		| &epsilon;
 
-	    <i>values</i> :=
-		| <i>ident</i> <b>=></b> <i>expr</i> <i>values</i>
-		| <i>string</i> <b>=></b> <i>expr</i> <i>value</i>
-		| <b>COMMA</b> <i>values</i>
+		<i>cases</i> :=
+		| <i>expr</i> <b>=></b> <i>expr</i> <i>cases</i>
+		| <b>default</b> <b>=></b> <i>expr</i> <i>cases</i>
 		| &epsilon;
 
 </pre>
+
+<p>
+	<i>Random notes : </i>
+</p>
+
+<ul>
+<li><code>continue</code> behavior in a <code>for</code> increments part (third expression) is undefined.</li>
+<li><code>continue</code> and <code>break</code> outside a loop are equivalents of <code>return</code>.</li>
+<li><code>return</code> in the toplevel (outside a function) is an accepted way of interupting module execution without error.</li>
+<li>unlike C, <code>switch</code> different cases are disjoint so you cannot jump from one case to the next one by omitting a <code>break</code> (there is always an implicit break at the end of each case).
+</ul>
 
 <h2>Values</h2>
 
