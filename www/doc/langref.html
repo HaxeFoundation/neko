@@ -1,0 +1,143 @@
+<html>
+
+<head>
+<title>Neko Language Specification</title>
+</head>
+
+<body bgcolor="white">
+
+<h1>Neko Language Specification</h1>
+
+<h2>Introduction</h2>
+
+<p>
+Neko is an <i>intermediate</i> programming language designed to provide a common runtime for various imperative or functionnal, staticly or dynamicly typed high-level programming languages.
+</p>
+
+<p>
+Every new programming language has now to deal with an huge amount of stuff in order to be taken seriously and labelled "usable". This can be some general properties such as an OO layer, decent runtime speed, dynamic loading  and reflection, but most of the work have to be put into librairies : Network, Xml, Internet protocols, Graphical User Interface, and so on... Such an amount of work makes new language long time to take off and the language designer can't focus anymore on features and design. This state has bring us to an era where outdated poor and uncool programming languages such as Java are ruling the business world, not because of its qualities and features but because of the ability of the industry to leverage it and reuse large librairies of code.
+</p>
+
+<p>
+On the other side, Microsoft have an interesting approach with its DotNet platform : Free the language designer from a lot of work by providing a common framework being able to run a wide variety of languages. Looks very nice and promising on the paper, but there is several problems with it :
+</p>
+
+<ul>
+<li>DotNet runs only on Windows (even if Mono is trying to keep up with it).</li>
+<li>DotNet performs poorly with functional languages (until maybe <a href="http://research.microsoft.com/projects/ilx/ilx.aspx">ILX</a> is incorporated into it).</li>
+<li>DotNet is heavyweighted for small applications.</li>
+<li>DotNet is not Open Source.</li>
+<li>DotNet is owned by the great evil, although ECMA standardized.</li>
+</ul>
+
+<p>
+Some other alternatives are available, but they're either too much low-level (<a href="http://llvm.cs.uiuc.edu">LLVM</a>) or dedicated to dynamicly typed languages  (<a href="http://www.parrotcode.org">Parrot</a>). As a <a href="http://ncannasse.free.fr/index.php?p=19">language designer</a> and <a href="http://team.motion-twin.com/ncannasse/mtasc.html">compiler writer</a>, I have my own way of thinking about multilanguage framework with code reusability, so I decided to give it a try.
+</p>
+
+
+<h2>Syntax</h2>
+
+<p>
+Neko language syntax have been created with easy to parse and produce kept in mind. It is not especialy designed to be written by a programmer but more to be generated from a higher level language. For example one could write easily a PHP-to-Neko or a Java-to-Neko that would generate equivalent code but using Neko syntax and semantics instead of PHP or Java ones.
+</p>
+
+<p>
+In particular, there is not multiple levels of expression, as in C. Every statement is also an expression, and thus enable some constructs that are not possible in other languages (for example : <code>return switch(x) { ... }</code>). This make the generation to Neko from functional languages more easy.
+</p>
+
+<p>
+The syntax is parsed using a left-to-right LL(1) parser. That means that after reading a token we have enough information to know which expresion it will produce. This enable very lightweight parser which is easy to improve without creating ambiguities. Here's an Abstract Syntax Tree description of the language syntax :
+</p>
+
+<pre>
+	    <i>program</i> :=
+		| <i>expr</i> <i>program</i>
+		| <b>SEMICOLON</b> <i>program</i>
+		| &epsilon;
+
+	    <i>ident</i> :=
+		| [a-zA-Z_@] [a-zA-Z0-9_@]*
+
+	    <i>binop</i> :=
+		| [!=*/&lt;&gt;+-]+
+
+	    <i>value</i> :=
+		| [0-9]+
+		| 0x[0-9A-Fa-f]+
+		| [0-9]+ <b>DOT</b> [0-9]*
+		| <b>DOT</b> [0-9]+
+		| <b>QUOTE</b> <i>character</i> <b>QUOTE</b>
+		| <b>DOUBLEQUOTE</b> <i>characters</i> <b>DOUBLEQUOTE</b>
+		| <b>DOLLAR</b> <i>ident</i>
+		| <b>true</b>
+		| <b>false</b>
+		| <b>null</b>
+		| <b>this</b>
+		| <b>&lt;{</b> <i>values</i> <b>}&gt;</b>
+		| <b>&lt;[</b> <i>parameters</i> <b>]&gt;</b>
+
+	    <i>expr</i> :=
+		| <i>value</i>
+		| <i>ident</i>
+		| <b>{</b> <i>program</i> <b>}</b>
+		| <i>expr</i> <b>DOT</b> <i>ident</i>
+		| <i>expr</i> <b>(</b> <i>parameters</i> <b>)</b>
+		| <i>expr</i> <b>[</b> <i>expr</i> <b>]</b>
+		| <i>expr</i> <i>binop</i> <i>expr</i>
+		| <b>(</b> <i>expr</i> <b>)</b>
+		| <b>var</b> <i>variables</i>
+		| <b>for (</b> <i>expr</i> <i>expr</i> <i>expr</i> <b>)</b> <i>expr</i>
+		| <b>while</b> <i>expr</i> <i>expr</i>
+		| <b>do</b> <i>expr</i> <b>while</b> <i>expr</i>
+		| <b>if</b> <i>expr</i> <i>expr</i> [<b>else</b> <i>expr</i>]
+		| <b>switch</b> <i>expr</i> <b>{</b> <i>cases</i> <b>}</b>
+		| <b>function (</b> <i>parameter-names</i> <b>)</b> <i>expr</i>
+		| <b>return</b> [<i>expr</i>]
+		| <b>break</b> [<i>expr</i>]
+		| <b>continue</b>
+
+	    <i>variables</i> :=
+		| <i>ident</i> [<b>=</b> <i>expr</i>] <i>variables</i>
+		| <b>COMMA</b> <i>variables</i>
+		| &epsilon;
+
+	    <i>parameters</i> :=
+		| <i>expr</i> <i>parameters</i>
+		| <b>COMMA</b> <i>parameters</i>
+		| &epsilon;
+
+	    <i>parameter-names</i> :=
+		| <i>ident</i> <i>parameter-names</i>
+		| <b>COMMA</b> <i>parameter-names</i>
+		| &epsilon;
+
+	    <i>values</i> :=
+		| <i>ident</i> <b>=></b> <i>expr</i> <i>values</i>
+		| <i>string</i> <b>=></b> <i>expr</i> <i>value</i>
+		| <b>COMMA</b> <i>values</i>
+		| &epsilon;
+
+</pre>
+
+<h2>Values</h2>
+
+<p>
+A value in Neko can be one of the following :
+</p>
+
+<ul>
+<li><b>Integer :</b> integers can be represented in either decimal form (such as <code>12345</code>, <code>-12</code>) or hexadecimal (<code>0x1A2B3C4D</code>).</li>
+<li><b>Floating point :</b> floating point values are represented using a dot (such as <code>12.345</code> or <code>-0.123</code>)</li>
+<li><b>String :</b> strings are double quoted (such as <code>"foo"</code>, or <code>"hello,\nworld !"</code>, or <code>"My name is \"Bond\\James Bond\"."</code>).</li>
+<li><b>Character :</b> characters are single quoted (such as <code>'a'</code> or <code>'\n'</code> or <code>'\''</code>).</li>
+<li><b>Boolean :</b> the two booleans are available as specific lowercased identifiers : <code>true</code> and <code>false</code>.</li>
+<li><b>Null :</b> the special value <code>null</code> is used for uninitialized variables as well as programmer/langage specific coding techniques.</li>
+<li><b>This :</b> the specific identifier <code>this</code> refer to local object context. See the OO features of Neko below.</li>
+<li><b>Object :</b> an object is also an association table, which bind an ident or a string to an expression (such as <code>&lt;{ a => 1, b => 2, c => "hello" }&gt;</code> or <code>&lt;{ "jack" => 29, "ben" => 24, "superman" => 100 }&gt;</code> ).</li>
+<li><b>Array :</b> arrays are indexed table of values, starting at index 0 (such as <code>&lt;[1,33,-20,4,5]&gt;</code> or <code>&lt;["some","array","of",5,"words"]&gt;</code>).</li>
+</ul>
+
+<i>(c)2004-2005 Nicolas Cannasse</i>
+
+</body>
+</html>
