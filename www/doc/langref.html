@@ -91,8 +91,8 @@ The syntax is parsed using a left-to-right LL(1) parser. That means that after r
 		| <b>switch</b> <i>expr</i> <b>{</b> <i>cases</i> <b>}</b>
 		| <b>try</b> <i>expr</i> <b>catch</b> <i>ident</i> <i>expr</i>
 		| <b>function (</b> <i>parameters-names</i> <b>)</b> <i>expr</i>
-		| <b>return</b> [<i>expr</i>]
-		| <b>break</b> [<i>expr</i>]
+		| <b>return</b> [<i>expr</i> | <b>SEMICOLON</b>]
+		| <b>break</b> [<i>expr</i> | <b>SEMICOLON</b>]
 		| <b>continue</b>
 
 	    <i>variables</i> :=
@@ -125,7 +125,8 @@ The syntax is parsed using a left-to-right LL(1) parser. That means that after r
 <li><code>continue</code> behavior in a <code>for</code> increments part (third expression) is undefined.</li>
 <li><code>continue</code> and <code>break</code> outside a loop are equivalents of <code>return</code>.</li>
 <li><code>return</code> in the toplevel (outside a function) is an accepted way of interupting module execution without error.</li>
-<li>unlike C, <code>switch</code> different cases are disjoint so you cannot jump from one case to the next one by omitting a <code>break</code> (there is always an implicit break at the end of each case).
+<li>unlike C, <code>switch</code> different cases are disjoint so you cannot jump from one case to the next one by omitting a <code>break</code> (there is always an implicit break at the end of each case).</li>
+<li>There is some few ambiguous cases when two expressions follows each others (in for, while and if). If the second expression is inside parenthesis, it will be parsed as a call of first expression, while such a representation e1 (e2) exists in the AST.</li>
 </ul>
 
 <h2>Values</h2>

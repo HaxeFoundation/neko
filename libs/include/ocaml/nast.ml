@@ -87,6 +87,30 @@ let punion p p2 =
 		pmax = max p.pmax p2.pmax;
 	}
 
+let mk_call v args p = ECall (v,args) , p
+
+let map f (e,p) =
+	(match e with
+	| EBlock el -> EBlock (List.map f el)
+	| EParenthesis e -> EParenthesis (f e)
+	| EField (e,s) -> EField (f e, s)
+	| ECall (e,el) -> ECall (f e, List.map f el)
+	| EArray (e1,e2) -> EArray (f e1, f e2)
+	| EVars vl -> EVars (List.map (fun (v,e) -> v , match e with None -> None | Some e -> Some (f e)) vl)
+	| EFor (e1,e2,e3,e4) -> EFor (f e1, f e2, f e3, f e4)
+	| EWhile (e1,e2,flag) -> EWhile (f e1, f e2, flag)
+	| EIf (e,e1,e2) -> EIf (f e, f e1, match e2 with None -> None | Some e -> Some (f e))
+	| ESwitch (e,cases,def) -> ESwitch (f e, List.map (fun (e1,e2) -> f e1 , f e2) cases , match def with None -> None | Some e -> Some (f e))
+	| ETry (e,ident,e2) -> ETry (f e, ident, f e2)
+	| EFunction (params,e) -> EFunction (params, f e)
+	| EBinop (op,e1,e2) -> EBinop (op, f e1, f e2)
+	| EReturn (Some e) -> EReturn (Some (f e))
+	| EBreak (Some e) -> EBreak (Some (f e))
+	| EReturn None
+	| EBreak None
+	| EContinue	
+	| EConst _ as x -> x) , p
+
 let escape s =
 	let b = Buffer.create (String.length s) in
 	for i = 0 to (String.length s) - 1 do
@@ -141,7 +165,7 @@ let s_token = function
 	| Const c -> s_constant c
 	| Keyword k -> s_keyword k
 	| Binop s -> s
-	| Comment s -> "//" ^ s
-	| CommentLine s -> "/*" ^ s ^ "*/"
+	| Comment s -> "/*" ^ s ^ "*/"
+	| CommentLine s -> "//" ^ s
  
 	

@@ -20,7 +20,7 @@ let report (msg,p) etype printer =
 		| StyleJava -> sprintf "%s:%d:" file line
 		| StyleMSVC -> sprintf "%s(%d):" file line
 	in
-	let epos = Lexer.get_error_pos error_printer p in
+	let epos = PhpLexer.get_error_pos error_printer p in
 	prerr_endline (sprintf "%s : %s %s" epos etype (printer msg));
 	exit 1
 
@@ -56,8 +56,10 @@ try
 		) (List.rev !files);
 	end;
 with	
-	| Lexer.Error (m,p) -> report (m,p) "syntax error" Lexer.error_msg
+(*	| Lexer.Error (m,p) -> report (m,p) "syntax error" Lexer.error_msg
 	| Parser.Error (m,p) -> report (m,p) "parse error" Parser.error_msg
+*)	| PhpLexer.Error (m,p) -> report (m,p) "syntax error" PhpLexer.error_msg
+	| PhpParser.Error (m,p) -> report (m,p) "parse error" PhpParser.error_msg
 	| Interp.Error (m,p) -> report (m,p) "runtime error" Interp.error_msg
 	| Failure msg ->
 		prerr_endline msg;

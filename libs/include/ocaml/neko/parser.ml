@@ -37,23 +37,23 @@ let rec program = parser
 	| [< '(Semicolon,_); p = program >] -> p
 	| [< '(Eof,_) >] -> []
 
-and expr = parser
+and expr = parser	
 	| [< '(Const c,p); s >] ->
 		expr_next (EConst c,p) s
 	| [< '(BraceOpen,p1); p = block; s >] ->
 		(match s with parser
 		| [< '(BraceClose,p2); s >] -> expr_next (EBlock p,punion p1 p2) s
-		| [< >] -> error (Unclosed "{") p1)
+		| [< _ = expr >] -> error (Unclosed "{") p1)
 	| [< '(ParentOpen,p1); e = expr; s >] ->
 		(match s with parser
 		| [< '(ParentClose,p2); s >] -> expr_next (EParenthesis e,punion p1 p2) s
-		| [< >] -> error (Unclosed "(") p1)
+		| [< _ = expr >] -> error (Unclosed "(") p1)
 	| [< '(Keyword Var,p1); v, p2 = variables p1; s >] ->
 		expr_next (EVars v,punion p1 p2) s
 	| [< '(Keyword For,p1); '(ParentOpen,po); e1 = expr; e2 = expr; e3 = expr; s >] ->
 		(match s with parser
 		| [< '(ParentClose,_); e = expr; s >] -> expr_next (EFor (e1,e2,e3,e),punion p1 (pos e)) s
-		| [< >] -> error (Unclosed "(") po)
+		| [< _ = expr >] -> error (Unclosed "(") po)
 	| [< '(Keyword While,p1); cond = expr; e = expr; s >] ->
 		expr_next (EWhile (cond,e,NormalWhile), punion p1 (pos e)) s
 	| [< '(Keyword Do,p1); e = expr; '(Keyword While,_); cond = expr; s >] ->
@@ -65,19 +65,19 @@ and expr = parser
 	| [< '(Keyword Switch,p1); v = expr; '(ParentOpen,po); cl, def = cases; s >] ->
 		(match s with parser
 		| [< '(ParentClose,p2); s >] -> expr_next (ESwitch (v,cl,def),punion p1 p2) s
-		| [< >] -> error (Unclosed "(") po)
+		| [< _ = expr >] -> error (Unclosed "(") po)
 	| [< '(Keyword Function,p1); '(ParentOpen,po); p = parameter_names; s >] ->
 		(match s with parser
 		| [< '(ParentClose,_); e = expr; s >] -> expr_next (EFunction (p,e),punion p1 (pos e)) s
-		| [< >] -> error (Unclosed "(") po)
+		| [< _ = expr >] -> error (Unclosed "(") po)
 	| [< '(Keyword Return,p1); s >] ->
 		(match s with parser
 		| [< e = expr; s >] -> expr_next (EReturn (Some e), punion p1 (pos e)) s
-		| [< >] -> expr_next (EReturn None,p1) s)
+		| [< '(Semicolon,_); s >] -> expr_next (EReturn None,p1) s)
 	| [< '(Keyword Break,p1); s >] ->
 		(match s with parser
 		| [< e = expr; s >] -> expr_next (EBreak (Some e), punion p1 (pos e)) s
-		| [< >] -> expr_next (EBreak None,p1) s)
+		| [< '(Semicolon,_); s >] -> expr_next (EBreak None,p1) s)
 	| [< '(Keyword Continue,p1); s >] ->
 		expr_next (EContinue,p1) s
 	| [< '(Keyword Try,p1); e = expr; '(Keyword Catch,_); '(Const (Ident name),_); e2 = expr; s >] ->
@@ -89,11 +89,11 @@ and expr_next e = parser
 	| [< '(ParentOpen,po); pl = parameters; s >] ->
 		(match s with parser
 		| [< '(ParentClose,p); s >] -> expr_next (ECall (e,pl),punion (pos e) p) s
-		| [< >] -> error (Unclosed "(") po)
+		| [< _ = expr >] -> error (Unclosed "(") po)
 	| [< '(BracketOpen,po); e2 = expr; s >] ->
 		(match s with parser
 		| [< '(BracketClose,p); s >] -> expr_next (EArray (e,e2),punion (pos e) p) s
-		| [< >] -> error (Unclosed "[") po)
+		| [< _ = expr >] -> error (Unclosed "[") po)
 	| [< '(Binop op,_); e2 = expr; s >] ->
 		make_binop op e e2
 	| [< >] -> e
@@ -135,7 +135,7 @@ let parse code file =
 	let last = ref (Eof,null_pos) in
 	let rec next_token x =
 		let t, p = Lexer.token code in
-		match t with 
+		match t with
 		| Comment s | CommentLine s -> 
 			next_token x
 		| _ ->

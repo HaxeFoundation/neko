@@ -92,7 +92,7 @@ let mk_ident lexbuf =
 }
 
 let ident = ['a'-'z' 'A'-'Z' '_' '@'] ['a'-'z' 'A'-'Z' '0'-'9' '_' '@' ':']*
-let binop = ['!' '=' '*' '/' '<' '>' '&' '|' '^' '%' '+' ':' '-']+
+let binop = ['!' '=' '*' '/' '<' '>' '&' '|' '^' '%' '+' ':' '-']
 let number = ['0'-'9']
 
 rule token = parse
@@ -120,7 +120,6 @@ rule token = parse
 	| "null" { mk lexbuf (Const Null) }
 	| "this" { mk lexbuf (Const This) }
 	| ident { mk_ident lexbuf }
-	| binop { mk lexbuf (Binop (lexeme lexbuf)) }
 	| '"' {
 			reset();
 			let pmin = lexeme_start lexbuf in
@@ -138,6 +137,7 @@ rule token = parse
 			let n = (if s.[String.length s - 1] = '\r' then 3 else 2) in
 			mk lexbuf (CommentLine (String.sub s 2 ((String.length s)-n)))
 		}
+	| binop binop? | ">>>" { mk lexbuf (Binop (lexeme lexbuf)) }
 	| _ {
 			error (Invalid_character (lexeme_char lexbuf 0)) (lexeme_start lexbuf)
 		}
