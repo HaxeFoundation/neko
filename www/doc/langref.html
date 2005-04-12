@@ -3,7 +3,6 @@
 <head>
 <title>Neko Language Specification</title>
 </head>
-
 <body bgcolor="white">
 
 <h1>Neko Language Specification</h1>
@@ -25,13 +24,14 @@ On the other side, Microsoft have an interesting approach with its DotNet platfo
 <ul>
 <li>DotNet runs only on Windows (even if Mono is trying to keep up with it).</li>
 <li>DotNet performs poorly with functional languages (until maybe <a href="http://research.microsoft.com/projects/ilx/ilx.aspx">ILX</a> is incorporated into it).</li>
+<li>DotNet have been designed to run mainly OO staticly typed language (such as C#).</li>
 <li>DotNet is heavyweighted for small applications.</li>
 <li>DotNet is not Open Source.</li>
-<li>DotNet is owned by the great evil, although ECMA standardized.</li>
+<li>DotNet bytecode have a high learning curve and it is not easy to generate to it.</li>
 </ul>
 
 <p>
-Some other alternatives are available, but they're either too much low-level (<a href="http://llvm.cs.uiuc.edu">LLVM</a>) or dedicated to dynamicly typed languages  (<a href="http://www.parrotcode.org">Parrot</a>). As a <a href="http://ncannasse.free.fr/index.php?p=19">language designer</a> and <a href="http://team.motion-twin.com/ncannasse/mtasc.html">compiler writer</a>, I have my own way of thinking about multilanguage framework with code reusability, so I decided to give it a try.
+Some other alternatives are available, but they're either too much low-level (<a href="http://llvm.cs.uiuc.edu">LLVM</a>) or dedicated to dynamicly typed languages  (<a href="http://www.parrotcode.org">Parrot</a>). As a <a href="http://ncannasse.free.fr/index.php?p=19">language designer</a> and <a href="http://www.mtasc.org">compiler writer</a>, I have my own way of thinking about multilanguage framework with code reusability, so I decided to give it a try.
 </p>
 
 
@@ -42,7 +42,7 @@ Neko language syntax have been created with easy to parse and produce kept in mi
 </p>
 
 <p>
-In particular, there is not multiple levels of expression, as in C. Every statement is also an expression, and thus enable some constructs that are not possible in other languages (for example : <code>return switch(x) { ... }</code>). This make the generation to Neko from functional languages more easy.
+In particular, there is not multiple levels of expression, as in C. Every statement is also an expression, and thus enable some constructs that are not possible in other languages (for example : <code>return if(x) { ... } else { ... }</code>). This make the generation to Neko from functional languages more easy.
 </p>
 
 <p>
@@ -69,6 +69,7 @@ The syntax is parsed using a left-to-right LL(1) parser. That means that after r
 		| <b>DOUBLEQUOTE</b> <i>characters</i> <b>DOUBLEQUOTE</b>
 		| <b>DOLLAR</b> <i>ident</i>
 		| <b>SHARP</b> <i>ident</i>
+		| <b>QUOTE</b> <i>ident</i>
 		| <b>true</b>
 		| <b>false</b>
 		| <b>null</b>
@@ -88,7 +89,6 @@ The syntax is parsed using a left-to-right LL(1) parser. That means that after r
 		| <b>while</b> <i>expr</i> <i>expr</i>
 		| <b>do</b> <i>expr</i> <b>while</b> <i>expr</i>
 		| <b>if</b> <i>expr</i> <i>expr</i> [<b>else</b> <i>expr</i>]
-		| <b>switch</b> <i>expr</i> <b>{</b> <i>cases</i> <b>}</b>
 		| <b>try</b> <i>expr</i> <b>catch</b> <i>ident</i> <i>expr</i>
 		| <b>function (</b> <i>parameters-names</i> <b>)</b> <i>expr</i>
 		| <b>return</b> [<i>expr</i> | <b>SEMICOLON</b>]
@@ -123,10 +123,9 @@ The syntax is parsed using a left-to-right LL(1) parser. That means that after r
 
 <ul>
 <li><code>continue</code> behavior in a <code>for</code> increments part (third expression) is undefined.</li>
-<li><code>continue</code> and <code>break</code> outside a loop are equivalents of <code>return</code>.</li>
+<li><code>continue</code> and <code>break</code> outside a loop are not specified.</li>
 <li><code>return</code> in the toplevel (outside a function) is an accepted way of interupting module execution without error.</li>
-<li>unlike C, <code>switch</code> different cases are disjoint so you cannot jump from one case to the next one by omitting a <code>break</code> (there is always an implicit break at the end of each case).</li>
-<li>There is some few ambiguous cases when two expressions follows each others (in for, while and if). If the second expression is inside parenthesis, it will be parsed as a call of first expression, while such a representation e1 (e2) exists in the AST.</li>
+<li>There is some few ambiguous cases when two expressions follows each others (in for, while and if). If the second expression is inside parenthesis, it will be parsed as a call of first expression, while such a representation e1 (e2) exists in the AST (the semicolons are optional).</li>
 </ul>
 
 <h2>Values</h2>
@@ -136,15 +135,255 @@ A value in Neko can be one of the following :
 </p>
 
 <ul>
-<li><b>Integer :</b> integers can be represented in either decimal form (such as <code>12345</code>, <code>-12</code>) or hexadecimal (<code>0x1A2B3C4D</code>).</li>
+<li><b>Integer :</b> integers can be represented in either decimal form (such as <code>12345</code> or <code>-12</code>) or hexadecimal (<code>0x1A2B3C4D</code>).</li>
 <li><b>Floating point :</b> floating point values are represented using a dot (such as <code>12.345</code> or <code>-0.123</code>)</li>
-<li><b>String :</b> strings are double quoted (such as <code>"foo"</code>, or <code>"hello,\nworld !"</code>, or <code>"My name is \"Bond\\James Bond\"."</code>).</li>
+<li><b>String :</b> strings are double quoted (such as <code>"foo"</code>, or <code>"hello,\nworld !"</code>, or <code>"My name is \"Bond\\James Bond\"."</code>). Neko strings are immutable, that means that you cannot modify them.</li>
 <li><b>Boolean :</b> the two booleans are available as specific lowercased identifiers : <code>true</code> and <code>false</code>.</li>
 <li><b>Null :</b> the special value <code>null</code> is used for uninitialized variables as well as programmer/langage specific coding techniques.</li>
-<li><b>This :</b> the specific identifier <code>this</code> refer to local object context. See the OO features of Neko below.</li>
-<li><b>Object :</b> an object is also an association table, which bind an ident or a string to a value.</li>
-<li><b>Array :</b> arrays are indexed table of values, starting at index 0.</li>
-<li><b>Module :</b> a module is a particular kind of global object.</li>
+<li><b>Object :</b> an object is an association table, which bind an ident or a string to a value, see how you can create and manage objects later.</li>
+<li><b>Array :</b> arrays are indexed table of values, starting at index 0, they provide fast random access.</li>
+<li><b>Function :</b> a function is also a value in Neko, and can then be stored into any variable.</li>
+</ul>
+
+<p>
+Some precisions :
+</p>
+
+<ul>
+<li>integers are 31 bits for virtual machine performances reasons, an access to full 32 bits integers will be made possible soon.</li>
+<li>floating points are 64 bits double precision floating points values.</li>
+<li>strings are 8-bit binary values. A string can contain \0 characters, the string length is determined by the amount of data available and not by the number of characters before the first \0. Maximum string size might depend of virtual machine specification, but should be at least 65535 bytes.</i>
+</ul>
+
+<h2>Execution Flow</h2>
+
+<p>
+Here's some explanation on how each expression is evaluated :
+</p>
+
+<h3>
+Values :
+</h3>
+
+<ul>
+<li><code>[0-9]+ | 0x[0-9A-Fa-f]+</code> : evaluate to the corresponding integer value</li>
+<li><code>[0-9]+ <b>DOT</b> [0-9]* | <b>DOT</b> [0-9]+</code> : evaluate to the corresponding floating point value</code></li>
+<li><code><b>DOUBLEQUOTE</b> <i>characters</i> <b>DOUBLEQUOTE</b></code> : evaluate to the corresponding string. Escaped characters are simular to the C language.</li>
+<li><code><b>DOLLAR</b> <i>ident</i></code> : identifiers prefixed with a dollar are primitives. They enable you to call some compiler constructors or optimized calls (see Primitives).</li>
+<li><code><b>SHARP</b> <i>ident</i></code> : identifiers prefixed with a sharp are modules. See later for explanations of module loading and linking (see Modules).</li>
+<li><code><b>QUOTE</b> <i>ident</i></code> : execute a macro at parsing-time (see Macros)</li>
+<li><code><b>true</b> | <b>false</b></code> : evaluate to the corresponding boolean.</li>
+<li><code><b>null</b></code> : evaluate to the null value.</li>
+<li><code><b>this</b></code> : evaluate to the local object value (see later for objects).</li>
+<li><code><i>ident</i></code> : evaluate to the value currently bound to this variable name.</li>
+</ul>
+
+<h3>Expressions</h3>
+<p>
+<em>before evaluating any expression, all sub-expressions are evaluated in an unspecified order. the "v" here are showing the values returned by evaluation of sub-expressions.</em>
+</p>
+
+<ul>
+<li><code><b>{</b> <i>v1, v2, .... vk</i> <b>}</b></code> : the evaluation order is specified here, it follows the expressions declarations. The last value <code>vk</code> is returned, or <code>null</code> if <code>program</code> does not contain any expression.</li>
+<li><code><i>v</i> <b>DOT</b> <i>ident</i></code> : <code>v</code> is accessed as an object using <code>ident</code> as key (see Objects).</li>
+<li><code><i>v</i> <b>(</b> <i>v1, v2, ... vk</i> <b>)</b></code> : the function <code>v</code> is called with the parameters <code>v1, v2... vk</code> (see Function Calls)</li>
+<li><code><i>v1</i> <b>[</b> <i>v2</i> <b>]</b></code> : <code>v1</code> is accessed as an array using <code>v2</code> as key (see Arrays)</li>
+<li><code><i>v1</i> <i>binop</i> <i>v2</i></code> : calculate v1 op v2 (see Operations).</li>
+<li><code><i>expr</i> <i>assign-binop</i> <i>v</i></code> : this is a special case, when operation is an assignation (see Operations).</li>
+<li><code><b>(</b> <i>v</i> <b>)</b></code> : evaluate to <code>v</code>.</li>
+<li><code><b>var</b> <i>i1 = v1, i2 = v2, .... ik = vk</i></code> : each variable <code>i</code> is set to the corresponding value <code>v</code> or to <code>null</code> if no initialization expression is provided.</li>
+<li><code><b>for</b>...</code> : classic for-loop, the value returned is either the value returned by a <code>break</code> inside the for or unspecified.</li>
+<li><code><b>while</b> ....  | <b>do</b> ... <b>while</b> ...</code> : classic while-loop, same as for.</li>
+<li><code><b>if</b> <i>v1</i> <i>e1</i></code> : if v1 is the Boolean <code>true</code>, then <code>e1</code> is evaluated and its value returned, else the evaluated value is unspecified.</li>
+<li><code><b>if</b> <i>v1</i> <i>e1</i> <b>else</b> <i>e2</i></code> : if v1 is the Boolean <code>true</code>, then <code>e1</code> is evaluated and its value returned else <code>e2</code> is evaluated and its value returned.</li>
+<li><code><b>try</b> <i>e1</i> <b>catch</b> <i>i</i> <i>e2</i></code> : evaluate <code>e1</code> and returns the evaluated value. If an exception is raised, then evaluate <code>e2</code> and returns evaluated value with local <code>i</code> variable being set to the raised exception value (see Exceptions).</li>
+<li><code><b>function (</b> <i>parameters-names</i> <b>)</b> <i>expr</i></code> : evaluate to the corresponding function.</li>
+<li><code><b>return</b>;</code> : exit current function with unspecified return value.</li>
+<li><code><b>return</b> v</code> : exit current function and return value <code>v</code>.</li>
+<li><code><b>break</b>;</code> : exit current for or while loop with unspecified return value.</li>
+<li><code><b>break</b> v</code> : exit current for or while loop and return value <code>v</code>.</li>
+<li><code><b>continue</b></code> : continue execution to next while/for loop step.</li>
+</ul>
+
+<h2>Variables</h2>
+
+<p>
+When an identifier is found, it must be resolved to a given context holding the variable value. The first context searched for is the local context.
+</p>
+
+<h3>Local Context</h3>
+
+<p>
+The local context contains all variable defined with the "var" keyword in previous syntaxical blocks. In the following sample, <code>x</code> resolve to the value 3 :
+</p>
+
+<pre>
+	var x = 3;
+	$print(x);
+</pre>
+
+<p>
+A "var" declaration is only local to the curly-braced block it has been declared in. For example :
+</p>
+
+<pre>
+	var x = 3;
+	// x defined
+	if( ... ) {
+		// x defined
+		var y;
+		// x and y defined;
+	}
+	// x defined
+</pre>
+
+<p>
+Same variable name can be reused in same block or in another block. It will hide or erase previous value :
+</p>
+
+<pre>
+	var x = 1;
+	$print(x); // print 1
+	var x = 3;
+	$print(x); // print 3
+	if( ... ) {
+		var x = "neko";
+		$print(x); // print "neko"
+	}
+	$print(x); // print 3
+</pre>
+
+<p>
+Function parameters are also local variables, they are defined into the whole function :
+</p>
+
+<pre>
+	var x = 3;
+	f = function(x) {
+		$print(x);
+	}
+	f("neko"); // print "neko"
+</pre>
+
+<p>
+Since contexts are resolved at purely syntactic level, local variables does not depends on current call-stack, and you cannot access variables defined outside current local context.
+</p>
+
+<pre>
+	function f() {
+		$print(x);
+	}
+	...
+	var x = 3;
+	f(); // null or error !
+</pre>
+
+<h3>Function Environment</h3>
+
+<p>
+Local variables can be used inside functions if they're accessible at the time the function is declared. In this case, the value of the variable is a copy of the value it had at the time the function was defined :
+</p>
+
+<pre>
+	var x = 3;
+	f = function() {
+		$print(x);
+	}
+	x = 4;
+	f(); // print 3
+</pre>
+
+<p>
+Such variables are called environment variables because they're no longer part of the local context but of the function "environment" context. A function can still modify an environment variable but this will not modify the original variable reference :
+</p>
+
+<pre>
+	var x = 3;
+	f = function() {
+		$print(x);
+		x += 1;
+	}
+	x = 50;
+	f(); // print 3
+	f(); // print 4
+	$print(x); // print 50
+</pre>
+
+<p>
+Please note also that each function instance have its own environment :
+</p>
+
+<pre>
+	gen = function() {
+		var i = 0;
+		return function() { $print(i); i += 1; };
+	}
+	f1 = gen();
+	f2 = gen();
+	f1(); // print 0
+	f1(); // print 1
+	f2(); // print 0
+	f1(); // print 2
+	...
+</pre>
+
+<h3>Global Context</h3>
+
+<p>
+When a variable is not found in the local context or in the local function environment, it is a global. A global can be accessed through the whole file, it is shared among all code.
+</p>
+
+<pre>
+	function f() {
+		$print(x);
+		x += 1;
+	}
+	x = 0;
+	f(); // print 0
+	f(); // print 1
+	$print(x); // print 2
+</pre>
+
+<p>
+TODO : Add compiler primitives for accessing explicitly globals.
+</p>
+
+<h2>Operations</h2>
+
+<p>
+The following operations are defined. The notation is the following <code>+ : t1 -> t2 -> t3</code> means that the operation "+" is defined for being applied on two values v1 of type t1 and v2 of type t2 and will return a value v3 of type t3 as result.
+</p>
+
+<ul>
+<li>+ : int -> int -> int  , add two integers</li>
+<li>+ : int -> float -> float | + : float -> int -> float : add one integer and one float</li>
+<li>+ : float -> float -> float : add two floats</li>
+<li>+ : int -> string -> string | float -> string -> string | string -> int -> string | string -> float -> string : concat the string representation of integer or float with string</li>
+<li>+ : string -> string -> string : concat two strings</li>
+<li>- : int -> int -> int , substract two integers</li>
+<li>- : float -> int -> float | int -> float -> float , substract one integer and one float</li>
+<li>- : float -> float -> float : subtract two floats</li>
+<li>*, % and / are like minus operation</li>
+<li>....</li>
+</ul>
+
+<p>
+TODO : finish, unary operation, assign-binops, optimized primitives for integers/floats ?
+</p>
+
+<p>
+-- TODO --
+</p>
+
+<ul>
+<li>Objects : (access, r/w, this, exceptions on access)</li>
+<li>Function calls : (optional arguments, exception on null-call)</li>
+<li>Arrays : (exceptions on bounds, api)</li>
+<li>Operations : (conversion, exceptions, assignations, unaires : - , ! )</li>
+<li>Macros</li>
+<li>Primitives, optimizations, accés C</li>
+<li>Modules</li>
+<li>Exceptions : handlers</li>
 </ul>
 
 <i>(c)2004-2005 Nicolas Cannasse</i>
