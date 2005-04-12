@@ -16,6 +16,7 @@ type constant =
 	| Builtin of string
 	| Ident of string
 	| Module of string
+	| Macro of string
 
 type keyword =
 	| Var
@@ -24,7 +25,6 @@ type keyword =
 	| Do
 	| If
 	| Else
-	| Switch
 	| Function
 	| Return
 	| Break
@@ -66,7 +66,6 @@ type expr_decl =
 	| EFor of expr * expr * expr * expr
 	| EWhile of expr * expr * while_flag
 	| EIf of expr * expr * expr option
-	| ESwitch of expr * (expr * expr) list * expr option
 	| ETry of expr * string * expr
 	| EFunction of string list * expr
 	| EBinop of string * expr * expr
@@ -100,7 +99,6 @@ let map f (e,p) =
 	| EFor (e1,e2,e3,e4) -> EFor (f e1, f e2, f e3, f e4)
 	| EWhile (e1,e2,flag) -> EWhile (f e1, f e2, flag)
 	| EIf (e,e1,e2) -> EIf (f e, f e1, match e2 with None -> None | Some e -> Some (f e))
-	| ESwitch (e,cases,def) -> ESwitch (f e, List.map (fun (e1,e2) -> f e1 , f e2) cases , match def with None -> None | Some e -> Some (f e))
 	| ETry (e,ident,e2) -> ETry (f e, ident, f e2)
 	| EFunction (params,e) -> EFunction (params, f e)
 	| EBinop (op,e1,e2) -> EBinop (op, f e1, f e2)
@@ -133,6 +131,7 @@ let s_constant = function
 	| Builtin s -> "$" ^ s
 	| Ident s -> s
 	| Module s -> "#" ^ s
+	| Macro s -> "'" ^ s
 
 let s_keyword = function
 	| Var -> "var"
@@ -141,7 +140,6 @@ let s_keyword = function
 	| Do -> "do"
 	| If -> "if"
 	| Else -> "else"
-	| Switch -> "switch"
 	| Function -> "function"
 	| Return -> "return"
 	| Break -> "break"

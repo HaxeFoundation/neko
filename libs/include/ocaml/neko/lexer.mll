@@ -26,7 +26,7 @@ let error e pos =
 let keywords =
 	let h = Hashtbl.create 3 in
 	List.iter (fun k -> Hashtbl.add h (s_keyword k) k)
-	[Var;For;While;Do;If;Else;Switch;Function;Return;Break;Continue;Default;Try;Catch]
+	[Var;For;While;Do;If;Else;Function;Return;Break;Continue;Try;Catch]
 	; h
 
 let init file =
@@ -115,6 +115,7 @@ rule token = parse
 	| '.' number+ { mk lexbuf (Const (Float (lexeme lexbuf))) }
 	| '$' (ident as v) { mk lexbuf (Const (Builtin v)) }
 	| '#' (ident as v) { mk lexbuf (Const (Module v)) }
+	| '\'' (ident as v) { mk lexbuf (Const (Macro v)) }
 	| "true" { mk lexbuf (Const True) } 
 	| "false" { mk lexbuf (Const False) }
 	| "null" { mk lexbuf (Const Null) }

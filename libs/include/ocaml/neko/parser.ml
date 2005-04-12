@@ -4,6 +4,8 @@ type error_msg =
 	| Unexpected of token
 	| Unclosed of string
 	| Duplicate_default
+	| Unknown_macro of string
+	| Invalid_macro_parameters of string * int
 
 exception Error of error_msg * pos
 
@@ -11,6 +13,8 @@ let error_msg = function
 	| Unexpected t -> "Unexpected "^(s_token t)
 	| Unclosed s -> "Unclosed " ^ s
 	| Duplicate_default -> "Duplicate default declaration"
+	| Unknown_macro m -> "Unknown macro " ^ m
+	| Invalid_macro_parameters (m,n) -> "Invalid number of parameters for macro " ^ m ^ " : " ^ string_of_int n ^ " required"
 
 let error m p = raise (Error (m,p))
 
@@ -62,10 +66,6 @@ and expr = parser
 		(match s with parser
 		| [< '(Keyword Else,_); e2 = expr; s >] -> expr_next (EIf (cond,e,Some e2),punion p1 (pos e2)) s
 		| [< >] -> expr_next (EIf (cond,e,None),punion p1 (pos e)) s)
-	| [< '(Keyword Switch,p1); v = expr; '(ParentOpen,po); cl, def = cases; s >] ->
-		(match s with parser
-		| [< '(ParentClose,p2); s >] -> expr_next (ESwitch (v,cl,def),punion p1 p2) s
-		| [< _ = expr >] -> error (Unclosed "(") po)
 	| [< '(Keyword Function,p1); '(ParentOpen,po); p = parameter_names; s >] ->
 		(match s with parser
 		| [< '(ParentClose,_); e = expr; s >] -> expr_next (EFunction (p,e),punion p1 (pos e)) s
@@ -121,14 +121,6 @@ and variables sp = parser
 	| [< '(Comma,p); v = variables p >] -> v
 	| [< >] -> [] , sp
 
-and cases = parser
-	| [< e = expr; '(Arrow,_); e2 = expr; cl, def = cases >] -> (e,e2) :: cl , def
-	| [< '(Keyword Default,p); '(Arrow,_); e = expr; cl , def = cases >] ->
-		(match def with
-		| None -> cl , Some e
-		| Some _ -> error Duplicate_default p)
-	| [< >] -> [], None
-
 let parse code file =
 	let old = Lexer.save() in
 	Lexer.init file;
@@ -154,4 +146,58 @@ let parse code file =
 		| e ->
 			Lexer.restore old;
 			raise e
- 
+
+let expand_macro ctx m params p =
+	let fparams, fe = (try List.assoc m ctx with Not_found -> error (Unknown_macro m) p) in
+	if List.length params <> List.length fparams then error (Invalid_macro_parameters (m,List.length fparams)) p;
+	let ctx = ref (List.map2 (fun p name -> (name,p)) params fparams) in
+	let rec loop (e,p) =
+		match e with
+		| EBlock el ->
+			let old = !ctx in
+			let el = List.map loop el in
+			ctx := old;
+			EBlock el , p
+		| EVars vl ->
+			EVars (List.map (fun (v,ve) ->
+				let ve = (match ve with None -> None | Some e -> Some (loop e)) in
+				ctx := List.filter (fun (i,_) -> i <> v) !ctx;
+				v , ve
+			) vl) , p
+		| EConst (Ident i) ->
+			(try
+				List.assoc i !ctx
+			with	
+				Not_found -> (e,p))
+		| _ ->
+			Ast.map loop (e,p)
+	in
+	loop fe
+
+let expand e = 
+	let ctx = ref [] in
+	let rec loop (e,p) =
+		match e with
+		| EBlock el -> 
+			let old = !ctx in
+			let el = List.map loop el in
+			ctx := old;
+			EBlock el , p
+		| EVars vl ->
+			let vl = List.map (fun (v,ve) ->
+				match ve with
+				| None -> v , None
+				| Some e ->
+					let e = loop e in
+					(match e with EFunction (params,fe) , _ -> ctx := (v,(params,fe)) :: !ctx | _ -> ());
+					v , Some e
+			) vl in
+			EVars vl , p
+		| ECall ((EConst (Macro m),mp),params) ->
+			expand_macro !ctx m params mp
+		| EConst (Macro m) ->
+			expand_macro !ctx m [] p
+		| _ ->
+			Ast.map loop (e,p)
+	in
+	loop e

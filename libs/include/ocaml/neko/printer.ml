@@ -105,23 +105,6 @@ let rec print_ast ctx (e,p) =
 		| Some e -> 
 			print ctx "else";
 			level_expr ctx e)
-	| ESwitch (v,cases,def) ->
-		print ctx "switch ";
-		print_ast ctx v;
-		print ctx " {";
-		newline ctx;
-		List.iter (fun (v,e) ->
-			print_ast ctx v;
-			print ctx " =>";
-			level_expr ctx e;
-		) cases;
-		(match def with
-		| None -> ()
-		| Some e ->
-			print ctx "default =>";
-			level_expr ctx e);
-		print ctx "}";
-		newline ctx;
 	| ETry (e,id,e2) ->
 		print ctx "try";
 		level_expr ctx e;
