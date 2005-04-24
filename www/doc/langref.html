@@ -7,6 +7,8 @@
 
 <h1>Neko Language Specification</h1>
 
+<!-- ****************************************************************************** -->
+
 <h2>Introduction</h2>
 
 <p>
@@ -34,6 +36,7 @@ On the other side, Microsoft have an interesting approach with its DotNet platfo
 Some other alternatives are available, but they're either too much low-level (<a href="http://llvm.cs.uiuc.edu">LLVM</a>) or dedicated to dynamicly typed languages  (<a href="http://www.parrotcode.org">Parrot</a>). As a <a href="http://ncannasse.free.fr/index.php?p=19">language designer</a> and <a href="http://www.mtasc.org">compiler writer</a>, I have my own way of thinking about multilanguage framework with code reusability, so I decided to give it a try.
 </p>
 
+<!-- ****************************************************************************** -->
 
 <h2>Syntax</h2>
 
@@ -137,7 +140,7 @@ A value in Neko can be one of the following :
 <ul>
 <li><b>Integer :</b> integers can be represented in either decimal form (such as <code>12345</code> or <code>-12</code>) or hexadecimal (<code>0x1A2B3C4D</code>).</li>
 <li><b>Floating point :</b> floating point values are represented using a dot (such as <code>12.345</code> or <code>-0.123</code>)</li>
-<li><b>String :</b> strings are double quoted (such as <code>"foo"</code>, or <code>"hello,\nworld !"</code>, or <code>"My name is \"Bond\\James Bond\"."</code>). Neko strings are immutable, that means that you cannot modify them.</li>
+<li><b>String :</b> strings are double quoted (such as <code>"foo"</code>, or <code>"hello,\nworld !"</code>, or <code>"My name is \"Bond\\James Bond\"."</code>). Neko strings are mutable, that means that you can modify them.</li>
 <li><b>Boolean :</b> the two booleans are available as specific lowercased identifiers : <code>true</code> and <code>false</code>.</li>
 <li><b>Null :</b> the special value <code>null</code> is used for uninitialized variables as well as programmer/langage specific coding techniques.</li>
 <li><b>Object :</b> an object is an association table, which bind an ident or a string to a value, see how you can create and manage objects later.</li>
@@ -154,6 +157,8 @@ Some precisions :
 <li>floating points are 64 bits double precision floating points values.</li>
 <li>strings are 8-bit binary values. A string can contain \0 characters, the string length is determined by the amount of data available and not by the number of characters before the first \0. Maximum string size might depend of virtual machine specification, but should be at least 65535 bytes.</i>
 </ul>
+
+<!-- ****************************************************************************** -->
 
 <h2>Execution Flow</h2>
 
@@ -208,6 +213,8 @@ Before evaluating any expression, all sub-expressions are evaluated in an unspec
 <p>
 	Please note that <code>if</code>, <code>for</code> and <code>while</code> conditions only sucess for the boolean <code>true</code> and for no other value. You might need to add a <code>$isTrue</code> code before each expression in order to convert the expression result into a boolean.
 </p>
+
+<!-- ****************************************************************************** -->
 
 <h2>Variables</h2>
 
@@ -351,6 +358,8 @@ When a variable is not found in the local context or in the local function envir
 <p>
 It might be useful to add primitives that can direclty access the global context.
 </p>
+
+<!-- ****************************************************************************** -->
 
 <h2>Basic Types Operations</h2>
 
@@ -788,6 +797,8 @@ Operations substract ( - ) divide ( / ) multiply ( * ) and modulo ( % ) :
 	<em>Note : need to add structural comparison in the language</em>
 </p>
 
+<!-- ****************************************************************************** -->
+
 <h2>Function & Function Calls</h2>
 
 <p>
@@ -854,6 +865,8 @@ Defining new functions is easy, since functions are values, you can simply assig
 <p>
 	Some languages might want more security about the types of the arguments that are passed to a function, or selecting at runtime different implementations of a function depending on the type of the arguments. There are many ways of doing that in Neko. For example, you might want to add arguments checks at the beginning of the function body using runtime types informations (RTTI) primitives.
 </p>
+
+<!-- ****************************************************************************** -->
 
 <h2>Objects</h2>
 
@@ -972,6 +985,121 @@ Defining new functions is easy, since functions are values, you can simply assig
 	You can use the following primitives : <code>$hash</code> returns the integer hashing value of a string, or raise an exception in case of collision. <code>$field<code> transforms an integer into a previously hashed string or returns null.
 </p>
 
+<!-- ****************************************************************************** -->
+
+<h2>Arrays</h2>
+
+<p>
+	Array is a type. That means that Neko arrays (and Neko strings and booleans as well) are not objects. If in your language arrays are objects, then you can write an object wrapper using an array value to store the data, and matching the API of your language.
+</p>
+
+<p>
+	Creating an array can be done using the <code>$array</code> primitive, and accessing an array can be done using the brackets syntax. You can also create an array with a given size using the <code>$amake</code> primitive :
+</p>
+
+<pre>
+	var a = $amake(0); // empty array
+	a = $array(1,3,"test"); // array with three values
+
+	$print(a[0]); // 1
+	$print(a[2]); // "test"
+	$print(a[3]); // null
+	$print(a["2"]); // null
+</pre>
+
+<p>
+	Arrays are accessed with integer key values, every other key value type will return <code>null</code>. If the integer is in the range of the array bounds (between 0 and <code>$asize(a) - 1</code>), then the value returned is the one stored at this index, else it's <code>null</code>. For writing, if a value is written outside the bounds of the array then the array is not modified. You can get the size of an array using the <code>$asize</code> primitive. Arrays are not resizable :
+</p>
+
+<pre>
+	a = $array(1,2,3);
+	$print($asize(a)); // prints 3
+</pre>
+
+<p>
+	If you want to be sure that arrays are not accessed for reading or for writing outside their bounds then you can use the safe array access primitives <code>$aget</code> and <code>$aset</code> which throw an exception if the integer key is not inside array bounds, if the key is not an integer, or if the value is not an array :
+</p>
+
+<pre>
+	a = $array(1,2,3);
+	$aset(a,4,"test"); // exception
+	$aget(a,5); // exception
+	$aset(a,2,"test"); // ok
+
+	$aget(null,2); // exception
+	$aget(a,"3"); // exception
+</pre>
+
+<p>
+	If you want to make a copy of an array or only of a part of an array, there is the <code>$acopy</code> and the <code>$asub</code> primitives. Please note that <code>$asub</code> can't access outside the bounds of the array :
+</p>
+
+<pre>
+	a = $array(1,2,3,4);
+	$print( $acopy(a) ); // [1,2,3,4] , a copy can be modified separatly
+	$print( $asub(a,1,2) ); // [2,3]
+	$print( $asub(a,3,3) ); // null
+	$print( $asub(a,-2,3) ); // null
+</pre>
+
+<p>
+	<em>It is needed to specify maximum array size</em>
+</p>
+
+<!-- ****************************************************************************** -->
+
+<h2>Strings</h2>
+
+<p>
+	Like arrays, strings are a type and not objects. They are arrays of bytes, so can be convenient for storing large quantity of small numbers or binary data, that might not be scanned by the Garbage Colllector. Please note that unlike C language, the size of the string is stored so you can easily put binary data into it without caring about ending \000 character.
+</p>
+
+<p>
+	Strings can be created using the <code>$string</code> primitive with a given size. Once allocated, a string can't be resized. The size of a string can be retrieved using the <code>$ssize</code> primitive :
+</p>
+
+<pre>
+	s = $string(16);
+	s = "hello";
+	$print( $ssize(s) ); // 5
+</pre>
+
+<p>
+	Please note that assigning a constant string does not makes a copy of it, so the constant content can be modified. Also, several same constant strings can be merged into the same string, so you might be careful about unexcepected side effects when modifying a constant string. You might want to use a <code>$scopy</code> or the <code>$ssub</code> primitives (similar to array ones) :
+</p>
+
+<pre>
+	s = $scopy("hello");
+	$print( $ssub(s,1,3) ); // "ell"
+</pre>
+
+<p>
+	Access to strings bytes can be done using the <code>$sget</code> and <code>$sset</code> primitives. <code>$sget</code> returns a integer between 0 and 255 or <code>null</code> if outside the string bounds. <code>$sset</code> write the given integer value converted to an unsigned integer and modulo 256 :
+</p>
+
+<p>
+	$s = $string(1);
+	$sset(s,0,3684); // set byte 0 to 3624 mod 256
+	$print( $sget(s,0) ); // prints 40
+</p>
+
+<p>
+	You can copy big chunks of bytes from one string to another using the <code>$sblit</code> primitive. It returns the number of bytes copied or <code>null</code> if the copy failed  :
+</p>
+
+<pre>
+	s = "some string to blit from";
+	s2 = $string(14);
+	$sblit(s2,0,s,5,14);
+	$print(s2); // "string to blit"
+</pre>
+
+<p>
+	<em>Need to add safe string accesses with exceptions on bounds ? safe blit ?</em>
+</p>
+
+<!-- ****************************************************************************** -->
+
 <h2>Macros</h2>
 
 <p>
@@ -1046,19 +1174,18 @@ Please note that macros can't really define new variables since every macro expa
 In such case, the naming of the variable <code>tmp</code> is not important, since we're evaluating f(x) before adding it to the scope, it can't then hide or replace an user define variable. But in some more complex macros that can be the case. Macro locals variables have then to be carefuly chosen. (<em>or maybe the Neko macro expander should rename macros local variables with unique name, which will guarantee that they will not break</em>).
 </p>
 
+<!-- ****************************************************************************** -->
+
 <p>
 -- TODO --
 </p>
 
 <ul>
-<li>Arrays : (exceptions on bounds, primitives)</li>
-<li>Strings : primitives</li>
-<li>Numbers : primitives</li>
-<li>Primitives, optimizations, accés C, $print $callfun $callopt $throw</li>
-<li>RTTI & introspection</li>
-<li>Modules</li>
+<li>Hashtables</li>
+<li>RTTI / introspection / convertion</li>
 <li>Exceptions : handlers</li>
-<li>Hashtbls : dans le language ?</li>
+<li>Modules</li>
+<li>Primitives, C FFI, $print $throw...</li>
 </ul>
 
 <i>(c)2004-2005 Nicolas Cannasse</i>
