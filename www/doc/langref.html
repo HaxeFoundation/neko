@@ -180,7 +180,7 @@ Values :
 
 <h3>Expressions</h3>
 <p>
-<em>before evaluating any expression, all sub-expressions are evaluated in an unspecified order. the "v" here are showing the values returned by evaluation of sub-expressions.</em>
+Before evaluating any expression, all sub-expressions are evaluated in an unspecified order. the "v" here are showing the values returned by evaluation of sub-expressions.
 </p>
 
 <ul>
@@ -194,8 +194,8 @@ Values :
 <li><code><b>var</b> <i>i1 = v1, i2 = v2, .... ik = vk</i></code> : each variable <code>i</code> is set to the corresponding value <code>v</code> or to <code>null</code> if no initialization expression is provided.</li>
 <li><code><b>for</b>...</code> : classic for-loop, the value returned is either the value returned by a <code>break</code> inside the for or unspecified.</li>
 <li><code><b>while</b> ....  | <b>do</b> ... <b>while</b> ...</code> : classic while-loop, same as for.</li>
-<li><code><b>if</b> <i>v1</i> <i>e1</i></code> : if v1 is the Boolean <code>true</code>, then <code>e1</code> is evaluated and its value returned, else the evaluated value is unspecified.</li>
-<li><code><b>if</b> <i>v1</i> <i>e1</i> <b>else</b> <i>e2</i></code> : if v1 is the Boolean <code>true</code>, then <code>e1</code> is evaluated and its value returned else <code>e2</code> is evaluated and its value returned.</li>
+<li><code><b>if</b> <i>v1</i> <i>e1</i></code> : if v1 is the boolean <code>true</code>, then <code>e1</code> is evaluated and its value returned, else the evaluated value is unspecified.</li>
+<li><code><b>if</b> <i>v1</i> <i>e1</i> <b>else</b> <i>e2</i></code> : if v1 is the boolean <code>true</code>, then <code>e1</code> is evaluated and its value returned else <code>e2</code> is evaluated and its value returned.</li>
 <li><code><b>try</b> <i>e1</i> <b>catch</b> <i>i</i> <i>e2</i></code> : evaluate <code>e1</code> and returns the evaluated value. If an exception is raised, then evaluate <code>e2</code> and returns evaluated value with local <code>i</code> variable being set to the raised exception value (see Exceptions).</li>
 <li><code><b>function (</b> <i>parameters-names</i> <b>)</b> <i>expr</i></code> : evaluate to the corresponding function.</li>
 <li><code><b>return</b>;</code> : exit current function with unspecified return value.</li>
@@ -204,6 +204,10 @@ Values :
 <li><code><b>break</b> v</code> : exit current for or while loop and return value <code>v</code>.</li>
 <li><code><b>continue</b></code> : continue execution to next while/for loop step.</li>
 </ul>
+
+<p>
+	Please note that <code>if</code>, <code>for</code> and <code>while</code> conditions only sucess for the boolean <code>true</code> and for no other value. You might need to add a <code>$isTrue</code> code before each expression in order to convert the expression result into a boolean.
+</p>
 
 <h2>Variables</h2>
 
@@ -348,6 +352,442 @@ When a variable is not found in the local context or in the local function envir
 It might be useful to add primitives that can direclty access the global context.
 </p>
 
+<h2>Basic Types Operations</h2>
+
+<p>
+Basic types are numbers (int and float), booleans (bool), the null value, strings, objects, arrays and functions. There are several operations available to use them, see the following tables. On the row is first operand type and on the columns is second operand type. The result is either the type of the returned value, or "concat" if we use string concatenation (in that case the two values are converted to strings and then concatened together). The "-" means that the operation is invalid and will return <code>null</code>.
+</p>
+
+<h3>Arithmetic operations</h3>
+
+<p>
+Operation add ( + ) :
+</p>
+
+<table border="1" cellspacing="0" cellpadding="4">
+<tr>
+	<th> + </th>
+	<th>null</th>
+	<th>int</th>
+	<th>float</th>
+	<th>string</th>
+	<th>bool</th>
+	<th>object</th>
+	<th>array</th>
+	<th>function</th>
+</tr>
+<tr>
+	<th>null</th>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+	<td>concat</td>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+</tr>
+<tr>
+	<th>int</th>
+	<td>-</td>
+	<td>int</td>
+	<td>float</td>
+	<td>concat</td>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+</tr>
+<tr>
+	<th>float</th>
+	<td>-</td>
+	<td>float</td>
+	<td>float</td>
+	<td>concat</td>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+</tr>
+<tr>
+	<th>string</th>
+	<td>concat</td>
+	<td>concat</td>
+	<td>concat</td>
+	<td>concat</td>
+	<td>concat</td>
+	<td>concat</td>
+	<td>concat</td>
+	<td>concat</td>
+</tr>
+<tr>
+	<th>bool</th>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+	<td>concat</td>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+</tr>
+<tr>
+	<th>object</th>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+	<td>concat</td>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+</tr>
+<tr>
+	<th>array</th>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+	<td>concat</td>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+</tr>
+<tr>
+	<th>function</th>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+	<td>concat</td>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+</tr>
+</table>
+
+<p>
+Operations substract ( - ) divide ( / ) multiply ( * ) and modulo ( % ) :
+</p>
+
+
+<table border="1" cellspacing="0" cellpadding="4">
+<tr>
+	<th> - / * % </th>
+	<th>int</th>
+	<th>float</th>
+</tr>
+<tr>
+	<th>int</th>
+	<td>int</td>
+	<td>float</td>
+</tr>
+<tr>
+	<th>float</th>
+	<td>float</td>
+	<td>float</td>
+</tr>
+</table>
+
+<p>
+	Please note that unlike some languages, the divide operation between two integers does not returns a float. You can use the <code>$div</code> primitive that always performs float division :
+</p>
+
+<pre>
+	$print(7/2); // prints 3
+	$print($div(7,2)); // prints 3.5
+</pre>
+
+<p>
+	Dividing or doing modulo of one integer by the integer zero returns <code>null</code>. For floats, it's hardware dependant and usually return the float +infinity. You can test it using the primitive <code>$isInf</code> :
+</p>
+
+<pre>
+	$print(1/0); // prints null
+	$print($isInf(1.0/0)); // prints true
+</pre>
+
+<p>
+	Please note also that overflow on integer operations does not convert them to floats and are not catchable errors. If you want to control overflow you can define your own functions for operations or use floats everywhere.
+</p>
+
+<h3>Bitwise operations</h3>
+
+<p>
+	The following operations are available for integers only, the perform on a bit basis. Please remember that for performances reasons, Neko integers are signed and 31 bits only, so there is only 30 bits of "unsigned" part :
+</p>
+
+<ul>
+	<li><code>&lt;&lt;</code> left bit shift</li>
+	<li><code>&gt;&gt;</code> right bit shift</li>
+	<li><code>&gt;&gt;&gt;</code> right unsigned bit shift</li>
+	<li><code>|</code> or bits</li>
+	<li><code>&</code> and bits</li>
+	<li><code>^</code> xor bits</li>
+</ul>
+
+<p>
+	Using the operations if one of the two operands is not an integer returns null.
+</p>
+
+<h3>Boolean operations</h3>
+
+<p>
+	Before applying a boolean operation such as <code>&&</code> and <code>||</code>, values are converted to booleans using the following rules :
+</p>
+
+<ul>
+	<li>null : false</li>
+	<li>int : false if 0, true either</li>
+	<li>float : true</li>
+	<li>string : true</li>
+	<li>bool : itself</li>
+	<li>object : true</li>
+	<li>array : true</li>
+	<li>function : true</li>
+</ul>
+
+<p>
+	As you can see, only the values <code>null</code>, the boolean <code>false</code> and the integer <code>0</code> evaluates to false. You can use the primitive <code>$isTrue</code> to get the corresponding boolean from any value.
+</p>
+
+<p>
+	Operation BooleanAnd ( && ) :
+</p>
+
+<table border="1" cellspacing="0" cellpadding="4">
+<tr>
+	<th> &&</th>
+	<th>true</th>
+	<th>false</th>
+</tr>
+<tr>
+	<th>true</th>
+	<td>true</td>
+	<td>false</td>
+</tr>
+<tr>
+	<th>false</th>
+	<td>false</td>
+	<td>false</td>
+</tr>
+</table>
+
+<p>
+	Operation BooleanOr ( || ) :
+</p>
+
+<table border="1" cellspacing="0" cellpadding="4">
+<tr>
+	<th> ||</th>
+	<th>true</th>
+	<th>false</th>
+</tr>
+<tr>
+	<th>true</th>
+	<td>true</td>
+	<td>true</td>
+</tr>
+<tr>
+	<th>false</th>
+	<td>true</td>
+	<td>false</td>
+</tr>
+</table>
+
+<p>
+	Note : boolean operations are short-circuited. That means that if the first operand of an <code>&&</code> evaluates to <code>false</code> or the first operand of an <code>||</code> evaluated to <code>true</code>, than the second operand is not evaluated.
+</p>
+
+<p>
+	<em>For better performances, it might be useful to add primitives that does not do the isTrue conversion but directly test "true" equality</em>
+</p>
+
+<h3>Equality & Comparisons</h3>
+
+<p>
+	Physical comparison occurs when the following operations are performed : equality <code>==</code>, difference<code>!=</code>, greater <code>&gt;</code>, lower <code>&lt;</code>, greater or equal <code>
+</p>
+
+<p>
+	Physical comparison method :
+</p>
+
+
+<table border="1" cellspacing="0" cellpadding="4">
+<tr>
+	<th> $compare </th>
+	<th>null</th>
+	<th>int</th>
+	<th>float</th>
+	<th>string</th>
+	<th>bool</th>
+	<th>object</th>
+	<th>array</th>
+	<th>function</th>
+</tr>
+<tr>
+	<th>null</th>
+	<td>0</td>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+</tr>
+<tr>
+	<th>int</th>
+	<td>-</td>
+	<td>icmp</td>
+	<td>fcmp</td>
+	<td>strcmp</td>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+</tr>
+<tr>
+	<th>float</th>
+	<td>-</td>
+	<td>fcmp</td>
+	<td>fcmp</td>
+	<td>strcmp</td>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+</tr>
+<tr>
+	<th>string</th>
+	<td>-</td>
+	<td>strcmp</td>
+	<td>strcmp</td>
+	<td>strcmp</td>
+	<td>strcmp</td>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+</tr>
+<tr>
+	<th>bool</th>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+	<td>strcmp</td>
+	<td>bcmp</td>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+</tr>
+<tr>
+	<th>object</th>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+	<td>acmp</td>
+	<td>-</td>
+	<td>-</td>
+</tr>
+<tr>
+	<th>array</th>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+	<td>acmp</td>
+	<td>-</td>
+</tr>
+<tr>
+	<th>function</th>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+	<td>acmp</td>
+</tr>
+</table>
+
+<p>
+	Here's the detail of each comparison function :
+</p>
+
+<ul>
+	<li>icmp compare two integers a and b, returns 0 if they're equal, -1 if b &gt; a and 1 if a &gt; b</li>
+	<li>fcmp is the same as icmp but compares floats instead of integers</li>
+	<li>strcmp compares strings, it can be seen as a icmp applied to every byte of the two strings</li>
+	<li>acmp compares two addresses a and b,  returns 0 if they're the same, -1 if b &gt; a and 1 if a &gt; b</li>
+	<li> - means that the comparison is invalid, the returned value is null</li>
+</ul>
+
+<p>
+	The following table show how each operation is performing depending on the result of <code>$compare</code> :
+</p>
+
+<table border="1" cellspacing="0" cellpadding="4">
+<tr>
+	<th> op </th>
+	<th>null</th>
+	<th>-1</th>
+	<th>0</th>
+	<th>1</th>
+</tr>
+<tr>
+	<th> == </th>
+	<td>false</th>
+	<td>false</th>
+	<td>true</th>
+	<td>false</th>
+</tr>
+<tr>
+	<th> != </th>
+	<td>true</th>
+	<td>true</th>
+	<td>false</th>
+	<td>true</th>
+</tr>
+<tr>
+	<th> &lt;= </th>
+	<td>false</th>
+	<td>true</th>
+	<td>true</th>
+	<td>false</th>
+</tr>
+<tr>
+	<th> &lt; </th>
+	<td>false</th>
+	<td>true</th>
+	<td>false</th>
+	<td>false</th>
+</tr>
+<tr>
+	<th> &gt;= </th>
+	<td>false</th>
+	<td>false</th>
+	<td>true</th>
+	<td>true</th>
+</tr>
+<tr>
+	<th> &gt; </th>
+	<td>false</th>
+	<td>false</th>
+	<td>true</th>
+	<td>true</th>
+</tr>
+</table>
+
+<p>
+	<em>Note : need to add structural comparison in the language</em>
+</p>
+
 <h2>Function & Function Calls</h2>
 
 <p>
@@ -376,19 +816,6 @@ Defining new functions is easy, since functions are values, you can simply assig
 </pre>
 
 <p>
-	A function call is successful only if the value is a function and is called with the exact number of arguments needed. In you need optional arguments, you can use the primitive <code>$callopt</code> that will call the function, adding <code>null</code> arguments if missing and ignoring additional arguments :
-</p>
-
-<pre>
-	var foo = function(x,y) { $print(x+y) };
-	foo(3); // null
-	$callopt(foo,3); // call foo(3,null) : prints "null"
-	$callopt(foo,3,4,5); // call foo(3,4) : prints "7"
-	$callopt(null); // null
-</pre>
-
-
-<p>
 	You can know the number of arguments needed by a function by using the primitive <code>$nargs</code>. A function that accepts a variable number of arguments returns -1 when used with <code>$nargs</code>. Please note also that primitives can be used as values :
 </p>
 
@@ -413,13 +840,142 @@ Defining new functions is easy, since functions are values, you can simply assig
 </pre>
 
 <p>
+	A function call is successful only if the value is a function and is called with the exact number of arguments needed. In you need optional arguments, you can use the primitive <code>$callopt</code> that will call the function, adding <code>null</code> arguments if missing and ignoring additional arguments :
+</p>
+
+<pre>
+	var foo = function(x,y) { $print(x+y) };
+	foo(3); // null
+	$callopt(foo,null,$array(3)); // call foo(3,null) with null context : prints "null"
+	$callopt(foo,null,$array(3,4,5)); // call foo(3,4) with null context : prints "7"
+	$callopt(null,null); // null
+</pre>
+
+<p>
 	Some languages might want more security about the types of the arguments that are passed to a function, or selecting at runtime different implementations of a function depending on the type of the arguments. There are many ways of doing that in Neko. For example, you might want to add arguments checks at the beginning of the function body using runtime types informations (RTTI) primitives.
+</p>
+
+<h2>Objects</h2>
+
+<p>
+	Objects are some kind of optimized hashtables. All fields names are hashed into an integer value that is used as the key into a lookup table. Insertion of a new field is <code>O(n)</code>, access to a field is <code>O(log n)</code>. If you're generating from a staticly typed programming language, you might prefer arrays for storing fields, since they provide <code>O(1)</code> access.
+</p>
+
+<p>
+	To create an object, you can use the primitive <code>$new</code>, that can either returns a copy of an object or a new object :
+</p>
+
+<pre>
+	o = $new(null); // new empty object
+	o2 = $new(o); // makes a copy of o
+	o2 = $new(33); // if parameter is not an object, returns null
+</pre>
+
+<p>
+	You can set fields of an object using dot access or using the primitive <code>$objset</code> :
+</p>
+
+<pre>
+	o.field = value;
+	$objset(o,"field",value);
+	$objset(o, 33, value); // null
+</pre>
+
+<p>
+	Accessing object fields for reading use either dot access or primitive <code>$objget</code> :
+</p>
+
+<pre>
+	o.field; // returns "field" value of object o
+	$objget(o,"field"); // returns "field" value of object o
+	$objget(o, 33); // null
+</pre>
+
+<p>
+	Please note that <code>$objset</code> and <code>$objget</code> second parameter is evaluated and hashed at runtime so it's a less efficient operation than dot access but enables introspection.
+</p>
+
+<p>
+	If a field is not defined when accessed for reading, the <code>null</code> value is returned. If a field does not exists when a field is accessed for writing, the field is added. If you want safe accesses that ensure that no field is added and that no field is accessed if it doesn't exists, you can use the primitives <code>$safeget</code> and <code>$safeset</code> that throw exceptions if the field doesn't exist.
+</p>
+
+<p>
+	To check for a field existance, you can use the <code>$haveField</code> primitive that checks if an object o have a given field, even if that field is set to the <code>null</code> value :
+</p>
+
+<pre>
+	$haveField(o,"field"); // true if o have "field"
+	$haveField(o,33); // false
+	$haveField(null,33); // false
+</pre>
+
+<h3>Methods</h3>
+
+<p>
+	When a function is called using the dot access or the primitive <code>$objcall</code>, the function can access a special variable named <code>this</code> which is the "object context" (the object with which the function was called) :
+</p>
+
+<pre>
+	o = $new(null);
+	o.x = 1;
+	o.add = function(y) { return this.x + y; }
+	$print(o.add(2)); // prints 3
+	$print( $objcall(o,"add",$array(2)) ); // prints 3
+</pre>
+
+<p>
+	There is also a way to call methods with ensuring that the object have the method with the correct number of arguments :
+</p>
+
+<pre>
+	$safecall(o,"add",$array()); // exception
+	$safecall(o,"add",$array(2)); // prints 3
+	$safecall(o,"add",$array(2,3)); // exception
+</pre>
+
+<p>
+	The context value <code>this</code>, like true or false, cannot be modified directly. The context is set when a object function is called and can be accessed from any sub function :
+</p>
+
+<pre>
+	foo = function() {
+		$print(this.x);
+	}
+	o = $new(null);
+	o.x = 3;
+	o.bar = function() { foo(); };
+	o.bar(); // prints 3
+</pre>
+
+<p>
+	You can modify the value of <code>this</code> at runtime by using the primitive <code>$setThis</code>. It can be set to any value, not only objects. When returning from an object call, the context is restored, so any modifications are lost :
+</p>
+
+<pre>
+	$setThis(1);
+	o.foo = function() {
+		// this = o
+		$setThis(2);
+		// this = 2
+	};
+	o.foo();
+	$print(this); // 1
+</pre>
+
+<h3>Fields lists</h3>
+
+<p>
+	As explained before, fields names are first hashed into integer values for faster access. In order to avoid collisions in the hashing functions, they are then stored into a global table than will check that hash(x) = hash(y) implies that x = y. The other utility of this library is to be able to reverse the hashing function at runtime, that can be useful to print the field names of an object, for debugging purpose for example.
+</p>
+
+<p>
+	You can use the following primitives : <code>$hash</code> returns the integer hashing value of a string, or raise an exception in case of collision. <code>$field<code> transforms an integer into a previously hashed string or returns null.
 </p>
 
 <h2>Macros</h2>
 
 <p>
-When you want to generate from another language to Neko, you might need some syntactic shortcuts for operations that are often used. For example let's imagine a language where the empty string evaluate to <code>false</code>, that means that in Neko for each test (if, while...) you will have to test for <code>false</code> and for the empty string. Macros enable you to do that easily :
+When you want to generate from another language to Neko, you might need some syntactic shortcuts for operations that are often used. For example let's imagine a language where the empty string evaluate to <code>false</code>, that means that in Neko for each test (if, while...) you will have to test for <code>true</code> and for the empty string. Macros enable you to do that easily :
 </p>
 
 <pre>
@@ -427,7 +983,7 @@ When you want to generate from another language to Neko, you might need some syn
 		x && x != ""
 	}
 	...
-	if( 'is_true(<em>expr</em>) )
+	if( 'is_true(...) )
 		...
 </pre>
 
@@ -490,40 +1046,16 @@ Please note that macros can't really define new variables since every macro expa
 In such case, the naming of the variable <code>tmp</code> is not important, since we're evaluating f(x) before adding it to the scope, it can't then hide or replace an user define variable. But in some more complex macros that can be the case. Macro locals variables have then to be carefuly chosen. (<em>or maybe the Neko macro expander should rename macros local variables with unique name, which will guarantee that they will not break</em>).
 </p>
 
-<h2>Operations</h2>
-
-<p>
-The following operations are defined. The notation is the following <code>+ : t1 -> t2 -> t3</code> means that the operation "+" is defined for being applied on two values v1 of type t1 and v2 of type t2 and will return a value v3 of type t3 as result.
-</p>
-
-<ul>
-<li>+ : int -> int -> int  , add two integers</li>
-<li>+ : int -> float -> float | + : float -> int -> float : add one integer and one float</li>
-<li>+ : float -> float -> float : add two floats</li>
-<li>+ : int -> string -> string | float -> string -> string | string -> int -> string | string -> float -> string : concat the string representation of integer or float with string</li>
-<li>+ : string -> string -> string : concat two strings</li>
-<li>- : int -> int -> int , substract two integers</li>
-<li>- : float -> int -> float | int -> float -> float , substract one integer and one float</li>
-<li>- : float -> float -> float : subtract two floats</li>
-<li>*, % and / are like minus operation</li>
-<li>....</li>
-</ul>
-
-<p>
-TODO : finish, unary operation, assign-binops, optimized primitives for integers/floats ?
-</p>
-
 <p>
 -- TODO --
 </p>
 
 <ul>
-<li>Objects : (access, r/w, this, exceptions on access)</li>
 <li>Arrays : (exceptions on bounds, primitives)</li>
 <li>Strings : primitives</li>
 <li>Numbers : primitives</li>
-<li>Operations : (conversion, exceptions, assignations, unaires : - , ! )</li>
 <li>Primitives, optimizations, accés C, $print $callfun $callopt $throw</li>
+<li>RTTI & introspection</li>
 <li>Modules</li>
 <li>Exceptions : handlers</li>
 <li>Hashtbls : dans le language ?</li>
