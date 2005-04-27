@@ -111,6 +111,7 @@
 	<li><a href="#objects">Objects</a></li>
 	<li><a href="#arrays">Arrays</a></li>
 	<li><a href="#strings">Strings</a></li>
+	<li><a href="#exceptions">Exceptions</a></li>
 	<li><a href="#macros">Macros</a></li>
 	<li><a href="#credits">Credits</a></li>
 </ul>
@@ -1078,6 +1079,16 @@ Defining new functions is easy, since functions are values, you can simply assig
 </pre>
 
 <p>
+	Functional languages require partial application (aka currying) : the ability to creates closures by setting a fixed number of arguments of a function, leaving the rest for later call. The primitive <code>$closure</code> enable to create a closure :
+</p>
+
+<pre>
+	var add = function(x,y) { return x + y };
+	var plus5 = $closure(add,5);
+	$print( plus5(2) ); // 7
+</pre>
+
+<p>
 	Some languages might want more security about the types of the arguments that are passed to a function, or selecting at runtime different implementations of a function depending on the type of the arguments. There are many ways of doing that in Neko. For example, you might want to add arguments checks at the beginning of the function body using runtime types informations (RTTI) primitives.
 </p>
 
@@ -1341,6 +1352,32 @@ Defining new functions is easy, since functions are values, you can simply assig
 
 <!-- ****************************************************************************** -->
 
+<a name="exceptions"></a>
+<h2>Exceptions</h2>
+
+<p>
+Exceptions are often referred as "non local jumps". It's a very good way for handling errors than can happen at several calls between the function that yields an error and the handler that will take care of it. Raising an exception is done using the <code>$throw</code> primitive, and catching it is done using the <code>try...catch</code> syntax. Please note that any value can be an exception, it's up to you to decide which structure you want to use :
+</p>
+
+<pre>
+	var foo = function() {
+		$throw("failure");
+	}
+	try
+		foo()
+	catch e {
+		$print(e); // prints "failure"
+	}
+</pre>
+
+<p>
+<em>
+Being able to print the program stack when catching an exceptions or during execution is an interesting feature, very used in the Java language. Since this is more a Virtual Machine debugging feature than a language specification one, it will not be discussed here.
+</em>
+</p>
+
+<!-- ****************************************************************************** -->
+
 <a name="macros"></a>
 <h2>Macros</h2>
 
@@ -1424,16 +1461,6 @@ In such case, the naming of the variable <code>tmp</code> is not important, sinc
 <p>
 (c)2004-2005 Nicolas Cannasse <a href="mailto:ncannasse@motion-twin.com">ncannasse@motion-twin.com</a>.
 </p>
-
-<!--
-
-TODO :
-
-Hashtables ?
-Exceptions : handlers $throw
-Modules
-
--->
 
 </td>
 </tr>
