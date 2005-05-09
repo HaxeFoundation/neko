@@ -31,20 +31,19 @@ let rec unique = function
 
 ;;
 try	
-	let usage = "Neko Interpreter v0.1 - (c)2005 Nicolas Cannasse\n Usage : interp.exe [options] <files...>\n Options :" in
+	let usage = "Neko Interpreter v0.2 - (c)2005 Nicolas Cannasse\n Usage : interp.exe [options] <files...>\n Options :" in
 	let files = ref [] in
 	let time = Sys.time() in
 	let paths = ref [""] in
 	let args_spec = [
 		("-msvc",Arg.Unit (fun () -> print_style := StyleMSVC),": use MSVC style errors");
+		("-ml", Arg.String (fun f -> Ocamlgen.generate_file f),"<file> : convert file to OCaml");
 	] in
 	Arg.parse args_spec (fun file ->
 		paths := normalize_path (Filename.dirname file) :: !paths;
 		files := file :: !files
 	) usage;
-	if !files = [] then begin
-		Arg.usage args_spec usage
-	end else begin
+	if !files <> [] then begin
 		let ctx = Interp.create (unique (List.rev !paths)) in
 		List.iter (fun file ->
 			let mname = Filename.chop_extension (Filename.basename file) in
