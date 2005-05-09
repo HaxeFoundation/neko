@@ -77,6 +77,8 @@ and expr = expr_decl * pos
 
 let pos = snd
 
+let var_args = -1
+
 let null_pos = { pmin = -1; pmax = -1; pfile = "<null pos>" }
 
 let punion p p2 =
@@ -108,6 +110,27 @@ let map f (e,p) =
 	| EBreak None
 	| EContinue	
 	| EConst _ as x -> x) , p
+
+let iter f (e,p) =
+	match e with
+	| EBlock el -> List.iter f el
+	| EParenthesis e -> f e
+	| EField (e,s) -> f e
+	| ECall (e,el) -> f e; List.iter f el
+	| EArray (e1,e2) -> f e1; f e2
+	| EVars vl -> List.iter (fun (_,e) -> match e with None -> () | Some e -> f e) vl
+	| EFor (e1,e2,e3,e4) -> f e1; f e2; f e3; f e4
+	| EWhile (e1,e2,_) -> f e1; f e2
+	| EIf (e,e1,e2) -> f e; f e1; (match e2 with None -> () | Some e -> f e)
+	| ETry (e1,_,e2) -> f e1; f e2
+	| EFunction (_,e) -> f e
+	| EBinop (_,e1,e2) -> f e1; f e2
+	| EReturn (Some e) -> f e
+	| EBreak (Some e) -> f e
+	| EReturn None
+	| EBreak None
+	| EContinue
+	| EConst _ -> ()
 
 let escape s =
 	let b = Buffer.create (String.length s) in
