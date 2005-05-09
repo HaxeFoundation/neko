@@ -419,7 +419,7 @@ Such variables are called environment variables because they're no longer part o
 	var x = 3;
 	f = function() {
 		$print(x);
-		x += 1;
+		x = x + 1;
 	}
 	x = 50;
 	f(); // print 3
@@ -434,7 +434,7 @@ Please note also that each function instance have its own environment :
 <pre>
 	gen = function() {
 		var i = 0;
-		return function() { $print(i); i += 1; };
+		return function() { $print(i); i = i + 1; };
 	}
 	f1 = gen();
 	f2 = gen();
@@ -454,7 +454,7 @@ When a variable is not found in the local context or in the local function envir
 <pre>
 	f = function() {
 		$print(x);
-		x += 1;
+		x = x + 1;
 	}
 	x = 0;
 	f(); // print 0
@@ -463,7 +463,7 @@ When a variable is not found in the local context or in the local function envir
 </pre>
 
 <p>
-It might be useful to add primitives that can direclty access the global context.
+It might be useful to add primitives that can directly access the global context.
 </p>
 
 <!-- ****************************************************************************** -->
@@ -845,11 +845,12 @@ Operations substract ( - ) divide ( / ) multiply ( * ) and modulo ( % ) :
 </p>
 
 <ul>
-	<li>icmp compare two integers a and b, returns 0 if they're equal, -1 if b &gt; a and 1 if a &gt; b</li>
-	<li>fcmp is the same as icmp but compares floats instead of integers</li>
-	<li>strcmp compares strings, it can be seen as a icmp applied to every byte of the two strings</li>
-	<li>acmp compares two addresses a and b,  returns 0 if they're the same, -1 if b &gt; a and 1 if a &gt; b</li>
-	<li> - means that the comparison is invalid, the returned value is null</li>
+	<li>icmp compare two integers a and b, returns 0 if they're equal, -1 if b &gt; a and 1 if a &gt; b.</li>
+	<li>fcmp is the same as icmp but compares floats instead of integers.</li>
+	<li>strcmp compares strings, it can be seen as a icmp applied to every byte of the two strings.</li>
+	<li>acmp compares two addresses a and b,  returns 0 if they're the same, -1 if b&gt;a and 1 if a&gt;b</li>
+	<li>bcmp returns 0 if a and b are both true or both false, 1 if a is true and b and false, -1 if a is false and b is true.</b>
+	<li> - means that the comparison is invalid, the returned value is null.</li>
 </ul>
 
 <p>
@@ -942,6 +943,20 @@ To convert a string to a float you can use the <code>$stof</code> primitive :
 	$stof("1.345"); // 1.345
 	$stof($object()); // null
 </pre>
+
+<p>
+Any value can be converted to a string using <code>$string</code>, this operation is used in particular in the <code>$print</code> primitive :
+</p>
+
+<pre>
+	$string(null); // "null"
+	$string(123); // "123"
+	$string($array(1,2,3)); // "[1,2,3]"
+</pre>
+
+<p>
+	<em>Should $string call an object method such as toString if exists ? Should function string representation (currently &lt;function:nargs&gt;) be specified ?</em>
+</p>
 
 <!-- ****************************************************************************** -->
 
@@ -1227,7 +1242,7 @@ Defining new functions is easy, since functions are values, you can simply assig
 
 <pre>
 	var a = $objFields(o);
-	for(i=0;i&lt;$asize(a);i+=1) {
+	for(i=0;i&lt;$asize(a);i = i + 1) {
 		var fname = $field(a[i]);
 		var fval = $objget(o,fname);
 		$print( fname + " = " + fval + "\n" );
@@ -1244,7 +1259,7 @@ Defining new functions is easy, since functions are values, you can simply assig
 </p>
 
 <p>
-	Creating an array can be done using the <code>$array</code> primitive, and accessing an array can be done using the brackets syntax. You can also create an array with a given size using the <code>$amake</code> primitive :
+	Creating an array can be done using the <code>$array</code> primitive, and accessing an array can be done using the brackets syntax. You can also create an array with a specific size using the <code>$amake</code> primitive :
 </p>
 
 <pre>
@@ -1306,11 +1321,11 @@ Defining new functions is easy, since functions are values, you can simply assig
 </p>
 
 <p>
-	Strings can be created using the <code>$string</code> primitive with a given size. Once allocated, a string can't be resized. The size of a string can be retrieved using the <code>$ssize</code> primitive :
+	Strings can be created using the <code>$smake</code> primitive with a given size. Once allocated, a string can't be resized. The size of a string can be retrieved using the <code>$ssize</code> primitive :
 </p>
 
 <pre>
-	s = $string(16);
+	s = $smake(16);
 	s = "hello";
 	$print( $ssize(s) ); // 5
 </pre>
@@ -1329,7 +1344,7 @@ Defining new functions is easy, since functions are values, you can simply assig
 </p>
 
 <pre>
-	$s = $string(1);
+	$s = $smake(1);
 	$sset(s,0,3684); // set byte 0 to 3624 mod 256
 	$print( $sget(s,0) ); // prints 40
 </pre>
@@ -1340,7 +1355,7 @@ Defining new functions is easy, since functions are values, you can simply assig
 
 <pre>
 	s = "some string to blit from";
-	s2 = $string(14);
+	s2 = $smake(14);
 	$sblit(s2,0,s,5,14);
 	$print(s2); // "string to blit"
 </pre>
