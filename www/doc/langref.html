@@ -2,82 +2,10 @@
 
 <head>
 <title>Neko Language Specification</title>
-<style type="text/css">
-<!--
-	body {
-		background : #eee;
-	}
-
-	p {
-		width : 600px;
-		text-align : justify;
-	}
-
-	li {
-		width : 550px;
-		text-align : justify;
-	}
-
-	table {
-		border : black 2px solid;
-		border-collapse: collapse;
-	}
-
-	th {
-		border : black 1px solid;
-		padding : 4px;
-		background : #eee;
-	}
-
-	td {
-		border : black 1px solid;
-		padding : 4px;
-	}
-
-	table.main {
-		background : #fff;
-		border : #ccc 2px solid;
-		border-collapse : separate;
-	}
-
-	td.main {
-		border-style : none;
-		padding : 20px;
-	}
-
-	pre {
-		border : #ccc 1px solid;
-		background : #ffe;
-		tab-size : 1px;
-	}
-
-	h1 {
-		color : #555;
-		text-align : center;
-	}
-
-	h2 {
-		margin-left : -10px;
-		padding : 4px;
-		color : #eee;
-		background : #777;
-	}
-
-	h3 {
-		border-bottom : 1px dashed #999;
-		line-height : 18pt;
-		color : #999;
-	}
-
-	a {
-		color : #555;
-	}
-
--->
-</style>
+<link rel="StyleSheet" href="style.css" type="text/css"/>
 </head>
 
-<body bgcolor="white">
+<body>
 
 <center>
 <table class="main">
@@ -92,7 +20,6 @@
 <h2>Summary</h2>
 
 <ul>
-	<li><a href="#introduction">Introduction</a></li>
 	<li><a href="#syntax">Syntax</a></li>
 	<li><a href="#values">Values</a></li>
 	<li><a href="#execution">Execution Flow</a></li>
@@ -115,27 +42,6 @@
 	<li><a href="#macros">Macros</a></li>
 	<li><a href="#credits">Credits</a></li>
 </ul>
-
-<!-- ****************************************************************************** -->
-
-<a name="introduction"></a>
-<h2>Introduction</h2>
-
-<p>
-Neko is an <i>intermediate</i> programming language designed to provide a common runtime for various imperative or functionnal, staticly or dynamicly typed high-level programming languages.
-</p>
-
-<p>
-Every new programming language has now to deal with an huge amount of stuff in order to be taken seriously and labelled "usable". This can be some general properties such as an OO layer, decent runtime speed, dynamic loading  and reflection, but most of the work have to be put into librairies : Network, Xml, Internet protocols, Graphical User Interface, and so on... Such an amount of work makes new language long time to take off and the language designer can't focus anymore on features and design. This state has bring us to an era where outdated poor and uncool programming languages such as Java are ruling the business world, not because of its qualities and features but because of the ability of the industry to leverage it and reuse large librairies of code.
-</p>
-
-<p>
-On the other side, Microsoft have an interesting approach with its DotNet platform : Free the language designer from a lot of work by providing a common framework being able to run a wide variety of languages. But there are several problems with DotNet : it's not open-source, it's highly focused on OO type systems and it currently performs poorly with functional languages. Also, bytecode is not easy to target and writing a compiler to either DotNet or JVM takes quite a lot of time.
-</p>
-
-<p>
-Some other alternatives are available, but they're either too much low-level (<a href="http://llvm.cs.uiuc.edu">LLVM</a> or <a href="http://www.cminuscminus.org">C--</a>) or dedicated to dynamicly typed languages  (<a href="http://www.parrotcode.org">Parrot</a>). As a <a href="http://ncannasse.free.fr/index.php?p=19">language designer</a> and <a href="http://www.mtasc.org">compiler writer</a>, I have my own way of thinking about multilanguage framework with code reusability, so I decided to give it a try.
-</p>
 
 <!-- ****************************************************************************** -->
 
