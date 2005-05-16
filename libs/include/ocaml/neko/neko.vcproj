@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="Windows-1252"?>
+<VisualStudioProject
+	ProjectType="Visual C++"
+	Version="7.10"
+	Name="neko"
+	ProjectGUID="{59B84580-C217-4013-88B0-67D0FB93BA40}"
+	Keyword="MakeFileProj">
+	<Platforms>
+		<Platform
+			Name="Win32"/>
+	</Platforms>
+	<Configurations>
+		<Configuration
+			Name="Debug|Win32"
+			OutputDirectory="Debug"
+			IntermediateDirectory="Debug"
+			ConfigurationType="0">
+			<Tool
+				Name="VCNMakeTool"
+				BuildCommandLine="ocamake -o ../neko.exe -pp camlp4o neko.vcproj extLib.cma"
+				ReBuildCommandLine="ocamake -o ../neko.exe -pp camlp4o -all neko.vcproj extLib.cma"
+				CleanCommandLine="ocamake -o ../neko.exe -pp camlp4o -clean neko.vcproj extLib.cma"
+				Output="../neko.exe"/>
+		</Configuration>
+		<Configuration
+			Name="Release|Win32"
+			OutputDirectory="Release"
+			IntermediateDirectory="Release"
+			ConfigurationType="0">
+			<Tool
+				Name="VCNMakeTool"
+				BuildCommandLine="ocamake -o ../neko.exe -pp camlp4o neko.vcproj extLib.cmxa"
+				ReBuildCommandLine="ocamake -all -o ../neko.exe -pp camlp4o neko.vcproj extLib.cmxa"
+				CleanCommandLine="ocamake -clean -o ../neko.exe -pp camlp4o neko.vcproj extLib.cma"
+				Output="../neko.exe"/>
+		</Configuration>
+	</Configurations>
+	<References>
+	</References>
+	<Files>
+		<Filter
+			Name="ast"
+			Filter="">
+			<File
+				RelativePath="..\ast\ast.ml">
+			</File>
+			<File
+				RelativePath="..\ast\lexer.mll">
+			</File>
+			<File
+				RelativePath="..\ast\parser.ml">
+			</File>
+			<File
+				RelativePath="..\ast\printer.ml">
+			</File>
+		</Filter>
+		<Filter
+			Name="interp"
+			Filter="">
+			<File
+				RelativePath="..\interp\interp.ml">
+			</File>
+		</Filter>
+		<Filter
+			Name="compile"
+			Filter="">
+			<File
+				RelativePath="..\compile\bytecode.ml">
+			</File>
+			<File
+				RelativePath="..\compile\compile.ml">
+			</File>
+		</Filter>
+		<Filter
+			Name="ocaml"
+			Filter="">
+			<File
+				RelativePath="..\ocaml\neko.ml">
+			</File>
+			<File
+				RelativePath="..\ocaml\ocamlgen.ml">
+			</File>
+		</Filter>
+		<File
+			RelativePath=".\main.ml">
+		</File>
+	</Files>
+	<Globals>
+	</Globals>
+</VisualStudioProject>
