@@ -1,5 +1,5 @@
 Microsoft Visual Studio Solution File, Format Version 8.00
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "interp", "interp\interp.vcproj", "{B343327B-BAF9-4E9C-AA5B-B64F9A80A96D}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "neko", "exe\neko.vcproj", "{59B84580-C217-4013-88B0-67D0FB93BA40}"
 	ProjectSection(ProjectDependencies) = postProject
 	EndProjectSection
 EndProject
@@ -9,10 +9,10 @@ Global
 		Release = Release
 	EndGlobalSection
 	GlobalSection(ProjectConfiguration) = postSolution
-		{B343327B-BAF9-4E9C-AA5B-B64F9A80A96D}.Debug.ActiveCfg = Debug|Win32
-		{B343327B-BAF9-4E9C-AA5B-B64F9A80A96D}.Debug.Build.0 = Debug|Win32
-		{B343327B-BAF9-4E9C-AA5B-B64F9A80A96D}.Release.ActiveCfg = Release|Win32
-		{B343327B-BAF9-4E9C-AA5B-B64F9A80A96D}.Release.Build.0 = Release|Win32
+		{59B84580-C217-4013-88B0-67D0FB93BA40}.Debug.ActiveCfg = Debug|Win32
+		{59B84580-C217-4013-88B0-67D0FB93BA40}.Debug.Build.0 = Debug|Win32
+		{59B84580-C217-4013-88B0-67D0FB93BA40}.Release.ActiveCfg = Release|Win32
+		{59B84580-C217-4013-88B0-67D0FB93BA40}.Release.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 	EndGlobalSection
