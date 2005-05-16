@@ -49,7 +49,7 @@ type opcode =
 
 type global =
 	| GlobalVar of string
-	| GlobalFunction of int
+	| GlobalFunction of int * int
 	| GlobalString of string
 	| GlobalFloat of string
 
@@ -127,7 +127,7 @@ let code_tables ops =
 	let pos = Array.map (fun op ->
 		let h = !p in
 		p := h + (if op_param op then 2 else 1);
-		!p
+		h
 	) ops in
 	ids , pos , !p
 
@@ -140,9 +140,9 @@ let write ch (globals,ops) =
 	IO.write_i32 ch csize;
 	DynArray.iter (function
 		| GlobalVar s -> IO.write_byte ch 1; IO.nwrite ch s; IO.write ch '\000';
-		| GlobalFunction p -> IO.write_byte ch 2; IO.write_i32 ch pos.(p)
+		| GlobalFunction (p,nargs) -> IO.write_byte ch 2; IO.write_i32 ch (pos.(p) lor (nargs lsl 24))
 		| GlobalString s -> IO.write_byte ch 3; IO.write_ui16 ch (String.length s); IO.nwrite ch s
-		| GlobalFloat s -> IO.write_byte ch 3; IO.nwrite ch s; IO.write ch '\000'
+		| GlobalFloat s -> IO.write_byte ch 4; IO.nwrite ch s; IO.write ch '\000'
 	) globals;
 	Hashtbl.iter (fun _ s ->
 		IO.nwrite ch s;
@@ -225,7 +225,7 @@ let read ch =
 		let globals = Array.init nglobals (fun _ ->
 			match IO.read_byte ch with
 			| 1 -> GlobalVar (read_string ch)
-			| 2 -> GlobalFunction (IO.read_i32 ch)
+			| 2 -> let v = IO.read_i32 ch in GlobalFunction (v land 0xFFFFFF, v lsr 24)
 			| 3 -> let len = IO.read_ui16 ch in GlobalString (IO.nread ch len)
 			| 4 -> GlobalFloat (read_string ch)
 			| _ -> raise Invalid_file
@@ -324,7 +324,7 @@ let read ch =
 		) !jumps;
 		Array.iteri (fun i g ->
 			match g with
-			| GlobalFunction f -> globals.(i) <- GlobalFunction (pos_index 0 f)
+			| GlobalFunction (f,n) -> globals.(i) <- GlobalFunction (pos_index 0 f,n)
 			| _ -> ()
 		) globals;
 		globals , DynArray.to_array ops
@@ -345,7 +345,7 @@ let dump ch (globals,ops) =
 		IO.printf ch "  global %d : %s\n" i 
 			(match g with
 			| GlobalVar s -> "var " ^ s
-			| GlobalFunction i -> "function " ^ string_of_int i
+			| GlobalFunction (p,n) -> "function " ^ string_of_int p ^ " nargs " ^ string_of_int n
 			| GlobalString s -> "string \"" ^ escape s ^ "\""
 			| GlobalFloat s -> "float " ^ s)
 	) globals;

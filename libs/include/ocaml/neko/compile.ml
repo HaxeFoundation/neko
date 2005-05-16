@@ -11,7 +11,7 @@ type context = {
 	mutable limit : int;
 	mutable breaks : ((unit -> unit) * pos) list;
 	mutable continues : ((unit -> unit) * pos) list;
-	mutable functions : (opcode DynArray.t * int) list;
+	mutable functions : (opcode DynArray.t * int * int) list;
 	mutable gtable : global DynArray.t;
 }
 
@@ -254,8 +254,8 @@ and compile_function ctx params e =
 	ctx.continues <- continues;
 	ctx.locals <- locals;
 	let gid = DynArray.length ctx.gtable in
-	ctx.functions <- (ctx.ops,gid) :: ctx.functions;
-	DynArray.add ctx.gtable (GlobalFunction gid);
+	ctx.functions <- (ctx.ops,gid,List.length params) :: ctx.functions;
+	DynArray.add ctx.gtable (GlobalFunction (gid,-1));
 	ctx.ops <- ops;
 	if ctx.nenv > 0 then begin
 		let a = Array.create ctx.nenv "" in
@@ -425,8 +425,8 @@ let compile file ast =
 	if ctx.functions <> [] then begin
 		let ops = DynArray.create() in
 		DynArray.add ops (Jump 0);
-		List.iter (fun (fops,gid) ->
-			DynArray.set ctx.gtable gid (GlobalFunction (DynArray.length ops));
+		List.iter (fun (fops,gid,nargs) ->
+			DynArray.set ctx.gtable gid (GlobalFunction (DynArray.length ops,nargs));
 			DynArray.append fops ops;
 		) (List.rev ctx.functions);
 		DynArray.set ops 0 (Jump (DynArray.length ops));
