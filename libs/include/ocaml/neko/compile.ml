@@ -41,7 +41,7 @@ let stack_delta = function
 	| Jump _ 
 	| Trap _
 	| EndTrap
-	| Ret
+	| Ret _
 	| SetGlobal _
 	| SetStack _
 	| SetEnv _
@@ -55,6 +55,9 @@ let stack_delta = function
 	| Shl
 	| Shr
 	| UShr
+	| Or
+	| And
+	| Xor
 	| Eq
 	| Neq
 	| Gt
@@ -216,6 +219,9 @@ let rec compile_binop ctx op e1 e2 p =
 		| "<<" -> write ctx Shl
 		| ">>" -> write ctx Shr
 		| ">>>" -> write ctx UShr
+		| "|" -> write ctx Or
+		| "&" -> write ctx And
+		| "^" -> write ctx Xor
 		| "==" -> write ctx Eq
 		| "!=" -> write ctx Neq
 		| ">" -> write ctx Gt
@@ -245,7 +251,7 @@ and compile_function ctx params e =
 	) params;
 	let s = ctx.stack in
 	compile ctx e;
-	write ctx Ret;
+	write ctx (Ret (ctx.stack - ctx.limit - 1));
 	assert( ctx.stack = s );
 	check_breaks ctx;
 	ctx.stack <- ctx.limit;
@@ -392,10 +398,10 @@ and compile ctx (e,p) =
 		compile_binop ctx op e1 e2 p
 	| EReturn None ->
 		write ctx AccNull;
-		write ctx Ret
+		write ctx (Ret (ctx.stack - ctx.limit - 1));
 	| EReturn (Some e) ->
 		compile ctx e;
-		write ctx Ret
+		write ctx (Ret (ctx.stack - ctx.limit - 1));
 	| EBreak e ->
 		(match e with
 		| None -> ()

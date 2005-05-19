@@ -28,7 +28,7 @@ type opcode =
 	| JumpIfNot of int
 	| Trap of int
 	| EndTrap
-	| Ret
+	| Ret of int
 	| MakeEnv of int
 	(* value ops *)
 	| Bool
@@ -40,6 +40,9 @@ type opcode =
 	| Shl
 	| Shr
 	| UShr
+	| Or
+	| And
+	| Xor
 	| Eq
 	| Neq
 	| Gt
@@ -82,6 +85,7 @@ let op_param = function
 	| JumpIfNot _
 	| Trap _
 	| MakeEnv _ 
+	| Ret _
 		-> true
 	| AccNull
 	| AccTrue
@@ -91,7 +95,6 @@ let op_param = function
 	| SetArray
 	| Push
 	| EndTrap
-	| Ret
 	| Bool
 	| Add
 	| Sub
@@ -101,6 +104,9 @@ let op_param = function
 	| Shl
 	| Shr
 	| UShr
+	| Or
+	| And
+	| Xor
 	| Eq
 	| Neq
 	| Gt
@@ -176,7 +182,7 @@ let write ch (globals,ops) =
 			| JumpIfNot n -> pop := Some (pos.(i+n) - pos.(i)); 22
 			| Trap n -> pop := Some (pos.(i+n) - pos.(i)); 23
 			| EndTrap -> 24
-			| Ret -> 25
+			| Ret n -> pop := Some n; 25
 			| MakeEnv n -> pop := Some n; 26
 			| Bool -> 27
 			| Add -> 28
@@ -187,12 +193,15 @@ let write ch (globals,ops) =
 			| Shl -> 33
 			| Shr -> 34
 			| UShr -> 35
-			| Eq -> 36
-			| Neq -> 37
-			| Gt -> 38
-			| Gte -> 39
-			| Lt -> 40
-			| Lte -> 41
+			| Or -> 36
+			| And -> 37
+			| Xor -> 38
+			| Eq -> 39
+			| Neq -> 40
+			| Gt -> 41
+			| Gte -> 42
+			| Lt -> 43
+			| Lte -> 44
 		) in
 		match !pop with
 		| None -> IO.write_byte ch (opid lsl 2)
@@ -285,7 +294,7 @@ let read ch =
 				| 22 -> jumps := (!cpos , DynArray.length ops) :: !jumps; JumpIfNot p
 				| 23 -> jumps := (!cpos , DynArray.length ops) :: !jumps; Trap p
 				| 24 -> EndTrap
-				| 25 -> Ret
+				| 25 -> Ret p
 				| 26 -> MakeEnv p
 				| 27 -> Bool
 				| 28 -> Add
@@ -296,12 +305,15 @@ let read ch =
 				| 33 -> Shl
 				| 34 -> Shr
 				| 35 -> UShr
-				| 36 -> Eq
-				| 37 -> Neq
-				| 38 -> Gt
-				| 39 -> Gte
-				| 40 -> Lt
-				| 41 -> Lte
+				| 36 -> Or
+				| 37 -> And
+				| 38 -> Xor
+				| 39 -> Eq
+				| 40 -> Neq
+				| 41 -> Gt
+				| 42 -> Gte
+				| 43 -> Lt
+				| 44 -> Lte
 				| _ -> raise Invalid_file
 			) in
 			pos.(!cpos) <- DynArray.length ops;
@@ -382,7 +394,7 @@ let dump ch (globals,ops) =
 			| JumpIfNot i -> str "JumpIfNot" (pos + i)
 			| Trap i -> str "Trap" (pos + i)
 			| EndTrap -> "EndTrap"
-			| Ret -> "Ret"
+			| Ret i -> str "Ret" i
 			| MakeEnv i -> str "MakeEnv" i
 			| Bool -> "Bool"
 			| Add -> "Add"
@@ -393,6 +405,9 @@ let dump ch (globals,ops) =
 			| Shl -> "Shl"
 			| Shr -> "Shr"
 			| UShr -> "UShr"
+			| Or -> "Or"
+			| And -> "And"
+			| Xor -> "Xor"
 			| Eq -> "Eq"
 			| Neq -> "Neq"
 			| Gt -> "Gt"
