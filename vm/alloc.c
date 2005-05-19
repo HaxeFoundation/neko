@@ -6,12 +6,21 @@
 /* ************************************************************************ */
 #include "neko.h"
 #include "objtable.h"
+#include "load.h"
+#include "vmcontext.h"
 #ifdef _WIN32
 #	define GC_DLL
 #	define GC_THREADS
 #	define GC_WIN32_THREADS
 #endif
 #include "gc/gc.h"
+
+static val_type t_null = VAL_NULL;
+static val_type t_true = VAL_BOOL;
+static val_type t_false = VAL_BOOL;
+EXTERN value val_null = (value)&t_null;
+EXTERN value val_true = (value)&t_true;
+EXTERN value val_false = (value)&t_false;
 
 struct _otype {
 	value (*init)();
@@ -91,9 +100,15 @@ EXTERN value copy_object( value cpy ) {
 		return val_null;
 	v = (vobject*)GC_MALLOC(sizeof(vobject));
 	v->t = VAL_OBJECT;
-	v->data = cpy?((vobject*)cpy)->data:NULL;
-	v->ot = cpy?((vobject*)cpy)->ot:(otype)0xFFFFFFFF;
-	v->table = cpy?otable_copy(((vobject*)cpy)->table):otable_empty();
+	if( val_is_null(cpy) ) {
+		v->data = NULL;
+		v->ot = (otype)0xFFFFFFFF;
+		v->table = otable_empty();
+	} else {
+		v->data = ((vobject*)cpy)->data;
+		v->ot =	((vobject*)cpy)->ot;
+		v->table = otable_copy(((vobject*)cpy)->table);
+	}
 	return (value)v;
 }
 
@@ -161,16 +176,17 @@ EXTERN void val_gc(value v, finalizer f ) {
 }
 
 #ifdef _DEBUG
-#include "context.h"
+#include <stdio.h>
+
 typedef struct root_list {
 	value *v;
 	int size;
 	int thread;
 	struct root_list *next;
 } root_list;
-_context *roots_context = NULL;
-root_list *roots = NULL;
-int thread_count = 0;
+static _context *roots_context = NULL;
+static root_list *roots = NULL;
+static int thread_count = 0;
 #endif
 
 EXTERN value *alloc_root( unsigned int size ) {
@@ -179,12 +195,12 @@ EXTERN value *alloc_root( unsigned int size ) {
 	root_list *r = malloc(sizeof(root_list));
 	if( roots_context == NULL )
 		roots_context = context_new();
-	if( context_get_data(roots_context) == NULL )
-		context_set_data(roots_context,(void*)++thread_count);
+	if( context_get(roots_context) == NULL )
+		context_set(roots_context,(void*)++thread_count);
 	r->v = v;
 	r->size = size;
 	r->next = roots;
-	r->thread = (int)context_get_data(roots_context);
+	r->thread = (int)context_get(roots_context);
 	roots = r;
 #endif
 	return v;
@@ -207,6 +223,28 @@ EXTERN void free_root(value *v) {
 	free(r);
 #endif
 	GC_free(v);
+}
+
+extern void init_builtins();
+extern void free_builtins();
+
+void neko_global_init() {
+	gc_init();
+	vm_context = context_new();
+	init_builtins();
+}
+
+void neko_global_free() {
+	free_builtins();
+#ifdef _DEBUG
+	if( roots != NULL ) {
+		printf("Some roots are not free");
+		*(char*)NULL = 0;
+	}
+	context_delete(roots_context);
+#endif
+	context_delete(vm_context);
+	gc_major();
 }
 
 /* ************************************************************************ */

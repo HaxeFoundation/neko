@@ -31,12 +31,12 @@ struct _value {
 struct _otype;
 struct _field;
 struct _objtable;
-struct _stringbuf;
+struct _bufffer;
 typedef struct _value* value;
 typedef struct _otype *otype;
 typedef struct _field *field;
 typedef struct _objtable* objtable;
-typedef struct _stringbuf *stringbuf;
+typedef struct _buffer *buffer;
 typedef double tfloat;
 
 typedef void (*finalizer)(value v);
@@ -78,7 +78,7 @@ typedef struct {
 #define val_is_number(v)	(val_is_int(v) || val_tag(v) == VAL_FLOAT)
 #define val_is_float(v)		(!val_is_int(v) && val_tag(v) == VAL_FLOAT)
 #define val_is_string(v)	(!val_is_int(v) && (val_tag(v)&7) == VAL_STRING)
-#define val_is_function(v)	(!val_is_int(v) && val_tag(v) == VAL_FUNCTION)
+#define val_is_function(v)	(!val_is_int(v) && (val_tag(v) == VAL_FUNCTION || val_tag(v) == VAL_PRIMITIVE))
 #define val_is_object(v)	(!val_is_int(v) && val_tag(v) == VAL_OBJECT)
 #define val_is_array(v)		(!val_is_int(v) && (val_tag(v)&7) == VAL_ARRAY)
 #define val_is_obj(v,t)		(val_is_object(v) && val_otype(v) == t)
@@ -90,9 +90,9 @@ typedef struct {
 #define val_bool(v)			(v == val_true)
 #define val_number(v)		(val_is_int(v)?val_int(v): CONV_FLOAT(val_float(v)) )
 #define val_string(v)		(&((vstring*)(v))->c)
-#define val_strlen(v)		((vstring*)(v))->strlen
+#define val_strlen(v)		(val_tag(v) >> 3)
 
-#define val_array_size(v)	((varray*)(v))->asize
+#define val_array_size(v)	(val_tag(v) >> 3)
 #define val_array_ptr(v)	(&((varray*)(v))->ptr)
 #define val_fun_nargs(v)	((vfunction*)(v))->nargs
 #define val_otype(v)		((vobject*)(v))->ot
@@ -139,6 +139,7 @@ typedef struct {
 #	define CONV_FLOAT
 #endif
 
+#define VAR_ARGS (-1)
 #define DEFINE_PRIM_MULT(func) C_FUNCTION_BEGIN EXPORT void *func##__MULT() { return &func; } C_FUNCTION_END
 #define DEFINE_PRIM(func,nargs) C_FUNCTION_BEGIN EXPORT void *func##__##nargs() { return &func; } C_FUNCTION_END
 #define DEFINE_CLASS(dll,name) extern value dll##_##name(); otype t_##name = (otype)dll##_##name; DEFINE_PRIM(dll##_##name,0);
@@ -196,21 +197,22 @@ C_FUNCTION_BEGIN
 	EXTERN char *alloc_abstract( unsigned int nbytes );
 	EXTERN value alloc_function( void *c_prim, unsigned int nargs );
 
-	EXTERN stringbuf alloc_stringbuf( const char *init );
-	EXTERN void stringbuf_append( stringbuf b, const char *s );
-	EXTERN void stringbuf_append_sub( stringbuf b, const char *s, int len );
-	EXTERN value stringbuf_to_string( stringbuf b );
-	EXTERN void val_to_string( value v, stringbuf b );
+	EXTERN buffer alloc_buffer( const char *init );
+	EXTERN void buffer_append( buffer b, const char *s );
+	EXTERN void buffer_append_sub( buffer b, const char *s, int len );
+	EXTERN value buffer_to_string( buffer b );
+	EXTERN void val_buffer( buffer b, value v );
 
 	EXTERN int val_compare( value a, value b );
 	EXTERN void val_print( value s );
 	EXTERN void val_gc( value v, finalizer f );
+	EXTERN void val_throw( value v );
 
 C_FUNCTION_END
 
 #define Constr(o,t,nargs) { field f__new_##nargs = val_id("#" #nargs); alloc_field(o,f__new_##nargs,alloc_fun(#t".new",t##_new##nargs,nargs) ); }
 #define Method(o,t,name,nargs) { field f__##name = val_id(#name); alloc_field(o,f__##name,alloc_fun(#t"."#name,t##_##name,nargs) ); }
-#define MethodMult(o,t,name) { field f__##name = val_id(#name); alloc_field(o,f__##name,alloc_fun(#t"."#name,t##_##name,-1) ); }
+#define MethodMult(o,t,name) { field f__##name = val_id(#name); alloc_field(o,f__##name,alloc_fun(#t"."#name,t##_##name,VAR_ARGS) ); }
 #define Property(o,t,name)	Method(o,t,get_##name,0); Method(o,t,set_##name,1)
 
 #endif/* ************************************************************************ */

@@ -118,6 +118,15 @@
 				RelativePath=".\alloc.c">
 			</File>
 			<File
+				RelativePath=".\builtins.c">
+			</File>
+			<File
+				RelativePath=".\context.c">
+			</File>
+			<File
+				RelativePath=".\interp.c">
+			</File>
+			<File
 				RelativePath=".\load.c">
 			</File>
 			<File
@@ -129,20 +138,30 @@
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}">
 			<File
+				RelativePath=".\context.h">
+			</File>
+			<File
+				RelativePath=".\interp.h">
+			</File>
+			<File
 				RelativePath=".\load.h">
 			</File>
 			<File
 				RelativePath=".\neko.h">
 			</File>
 			<File
+				RelativePath=".\objtable.h">
+			</File>
+			<File
 				RelativePath=".\opcodes.h">
 			</File>
+			<File
+				RelativePath=".\vmcontext.h">
+			</File>
 		</Filter>
-		<Filter
-			Name="Resource Files"
-			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx"
-			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}">
-		</Filter>
+		<File
+			RelativePath=".\main.c">
+		</File>
 	</Files>
 	<Globals>
 	</Globals>

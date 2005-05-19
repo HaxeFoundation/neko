@@ -4,6 +4,7 @@
 /*  (c)2005 Nicolas Cannasse												*/
 /*																			*/
 /* ************************************************************************ */
+#include <string.h>
 #include "objtable.h"
 
 objtable otable_empty() {

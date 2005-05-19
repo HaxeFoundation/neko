@@ -4,9 +4,7 @@
 /*  (c)2005 Nicolas Cannasse												*/
 /*																			*/
 /* ************************************************************************ */
-#ifndef _OBJTABLE_H
-#define _OBJTABLE_H
-
+#pragma once
 #include "neko.h"
 
 typedef struct {
@@ -42,5 +40,4 @@ objtable otable_empty();
 void otable_replace(objtable t, field id, value data);
 objtable otable_copy(objtable t);
 
-#endif
 /* ************************************************************************ */
