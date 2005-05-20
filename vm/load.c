@@ -45,7 +45,7 @@ neko_module *neko_module_load( reader r, readp p ) {
 		ERROR();
 	if( m->nglobals < 0 || m->nglobals > 0xFFFF || m->nfields < 0 || m->nfields > 0xFFFF || m->codesize < 0 || m->codesize > 0xFFFFF )
 		ERROR();
-	tmp = alloc_abstract(sizeof(char)*((m->codesize>=MAXSIZE)?(m->codesize+1):MAXSIZE));
+	tmp = alloc_abstract(sizeof(char)*(((m->codesize+1)>MAXSIZE)?(m->codesize+1):MAXSIZE));
 	m->globals = (value*)alloc(m->nglobals * sizeof(value));
 	m->fields = (value*)alloc(sizeof(value*)*m->nfields);
 	m->code = (int*)alloc_abstract(sizeof(int)*(m->codesize+1));
@@ -121,7 +121,7 @@ neko_module *neko_module_load( reader r, readp p ) {
 		}
 	}
 	tmp[i] = 1;
-	m->code[i] = Ret;
+	m->code[i] = Last;
 	// Check globals
 	for(i=0;i<m->nglobals;i++) {
 		vfunction *f = (vfunction*)m->globals[i];
@@ -155,7 +155,7 @@ neko_module *neko_module_load( reader r, readp p ) {
 			m->code[i+1] = (int)(m->code + itmp);
 			break;
 		case AccInt:
-			m->code[i+1] = (int)val_int((int)itmp);
+			m->code[i+1] = (int)alloc_int((int)itmp);
 			break;
 		case AccStack:
 		case SetStack:

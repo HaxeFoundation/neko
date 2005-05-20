@@ -13,12 +13,17 @@ value *builtins = NULL;
 #define BUILTIN(name,nargs)	builtins[p++] = alloc_function(builtin_##name,nargs)
 
 static value builtin_print( value *args, int nargs ) {
-/*	buffer b = alloc_buffer(NULL);
+	buffer b;
 	int i;
+	if( nargs == 1 && val_is_string(*args) ) {
+		val_print(*args);
+		return val_true;
+	}
+	b = alloc_buffer(NULL);
 	for(i=0;i<nargs;i++)
 		val_buffer(b,args[i]);
 	val_print(buffer_to_string(b));
-*/	return val_true;
+	return val_true;
 }
 
 static value builtin_time() {

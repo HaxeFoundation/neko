@@ -69,6 +69,7 @@
 				Name="VCCLCompilerTool"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;MTSVM_SOURCE"
 				RuntimeLibrary="4"
+				BufferSecurityCheck="FALSE"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="FALSE"
@@ -131,6 +132,9 @@
 			</File>
 			<File
 				RelativePath=".\objtable.c">
+			</File>
+			<File
+				RelativePath=".\others.c">
 			</File>
 		</Filter>
 		<Filter

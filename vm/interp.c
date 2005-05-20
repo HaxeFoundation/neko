@@ -6,6 +6,7 @@
 /* ************************************************************************ */
 #include <math.h>
 #include <string.h>
+#include <stdio.h>
 #undef NULL
 #include "context.h"
 #include "interp.h"
@@ -14,26 +15,43 @@
 #include "vmcontext.h"
 #include "objtable.h"
 
-#define STACK_SIZE (1 << 10)
+#define INIT_STACK_SIZE (1 << 10)
+#define MAX_STACK_SIZE	(1 << 18)
 
 _context *vm_context = NULL;
 value interp( neko_vm *vm, int *code, value env );
 
+static void default_printer( const char *s, int len ) {
+	while( len > 0 ) {
+		int p = fwrite(s,1,len,stdout);
+		if( p <= 0 ) {
+			fputs("[ABORTED]",stdout);
+			break;
+		}
+		len -= p;
+		s += p;
+	}
+	fputc('\n',stdout);
+}
+
 neko_vm *neko_vm_alloc() {
 	int i;
+	int *p;
 	neko_vm *vm = (neko_vm*)alloc_abstract(sizeof(neko_vm));
-	vm->spmin = (int*)alloc_root(STACK_SIZE);
+	vm->spmin = (int*)alloc_root(INIT_STACK_SIZE);
+	p = vm->spmin;
 	for(i=0;i<STACK_DELTA;i++)
-		*vm->spmin++ = (int)val_null;
-	vm->spmax = vm->spmin + STACK_SIZE;
+		*p++ = (int)val_null;
+	vm->print = default_printer;
+	vm->spmax = vm->spmin + INIT_STACK_SIZE;
 	vm->sp = vm->spmax;
-	vm->csp = vm->spmin - 1;
+	vm->csp = p - 1;
 	vm->val_this = val_null;
 	return vm;
 }
 
 void neko_vm_free( neko_vm *vm ) {
-	free_root((value*)(vm->spmin - STACK_DELTA));
+	free_root((value*)vm->spmin);
 }
 
 void neko_vm_select( neko_vm *vm ) {
@@ -49,6 +67,29 @@ const char*neko_vm_error( neko_vm *vm ) {
 	return vm->error;
 }
 
+static int stack_expand( int *sp, int *csp, neko_vm *vm ) {
+	int i;
+	int size = (((int)vm->spmax - (int)vm->spmin) / sizeof(int)) << 1;
+	int *nsp;
+	if( size > MAX_STACK_SIZE )
+		return 0;
+	nsp = (int*)alloc_root(size);
+	
+	// csp size
+	i = ((int)(csp + 1) - (int)vm->spmin) / sizeof(int);
+	memcpy(nsp,vm->spmin,sizeof(int) * i);
+	vm->csp = nsp + i - 1;
+	
+	i = ((int)vm->spmax - (int)sp) / sizeof(int);
+	memcpy(nsp+size-i,sp,sizeof(int) * i);
+	vm->sp = nsp + size - i;
+
+	free_root((value*)vm->spmin);
+	vm->spmin = nsp;
+	vm->spmax = nsp + size;
+	return 1;
+}
+
 typedef int (*c_prim0)();
 typedef int (*c_prim1)(int);
 typedef int (*c_prim2)(int,int);
@@ -56,8 +97,9 @@ typedef int (*c_prim3)(int,int,int);
 typedef int (*c_prim4)(int,int,int,int);
 typedef int (*c_primN)(value*,int);
 
-#define Error( cond , err ) if( cond ) { vm->error = #err; return val_null; }
-#define DynError	Error
+
+#define DynError(cond,err)		if( cond ) { vm->error = #err; return val_null; }
+#define Error(cond,err)			DynError(cond,err)
 #define Instr(x)	case x:
 #define Next		break;
 
@@ -84,7 +126,11 @@ typedef int (*c_primN)(value*,int);
 			acc = (int)val_null; \
 			PopMacro(*pc++); \
 		} else if( val_tag(acc) == VAL_FUNCTION && *pc == ((vfunction*)acc)->nargs ) { \
-			DynError( csp + 3 >= sp , OVERFLOW ); \
+			if( csp + 3 >= sp ) { \
+				DynError( !stack_expand(sp,csp,vm) , OVERFLOW ); \
+				sp = vm->sp; \
+				csp = vm->csp; \
+			} \
 			*++csp = (int)(pc+1); \
 			*++csp = (int)env; \
 			*++csp = (int)vm->val_this; \
@@ -143,7 +189,7 @@ typedef int (*c_primN)(value*,int);
 		Error( sp == vm->spmax , UNDERFLOW ); \
 		acc = (int)val_compare((value)*sp,(value)acc); \
 		*sp++ = NULL; \
-		acc = (acc == 0xFF)?(int)val_null:((acc test 0)?3:1); \
+		acc = (int)((acc test 0)?val_true:val_false); \
 		Next
 
 #define SUB(x,y) ((x) - (y))
@@ -171,13 +217,29 @@ typedef int (*c_primN)(value*,int);
 		*sp++ = NULL; \
 		Next;
 
+#define AppendString(str,fmt,x,way) { \
+		int len, len2; \
+		value v; \
+		len = val_strlen(str); \
+		len2 = sprintf(vm->tmp,fmt,x); \
+		v = alloc_empty_string(len+len2); \
+		if( way ) { \
+		 	memcpy((char*)val_string(v),val_string(str),len); \
+			memcpy((char*)val_string(v)+len,vm->tmp,len2+1); \
+		} else { \
+			memcpy((char*)val_string(v),vm->tmp,len2); \
+			memcpy((char*)val_string(v)+len2,val_string(str),len+1); \
+		} \
+		acc = (int)v; \
+	}
+
 value interp( neko_vm *vm, register int *pc, value env ) {
 	register int acc = (int)val_null;
 	register int *sp = vm->sp;
 	register int *csp = vm->csp;
 	int tmp;
 	while( true ) {
-	switch( *pc++ ) {
+		switch( *pc++ ) {
 	Instr(AccNull)
 		acc = (int)val_null;
 		Next;
@@ -260,7 +322,11 @@ value interp( neko_vm *vm, register int *pc, value env ) {
 		Next;
 	Instr(Push)
 		--sp;
-		DynError( sp <= csp, OVERFLOW );
+		if( sp <= csp ) {
+			DynError( !stack_expand(sp,csp,vm) , OVERFLOW );
+			sp = vm->sp;
+			csp = vm->csp;
+		}
 		*sp = acc;
 		Next;
 	Instr(Pop)
@@ -285,7 +351,7 @@ value interp( neko_vm *vm, register int *pc, value env ) {
 			pc++;
 		Next;
 	Instr(JumpIfNot)
-		if( acc == (int)val_false )
+		if( acc != (int)val_true )
 			pc = (int*)*pc;
 		else
 			pc++;
@@ -303,13 +369,8 @@ EndTrap,
 		*csp-- = NULL;
 		pc = (int*)*csp;
 		*csp-- = NULL;
-		if( pc == (int*)CALLBACK_RETURN ) {
-			vm->sp = sp;
-			vm->csp = csp;
-			return (value)acc;
-		}
 		Next;
-	Instr(MakeEnv);
+	Instr(MakeEnv)
 		{
 			int n = *pc++;
 			tmp = (int)alloc_array(n);
@@ -335,36 +396,31 @@ EndTrap,
 		else if( acc & 1 ) {
 			if( val_tag(*sp) == VAL_FLOAT )
 				acc = (int)alloc_float(val_float(*sp) + val_int(acc));
-			else if( val_tag(*sp) == VAL_STRING )
-				AppendString(*sp,"%d",val_int(acc),true);
+			else if( (val_tag(*sp)&7) == VAL_STRING )
+				AppendString(*sp,"%d",val_int(acc),true)
 			else
 				acc = (int)val_null;
 		} else if( *sp & 1 ) {
 			if( val_tag(acc) == VAL_FLOAT )
 				acc = (int)alloc_float(val_int(*sp) + val_float(acc));
-			else if( val_tag(acc) == VAL_STRING )
-				AppendString(acc,"%d",val_int(*sp),false);	
+			else if( (val_tag(acc)&7) == VAL_STRING )
+				AppendString(acc,"%d",val_int(*sp),false)
 			else
 				acc = (int)val_null;
-		} else if( val_tag(acc) == VAL_FLOAT ) {			
-			if( val_tag(*sp) == VAL_FLOAT )
-				acc = (int)alloc_float(val_float(*sp) + val_float(acc));
-			else if( val_tag(*sp) == VAL_STRING )
-				AppendString(*sp,"%.10g",val_float(acc),true);
-			else
-				acc = (int)val_null;
-		} else if( val_tag(*sp) == VAL_FLOAT ) {
-			if( val_tag(acc) == VAL_STRING )
-				AppendString(acc,"%.10g",val_float(*sp),false);
-			else
-				acc = (int)val_null;
-		} else if( val_tag(acc) == VAL_STRING && val_tag(*sp) == VAL_STRING ) {
+		} else if( val_tag(acc) == VAL_FLOAT && val_tag(*sp) == VAL_FLOAT )
+			acc = (int)alloc_float(val_float(*sp) + val_float(acc));
+		else if( (tmp = val_tag(acc)&7) == VAL_STRING && (val_tag(*sp)&7) == VAL_STRING ) {
 			int len1 = val_strlen(*sp);
 			int len2 = val_strlen(acc);
 			value v = alloc_empty_string(len1+len2);
 			memcpy((char*)val_string(v),val_string(*sp),len1);
 			memcpy((char*)val_string(v)+len1,val_string(acc),len2+1);
 			acc = (int)v;
+		} else if( tmp == VAL_STRING || (val_tag(*sp)&7) == VAL_STRING ) {
+			buffer b = alloc_buffer(NULL);
+			val_buffer(b,(value)*sp);
+			val_buffer(b,(value)acc);
+			acc = (int)buffer_to_string(b);
 		} else
 			acc = (int)val_null;
 		*sp++ = NULL;
@@ -373,7 +429,7 @@ EndTrap,
 		NumberOp(-,SUB)
 	Instr(Mult)
 		NumberOp(*,MULT)
-	Instr(Div);
+	Instr(Div)
 		if( acc == 1 ) { // division by integer 0
 			Error( sp == vm->spmax , UNDERFLOW );
 			acc	= (int)val_null;
@@ -381,7 +437,7 @@ EndTrap,
 			Next;
 		}
 		NumberOp(/,DIV);
-	Instr(Mod);
+	Instr(Mod)
 		if( acc == 1 ) {
 			Error( sp == vm->spmax , UNDERFLOW );
 			acc	= (int)val_null;
@@ -419,6 +475,8 @@ EndTrap,
 		Test(>)
 	Instr(Gte)
 		Test(>=)
+	Instr(Last)
+		return (value)acc;
 	}}
 }
 

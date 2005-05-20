@@ -8,9 +8,8 @@
 #include "neko.h"
 #include "context.h"
 
-#define CALLBACK_RETURN		0xFF000001
-
 typedef struct _neko_vm neko_vm;
+typedef void (*printer)( const char *, int );
 
 struct _neko_vm {
 	int *spmin;
@@ -19,6 +18,8 @@ struct _neko_vm {
 	int *csp;
 	value val_this;
 	const char *error;
+	printer print;
+	char tmp[100];
 };
 
 extern _context *vm_context;
