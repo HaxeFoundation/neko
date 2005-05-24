@@ -54,7 +54,7 @@ EXTERN char *alloc_abstract( unsigned int nbytes ) {
 EXTERN value alloc_empty_string( unsigned int size ) {
 	vstring *s;
 	if( size > max_string_size )
-		return val_null;
+		val_throw(alloc_string("max_string_size reached"));
 	s = (vstring*)GC_MALLOC_ATOMIC(size+sizeof(val_type));
 	s->t = VAL_STRING | (size << 3);
 	return (value)s;
@@ -76,7 +76,7 @@ EXTERN value alloc_float( tfloat f ) {
 EXTERN value alloc_array( unsigned int n ) {
 	value v;
 	if( n > max_array_size )
-		return val_null;
+		val_throw(alloc_string("max_array_size reached"));
 	v = (value)GC_MALLOC(n*sizeof(value)+sizeof(val_type));
 	v->t = VAL_ARRAY | (n << 3);
 	return v;
@@ -84,13 +84,26 @@ EXTERN value alloc_array( unsigned int n ) {
 
 EXTERN value alloc_function( void *c_prim, unsigned int nargs ) {
 	vfunction *v;
-	if( c_prim == NULL )
+	if( c_prim == NULL || (nargs < 0 && nargs != VAR_ARGS) )
 		return val_null;
-	v = (vfunction*)GC_MALLOC(sizeof(vfunction));
+	v = (vfunction*)GC_MALLOC(sizeof(vfunction)-sizeof(void*));
 	v->t = VAL_PRIMITIVE;
 	v->addr = c_prim;
 	v->nargs = nargs;
 	v->env = alloc_array(0);
+	return (value)v;
+}
+
+value alloc_module_function( void *m, int pos, int nargs ) {
+	vfunction *v;
+	if( nargs < 0 && nargs != VAR_ARGS )
+		return val_null;
+	v = (vfunction*)GC_MALLOC(sizeof(vfunction));
+	v->t = VAL_FUNCTION;
+	v->addr = (void*)pos;
+	v->nargs = nargs;
+	v->env = alloc_array(0);
+	v->module = m;
 	return (value)v;
 }
 
