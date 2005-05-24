@@ -15,11 +15,17 @@
 #include "vmcontext.h"
 #include "objtable.h"
 
-#define INIT_STACK_SIZE (1 << 10)
+#define INIT_STACK_SIZE (1 << 7)
 #define MAX_STACK_SIZE	(1 << 18)
 
+#define address_int(a)	(((int)(a)) | 1)
+#define int_address(a)	(int*)(a & ~1)
+
+static int op_last = Last;
 _context *vm_context = NULL;
-value interp( neko_vm *vm, int *code, value env );
+int *callback_return = &op_last;
+
+extern value alloc_module_function( void *m, int pos, int nargs );
 
 static void default_printer( const char *s, int len ) {
 	while( len > 0 ) {
@@ -36,22 +42,20 @@ static void default_printer( const char *s, int len ) {
 
 neko_vm *neko_vm_alloc() {
 	int i;
-	int *p;
-	neko_vm *vm = (neko_vm*)alloc_abstract(sizeof(neko_vm));
-	vm->spmin = (int*)alloc_root(INIT_STACK_SIZE);
-	p = vm->spmin;
-	for(i=0;i<STACK_DELTA;i++)
-		*p++ = (int)val_null;
+	neko_vm *vm = (neko_vm*)alloc(sizeof(neko_vm));
+	vm->spmin = (int*)alloc(INIT_STACK_SIZE*sizeof(int));
 	vm->print = default_printer;
 	vm->spmax = vm->spmin + INIT_STACK_SIZE;
 	vm->sp = vm->spmax;
-	vm->csp = p - 1;
+	for(i=0;i<STACK_DELTA;i++)
+		*--vm->sp = (int)val_null;
+	vm->csp = vm->spmin - 1;
 	vm->val_this = val_null;
+	vm->fields = otable_empty();
 	return vm;
 }
 
 void neko_vm_free( neko_vm *vm ) {
-	free_root((value*)vm->spmin);
 }
 
 void neko_vm_select( neko_vm *vm ) {
@@ -59,11 +63,50 @@ void neko_vm_select( neko_vm *vm ) {
 }
 
 void neko_vm_execute( neko_vm *vm, neko_module *m ) {
+	unsigned int i;
+	int *c;
+	value env;
+	value ret = val_null;
 	neko_vm_select(vm);
-	interp(vm,m->code,alloc_array(0));
+	for(i=0;i<m->nfields;i++)
+		val_id(val_string(m->fields[i]));
+	c = m->code;
+	env = alloc_array(0);
+	while( true ) {
+		if( setjmp(vm->start) ) {
+			int *sp;
+			ret = vm->val_this;
+			if( vm->trap == 0 ) // uncaught exception
+				break;
+			vm->trap = vm->spmax - (int)vm->trap;
+			if( vm->trap < vm->sp ) {
+				// trap outside stack
+				vm->error = "INVALID_TRAP";
+				break;
+			}
+
+			// pop csp
+			sp = vm->spmin + val_int(vm->trap[0]);
+			while( vm->csp > sp )
+				*vm->csp-- = NULL;
+		
+			// restore state
+			vm->val_this = (value)vm->trap[1];
+			env = (value)vm->trap[2];
+			c = int_address(vm->trap[3]);
+
+			// pop sp
+			sp = vm->trap + 5;
+			vm->trap = (int*)val_int(vm->trap[4]);
+			while( vm->sp < sp )
+				*vm->sp++ = NULL;
+		}
+		ret = interp(vm,(int)ret,c,env);
+		break;
+	}
 }
 
-const char*neko_vm_error( neko_vm *vm ) {
+const char *neko_vm_error( neko_vm *vm ) {
 	return vm->error;
 }
 
@@ -73,18 +116,17 @@ static int stack_expand( int *sp, int *csp, neko_vm *vm ) {
 	int *nsp;
 	if( size > MAX_STACK_SIZE )
 		return 0;
-	nsp = (int*)alloc_root(size);
+	nsp = (int*)alloc(size * sizeof(int));
 	
 	// csp size
 	i = ((int)(csp + 1) - (int)vm->spmin) / sizeof(int);
 	memcpy(nsp,vm->spmin,sizeof(int) * i);
 	vm->csp = nsp + i - 1;
 	
+	// sp size
 	i = ((int)vm->spmax - (int)sp) / sizeof(int);
 	memcpy(nsp+size-i,sp,sizeof(int) * i);
 	vm->sp = nsp + size - i;
-
-	free_root((value*)vm->spmin);
 	vm->spmin = nsp;
 	vm->spmax = nsp + size;
 	return 1;
@@ -96,7 +138,6 @@ typedef int (*c_prim2)(int,int);
 typedef int (*c_prim3)(int,int,int);
 typedef int (*c_prim4)(int,int,int,int);
 typedef int (*c_primN)(value*,int);
-
 
 #define DynError(cond,err)		if( cond ) { vm->error = #err; return val_null; }
 #define Error(cond,err)			DynError(cond,err)
@@ -111,12 +152,15 @@ typedef int (*c_primN)(value*,int);
 
 #define SetupBeforeCall(this_arg) \
 		value old_this = vm->val_this; \
+		value old_env = vm->env; \
 		vm->val_this = this_arg; \
+		vm->env = ((vfunction*)acc)->env; \
 		vm->sp = sp; \
 		vm->csp = csp;
 
 #define RestoreAfterCall() \
 		if( acc == NULL ) acc = (int)val_null; \
+		vm->env = old_env; \
 		vm->val_this = old_this; \
 		if( vm->error ) \
 			return val_null;
@@ -160,7 +204,7 @@ typedef int (*c_primN)(value*,int);
 				} \
 				RestoreAfterCall(); \
 			} \
-			else if( ((vfunction*)acc)->nargs == -1 ) { \
+			else if( ((vfunction*)acc)->nargs == VAR_ARGS ) { \
 				int args[CALL_MAX_ARGS]; \
 				SetupBeforeCall(this_arg); \
 				sp += *pc; \
@@ -189,7 +233,7 @@ typedef int (*c_primN)(value*,int);
 		Error( sp == vm->spmax , UNDERFLOW ); \
 		acc = (int)val_compare((value)*sp,(value)acc); \
 		*sp++ = NULL; \
-		acc = (int)((acc test 0)?val_true:val_false); \
+		acc = (int)((acc test 0 && acc != invalid_comparison)?val_true:val_false); \
 		Next
 
 #define SUB(x,y) ((x) - (y))
@@ -233,8 +277,7 @@ typedef int (*c_primN)(value*,int);
 		acc = (int)v; \
 	}
 
-value interp( neko_vm *vm, register int *pc, value env ) {
-	register int acc = (int)val_null;
+value interp( neko_vm *vm, register int acc, register int *pc, value env ) {
 	register int *sp = vm->sp;
 	register int *csp = vm->csp;
 	int tmp;
@@ -356,10 +399,24 @@ value interp( neko_vm *vm, register int *pc, value env ) {
 		else
 			pc++;
 		Next;
-/*
-Trap,
-EndTrap,
-*/
+	Instr(Trap)
+		sp -= 5;
+		if( sp <= csp ) {
+			DynError( !stack_expand(sp,csp,vm) , OVERFLOW );
+			sp = vm->sp;
+			csp = vm->csp;
+		}
+		sp[0] = (int)alloc_int((int)(csp - vm->spmin));
+		sp[1] = (int)vm->val_this;
+		sp[2] = (int)env;
+		sp[3] = address_int(*pc);
+		sp[4] = (int)alloc_int((int)vm->trap);
+		vm->trap = (int*)(vm->spmax - sp);
+		pc++;
+		Next;
+	Instr(EndTrap)
+		PopMacro(5);
+		Next;
 	Instr(Ret)
 		Error( csp - 2 < vm->spmin , UNDERFLOW );
 		PopMacro( *pc++ );
@@ -380,7 +437,7 @@ EndTrap,
 				*sp++ = NULL;
 			}
 			if( !val_is_int(acc) && val_tag(acc) == VAL_FUNCTION ) {
-				acc = (int)alloc_function(((vfunction*)acc)->addr,((vfunction*)acc)->nargs);
+				acc = (int)alloc_module_function(*(void**)(((vfunction*)acc)+1),(int)((vfunction*)acc)->addr,((vfunction*)acc)->nargs);
 				((vfunction*)acc)->env = (value)tmp;
 			} else
 				acc = (int)val_null;
