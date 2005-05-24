@@ -58,11 +58,12 @@ typedef struct {
 	int nargs;
 	void *addr;
 	value env;
+	void *module;
 } vfunction;
 
 typedef struct {
 	val_type t;
-	const char c;
+	char c;
 } vstring;
 
 typedef struct {
@@ -102,6 +103,7 @@ typedef struct {
 
 #define max_array_size		((1 << 29) - 1)
 #define max_string_size		((1 << 29) - 1)
+#define invalid_comparison	0xFF
 
 #undef EXTERN
 #undef EXPORT
