@@ -53,7 +53,7 @@ EXTERN int val_compare( value a, value b ) {
 	default:
 		if( a == b )
 			return 0;
-		return 0xFF;
+		return invalid_comparison;
 	}
 }
 
@@ -158,12 +158,24 @@ EXTERN void val_buffer( buffer b, value v ) {
 }
 
 EXTERN field val_id( const char *name ) {
+	objtable fields;
+	field f;
+	value *old;
 	value acc = alloc_int(0);
+	const char *oname = name;
 	while( *name ) {
 		acc = alloc_int(223 * val_int(acc) + *((unsigned char*)name));
 		name++;
-	}	
-	return (field)val_int(acc);
+	}
+	f = (field)val_int(acc);
+	fields = NEKO_VM()->fields;
+	old = otable_find(fields,f);
+	if( old != NULL ) {
+		if( scmp(val_string(*old),val_strlen(*old),oname,name - oname) != 0 )
+			val_throw(alloc_string("field conflict"));
+	} else
+		otable_replace(fields,f,copy_string(oname,name - oname));
+	return f;
 }
 
 EXTERN value val_field( value o, field id ) {
@@ -183,6 +195,12 @@ EXTERN void val_print( value v ) {
 		v = buffer_to_string(b);
 	}
 	NEKO_VM()->print( val_string(v), val_strlen(v) );
+}
+
+EXTERN void val_throw( value v ) {
+	neko_vm *vm = NEKO_VM();
+	vm->val_this = v;
+	longjmp(vm->start,1);
 }
 
 /* ************************************************************************ */
