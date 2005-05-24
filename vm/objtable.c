@@ -55,7 +55,7 @@ void otable_optimize( objtable t ) {
 void otable_replace( objtable t, field id, value data ) {
 	int min = 0;
 	int max = t->count;
-	int mid;
+	int mid = 0;
 	field cid;
 	cell *c = t->cells;
 	while( min < max ) {
