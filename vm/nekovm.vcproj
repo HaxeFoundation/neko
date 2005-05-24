@@ -122,6 +122,9 @@
 				RelativePath=".\builtins.c">
 			</File>
 			<File
+				RelativePath=".\callback.c">
+			</File>
+			<File
 				RelativePath=".\context.c">
 			</File>
 			<File
