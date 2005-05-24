@@ -14,6 +14,7 @@
 #define ERROR() { return NULL; }
 
 extern value *builtins;
+extern value alloc_module_function( void *m, int pos, int nargs );
 
 static int read_string( reader r, readp p, char *buf ) {
 	int i = 0;
@@ -64,8 +65,7 @@ neko_module *neko_module_load( reader r, readp p ) {
 				ERROR();
 			if( (itmp & 0xFFFFFF) >= m->codesize )
 				ERROR();
-			m->globals[i] = alloc_function((void*)(itmp&0xFFFFFF),(itmp >> 24));
-			m->globals[i]->t = VAL_FUNCTION;
+			m->globals[i] = alloc_module_function(m,(itmp&0xFFFFFF),(itmp >> 24));
 			break;
 		case 3:
 			if( r(p,&stmp,2) != 2 )
