@@ -14,7 +14,45 @@ objtable otable_empty() {
 	return t2;
 }
 
-void otable_replace(objtable t, field id, value data) {
+int otable_remove( objtable t, field id ) {
+	int min = 0;
+	int max = t->count;
+	int mid;
+	field cid;
+	cell *c = t->cells;
+	while( min < max ) {
+		mid = (min + max) >> 1;
+		cid = c[mid].id;
+		if( cid < id )
+			max = mid;
+		else if( cid > id )
+			min = mid;
+		else {
+			t->count--;
+			while( mid < t->count ) {
+				c[mid] = c[mid+1];
+				mid++;
+			}
+			return 1;
+		}
+	}
+	return 0;
+}
+
+void otable_optimize( objtable t ) {
+	int max = t->count;
+	int i;
+	int cur = 0;
+	cell *c = t->cells;
+	for(i=0;i<max;i++) {
+		value v = c[i].v;
+		if( v != val_null )
+			c[cur++] = c[i];
+	}
+	t->count = cur;
+}
+
+void otable_replace( objtable t, field id, value data ) {
 	int min = 0;
 	int max = t->count;
 	int mid;
@@ -48,7 +86,7 @@ void otable_replace(objtable t, field id, value data) {
 	t->count++;
 }
 
-objtable otable_copy(objtable t) {
+objtable otable_copy( objtable t ) {
 	objtable t2 = (objtable)alloc(sizeof(objtable));
 	t2->count = t->count;
 	t2->cells = (cell*)alloc(sizeof(cell)*t->count);

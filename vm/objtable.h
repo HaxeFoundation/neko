@@ -38,6 +38,8 @@ INLINE value *otable_find(objtable t,field id) {
 
 objtable otable_empty();
 void otable_replace(objtable t, field id, value data);
+int otable_remove(objtable t, field id);
+void otable_optimize(objtable t);
 objtable otable_copy(objtable t);
 
 /* ************************************************************************ */
