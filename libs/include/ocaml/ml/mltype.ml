@@ -27,7 +27,7 @@ type tconstant =
 	| TInt of int
 	| TFloat of string
 	| TString of string
-	| TVar of string
+	| TIdent of string
 
 type texpr_decl =
 	| TConst of tconstant
@@ -36,10 +36,11 @@ type texpr_decl =
 	| TCall of texpr * texpr list
 	| TField of texpr * string
 	| TArray of texpr * texpr
-	| TVars of (string * texpr) list
+	| TVar of string * texpr
 	| TIf of texpr * texpr * texpr option
-	| TFunction of string list * texpr
+	| TFunction of (string * t) list * texpr
 	| TBinop of string * texpr * texpr
+	| TTupleDecl of texpr list
 
 and texpr = {
 	edecl : texpr_decl;
@@ -94,6 +95,11 @@ let t_poly g name =
 let mk_fun g params ret = {
 	tid = if List.exists (fun t -> t.tid <> -1) (ret :: params) then genid g else -1;
 	texpr = TFun (params,ret);
+}
+
+let mk_tup g l = {
+	tid = if List.exists (fun t -> t.tid <> -1) l then genid g else -1;
+	texpr = TTuple l;
 }
 
 type print_infos = {
@@ -209,4 +215,16 @@ let rec polymorphize g t =
 	| TLink t -> polymorphize g t
 	| TFun (tl,t) -> List.iter (polymorphize g) tl; polymorphize g t
 	| TNamed (_,tl,_) -> List.iter (polymorphize g) tl
+
+let rec monomorphize t =
+	match t.texpr with
+	| TAbstract -> ()
+	| TMono -> ()
+	| TPoly -> t.tid <- -1; t.texpr <- TMono
+	| TRecord fl -> List.iter (fun (_,_,t) -> monomorphize t) fl
+	| TUnion fl -> List.iter (fun (_,t) -> monomorphize t) fl
+	| TTuple tl -> List.iter monomorphize tl
+	| TLink t -> monomorphize t
+	| TFun (tl,t) -> List.iter monomorphize tl; monomorphize t
+	| TNamed (_,tl,_) -> List.iter monomorphize tl
 

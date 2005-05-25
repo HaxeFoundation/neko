@@ -5,6 +5,7 @@ type context = {
 	mutable idents : (string,t) PMap.t;
 	gen : id_gen;
 	records : (string,t * t) Hashtbl.t;
+	types : (string,t) Hashtbl.t;
 }
 
 type error_msg =
@@ -71,6 +72,41 @@ let rec unify ctx t1 t2 p =
 	| _ , _ ->
 		error (Cannot_unify (t1,t2)) p
 
+let rec type_type ?(h=Hashtbl.create 0) ctx t p =
+	match t with
+	| ETuple el ->
+		mk_tup ctx.gen (List.map (fun t -> type_type ~h ctx t p) el)
+	| EPoly s ->
+		(try
+			Hashtbl.find h s
+		with
+			Not_found ->
+				let t = {
+					tid = genid ctx.gen;
+					texpr = TPoly
+				} in
+				Hashtbl.add h s t;
+				t)
+	| EType (params,name) ->
+		let tl = List.map (fun t -> type_type ~h ctx t p) params in
+		try
+			let t = Hashtbl.find ctx.types name in
+			(match t.texpr with
+			| TNamed (_,params,t2) ->
+				let tl = (if List.length tl = List.length params then
+					tl
+				else match tl with (* resolve ambiguity *)
+					| [{ texpr = TTuple tl }] when List.length tl = List.length params -> tl
+					| _ -> error (Custom ("Invalid number of type parameters for " ^ name)) p) in
+				let h = Hashtbl.create 0 in
+				let t = duplicate ctx.gen ~h t in
+				let params = List.map (duplicate ctx.gen ~h) params in
+				List.iter2 (fun pa t -> unify ctx pa t p) params tl;
+				t
+			| _ -> assert false)
+		with
+			Not_found -> error (Custom ("Unknown type " ^ name)) p
+
 let type_constant ctx c p =
 	match c with
 	| True -> mk (TConst TTrue) t_bool p 
@@ -81,7 +117,7 @@ let type_constant ctx c p =
 	| Ident s ->
 		(try
 			let t = PMap.find s ctx.idents in
-			mk (TConst (TVar s)) (duplicate ctx.gen t) p
+			mk (TConst (TIdent s)) (duplicate ctx.gen t) p
 		with
 			Not_found -> error (Custom ("Unknown variable " ^ s)) p)
 	| Constr s ->
@@ -229,8 +265,8 @@ let rec type_expr ctx (e,p) =
 		let t , pt = t_poly ctx.gen "array" in
 		unify ctx e.etype t (pos e);
 		mk (TArray (e,ei)) pt p
-	| EVars _ ->
-		error (Custom "Variables declaration not allowed outside a block") p
+	| EVar _ ->
+		error (Custom "Variable declaration not allowed outside a block") p
 	| EIf (e,e1,None) ->
 		let e = type_expr ctx e in
 		unify ctx e.etype t_bool (pos e);
@@ -244,36 +280,68 @@ let rec type_expr ctx (e,p) =
 		let e2 = type_expr ctx e2 in
 		unify ctx e2.etype e1.etype (pos e2);
 		mk (TIf (e,e1,Some e2)) e1.etype p
-	| EFunction (pl,e) ->
+	| EFunction (pl,e,rt) ->
 		let idents = ctx.idents in
-		let el = List.map (fun p ->
+		let h = Hashtbl.create 0 in
+		let el = List.map (fun (pn,pt) ->
 			let t = t_mono() in
-			ctx.idents <- PMap.add p t ctx.idents;
-			t
+			(match pt with
+			| None -> ()
+			| Some pt ->
+				let pt = type_type ~h ctx pt p in
+				monomorphize pt;
+				unify ctx t pt p);
+			ctx.idents <- PMap.add pn t ctx.idents;
+			pn , t
 		) pl in
 		let e = type_expr ctx e in
-		List.iter (polymorphize ctx.gen) (e.etype :: el);
+		(match rt with 
+		| None -> () 
+		| Some rt -> 
+			let rt = type_type ctx rt p in
+			unify ctx e.etype rt p);
+		List.iter (fun (_,t) -> polymorphize ctx.gen t) el;
+		polymorphize ctx.gen e.etype;
 		ctx.idents <- idents;
-		mk (TFunction (pl,e)) (mk_fun ctx.gen el e.etype) p
+		mk (TFunction (el,e)) (mk_fun ctx.gen (List.map snd el) e.etype) p
 	| EBinop (op,e1,e2) ->
 		type_binop ctx op (type_expr ctx e1) (type_expr ctx e2) p
+	| ETypeAnnot (e,t) ->
+		let e = type_expr ctx e in
+		let t = type_type ctx t p in
+		unify ctx e.etype t (pos e);
+		mk e.edecl t p
+	| ETupleDecl el ->
+		let el = List.map (type_expr ctx) el in
+		mk (TTupleDecl el) (mk_tup ctx.gen (List.map (fun e -> e.etype) el)) p
 
 and type_block ctx ((e,p) as x)  = 
 	match e with
-	| EVars vl ->
-		mk (TVars (List.map (fun (v,e) ->
-			let e = type_expr ctx e in
-			ctx.idents <- PMap.add v e.etype ctx.idents;
-			v , e
-		) vl)) t_void p
+	| EVar (v,t,e) ->
+		let e = type_expr ctx e in
+		(match t with
+		| None -> ()
+		| Some t ->
+			let t = type_type ctx t p in
+			unify ctx t e.etype (pos e));
+		ctx.idents <- PMap.add v e.etype ctx.idents;
+		mk (TVar (v,e)) t_void p
 	| _ ->
 		type_expr ctx x
 
-let context() = {
-	idents = PMap.empty;
-	gen = generator();
-	records = Hashtbl.create 0;
-}
+let context() = 
+	let ctx = {
+		idents = PMap.empty;
+		gen = generator();
+		records = Hashtbl.create 0;
+		types = Hashtbl.create 0;
+	} in
+	Hashtbl.add ctx.types "int" t_int;
+	Hashtbl.add ctx.types "float" t_float;
+	let t = fst (t_poly ctx.gen "ref") in
+	polymorphize ctx.gen t;
+	Hashtbl.add ctx.types "ref" t;
+	ctx
 
 let type_file ctx file =
 	let ch = open_in file in

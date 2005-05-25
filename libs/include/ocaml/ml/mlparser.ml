@@ -52,18 +52,20 @@ and expr = parser
 		(match s with parser
 		| [< '(ParentClose,p2); s >] -> expr_next (EParenthesis e,punion p1 p2) s
 		| [< _ >] -> error (Unclosed "(") p1)
-	| [< '(Keyword Var,p1); v, p2 = variables p1; s >] ->
-		expr_next (EVars v,punion p1 p2) s
+	| [< '(Keyword Var,p1); '(Const (Ident name),_); t = type_opt; '(Binop "=",_); e = expr; s >] ->
+		expr_next (EVar (name,t,e),punion p1 (pos e)) s
 	| [< '(Keyword If,p1); cond = expr; e = expr; s >] ->
 		(match s with parser
 		| [< '(Keyword Else,_); e2 = expr; s >] -> expr_next (EIf (cond,e,Some e2),punion p1 (pos e2)) s
 		| [< >] -> expr_next (EIf (cond,e,None),punion p1 (pos e)) s)
 	| [< '(Keyword Fun,p1); '(ParentOpen,po); p = parameter_names; s >] ->
 		(match s with parser
-		| [< '(ParentClose,_); e = expr; s >] -> expr_next (EFunction (p,e),punion p1 (pos e)) s
+		| [< '(ParentClose,_); t = type_opt; e = expr; s >] -> expr_next (EFunction (p,e,t),punion p1 (pos e)) s
 		| [< _ >] -> error (Unclosed "(") po)
 
 and expr_next e = parser
+	| [< '(Binop ":",_); t , p = type_path; s >] ->
+		expr_next (ETypeAnnot (e,t),punion (pos e) p) s
 	| [< '(Dot,_); '(Const (Ident name),p); s >] ->
 		expr_next (EField (e,name),punion (pos e) p) s
 	| [< '(ParentOpen,po); pl = parameters; s >] ->
@@ -76,6 +78,10 @@ and expr_next e = parser
 		| [< _ >] -> error (Unclosed "[") po)
 	| [< '(Binop op,_); e2 = expr; s >] ->
 		make_binop op e e2
+	| [< '(Comma,_); e2 = expr; s >] ->
+		(match fst e2 with 
+		| ETupleDecl el -> ETupleDecl (e::el) , punion (pos e) (pos e2)
+		| _ -> ETupleDecl [e;e2] , punion (pos e) (pos e2))
 	| [< >] -> e
 
 and block = parser
@@ -84,21 +90,35 @@ and block = parser
 	| [< >] -> []
 
 and parameter_names = parser
-	| [< '(Const (Ident name),_); p = parameter_names >] -> name :: p
+	| [< '(Const (Ident name),_); t = type_opt; p = parameter_names >] -> (name , t) :: p
 	| [< '(Comma,_); p = parameter_names >] -> p
 	| [< >] -> []
+
+and type_opt = parser
+	| [< '(Binop ":",_); t , _ = type_path; >] -> Some t
+	| [< >] -> None
 
 and parameters = parser
 	| [< e = expr; p = parameters >] -> e :: p
 	| [< '(Comma,_); p = parameters >] -> p
 	| [< >] -> []
 
-and variables sp = parser
-	| [< '(Const (Ident name),p); '(Binop "=",_); e = expr; v , p = variables_next (pos e) >] -> (name, e) :: v , p
+and type_path = parser
+	| [< '(Const (Ident tname),p); t = type_path_next (EType ([],tname)) p >] -> t
+	| [< '(Quote,_); '(Const (Ident a),p); t = type_path_next (EPoly a) p >] -> t
+	| [< '(ParentOpen,_); t , p = type_path; l , p = type_path_list_next p; '(ParentClose,_); s >] ->
+		type_path_next (ETuple (t :: l)) p s
 
-and variables_next sp = parser
-	| [< '(Comma,p); v = variables p >] -> v
-	| [< >] -> [] , sp
+and type_path_list p = parser
+	| [< t , p = type_path; l , p = type_path_list_next p >] -> t :: l , p
+
+and type_path_list_next p = parser
+	| [< '(Comma,_); t = type_path_list p >] -> t
+	| [< >] -> [] , p
+
+and type_path_next t p = parser
+	| [< '(Const (Ident tname),p); t = type_path_next (EType ([t],tname)) p >] -> t
+	| [< >] -> t , p
 
 let parse code file =
 	let old = Mllexer.save() in

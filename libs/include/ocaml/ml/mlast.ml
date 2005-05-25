@@ -27,7 +27,7 @@ type token =
 	| Semicolon
 	| Dot
 	| Comma
-	| Arrow
+	| Quote
 	| BraceOpen
 	| BraceClose
 	| ParentOpen
@@ -40,6 +40,11 @@ type token =
 	| Comment of string
 	| CommentLine of string
 
+type type_path =
+	| EType of type_path list * string
+	| EPoly of string
+	| ETuple of type_path list
+
 type expr_decl =
 	| EConst of constant
 	| EBlock of expr list
@@ -47,10 +52,12 @@ type expr_decl =
 	| EField of expr * string
 	| ECall of expr * expr list
 	| EArray of expr * expr	
-	| EVars of (string * expr) list
+	| EVar of string * type_path option * expr 
 	| EIf of expr * expr * expr option
-	| EFunction of string list * expr
+	| EFunction of (string * type_path option) list * expr * type_path option
 	| EBinop of string * expr * expr
+	| ETypeAnnot of expr * type_path
+	| ETupleDecl of expr list
 
 and expr = expr_decl * pos
 
@@ -98,7 +105,7 @@ let s_token = function
 	| Semicolon -> ";"
 	| Dot -> "."
 	| Comma -> ","
-	| Arrow -> "=>"
+	| Quote -> "'"
 	| BraceOpen -> "{"
 	| BraceClose -> "}"
 	| ParentOpen -> "("
