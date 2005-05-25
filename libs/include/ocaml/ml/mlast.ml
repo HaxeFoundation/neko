@@ -21,6 +21,7 @@ type keyword =
 	| Fun
 	| Try
 	| Catch
+	| Type
 
 type token =
 	| Eof
@@ -44,11 +45,17 @@ type type_path =
 	| EType of type_path list * string
 	| EPoly of string
 	| ETuple of type_path list
+	| EArrow of type_path * type_path
+
+type type_decl =
+	| EAbstract
+	| EAlias of type_path
+	| ERecord of (string * bool * type_path) list
+	| EUnion of (string * type_path option) list
 
 type expr_decl =
 	| EConst of constant
 	| EBlock of expr list
-	| EParenthesis of expr
 	| EField of expr * string
 	| ECall of expr * expr list
 	| EArray of expr * expr	
@@ -58,6 +65,7 @@ type expr_decl =
 	| EBinop of string * expr * expr
 	| ETypeAnnot of expr * type_path
 	| ETupleDecl of expr list
+	| ETypeDecl of string list * string * type_decl
 
 and expr = expr_decl * pos
 
@@ -99,6 +107,7 @@ let s_keyword = function
 	| Fun -> "fun"
 	| Try -> "try"
 	| Catch -> "catch"
+	| Type -> "type"
 
 let s_token = function
 	| Eof -> "<eof>"

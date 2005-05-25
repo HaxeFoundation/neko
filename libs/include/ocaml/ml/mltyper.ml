@@ -4,7 +4,8 @@ open Mltype
 type context = {
 	mutable idents : (string,t) PMap.t;
 	gen : id_gen;
-	records : (string,t * t) Hashtbl.t;
+	records : (string,t * t * mutflag) Hashtbl.t;
+	constr : (string,t * t) Hashtbl.t;
 	types : (string,t) Hashtbl.t;
 }
 
@@ -29,15 +30,15 @@ let error m p = raise (Error (m,p))
 let link ctx t1 t2 p =
 	if is_recursive t1 t2 then error (Cannot_unify (t1,t2)) p;
 	t1.texpr <- TLink t2;
-	if t1.tid = -1 then begin
-		if t2.tid <> -1 then t1.tid <- genid ctx.gen;
+	if t1.tid < 0 then begin
+		if t2.tid = -1 then t1.tid <- -1 else t1.tid <- genid ctx.gen;
 	end else
 		if t2.tid = -1 then t1.tid <- -1
 
 let record_field ctx f =
-	let rt , ft = Hashtbl.find ctx.records f in
+	let rt , ft , mut = Hashtbl.find ctx.records f in
 	let h = Hashtbl.create 0 in
-	duplicate ctx.gen ~h rt, duplicate ctx.gen ~h ft
+	duplicate ctx.gen ~h rt, duplicate ctx.gen ~h ft, mut
 
 let unify_stack t1 t2 = function
 	| Error (Cannot_unify _ as e , p) -> error (Stack (e , Cannot_unify (t1,t2))) p
@@ -52,11 +53,21 @@ let rec unify ctx t1 t2 p =
 	| TMono , t
 	| TPoly , t -> link ctx t1 t2 p
 	| t , TMono
-	| t , TPoly -> link ctx t2 t1	p
-	| TTuple tl1 , TTuple tl2 when List.length tl1 = List.length tl2 ->
+	| t , TPoly -> link ctx t2 t1 p
+	| TNamed (n1,p1,_) , TNamed (n2,p2,_) when n1 = n2 ->
 		(try
-			List.iter2 (fun t1 t2 -> unify ctx t1 t2 p) tl1 tl2
+			List.iter2 (fun p1 p2 -> unify ctx p1 p2 p) p1 p2
 		with	
+			e -> unify_stack t1 t2 e)
+	| TNamed (_,_,t1) , _ when t1.texpr <> TAbstract ->
+		(try
+			unify ctx t1 t2 p
+		with
+			e -> unify_stack t1 t2 e)
+	| _ , TNamed (_,_,t2) when t2.texpr <> TAbstract ->
+		(try
+			unify ctx t1 t2 p
+		with
 			e -> unify_stack t1 t2 e)
 	| TFun (tl1,r1) , TFun (tl2,r2) when List.length tl1 = List.length tl2 -> 
 		(try
@@ -64,32 +75,34 @@ let rec unify ctx t1 t2 p =
 			unify ctx r1 r2 p;
 		with	
 			e -> unify_stack t1 t2 e)
-	| TNamed (n1,p1,_) , TNamed (n2,p2,_) when n1 = n2 ->
+	| TTuple tl1 , TTuple tl2 when List.length tl1 = List.length tl2 ->
 		(try
-			List.iter2 (fun p1 p2 -> unify ctx p1 p2 p) p1 p2
+			List.iter2 (fun t1 t2 -> unify ctx t1 t2 p) tl1 tl2
 		with	
 			e -> unify_stack t1 t2 e)
 	| _ , _ ->
 		error (Cannot_unify (t1,t2)) p
 
-let rec type_type ?(h=Hashtbl.create 0) ctx t p =
+let rec type_type ?(allow=true) ?(h=Hashtbl.create 0) ctx t p =
 	match t with
+	| ETuple [] ->
+		assert false
+	| ETuple [t] ->
+		type_type ~allow ~h ctx t p
 	| ETuple el ->
-		mk_tup ctx.gen (List.map (fun t -> type_type ~h ctx t p) el)
+		mk_tup ctx.gen (List.map (fun t -> type_type ~allow ~h ctx t p) el)
 	| EPoly s ->
 		(try
 			Hashtbl.find h s
 		with
 			Not_found ->
-				let t = {
-					tid = genid ctx.gen;
-					texpr = TPoly
-				} in
+				if not allow then error (Custom ("Unbound type variable '" ^ s)) p;
+				let t = t_mono() in
 				Hashtbl.add h s t;
 				t)
 	| EType (params,name) ->
-		let tl = List.map (fun t -> type_type ~h ctx t p) params in
-		try
+		let tl = List.map (fun t -> type_type ~allow ~h ctx t p) params in
+		(try
 			let t = Hashtbl.find ctx.types name in
 			(match t.texpr with
 			| TNamed (_,params,t2) ->
@@ -105,7 +118,13 @@ let rec type_type ?(h=Hashtbl.create 0) ctx t p =
 				t
 			| _ -> assert false)
 		with
-			Not_found -> error (Custom ("Unknown type " ^ name)) p
+			Not_found -> error (Custom ("Unknown type " ^ name)) p)
+	| EArrow (ta,tb) ->
+		let ta = type_type ~allow ~h ctx ta p in
+		let tb = type_type ~allow ~h ctx tb p in
+		match ta.texpr with
+		| TFun (params,r) -> mk_fun ctx.gen (params @ [r]) tb
+		| _ -> mk_fun ctx.gen [ta] tb
 
 let type_constant ctx c p =
 	match c with
@@ -121,14 +140,21 @@ let type_constant ctx c p =
 		with
 			Not_found -> error (Custom ("Unknown variable " ^ s)) p)
 	| Constr s ->
-		assert false
+		(try
+			let ut , t = Hashtbl.find ctx.constr s in
+			let t = duplicate ctx.gen (match t.texpr with
+				| TAbstract -> ut
+				| _ -> mk_fun ctx.gen [t] ut) in
+			mk (TConst (TConstr s)) t p
+		with
+			Not_found -> error (Custom ("Unknown constructor " ^ s)) p)
 
 type addable = NInt | NFloat | NString | NNan
 
 let addable str e =
-	match etype e with
+	match etype true e with
 	| TNamed ("int",_,_) -> NInt
-	| TNamed ("foat",_,_) -> NFloat
+	| TNamed ("float",_,_) -> NFloat
 	| TNamed ("string",_,_) when str -> NString
 	| _ -> NNan
 
@@ -189,7 +215,9 @@ let type_binop ctx op e1 e2 p =
 	| "<="
 	| ">"
 	| ">="
-	| "==" ->
+	| "=="
+	| "<>"
+	| "!=" ->
 		unify ctx e2.etype e1.etype (pos e2);
 		emk t_bool
 	| _ ->
@@ -207,17 +235,15 @@ let rec type_expr ctx (e,p) =
 		) (type_block ctx e) l in
 		ctx.idents <- idents;
 		e
-	| EParenthesis e ->
-		let e = type_expr ctx e in
-		mk (TParenthesis e) e.etype (pos e)
 	| ECall ((EConst (Constr "TYPE"),_),[e]) ->
 		let e = type_expr ctx e in
 		prerr_endline (s_type e.etype);
 		e
 	| ECall (e,el) ->
 		let e = type_expr ctx e in
+		let el = (match el with [] -> [ETupleDecl [],p] | _ -> el) in
 		let el = List.map (type_expr ctx) el in
-		(match etype e with
+		(match etype false e with
 		| TFun (args,r) ->
 			let rec loop l tl r =
 				match l , tl with
@@ -229,7 +255,7 @@ let rec type_expr ctx (e,p) =
 				| [] , tl ->
 					mk (TCall (e,el)) (mk_fun ctx.gen tl r) p
 				| el , [] ->
-					match tlinks r with
+					match tlinks false r with
 					| TFun (args,r) -> loop el args r
 					| _ -> error (Custom "Too many arguments") p
 			in
@@ -242,7 +268,7 @@ let rec type_expr ctx (e,p) =
 		);
 	| EField (e,s) ->
 		let e = type_expr ctx e in
-		let t = (match etype e with
+		let t = (match etype false e with
 		| TRecord fl ->
 			(try
 				let _ , _ , t = List.find (fun (s2,_,_) -> s = s2) fl in
@@ -251,7 +277,7 @@ let rec type_expr ctx (e,p) =
 				Not_found -> error (Have_no_field (e.etype,s)) p)
 		| _ ->
 			try
-				let r , t = record_field ctx s in
+				let r , t , _ = record_field ctx s in
 				unify ctx e.etype r (pos e);
 				t
 			with
@@ -281,6 +307,7 @@ let rec type_expr ctx (e,p) =
 		unify ctx e2.etype e1.etype (pos e2);
 		mk (TIf (e,e1,Some e2)) e1.etype p
 	| EFunction (pl,e,rt) ->
+		let pl = (match pl with [] -> ["_",Some (EType ([],"void"))] | _ -> pl) in
 		let idents = ctx.idents in
 		let h = Hashtbl.create 0 in
 		let el = List.map (fun (pn,pt) ->
@@ -289,9 +316,8 @@ let rec type_expr ctx (e,p) =
 			| None -> ()
 			| Some pt ->
 				let pt = type_type ~h ctx pt p in
-				monomorphize pt;
 				unify ctx t pt p);
-			ctx.idents <- PMap.add pn t ctx.idents;
+			if pn <> "_" then ctx.idents <- PMap.add pn t ctx.idents;
 			pn , t
 		) pl in
 		let e = type_expr ctx e in
@@ -311,9 +337,53 @@ let rec type_expr ctx (e,p) =
 		let t = type_type ctx t p in
 		unify ctx e.etype t (pos e);
 		mk e.edecl t p
+	| ETupleDecl [] ->
+		mk (TConst TVoid) t_void p
+	| ETupleDecl [e] ->
+		let e = type_expr ctx e in
+		mk (TParenthesis e) e.etype (pos e)
 	| ETupleDecl el ->
 		let el = List.map (type_expr ctx) el in
 		mk (TTupleDecl el) (mk_tup ctx.gen (List.map (fun e -> e.etype) el)) p
+	| ETypeDecl (params,tname,decl) ->
+		if Hashtbl.mem ctx.types tname then error (Custom ("Invalid type redefinition of " ^ tname)) p;
+		let h = Hashtbl.create 0 in
+		let tl = List.map (fun p ->
+			let t = t_mono() in
+			Hashtbl.add h p t;
+			t
+		) params in
+		let t = {
+			tid = -1;
+			texpr = TAbstract;
+		} in
+		let t2 = (match decl with
+			| EAbstract -> { tid = -1; texpr = TAbstract }
+			| EAlias t -> type_type ~allow:false ~h ctx t p
+			| ERecord fields ->
+				let fields = List.map (fun (f,m,ft) ->
+					let ft = type_type ~allow:false ~h ctx ft p in
+					let m = (if m then Mutable else Immutable) in
+					Hashtbl.add ctx.records f (t,ft,m);
+					f , m , ft
+				) fields in
+				mk_record ctx.gen fields
+			| EUnion constr ->
+				let constr = List.map (fun (c,ft) ->
+					let ft = (match ft with
+						| None -> { tid = -1; texpr = TAbstract }
+						| Some ft -> type_type ~allow:false ~h ctx ft p
+					) in
+					Hashtbl.add ctx.constr c (t,ft);
+					c , ft
+				) constr in
+				mk_union ctx.gen constr
+		) in
+		t.tid <- if t2.tid = -1 && params = [] then -1 else genid ctx.gen;
+		t.texpr <- TNamed (tname,tl,t2);
+		polymorphize ctx.gen t;
+		Hashtbl.add ctx.types tname t;
+		mk (TTypeDecl t) t_void p
 
 and type_block ctx ((e,p) as x)  = 
 	match e with
@@ -324,7 +394,7 @@ and type_block ctx ((e,p) as x)  =
 		| Some t ->
 			let t = type_type ctx t p in
 			unify ctx t e.etype (pos e));
-		ctx.idents <- PMap.add v e.etype ctx.idents;
+		if v <> "_" then ctx.idents <- PMap.add v e.etype ctx.idents;
 		mk (TVar (v,e)) t_void p
 	| _ ->
 		type_expr ctx x
@@ -333,14 +403,23 @@ let context() =
 	let ctx = {
 		idents = PMap.empty;
 		gen = generator();
+		constr = Hashtbl.create 0;
 		records = Hashtbl.create 0;
 		types = Hashtbl.create 0;
 	} in
+	let poly name =
+		let t , _ = t_poly ctx.gen name in
+		polymorphize ctx.gen t;
+		t
+	in
+	Hashtbl.add ctx.types "void" t_void;
 	Hashtbl.add ctx.types "int" t_int;
 	Hashtbl.add ctx.types "float" t_float;
-	let t = fst (t_poly ctx.gen "ref") in
-	polymorphize ctx.gen t;
-	Hashtbl.add ctx.types "ref" t;
+	Hashtbl.add ctx.types "bool" t_bool;
+	Hashtbl.add ctx.types "string" t_string;
+	Hashtbl.add ctx.types "ref" (poly "ref");
+	Hashtbl.add ctx.types "array" (poly "array");
+	Hashtbl.add ctx.types "list" (poly "list");
 	ctx
 
 let type_file ctx file =
