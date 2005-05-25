@@ -756,7 +756,7 @@ Operations substract ( - ) divide ( / ) multiply ( * ) and modulo ( % ) :
 	<li>strcmp compares strings, it can be seen as a icmp applied to every byte of the two strings.</li>
 	<li>acmp compares two addresses a and b,  returns 0 if they're the same, -1 if b&gt;a and 1 if a&gt;b</li>
 	<li>bcmp returns 0 if a and b are both true or both false, 1 if a is true and b and false, -1 if a is false and b is true.</b>
-	<li> - means that the comparison is invalid, the returned value is null.</li>
+	<li> - means that the comparison is invalid, the returned value is null when using $compare and false when using an operator.</li>
 </ul>
 
 <p>
