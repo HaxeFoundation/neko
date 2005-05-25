@@ -107,7 +107,7 @@ rule token = parse
 	| ')' { mk lexbuf ParentClose }
 	| '[' { mk lexbuf BracketOpen }
 	| ']' { mk lexbuf BracketClose }
-	| "=>" { mk lexbuf Arrow }
+	| '\'' { mk lexbuf Quote }
 	| [' ' '\r' '\t']+ { token lexbuf } 
 	| '\n' { newline lexbuf; token lexbuf }
 	| "0x" ['0'-'9' 'a'-'f' 'A'-'F']+	
