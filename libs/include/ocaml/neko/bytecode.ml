@@ -58,6 +58,8 @@ type global =
 
 exception Invalid_file
 
+let trap_stack_delta = 5
+
 let hash_field s =
 	let acc = ref 0 in
 	for i = 0 to String.length s - 1 do
@@ -130,11 +132,12 @@ let code_tables ops =
 		| _ -> ()
 	) ops;
 	let p = ref 0 in
-	let pos = Array.map (fun op ->
-		let h = !p in
-		p := h + (if op_param op then 2 else 1);
-		h
-	) ops in
+	let pos = Array.create (Array.length ops + 1) 0 in
+	Array.iteri (fun i op ->
+		Array.unsafe_set pos i !p;
+		p := !p + (if op_param op then 2 else 1);
+	) ops;
+	Array.unsafe_set pos (Array.length ops) !p;
 	ids , pos , !p
 
 let write ch (globals,ops) =
@@ -255,7 +258,7 @@ let read ch =
 						loop (n-1)
 		in
 		loop nids;
-		let pos = Array.create csize (-1) in
+		let pos = Array.create (csize+1) (-1) in
 		let cpos = ref 0 in
 		let jumps = ref [] in
 		let ops = DynArray.create() in
@@ -321,6 +324,7 @@ let read ch =
 			DynArray.add ops op;
 		done;
 		if !cpos <> csize then raise Invalid_file;
+		pos.(!cpos) <- DynArray.length ops;
 		let pos_index i sadr =
 			let idx = pos.(sadr) in
 			if idx = -1 then raise Invalid_file;
