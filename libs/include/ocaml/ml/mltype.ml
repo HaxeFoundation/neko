@@ -44,6 +44,9 @@ type texpr_decl =
 	| TBinop of string * texpr * texpr
 	| TTupleDecl of texpr list
 	| TTypeDecl of t
+	| TMut of texpr ref
+	| TRecordDecl of (string * texpr) list
+	| TListDecl of texpr list
 
 and texpr = {
 	edecl : texpr_decl;
@@ -164,12 +167,12 @@ let rec s_type ?(ext=false) ?(h=s_context()) t =
 			Hashtbl.add h.pi_ph t.tid k;
 			k))
 	| TRecord fl -> Printf.sprintf "{ %s }" (String.concat "; " (List.map (fun (f,m,t) -> s_mutable m ^ f ^ " : " ^ s_type ~h t) fl))
-	| TUnion fl -> Printf.sprintf "{ %s }" (String.concat " | " (List.map (fun (f,t) -> f ^ " : " ^ s_type ~h t) fl))
+	| TUnion fl -> Printf.sprintf "{ %s }" (String.concat "; " (List.map (fun (f,t) -> f ^ " : " ^ s_type ~h t) fl))
 	| TTuple l -> Printf.sprintf "(%s)" (String.concat ", " (List.map (s_type ~h) l))
 	| TLink t  -> s_type ~ext ~h t
 	| TFun (tl,r) -> 
-		let l = String.concat " -> " (List.map (s_fun ~h) tl) ^ " -> " in
-		l ^ s_type ~h r
+		let l = String.concat " -> " (List.map (s_fun ~ext ~h) tl) ^ " -> " in
+		l ^ s_type ~ext ~h r
 	| TNamed (name,params,t) ->
 		let s = (match params with
 			| [] -> ""
@@ -181,11 +184,11 @@ let rec s_type ?(ext=false) ?(h=s_context()) t =
 		else
 			s ^ name 
 
-and s_fun ~h t =
+and s_fun ~ext ~h t =
 	match t.texpr with
-	| TLink t -> s_fun ~h t
-	| TFun _ -> "(" ^ s_type ~h t ^ ")"
-	| _ -> s_type ~h t
+	| TLink t -> s_fun ~ext ~h t
+	| TFun _ -> "(" ^ s_type ~ext ~h t ^ ")"
+	| _ -> s_type ~ext ~h t
 
 let rec is_recursive t1 t2 = 
 	if t1 == t2 then

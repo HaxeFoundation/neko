@@ -61,11 +61,13 @@ type expr_decl =
 	| EArray of expr * expr	
 	| EVar of string * type_path option * expr 
 	| EIf of expr * expr * expr option
-	| EFunction of (string * type_path option) list * expr * type_path option
+	| EFunction of string option * (string * type_path option) list * expr * type_path option
 	| EBinop of string * expr * expr
 	| ETypeAnnot of expr * type_path
 	| ETupleDecl of expr list
 	| ETypeDecl of string list * string * type_decl
+	| ERecordDecl of (string * expr) list
+	| EListDecl of expr list
 
 and expr = expr_decl * pos
 
