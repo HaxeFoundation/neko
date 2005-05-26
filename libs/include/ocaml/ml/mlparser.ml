@@ -46,9 +46,9 @@ let rec program = parser
 and expr = parser	
 	| [< '(Const c,p); s >] ->
 		expr_next (EConst c,p) s
-	| [< '(BraceOpen,p1); p = block; s >] ->
+	| [< '(BraceOpen,p1); e = block1; s >] ->
 		(match s with parser
-		| [< '(BraceClose,p2); s >] -> expr_next (EBlock p,punion p1 p2) s
+		| [< '(BraceClose,p2); s >] -> expr_next (e,punion p1 p2) s
 		| [< 'x >] -> unclosed "{" x)
 	| [< '(ParentOpen,p1); pl = parameters; s >] ->
 		(match s with parser
@@ -60,30 +60,46 @@ and expr = parser
 		(match s with parser
 		| [< '(Keyword Else,_); e2 = expr; s >] -> expr_next (EIf (cond,e,Some e2),punion p1 (pos e2)) s
 		| [< >] -> expr_next (EIf (cond,e,None),punion p1 (pos e)) s)
-	| [< '(Keyword Fun,p1); '(ParentOpen,po); p = parameter_names; s >] ->
+	| [< '(Keyword Fun,p1); n = ident_opt; '(ParentOpen,po); p = parameter_names; s >] ->
 		(match s with parser
-		| [< '(ParentClose,_); t = type_opt; e = expr; s >] -> expr_next (EFunction (p,e,t),punion p1 (pos e)) s
+		| [< '(ParentClose,_); t = type_opt; e = expr; s >] -> expr_next (EFunction (n,p,e,t),punion p1 (pos e)) s
 		| [< 'x >] -> unclosed "(" x)
 	| [< '(Keyword Type,p1); pl = type_decl_parameters; '(Const (Ident tname),p2); d , p2 = type_declaration p2; s >] ->
 		expr_next (ETypeDecl (pl,tname,d) , punion p1 p2) s
+	| [< '(BracketOpen,p1); b = block; '(BracketClose,p2); s >] ->
+		expr_next (EListDecl b , punion p1 p2) s
 
 and expr_next e = parser
 	| [< '(Binop ":",_); t , p = type_path; s >] ->
 		expr_next (ETypeAnnot (e,t),punion (pos e) p) s
-	| [< '(Dot,_); '(Const (Ident name),p); s >] ->
-		expr_next (EField (e,name),punion (pos e) p) s
 	| [< '(ParentOpen,po); pl = parameters; s >] ->
 		(match s with parser
 		| [< '(ParentClose,p); s >] -> expr_next (ECall (e,pl),punion (pos e) p) s
 		| [< 'x >] -> unclosed "(" x)
-	| [< '(BracketOpen,po); e2 = expr; s >] ->
+	| [< '(Dot,_); s >] ->
 		(match s with parser
-		| [< '(BracketClose,p); s >] -> expr_next (EArray (e,e2),punion (pos e) p) s
-		| [< 'x >] -> unclosed "[" x)
+		| [< '(Const (Ident name),p); s >] -> expr_next (EField (e,name),punion (pos e) p) s
+		| [< '(BracketOpen,po); e2 = expr; s >] ->
+			(match s with parser
+			| [< '(BracketClose,p); s >] -> expr_next (EArray (e,e2),punion (pos e) p) s
+			| [< 'x >] -> unclosed "[" x))
 	| [< '(Binop op,_); e2 = expr; s >] ->
 		make_binop op e e2
 	| [< >] ->
 		e
+
+and block1 = parser
+	| [< '(Const (Ident name),p); s >] ->
+		(match s with parser
+		| [< '(Binop "=",_); e = expr; l = record_fields >] -> ERecordDecl ((name,e) :: l)
+		| [< e = expr_next (EConst (Ident name),p); b = block >] -> EBlock (e :: b))
+	| [< b = block >] ->
+		EBlock b
+
+and record_fields = parser
+	| [< '(Const (Ident name),_); '(Binop "=",_); e = expr; l = record_fields >] -> (name,e) :: l
+	| [< '(Semicolon,_); l = record_fields >] -> l
+	| [< >] -> []
 
 and block = parser
 	| [< e = expr; b = block >] -> e :: b
@@ -97,6 +113,10 @@ and parameter_names = parser
 
 and type_opt = parser
 	| [< '(Binop ":",_); t , _ = type_path; >] -> Some t
+	| [< >] -> None
+
+and ident_opt = parser
+	| [< '(Const (Ident name),_); >] -> Some name
 	| [< >] -> None
 
 and parameters = parser
