@@ -26,7 +26,7 @@ let error e pos =
 let keywords =
 	let h = Hashtbl.create 3 in
 	List.iter (fun k -> Hashtbl.add h (s_keyword k) k)
-	[Var;If;Else;Fun;Try;Catch;Type]
+	[Var;If;Else;Fun;Try;Catch;Type;Match]
 	; h
 
 let init file =
@@ -135,6 +135,7 @@ rule token = parse
 			let n = (if s.[String.length s - 1] = '\r' then 3 else 2) in
 			mk lexbuf (CommentLine (String.sub s 2 ((String.length s)-n)))
 		}
+	| "->" { mk lexbuf Arrow }
 	| binop binop? | ">>>" { mk lexbuf (Binop (lexeme lexbuf)) }
 	| _ {
 			error (Invalid_character (lexeme_char lexbuf 0)) (lexeme_start lexbuf)
