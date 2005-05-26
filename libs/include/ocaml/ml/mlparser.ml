@@ -36,6 +36,16 @@ let rec make_binop op e ((v,p2) as e2) =
 	| _ ->
 		EBinop (op,e,e2) , punion (pos e) (pos e2)
 
+let rec make_unop op ((v,p2) as e) p1 = 
+	match v with
+	| EBinop (bop,e,e2) -> EBinop (bop, make_unop op e p1 , e2) , (punion p1 p2)
+	| _ ->
+		EUnop (op,e), punion p1 p2
+
+let is_unop = function
+	| "-" | "*" | "!" | "&" -> true
+	| _ -> false
+
 let unclosed s (x,p) = error (Unclosed (s,x)) p
 
 let rec program = parser
@@ -44,8 +54,6 @@ let rec program = parser
 	| [< '(Eof,_) >] -> []
 
 and expr = parser	
-	| [< '(Const c,p); s >] ->
-		expr_next (EConst c,p) s
 	| [< '(BraceOpen,p1); e = block1; s >] ->
 		(match s with parser
 		| [< '(BraceClose,p2); s >] -> expr_next (e,punion p1 p2) s
@@ -72,6 +80,10 @@ and expr = parser
 		(match s with parser
 		| [< '(BraceClose,_); s >] -> expr_next (EMatch (e,pl),punion p1 (pos e)) s
 		| [< 'x >] -> unclosed "{" x)
+	| [< '(Binop op,p) when is_unop op; e = expr; s >] ->
+		expr_next (make_unop op e p) s
+	| [< '(Const c,p); s >] ->
+		expr_next (EConst c,p) s
 
 and expr_next e = parser
 	| [< '(Binop ":",_); t , p = type_path; s >] ->
@@ -184,7 +196,7 @@ and union_declaration = parser
 	| [< '(Const (Constr name),_); t = type_opt; l , p = union_declaration >] -> (name,t) :: l , p
 
 and patterns = parser
-	| [< '(Binop "|",_); p = pattern; pl = pattern_list; w = where_clause; '(BraceOpen,p1); b = block; '(BraceClose,p2); l = patterns >] ->
+	| [< '(Binop "|",_); p = pattern; pl = pattern_list; w = when_clause; '(BraceOpen,p1); b = block; '(BraceClose,p2); l = patterns >] ->
 		(p :: pl,w,(EBlock b,punion p1 p2)) :: l
 	| [< >] -> []
 
@@ -199,10 +211,10 @@ and pattern = parser
 		| [< t = type_opt >] -> d , p, t
 
 and pattern_decl = parser
-	| [< '(Const (Ident name),p); >] -> PVar name , p
 	| [< '(ParentOpen,p1); pl = pattern_tuple; '(ParentClose,p2) >] -> PTuple pl , punion p1 p2
 	| [< '(BraceOpen,p1); '(Const (Ident name),_); '(Binop "=",_); p = pattern; pl = pattern_record; '(BraceClose,p2) >] -> PRecord ((name,p) :: pl) , punion p1 p2
 	| [< '(Const (Constr name),p1); (_ , p2 , _ as p) = pattern >] -> PConstr (name,p) , punion p1 p2
+	| [< '(Const c,p); >] -> PConst c , p
 
 and pattern_tuple = parser
 	| [< p = pattern; l = pattern_tuple_next >] -> p :: l
@@ -217,8 +229,8 @@ and pattern_record = parser
 	| [< '(Semicolon,_); l = pattern_record >] -> l
 	| [< >] -> []
 
-and where_clause = parser
-	| [< '(Const (Ident "where"),_); e = expr >] -> Some e
+and when_clause = parser
+	| [< '(Const (Ident "when"),_); e = expr >] -> Some e
 	| [< >] -> None
 
 let parse code file =

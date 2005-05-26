@@ -56,7 +56,7 @@ type type_decl =
 	| EUnion of (string * type_path option) list
 
 type pattern_decl =
-	| PVar of string
+	| PConst of constant
 	| PTuple of pattern list
 	| PRecord of (string * pattern) list
 	| PConstr of string * pattern
@@ -74,6 +74,7 @@ type expr_decl =
 	| EIf of expr * expr * expr option
 	| EFunction of string option * (string * type_path option) list * expr * type_path option
 	| EBinop of string * expr * expr
+	| EUnop of string * expr
 	| ETypeAnnot of expr * type_path
 	| ETupleDecl of expr list
 	| ETypeDecl of string list * string * type_decl

@@ -243,6 +243,30 @@ let type_binop ctx op e1 e2 p =
 	| _ ->
 		error (Custom ("Invalid operation " ^ op)) p
 
+let type_unop ctx op e p =
+	let emk t = mk (TUnop (op,e)) t p in
+	match op with
+	| "&" ->
+		let p , pt = t_poly ctx.gen "ref" in
+		unify ctx e.etype pt (pos e);
+		emk p
+	| "*" ->
+		let p , pt = t_poly ctx.gen "ref" in
+		unify ctx e.etype p (pos e);
+		emk pt
+	| "!" -> 
+		unify ctx e.etype t_bool (pos e);
+		emk t_bool 
+	| "-" ->
+		(match addable false e with
+		| NInt -> emk t_int
+		| NFloat -> emk t_float
+		| _ ->
+			unify ctx e.etype t_int (pos e);
+			emk t_int)
+	| _ ->
+		assert false
+
 let register_function ctx name pl e rt p =
 	let pl = (match pl with [] -> ["_",Some (EType ([],"void"))] | _ -> pl) in
 	let expr = ref (mk (TConst TVoid) t_void p) in
@@ -469,6 +493,10 @@ and type_expr ctx (e,p) =
 			e
 		) el in
 		mk (TListDecl el) t p
+	| EUnop (op,e) ->
+		type_unop ctx op (type_expr ctx e) p
+	| EMatch (e,cl) ->
+		mk (TConst TVoid) t_void p
 
 and type_block ctx ((e,p) as x)  = 
 	match e with

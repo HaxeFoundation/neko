@@ -47,6 +47,7 @@ type texpr_decl =
 	| TMut of texpr ref
 	| TRecordDecl of (string * texpr) list
 	| TListDecl of texpr list
+	| TUnop of string * texpr
 
 and texpr = {
 	edecl : texpr_decl;
