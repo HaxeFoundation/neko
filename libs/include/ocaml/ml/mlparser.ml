@@ -184,7 +184,8 @@ and union_declaration = parser
 	| [< '(Const (Constr name),_); t = type_opt; l , p = union_declaration >] -> (name,t) :: l , p
 
 and patterns = parser
-	| [< '(Binop "|",_); p = pattern; pl = pattern_list; w = where_clause; '(Arrow,_); e = expr; l = patterns >] -> (p :: pl,w,e) :: l
+	| [< '(Binop "|",_); p = pattern; pl = pattern_list; w = where_clause; '(BraceOpen,p1); b = block; '(BraceClose,p2); l = patterns >] ->
+		(p :: pl,w,(EBlock b,punion p1 p2)) :: l
 	| [< >] -> []
 
 and pattern_list = parser
@@ -192,10 +193,16 @@ and pattern_list = parser
 	| [< >] -> []
 
 and pattern = parser
-	| [< '(Const (Ident name),_); >] -> PVar name
-	| [< '(ParentOpen,_); pl = pattern_tuple; '(ParentClose,_) >] -> PTuple pl
-	| [< '(BraceOpen,_); '(Const (Ident name),_); '(Binop "=",_); p = pattern; pl = pattern_record; '(BraceClose,_) >] -> PRecord ((name,p) :: pl)
-	| [< '(Const (Constr name),_); p = pattern >] -> PConstr (name,p)
+	| [< d , p = pattern_decl; s >] -> 
+		match s with parser
+		| [< '(Const (Ident "as"),_); '(Const (Ident v),p2); t = type_opt >] -> (PAlias (v, (d , p, t))) , punion p p2 , None
+		| [< t = type_opt >] -> d , p, t
+
+and pattern_decl = parser
+	| [< '(Const (Ident name),p); >] -> PVar name , p
+	| [< '(ParentOpen,p1); pl = pattern_tuple; '(ParentClose,p2) >] -> PTuple pl , punion p1 p2
+	| [< '(BraceOpen,p1); '(Const (Ident name),_); '(Binop "=",_); p = pattern; pl = pattern_record; '(BraceClose,p2) >] -> PRecord ((name,p) :: pl) , punion p1 p2
+	| [< '(Const (Constr name),p1); (_ , p2 , _ as p) = pattern >] -> PConstr (name,p) , punion p1 p2
 
 and pattern_tuple = parser
 	| [< p = pattern; l = pattern_tuple_next >] -> p :: l

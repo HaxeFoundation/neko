@@ -55,11 +55,14 @@ type type_decl =
 	| ERecord of (string * bool * type_path) list
 	| EUnion of (string * type_path option) list
 
-type pattern =
+type pattern_decl =
 	| PVar of string
 	| PTuple of pattern list
 	| PRecord of (string * pattern) list
 	| PConstr of string * pattern
+	| PAlias of string * pattern
+
+and pattern = pattern_decl * pos * type_path option
 
 type expr_decl =
 	| EConst of constant
