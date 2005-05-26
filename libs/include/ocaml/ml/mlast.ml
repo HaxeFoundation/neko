@@ -22,6 +22,7 @@ type keyword =
 	| Try
 	| Catch
 	| Type
+	| Match
 
 type token =
 	| Eof
@@ -35,6 +36,7 @@ type token =
 	| ParentClose
 	| BracketOpen
 	| BracketClose
+	| Arrow
 	| Const of constant
 	| Keyword of keyword
 	| Binop of string
@@ -53,6 +55,12 @@ type type_decl =
 	| ERecord of (string * bool * type_path) list
 	| EUnion of (string * type_path option) list
 
+type pattern =
+	| PVar of string
+	| PTuple of pattern list
+	| PRecord of (string * pattern) list
+	| PConstr of string * pattern
+
 type expr_decl =
 	| EConst of constant
 	| EBlock of expr list
@@ -68,6 +76,7 @@ type expr_decl =
 	| ETypeDecl of string list * string * type_decl
 	| ERecordDecl of (string * expr) list
 	| EListDecl of expr list
+	| EMatch of expr * (pattern list * expr option * expr) list
 
 and expr = expr_decl * pos
 
@@ -110,6 +119,7 @@ let s_keyword = function
 	| Try -> "try"
 	| Catch -> "catch"
 	| Type -> "type"
+	| Match -> "match"
 
 let s_token = function
 	| Eof -> "<eof>"
@@ -123,6 +133,7 @@ let s_token = function
 	| ParentClose -> ")"
 	| BracketOpen -> "["
 	| BracketClose -> "]"
+	| Arrow -> "->"
 	| Const c -> s_constant c
 	| Keyword k -> s_keyword k
 	| Binop s -> s

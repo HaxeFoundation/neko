@@ -68,6 +68,10 @@ and expr = parser
 		expr_next (ETypeDecl (pl,tname,d) , punion p1 p2) s
 	| [< '(BracketOpen,p1); b = block; '(BracketClose,p2); s >] ->
 		expr_next (EListDecl b , punion p1 p2) s
+	| [< '(Keyword Match,p1); e = expr; '(BraceOpen,po); pl = patterns; s >] ->
+		(match s with parser
+		| [< '(BraceClose,_); s >] -> expr_next (EMatch (e,pl),punion p1 (pos e)) s
+		| [< 'x >] -> unclosed "{" x)
 
 and expr_next e = parser
 	| [< '(Binop ":",_); t , p = type_path; s >] ->
@@ -141,7 +145,7 @@ and type_path_list_next p = parser
 	| [< >] -> [] , p
 
 and type_path_next t p = parser
-	| [< '(Binop "->",_); t2 , p = type_path >] -> 
+	| [< '(Arrow,_); t2 , p = type_path >] -> 
 		(match t2 with
 		| EArrow (ta,tb) -> EArrow (EArrow(t,ta),tb) , p
 		| _ -> EArrow (t,t2) , p);
@@ -178,6 +182,37 @@ and union_declaration = parser
 	| [< '(BraceClose,p) >] -> [] , p
 	| [< '(Semicolon,_); l = union_declaration >] -> l 
 	| [< '(Const (Constr name),_); t = type_opt; l , p = union_declaration >] -> (name,t) :: l , p
+
+and patterns = parser
+	| [< '(Binop "|",_); p = pattern; pl = pattern_list; w = where_clause; '(Arrow,_); e = expr; l = patterns >] -> (p :: pl,w,e) :: l
+	| [< >] -> []
+
+and pattern_list = parser
+	| [< '(Binop "|",_); p = pattern; l = pattern_list >] ->  p :: l
+	| [< >] -> []
+
+and pattern = parser
+	| [< '(Const (Ident name),_); >] -> PVar name
+	| [< '(ParentOpen,_); pl = pattern_tuple; '(ParentClose,_) >] -> PTuple pl
+	| [< '(BraceOpen,_); '(Const (Ident name),_); '(Binop "=",_); p = pattern; pl = pattern_record; '(BraceClose,_) >] -> PRecord ((name,p) :: pl)
+	| [< '(Const (Constr name),_); p = pattern >] -> PConstr (name,p)
+
+and pattern_tuple = parser
+	| [< p = pattern; l = pattern_tuple_next >] -> p :: l
+	| [< >] -> []
+
+and pattern_tuple_next = parser
+	| [< '(Comma,_); l = pattern_tuple >] -> l
+	| [< >] -> []
+
+and pattern_record = parser
+	| [< '(Const (Ident name),_); '(Binop "=",_); p = pattern; l = pattern_record >] -> (name,p) :: l
+	| [< '(Semicolon,_); l = pattern_record >] -> l
+	| [< >] -> []
+
+and where_clause = parser
+	| [< '(Const (Ident "where"),_); e = expr >] -> Some e
+	| [< >] -> None
 
 let parse code file =
 	let old = Mllexer.save() in
