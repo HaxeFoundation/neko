@@ -108,6 +108,7 @@ rule token = parse
 	| '[' { mk lexbuf BracketOpen }
 	| ']' { mk lexbuf BracketClose }
 	| '\'' { mk lexbuf Quote }
+	| '|' { mk lexbuf Vertical }
 	| [' ' '\r' '\t']+ { token lexbuf } 
 	| '\n' { newline lexbuf; token lexbuf }
 	| "0x" ['0'-'9' 'a'-'f' 'A'-'F']+	
@@ -136,7 +137,7 @@ rule token = parse
 			mk lexbuf (CommentLine (String.sub s 2 ((String.length s)-n)))
 		}
 	| "->" { mk lexbuf Arrow }
-	| binop binop? | ">>>" { mk lexbuf (Binop (lexeme lexbuf)) }
+	| binop binop? | ">>>" | "or" | "and" | "xor" { mk lexbuf (Binop (lexeme lexbuf)) }
 	| _ {
 			error (Invalid_character (lexeme_char lexbuf 0)) (lexeme_start lexbuf)
 		}

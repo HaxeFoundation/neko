@@ -37,6 +37,7 @@ type token =
 	| BracketOpen
 	| BracketClose
 	| Arrow
+	| Vertical
 	| Const of constant
 	| Keyword of keyword
 	| Binop of string
@@ -59,8 +60,9 @@ type pattern_decl =
 	| PConst of constant
 	| PTuple of pattern list
 	| PRecord of (string * pattern) list
-	| PConstr of string * pattern
+	| PConstr of string * pattern option
 	| PAlias of string * pattern
+	| PList of pattern list
 
 and pattern = pattern_decl * pos * type_path option
 
@@ -138,6 +140,7 @@ let s_token = function
 	| BracketOpen -> "["
 	| BracketClose -> "]"
 	| Arrow -> "->"
+	| Vertical -> "|"
 	| Const c -> s_constant c
 	| Keyword k -> s_keyword k
 	| Binop s -> s

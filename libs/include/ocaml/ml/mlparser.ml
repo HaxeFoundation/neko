@@ -24,13 +24,23 @@ let priority = function
 	| "==" | "!=" | ">" | "<" | "<=" | ">=" -> -1
 	| "+" | "-" -> 0
 	| "*" | "/" -> 1
-	| "|" | "&" | "^" -> 2
+	| "or" | "and" | "xor" -> 2
 	| "<<" | ">>" | "%" | ">>>" -> 3
 	| _ -> 4
 
+let can_swap _op op =
+	let p1 = priority _op in
+	let p2 = priority op in
+	if p1 < p2 then
+		true
+	else if p1 = p2 then
+		op <> "::"
+	else
+		false
+
 let rec make_binop op e ((v,p2) as e2) =
 	match v with
-	| EBinop (_op,_e,_e2) when priority _op <= priority op ->
+	| EBinop (_op,_e,_e2) when can_swap _op op ->
 		let _e = make_binop op e _e in
 		EBinop (_op,_e,_e2) , punion (pos _e) (pos _e2)
 	| _ ->
@@ -196,25 +206,35 @@ and union_declaration = parser
 	| [< '(Const (Constr name),_); t = type_opt; l , p = union_declaration >] -> (name,t) :: l , p
 
 and patterns = parser
-	| [< '(Binop "|",_); p = pattern; pl = pattern_list; w = when_clause; '(BraceOpen,p1); b = block; '(BraceClose,p2); l = patterns >] ->
-		(p :: pl,w,(EBlock b,punion p1 p2)) :: l
+	| [< '(Vertical,_); p = pattern; pl = pattern_next; w = when_clause; '(Arrow,_); e = expr; l = patterns >] ->
+		(p :: pl,w,e) :: l
 	| [< >] -> []
 
-and pattern_list = parser
-	| [< '(Binop "|",_); p = pattern; l = pattern_list >] ->  p :: l
+and pattern_next = parser
+	| [< '(Vertical,_); p = pattern; l = pattern_next >] ->  p :: l
 	| [< >] -> []
 
 and pattern = parser
 	| [< d , p = pattern_decl; s >] -> 
 		match s with parser
 		| [< '(Const (Ident "as"),_); '(Const (Ident v),p2); t = type_opt >] -> (PAlias (v, (d , p, t))) , punion p p2 , None
+		| [< '(Binop "::",_); d2 , p2 , t2 = pattern >] -> PConstr ("::",Some (PTuple [(d,p,None);(d2,p2,t2)] , punion p p2 , None)) , punion p p2 , None
 		| [< t = type_opt >] -> d , p, t
 
 and pattern_decl = parser
 	| [< '(ParentOpen,p1); pl = pattern_tuple; '(ParentClose,p2) >] -> PTuple pl , punion p1 p2
 	| [< '(BraceOpen,p1); '(Const (Ident name),_); '(Binop "=",_); p = pattern; pl = pattern_record; '(BraceClose,p2) >] -> PRecord ((name,p) :: pl) , punion p1 p2
-	| [< '(Const (Constr name),p1); (_ , p2 , _ as p) = pattern >] -> PConstr (name,p) , punion p1 p2
+	| [< '(Const (Constr name),p1); p , p2 = pattern_opt p1 >] -> PConstr (name,p) , punion p1 p2
 	| [< '(Const c,p); >] -> PConst c , p
+	| [< '(BracketOpen,p1); l = pattern_list; '(BracketClose,p2) >] -> PList l , punion p1 p2
+
+and pattern_list = parser
+	| [< p = pattern; l = pattern_list_next >] -> p :: l
+	| [< >] -> []
+
+and pattern_list_next = parser
+	| [< '(Semicolon,_); l = pattern_list >] -> l
+	| [< >] -> []
 
 and pattern_tuple = parser
 	| [< p = pattern; l = pattern_tuple_next >] -> p :: l
@@ -228,6 +248,10 @@ and pattern_record = parser
 	| [< '(Const (Ident name),_); '(Binop "=",_); p = pattern; l = pattern_record >] -> (name,p) :: l
 	| [< '(Semicolon,_); l = pattern_record >] -> l
 	| [< >] -> []
+
+and pattern_opt p = parser
+	| [< ( _ , pos , _ as p) = pattern >] -> Some p , pos
+	| [< >] -> None , p 
 
 and when_clause = parser
 	| [< '(Const (Ident "when"),_); e = expr >] -> Some e
