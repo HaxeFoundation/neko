@@ -20,6 +20,8 @@ type error_msg =
 
 exception Error of error_msg * pos
 
+module SSet = Set.Make(String)
+
 let rec error_msg ?(h=s_context()) = function
 	| Cannot_unify (t1,t2) -> "Cannot unify " ^ s_type ~h t1 ^ " and " ^ s_type ~h t2
 	| Have_no_field (t,f) -> s_type ~h t ^ " have no field " ^ f
@@ -46,6 +48,17 @@ let unify_stack t1 t2 = function
 	| Error (Cannot_unify _ as e , p) -> error (Stack (e , Cannot_unify (t1,t2))) p
 	| e -> raise e
 
+let is_alias = function
+	| TAbstract 
+	| TRecord _
+	| TUnion _ -> false
+	| TMono
+	| TPoly
+	| TTuple _
+	| TLink _
+	| TFun _
+	| TNamed _ -> true
+
 let rec unify ctx t1 t2 p =
 	if t1 == t2 then
 		()
@@ -61,12 +74,12 @@ let rec unify ctx t1 t2 p =
 			List.iter2 (fun p1 p2 -> unify ctx p1 p2 p) p1 p2
 		with	
 			e -> unify_stack t1 t2 e)
-	| TNamed (_,_,t1) , _ when t1.texpr <> TAbstract ->
+	| TNamed (_,_,t1) , _ when is_alias t1.texpr ->
 		(try
 			unify ctx t1 t2 p
 		with
 			e -> unify_stack t1 t2 e)
-	| _ , TNamed (_,_,t2) when t2.texpr <> TAbstract ->
+	| _ , TNamed (_,_,t2) when is_alias t2.texpr ->
 		(try
 			unify ctx t1 t2 p
 		with
@@ -196,9 +209,9 @@ let type_binop ctx op e1 e2 p =
 	| ">>"
 	| ">>>"
 	| "<<"
-	| "&"
-	| "|"
-	| "^" ->
+	| "and"
+	| "or"
+	| "xor" ->
 		unify ctx e1.etype t_int (pos e1);
 		unify ctx e2.etype t_int (pos e2);
 		emk t_int
@@ -320,7 +333,7 @@ and type_expr ctx (e,p) =
 		e
 	| ECall ((EConst (Constr "TYPE"),_),[e]) ->
 		let e = type_expr ctx e in
-		prerr_endline ("type : " ^ s_type ~ext:true e.etype);
+		prerr_endline ("type : " ^ s_type e.etype);
 		e
 	| ECall (e,el) ->
 		let e = type_expr ctx e in
@@ -496,7 +509,7 @@ and type_expr ctx (e,p) =
 	| EUnop (op,e) ->
 		type_unop ctx op (type_expr ctx e) p
 	| EMatch (e,cl) ->
-		mk (TConst TVoid) t_void p
+		type_match ctx (type_expr ctx e) cl p
 
 and type_block ctx ((e,p) as x)  = 
 	match e with
@@ -515,6 +528,121 @@ and type_block ctx ((e,p) as x)  =
 	| _ ->
 		type_functions ctx;
 		type_expr ctx x
+
+and type_pattern ctx h ?(h2 = Hashtbl.create 0) set (pat,p,t) =
+	let pvar s =
+		if SSet.mem s !set then error (Custom "This variable is several time in the pattern") p;
+		set := SSet.add s !set;
+		try
+			Hashtbl.find h s
+		with
+			Not_found ->
+				let t = t_mono() in
+				Hashtbl.add h s t;
+				t
+	in
+	let pat , pt = (match pat with
+		| PConst c ->
+			let c , t = (match c with
+				| True -> TTrue , t_bool
+				| False -> TFalse , t_bool
+				| Int n -> TInt n , t_int
+				| Float s -> TFloat s , t_float
+				| String s -> TString s , t_string
+				| Ident s -> 
+					TIdent s , (if s = "_" then t_mono() else pvar s)
+				| Constr s ->
+					assert false
+			) in
+			TPConst c , t
+		| PTuple pl -> 
+			let pl = List.map (type_pattern ctx h ~h2 set) pl in
+			TPTuple pl , mk_tup ctx.gen (List.map (fun (_,_,t) -> t) pl)
+		| PRecord fl ->
+			let s = (try fst (List.hd fl) with _ -> assert false) in
+			let r , _ , _ = record_field ctx s p in
+			let fl = (match tlinks false r with
+				| TRecord rl ->
+					List.map (fun (f,pat) ->
+						let pat , pp , pt = type_pattern ctx h ~h2 set pat in
+						let t = (try 
+							let _ , _ , t = List.find (fun (f2,_,_) -> f = f2 ) rl in t 
+						with Not_found ->
+							error (Have_no_field (r,f)) p
+						) in
+						unify ctx pt t pp;
+						f , (pat , pp, pt)
+					) fl 
+				| _ ->
+					assert false
+			) in
+			TPRecord fl , r
+		| PConstr (s,param) ->
+			let param = (match param with None -> None | Some param -> Some (type_pattern ctx h ~h2 set param)) in
+			(try
+				let ut , t = Hashtbl.find ctx.constr s in
+				let t = duplicate ctx.gen (match t.texpr , param with
+					| TAbstract , None -> ut
+					| TAbstract , Some _ -> error (Custom "Constructor does not take parameters") p
+					| _ , None -> error (Custom "Constructor require parameters") p
+					| _ , Some (pat , pp, pt) -> 
+						match pt with
+						| { texpr = TTuple [t2] } | t2 -> unify ctx t t2 pp; ut
+				) in
+				TPConstr (s,param) , t
+			with
+				Not_found -> error (Custom ("Unknown constructor " ^ s)) p)
+		| PAlias (s,pat) ->
+			let pat , pp , pt = type_pattern ctx h ~h2 set pat in
+			let t = pvar s in
+			unify ctx pt t pp;
+			TPAlias (s,(pat,pp,pt)) , t
+		| PList pl ->
+			let tl , t = t_poly ctx.gen "list" in
+			let pl = List.map (fun p ->
+				let pat , pp , pt = type_pattern ctx h ~h2 set p in
+				unify ctx pt t pp;
+				pat , pp , pt
+			) pl in
+			TPList pl , tl
+	) in
+	(match t with 
+	| None -> ()
+	| Some t -> unify ctx pt (type_type ~h:h2 ctx t p) p);
+	pat , p , pt
+	
+and type_match ctx e cl p =
+	let ret = t_mono() in
+	let cl = List.map (fun (pl,wh,pe) ->
+		let first = ref true in
+		let h = Hashtbl.create 0 in
+		let mainset = ref SSet.empty in
+		let pl = List.map (fun pat ->
+			let set = ref SSet.empty in
+			let pat , p , pt = type_pattern ctx h set pat in
+			if !first then begin
+				first := false;
+				mainset := !set;
+			end else begin
+				let s = SSet.diff !set !mainset in
+				SSet.iter (fun s -> error (Custom ("Variable " ^ s ^ " must occur in all patterns")) p) s;
+				let s = SSet.diff !mainset !set in
+				SSet.iter (fun s -> error (Custom ("Variable " ^ s ^ " must occur in all patterns")) p) s;
+			end;
+			unify ctx pt e.etype p;
+			pat , p , pt
+		) pl in
+		let idents = ctx.idents in
+		Hashtbl.iter (fun v t ->
+			ctx.idents <- PMap.add v t ctx.idents
+		) h;
+		let wh = (match wh with None -> None | Some e -> Some (type_expr ctx e)) in
+		let pe = type_expr ctx pe in
+		unify ctx pe.etype ret (pos pe);
+		ctx.idents <- idents;
+		pl , wh , pe
+	) cl in
+	mk (TMatch (e,cl)) ret p
 
 let context() = 
 	let ctx = {
@@ -538,10 +666,9 @@ let context() =
 	Hashtbl.add ctx.types "string" t_string;
 	Hashtbl.add ctx.types "ref" (poly "ref");
 	Hashtbl.add ctx.types "array" (poly "array");
-	Hashtbl.add ctx.types "list" (poly "list");
+	let list , l = t_poly ctx.gen "list" in
+	polymorphize ctx.gen list;
+	Hashtbl.add ctx.types "list" list;
+	Hashtbl.add ctx.constr "::" (list,mk_tup ctx.gen [l;list]);
 	ctx
 
-let type_file ctx file =
-	let ch = open_in file in
-	let ast = Mlparser.parse (Lexing.from_channel ch) file in
-	type_expr ctx ast

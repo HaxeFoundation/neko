@@ -31,6 +31,16 @@ type tconstant =
 	| TIdent of string
 	| TConstr of string
 
+type tpattern_decl =
+	| TPConst of tconstant
+	| TPTuple of tpattern list
+	| TPRecord of (string * tpattern) list
+	| TPConstr of string * tpattern option
+	| TPAlias of string * tpattern
+	| TPList of tpattern list
+
+and tpattern = tpattern_decl * pos * t
+
 type texpr_decl =
 	| TConst of tconstant
 	| TNext of texpr * texpr
@@ -48,6 +58,7 @@ type texpr_decl =
 	| TRecordDecl of (string * texpr) list
 	| TListDecl of texpr list
 	| TUnop of string * texpr
+	| TMatch of texpr * (tpattern list * texpr option * texpr) list
 
 and texpr = {
 	edecl : texpr_decl;
