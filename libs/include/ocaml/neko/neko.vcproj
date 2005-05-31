@@ -81,6 +81,25 @@
 				RelativePath="..\ocaml\ocamlgen.ml">
 			</File>
 		</Filter>
+		<Filter
+			Name="ml"
+			Filter="">
+			<File
+				RelativePath="..\ml\mlast.ml">
+			</File>
+			<File
+				RelativePath="..\ml\mllexer.mll">
+			</File>
+			<File
+				RelativePath="..\ml\mlparser.ml">
+			</File>
+			<File
+				RelativePath="..\ml\mltype.ml">
+			</File>
+			<File
+				RelativePath="..\ml\mltyper.ml">
+			</File>
+		</Filter>
 		<File
 			RelativePath=".\main.ml">
 		</File>
