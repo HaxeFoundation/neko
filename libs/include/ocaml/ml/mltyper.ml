@@ -581,13 +581,18 @@ and type_pattern ctx h ?(h2 = Hashtbl.create 0) set (pat,p,t) =
 			let param = (match param with None -> None | Some param -> Some (type_pattern ctx h ~h2 set param)) in
 			(try
 				let ut , t = Hashtbl.find ctx.constr s in
-				let t = duplicate ctx.gen (match t.texpr , param with
-					| TAbstract , None -> ut
+				let t = (match t.texpr , param with
+					| TAbstract , None -> duplicate ctx.gen ut
 					| TAbstract , Some _ -> error (Custom "Constructor does not take parameters") p
 					| _ , None -> error (Custom "Constructor require parameters") p
 					| _ , Some (pat , pp, pt) -> 
 						match pt with
-						| { texpr = TTuple [t2] } | t2 -> unify ctx t t2 pp; ut
+						| { texpr = TTuple [t2] } | t2 -> 
+							let h = Hashtbl.create 0 in
+							let ut = duplicate ctx.gen ~h ut in
+							let t = duplicate ctx.gen ~h t in
+							unify ctx t t2 pp;
+							ut
 				) in
 				TPConstr (s,param) , t
 			with
@@ -642,6 +647,7 @@ and type_match ctx e cl p =
 		ctx.idents <- idents;
 		pl , wh , pe
 	) cl in
+	Mlmatch.completeness cl (fun msg p -> error (Custom msg) p) p;
 	mk (TMatch (e,cl)) ret p
 
 let context() = 
