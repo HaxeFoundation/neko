@@ -95,7 +95,17 @@ let abstract s = {
 let t_void = abstract "void"
 let t_int = abstract "int"
 let t_float = abstract "float"
-let t_bool = abstract "bool"
+let t_bool = {
+	tid = -1;
+	texpr = TNamed ("bool",[], {
+		tid = -1; 
+		texpr = TUnion [
+			("true",{ tid = -1; texpr = TAbstract });
+			("false",{ tid = -1; texpr = TAbstract })
+		];
+	});
+}
+
 let t_string = abstract "string"
 
 let t_mono() = {
