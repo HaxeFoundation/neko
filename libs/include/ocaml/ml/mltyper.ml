@@ -1,14 +1,23 @@
 open Mlast
 open Mltype
 
+type module_context = {
+	path : string list;
+	types : (string,t) Hashtbl.t;
+	constr : (string, t * t) Hashtbl.t;
+	mutable expr : texpr option;
+	mutable midents : (string,t) PMap.t;
+}
+
 type context = {
 	mutable idents : (string,t) PMap.t;
 	mutable functions : (texpr ref * t * (string * t) list * expr * t * pos) list;
 	gen : id_gen;
 	records : (string,t * t * mutflag) Hashtbl.t;
-	constr : (string,t * t) Hashtbl.t;
-	types : (string,t) Hashtbl.t;
 	tmptypes : (string, t * t list * (string,t) Hashtbl.t) Hashtbl.t;
+	current : module_context;
+	modules : (string list, module_context) Hashtbl.t;
+	cpath : string list;
 }
 
 type error_msg =
@@ -16,6 +25,7 @@ type error_msg =
 	| Have_no_field of t * string
 	| Stack of error_msg * error_msg
 	| Unknown_field of string
+	| Module_not_loaded of module_context
 	| Custom of string
 
 exception Error of error_msg * pos
@@ -27,9 +37,50 @@ let rec error_msg ?(h=s_context()) = function
 	| Have_no_field (t,f) -> s_type ~h t ^ " have no field " ^ f
 	| Stack (m1,m2) -> error_msg ~h m1 ^ "\n  " ^ error_msg ~h m2
 	| Unknown_field s -> "Unknown field " ^ s
+	| Module_not_loaded m -> "Module " ^ String.concat "." m.path ^ " require an interface"
 	| Custom s -> s
 
 let error m p = raise (Error (m,p))
+
+let load_module_ref = ref (fun _ _ -> assert false)
+
+let get_module ctx path p =
+	match path with
+	| [] -> ctx.current
+	| _ -> 
+		try
+			Hashtbl.find ctx.modules path
+		with
+			Not_found -> 
+				!load_module_ref ctx path p
+
+let get_type ctx path name p =
+	let m = get_module ctx path p in
+	try
+		Hashtbl.find m.types name
+	with
+		Not_found -> 
+			if m.expr = None then error (Module_not_loaded m) p;
+			error (Custom ("Unknown type " ^ s_path path name)) p
+
+let get_constr ctx path name p =
+	let m = get_module ctx path p in
+	try
+		let ut , t = Hashtbl.find m.constr name in
+		m.path , ut , t
+	with
+		Not_found -> 
+			if m.expr = None then error (Module_not_loaded m) p;		
+			error (Custom ("Unknown constructor " ^ s_path path name)) p
+
+let get_ident ctx path name p =
+	let m = get_module ctx path p in
+	try
+		PMap.find name (if path = [] then ctx.idents else m.midents)
+	with
+		Not_found -> 
+			if m.expr = None then error (Module_not_loaded m) p;
+			error (Custom ("Unknown variable " ^ s_path path name)) p
 
 let link ctx t1 t2 p =
 	if is_recursive t1 t2 then error (Cannot_unify (t1,t2)) p;
@@ -115,25 +166,23 @@ let rec type_type ?(allow=true) ?(h=Hashtbl.create 0) ctx t p =
 				let t = t_mono() in
 				Hashtbl.add h s t;
 				t)
-	| EType (params,name) ->
-		let tl = List.map (fun t -> type_type ~allow ~h ctx t p) params in
-		(try
-			let t = Hashtbl.find ctx.types name in
-			(match t.texpr with
-			| TNamed (_,params,t2) ->
-				let tl = (if List.length tl = List.length params then
-					tl
-				else match tl with (* resolve ambiguity *)
-					| [{ texpr = TTuple tl }] when List.length tl = List.length params -> tl
-					| _ -> error (Custom ("Invalid number of type parameters for " ^ name)) p) in
-				let h = Hashtbl.create 0 in
-				let t = duplicate ctx.gen ~h t in
-				let params = List.map (duplicate ctx.gen ~h) params in
-				List.iter2 (fun pa t -> unify ctx pa t p) params tl;
-				t
-			| _ -> assert false)
-		with
-			Not_found -> error (Custom ("Unknown type " ^ name)) p)
+	| EType (param,path,name) ->
+		let param = (match param with None -> None | Some t -> Some (type_type ~allow ~h ctx t p)) in
+		let t = get_type ctx path name p in
+		(match t.texpr with
+		| TNamed (_,params,t2) ->
+			let tl = (match params, param with
+				| [] , None -> []
+				| [x] , Some t -> [t]
+				| l , Some { texpr = TTuple tl } when List.length tl = List.length l -> tl
+				| _ , _ -> error (Custom ("Invalid number of type parameters for " ^ s_path path name)) p
+			) in
+			let h = Hashtbl.create 0 in
+			let t = duplicate ctx.gen ~h t in
+			let params = List.map (duplicate ctx.gen ~h) params in
+			List.iter2 (fun pa t -> unify ctx pa t p) params tl;
+			t
+		| _ -> assert false)
 	| EArrow (ta,tb) ->
 		let ta = type_type ~allow ~h ctx ta p in
 		let tb = type_type ~allow ~h ctx tb p in
@@ -141,7 +190,7 @@ let rec type_type ?(allow=true) ?(h=Hashtbl.create 0) ctx t p =
 		| TFun (params,r) -> mk_fun ctx.gen (params @ [r]) tb
 		| _ -> mk_fun ctx.gen [ta] tb
 
-let type_constant ctx c p =
+let rec type_constant ctx ?(path=[]) c p =
 	match c with
 	| True -> mk (TConst TTrue) t_bool p 
 	| False -> mk (TConst TFalse) t_bool p
@@ -149,20 +198,16 @@ let type_constant ctx c p =
 	| Float s -> mk (TConst (TFloat s)) t_float p
 	| String s -> mk (TConst (TString s)) t_string p
 	| Ident s ->
-		(try
-			let t = PMap.find s ctx.idents in
-			mk (TConst (TIdent s)) (duplicate ctx.gen t) p
-		with
-			Not_found -> error (Custom ("Unknown variable " ^ s)) p)
+		let t = get_ident ctx path s p in
+		mk (TConst (TIdent s)) (duplicate ctx.gen t) p
 	| Constr s ->
-		(try
-			let ut , t = Hashtbl.find ctx.constr s in
-			let t = duplicate ctx.gen (match t.texpr with
-				| TAbstract -> ut
-				| _ -> mk_fun ctx.gen [t] ut) in
-			mk (TConst (TConstr s)) t p
-		with
-			Not_found -> error (Custom ("Unknown constructor " ^ s)) p)
+		let path , ut , t = get_constr ctx path s p in
+		let t = duplicate ctx.gen (match t.texpr with
+			| TAbstract -> ut
+			| _ -> mk_fun ctx.gen [t] ut) in
+		mk (TConst (TModule (path,TConstr s))) t p
+	| Module (path,c) ->
+		type_constant ctx ~path c p
 
 type addable = NInt | NFloat | NString | NNan
 
@@ -281,7 +326,7 @@ let type_unop ctx op e p =
 		assert false
 
 let register_function ctx name pl e rt p =
-	let pl = (match pl with [] -> ["_",Some (EType ([],"void"))] | _ -> pl) in
+	let pl = (match pl with [] -> ["_",Some (EType (None,[],"void"))] | _ -> pl) in
 	let expr = ref (mk (TConst TVoid) t_void p) in
 	let h = Hashtbl.create 0 in
 	let el = List.map (fun (pn,pt) ->
@@ -427,7 +472,7 @@ and type_expr ctx (e,p) =
 				t , tl , h
 			with
 				Not_found ->
-					if Hashtbl.mem ctx.types tname then error (Custom ("Invalid type redefinition of type " ^ tname)) p;
+					if Hashtbl.mem ctx.current.types tname then error (Custom ("Invalid type redefinition of type " ^ tname)) p;
 					let h = Hashtbl.create 0 in
 					let tl = List.map (fun p ->
 						let t = t_mono() in
@@ -436,9 +481,9 @@ and type_expr ctx (e,p) =
 					) params in
 					let t = {
 						tid = genid ctx.gen;
-						texpr = TNamed (tname,tl,{ tid = -1; texpr = TAbstract });
+						texpr = TNamed (s_path ctx.current.path tname,tl,{ tid = -1; texpr = TAbstract });
 					} in
-					Hashtbl.add ctx.types tname t;
+					Hashtbl.add ctx.current.types tname t;
 					if decl = EAbstract then Hashtbl.add ctx.tmptypes tname (t,tl,h);
 					t , tl , h
 		in
@@ -459,13 +504,13 @@ and type_expr ctx (e,p) =
 						| None -> { tid = -1; texpr = TAbstract }
 						| Some ft -> type_type ~allow:false ~h ctx ft p
 					) in
-					Hashtbl.add ctx.constr c (t,ft);
+					Hashtbl.add ctx.current.constr c (t,ft);
 					c , ft
 				) constr in
 				mk_union ctx.gen constr
 		) in
 		t.tid <- if t2.tid = -1 && params = [] then -1 else genid ctx.gen;
-		t.texpr <- TNamed (tname,tl,t2);
+		t.texpr <- TNamed (s_path ctx.current.path tname,tl,t2);
 		polymorphize ctx.gen t;
 		mk (TTypeDecl t) t_void p
 	| ERecordDecl fl ->
@@ -529,7 +574,7 @@ and type_block ctx ((e,p) as x)  =
 		type_functions ctx;
 		type_expr ctx x
 
-and type_pattern ctx h ?(h2 = Hashtbl.create 0) set (pat,p,t) =
+and type_pattern (ctx:context) h ?(h2 = Hashtbl.create 0) set (pat,p,t) =
 	let pvar s =
 		if SSet.mem s !set then error (Custom "This variable is several time in the pattern") p;
 		set := SSet.add s !set;
@@ -551,7 +596,7 @@ and type_pattern ctx h ?(h2 = Hashtbl.create 0) set (pat,p,t) =
 				| String s -> TString s , t_string
 				| Ident s -> 
 					TIdent s , (if s = "_" then t_mono() else pvar s)
-				| Constr s ->
+				| Constr _ | Module _ ->
 					assert false
 			) in
 			TPConst c , t
@@ -577,26 +622,23 @@ and type_pattern ctx h ?(h2 = Hashtbl.create 0) set (pat,p,t) =
 					assert false
 			) in
 			TPRecord fl , r
-		| PConstr (s,param) ->
+		| PConstr (path,s,param) ->
 			let param = (match param with None -> None | Some param -> Some (type_pattern ctx h ~h2 set param)) in
-			(try
-				let ut , t = Hashtbl.find ctx.constr s in
-				let t = (match t.texpr , param with
-					| TAbstract , None -> duplicate ctx.gen ut
-					| TAbstract , Some _ -> error (Custom "Constructor does not take parameters") p
-					| _ , None -> error (Custom "Constructor require parameters") p
-					| _ , Some (pat , pp, pt) -> 
-						match pt with
-						| { texpr = TTuple [t2] } | t2 -> 
-							let h = Hashtbl.create 0 in
-							let ut = duplicate ctx.gen ~h ut in
-							let t = duplicate ctx.gen ~h t in
-							unify ctx t t2 pp;
-							ut
-				) in
-				TPConstr (s,param) , t
-			with
-				Not_found -> error (Custom ("Unknown constructor " ^ s)) p)
+			let path , ut , t = get_constr ctx path s p in
+			let t = (match t.texpr , param with
+				| TAbstract , None -> duplicate ctx.gen ut
+				| TAbstract , Some _ -> error (Custom "Constructor does not take parameters") p
+				| _ , None -> error (Custom "Constructor require parameters") p
+				| _ , Some (pat , pp, pt) -> 
+					match pt with
+					| { texpr = TTuple [t2] } | t2 -> 
+						let h = Hashtbl.create 0 in
+						let ut = duplicate ctx.gen ~h ut in
+						let t = duplicate ctx.gen ~h t in
+						unify ctx t t2 pp;
+						ut
+			) in
+			TPConstr (path,s,param) , t
 		| PAlias (s,pat) ->
 			let pat , pp , pt = type_pattern ctx h ~h2 set pat in
 			let t = pvar s in
@@ -647,34 +689,93 @@ and type_match ctx e cl p =
 		ctx.idents <- idents;
 		pl , wh , pe
 	) cl in
-	Mlmatch.completeness cl (fun msg p -> error (Custom msg) p) p;
+(*//Mlmatch.completeness cl (fun msg p -> error (Custom msg) p) p; *)
 	mk (TMatch (e,cl)) ret p
 
-let context() = 
+let context cpath = 
 	let ctx = {
 		idents = PMap.empty;
 		gen = generator();
-		constr = Hashtbl.create 0;
 		records = Hashtbl.create 0;
-		types = Hashtbl.create 0;
 		tmptypes = Hashtbl.create 0;
+		modules = Hashtbl.create 0;
 		functions = [];
+		cpath = cpath;
+		current = {
+			midents = PMap.empty;
+			path = [];
+			constr = Hashtbl.create 0;
+			types = Hashtbl.create 0;
+			expr = None;
+		};
 	} in
 	let poly name =
 		let t , _ = t_poly ctx.gen name in
 		polymorphize ctx.gen t;
 		t
 	in
-	Hashtbl.add ctx.types "void" t_void;
-	Hashtbl.add ctx.types "int" t_int;
-	Hashtbl.add ctx.types "float" t_float;
-	Hashtbl.add ctx.types "bool" t_bool;
-	Hashtbl.add ctx.types "string" t_string;
-	Hashtbl.add ctx.types "ref" (poly "ref");
-	Hashtbl.add ctx.types "array" (poly "array");
+	Hashtbl.add ctx.current.types "void" t_void;
+	Hashtbl.add ctx.current.types "int" t_int;
+	Hashtbl.add ctx.current.types "float" t_float;
+	Hashtbl.add ctx.current.types "bool" t_bool;
+	Hashtbl.add ctx.current.types "string" t_string;
+	Hashtbl.add ctx.current.types "ref" (poly "ref");
+	Hashtbl.add ctx.current.types "array" (poly "array");
 	let list , l = t_poly ctx.gen "list" in
 	polymorphize ctx.gen list;
-	Hashtbl.add ctx.types "list" list;
-	Hashtbl.add ctx.constr "::" (list,mk_tup ctx.gen [l;list]);
+	Hashtbl.add ctx.current.types "list" list;
+	Hashtbl.add ctx.current.constr "::" (list,mk_tup ctx.gen [l;list]);
+	Hashtbl.add ctx.modules [] ctx.current;
 	ctx
 
+let open_file ctx file p =
+	let rec loop = function
+		| [] -> error (Custom ("File not found " ^ file)) p
+		| p :: l ->
+			try
+				let f = p ^ file in
+				f , open_in f
+			with
+				_ -> loop l
+	in
+	loop ctx.cpath
+
+let load_module ctx m p =
+	try
+		Hashtbl.find ctx.modules m
+	with
+		Not_found ->			
+			let file , ch = open_file ctx (String.concat "/" m ^ ".nml") p in
+			let base = Hashtbl.find ctx.modules [] in
+			let ctx = {	ctx with
+				idents = PMap.empty;
+				records = Hashtbl.create 0;
+				tmptypes = Hashtbl.create 0;
+				functions = [];
+				current = {
+					path = m;
+					constr = Hashtbl.copy base.constr;
+					types = Hashtbl.copy base.types;
+					expr = None;
+					midents = PMap.empty;
+				}
+			} in
+			Hashtbl.add ctx.modules m ctx.current;
+			let ast = Mlparser.parse (Lexing.from_channel ch) file in
+			let e = (match ast with
+				| EBlock (e :: l) , p ->
+					let e = List.fold_left (fun acc e ->
+						let e = type_block ctx e in
+						mk (TNext (acc,e)) e.etype (punion (pos acc) (pos e))
+					) (type_block ctx e) l in
+					type_functions ctx;
+					e
+				| _ ->
+					type_expr ctx ast
+			) in
+			ctx.current.expr <- Some e;
+			ctx.current.midents <- ctx.idents;
+			ctx.current
+
+;;
+load_module_ref := load_module

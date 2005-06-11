@@ -92,6 +92,8 @@ and expr = parser
 		| [< 'x >] -> unclosed "{" x)
 	| [< '(Binop op,p) when is_unop op; e = expr; s >] ->
 		expr_next (make_unop op e p) s
+	| [< '(Const (Constr n),p); e = expr_constr n p; s >] ->
+		expr_next e s
 	| [< '(Const c,p); s >] ->
 		expr_next (EConst c,p) s
 
@@ -113,6 +115,19 @@ and expr_next e = parser
 		make_binop op e e2
 	| [< >] ->
 		e
+
+and expr_constr n p = parser
+	| [< '(Dot,_); e = expr_constr2 >] -> 
+		(match e with
+		| EConst ((Ident _) as c) , p2 
+		| EConst ((Constr _) as c) , p2 -> EConst (Module ([n],c)) , punion p p2
+		| EConst (Module (l,c)) , p2 -> EConst (Module (n :: l,c)) , punion p p2
+		| _ -> assert false);
+	| [< >] -> EConst (Constr n), p
+		
+and expr_constr2 = parser
+	| [< '(Const (Ident n),p) >] -> EConst (Ident n) , p
+	| [< '(Const (Constr n),p); e = expr_constr n p >] -> e
 
 and block1 = parser
 	| [< '(Const (Ident name),p); s >] ->
@@ -154,7 +169,8 @@ and parameters_next = parser
 	| [< >] -> []
 
 and type_path = parser
-	| [< '(Const (Ident tname),p); t = type_path_next (EType ([],tname)) p >] -> t
+	| [< '(Const (Ident tname),p); t = type_path_next (EType (None,[],tname)) p >] -> t
+	| [< '(Const (Constr m),p); '(Dot,_); l = type_path_mod; '(Const (Ident tname),_); t = type_path_next (EType (None,m :: l,tname)) p >] -> t
 	| [< '(Quote,_); '(Const (Ident a),p); t = type_path_next (EPoly a) p >] -> t
 	| [< '(ParentOpen,_); t , p = type_path; l , p = type_path_list_next p; '(ParentClose,_); s >] ->
 		type_path_next (ETuple (t :: l)) p s
@@ -171,8 +187,13 @@ and type_path_next t p = parser
 		(match t2 with
 		| EArrow (ta,tb) -> EArrow (EArrow(t,ta),tb) , p
 		| _ -> EArrow (t,t2) , p);
-	| [< '(Const (Ident tname),p); t = type_path_next (EType ([t],tname)) p >] -> t
+	| [< '(Const (Ident tname),p); t = type_path_next (EType (Some t,[],tname)) p >] -> t
+	| [< '(Const (Constr m),p); '(Dot,_); l = type_path_mod; '(Const (Ident tname),_); t = type_path_next (EType (Some t,m :: l,tname)) p >] -> t
 	| [< >] -> t , p
+
+and type_path_mod = parser
+	| [< '(Const (Constr m),_); '(Dot,_); l = type_path_mod >] -> m :: l
+	| [< >] -> []
 
 and type_decl_parameters = parser
 	| [< '(Quote,_); '(Const (Ident a),_); >] -> [a]
@@ -218,15 +239,19 @@ and pattern = parser
 	| [< d , p = pattern_decl; s >] -> 
 		match s with parser
 		| [< '(Const (Ident "as"),_); '(Const (Ident v),p2); t = type_opt >] -> (PAlias (v, (d , p, t))) , punion p p2 , None
-		| [< '(Binop "::",_); d2 , p2 , t2 = pattern >] -> PConstr ("::",Some (PTuple [(d,p,None);(d2,p2,t2)] , punion p p2 , None)) , punion p p2 , None
+		| [< '(Binop "::",_); d2 , p2 , t2 = pattern >] -> PConstr ([],"::",Some (PTuple [(d,p,None);(d2,p2,t2)] , punion p p2 , None)) , punion p p2 , None
 		| [< t = type_opt >] -> d , p, t
 
 and pattern_decl = parser
 	| [< '(ParentOpen,p1); pl = pattern_tuple; '(ParentClose,p2) >] -> PTuple pl , punion p1 p2
 	| [< '(BraceOpen,p1); '(Const (Ident name),_); '(Binop "=",_); p = pattern; pl = pattern_record; '(BraceClose,p2) >] -> PRecord ((name,p) :: pl) , punion p1 p2
-	| [< '(Const (Constr name),p1); p , p2 = pattern_opt p1 >] -> PConstr (name,p) , punion p1 p2
+	| [< '(Const (Constr name),p1); l, name, p2 = pattern_mod_path name p1; p , p2 = pattern_opt p2 >] -> PConstr (l,name,p) , punion p1 p2
 	| [< '(Const c,p); >] -> PConst c , p
 	| [< '(BracketOpen,p1); l = pattern_list; '(BracketClose,p2) >] -> PList l , punion p1 p2
+
+and pattern_mod_path name p = parser
+	| [< '(Dot,_); '(Const (Constr n),p); l, n, p = pattern_mod_path n p >] -> name :: l , n , p
+	| [< >] -> [], name, p
 
 and pattern_list = parser
 	| [< p = pattern; l = pattern_list_next >] -> p :: l

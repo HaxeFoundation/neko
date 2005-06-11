@@ -30,12 +30,13 @@ type tconstant =
 	| TString of string
 	| TIdent of string
 	| TConstr of string
+	| TModule of string list * tconstant
 
 type tpattern_decl =
 	| TPConst of tconstant
 	| TPTuple of tpattern list
 	| TPRecord of (string * tpattern) list
-	| TPConstr of string * tpattern option
+	| TPConstr of string list * string * tpattern option
 	| TPAlias of string * tpattern
 	| TPList of tpattern list
 

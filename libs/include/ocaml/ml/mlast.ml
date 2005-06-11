@@ -13,6 +13,7 @@ type constant =
 	| String of string
 	| Ident of string
 	| Constr of string
+	| Module of string list * constant
 
 type keyword =
 	| Var
@@ -45,7 +46,7 @@ type token =
 	| CommentLine of string
 
 type type_path =
-	| EType of type_path list * string
+	| EType of type_path option * string list * string
 	| EPoly of string
 	| ETuple of type_path list
 	| EArrow of type_path * type_path
@@ -60,7 +61,7 @@ type pattern_decl =
 	| PConst of constant
 	| PTuple of pattern list
 	| PRecord of (string * pattern) list
-	| PConstr of string * pattern option
+	| PConstr of string list * string * pattern option
 	| PAlias of string * pattern
 	| PList of pattern list
 
@@ -108,7 +109,7 @@ let escape s =
 	done;
 	Buffer.contents b
 
-let s_constant = function
+let rec s_constant = function
 	| True -> "true"
 	| False -> "false"
 	| Int i -> string_of_int i
@@ -116,6 +117,12 @@ let s_constant = function
 	| String s -> "\"" ^ escape s ^ "\""
 	| Ident s -> s
 	| Constr s -> s
+	| Module (l,c) -> String.concat "." l ^ "." ^ s_constant c 
+
+let s_path path n = 
+	match path with
+	| [] -> n
+	| _ -> String.concat "." path ^ "." ^ n
 
 let s_keyword = function
 	| Var -> "var"
