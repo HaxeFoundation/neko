@@ -78,11 +78,8 @@ let dump file =
 	IO.close_out ch
 
 let nekoml file =
-	let ch = open_file file in
-	let ast = Mlparser.parse (Lexing.from_channel ch) file in
-	let ctx = Mltyper.context() in
-	let e = Mltyper.type_expr ctx ast in
-	()
+	let ctx = Mltyper.context ["";Filename.dirname file ^ "/"] in
+	ignore(Mltyper.load_module ctx [String.capitalize (Filename.chop_extension (Filename.basename file))] Mlast.null_pos)
 
 ;;
 try	
