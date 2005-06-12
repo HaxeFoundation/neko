@@ -131,6 +131,11 @@ let rec print_ast ctx (e,p) =
 		print_ast ctx e;			
 	| EContinue ->
 		print ctx "continue"
+	| ENext (e1,e2) ->
+		print_ast ctx e1;
+		print ctx ";";
+		newline ctx;
+		print_ast ctx e2
 
 and level_expr ctx (e,p) =
 	match e with
@@ -142,10 +147,8 @@ and level_expr ctx (e,p) =
 		print_ast ctx (e,p);		
 		level ctx false
 
-let to_string ast =
-	let ch = IO.output_string() in
-	let ctx = create ch in
-	(match fst ast with
+let print ctx ast =
+	match fst ast with
 	| EBlock el ->
 		List.iter (fun e ->
 			print_ast ctx e;
@@ -155,5 +158,10 @@ let to_string ast =
 			end
 		) el;
 	| _ ->
-		print_ast ctx ast);
+		print_ast ctx ast
+
+let to_string ast =
+	let ch = IO.output_string() in
+	let ctx = create ch in
+	print ctx ast;
 	IO.close_out ch

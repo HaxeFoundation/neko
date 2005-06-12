@@ -72,6 +72,7 @@ type expr_decl =
 	| EReturn of expr option
 	| EBreak of expr option
 	| EContinue
+	| ENext of expr * expr
 
 and expr = expr_decl * pos
 
@@ -106,6 +107,7 @@ let map f (e,p) =
 	| EBinop (op,e1,e2) -> EBinop (op, f e1, f e2)
 	| EReturn (Some e) -> EReturn (Some (f e))
 	| EBreak (Some e) -> EBreak (Some (f e))
+	| ENext (e1,e2) -> ENext (f e1,f e2)
 	| EReturn None
 	| EBreak None
 	| EContinue	
@@ -127,6 +129,7 @@ let iter f (e,p) =
 	| EBinop (_,e1,e2) -> f e1; f e2
 	| EReturn (Some e) -> f e
 	| EBreak (Some e) -> f e
+	| ENext (e1,e2) -> f e1; f e2
 	| EReturn None
 	| EBreak None
 	| EContinue

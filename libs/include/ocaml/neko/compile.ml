@@ -421,6 +421,9 @@ and compile ctx (e,p) =
 		ctx.continues <- (jmp ctx , p) :: ctx.continues
 	| EFunction (params,e) ->
 		compile_function ctx params e
+	| ENext (e1,e2) ->
+		compile ctx e1;
+		compile ctx e2
 
 let compile file ast =
 	let ctx = {
