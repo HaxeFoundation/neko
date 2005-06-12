@@ -44,14 +44,14 @@ and tpattern = tpattern_decl * pos * t
 
 type texpr_decl =
 	| TConst of tconstant
-	| TNext of texpr * texpr
+	| TBlock of texpr list
 	| TParenthesis of texpr
 	| TCall of texpr * texpr list
 	| TField of texpr * string
 	| TArray of texpr * texpr
 	| TVar of string * texpr
 	| TIf of texpr * texpr * texpr option
-	| TFunction of (string * t) list * texpr
+	| TFunction of string * (string * t) list * texpr
 	| TBinop of string * texpr * texpr
 	| TTupleDecl of texpr list
 	| TTypeDecl of t

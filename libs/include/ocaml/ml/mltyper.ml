@@ -11,7 +11,7 @@ type module_context = {
 
 type context = {
 	mutable idents : (string,t) PMap.t;
-	mutable functions : (texpr ref * t * (string * t) list * expr * t * pos) list;
+	mutable functions : (string * texpr ref * t * (string * t) list * expr * t * pos) list;
 	gen : id_gen;
 	records : (string,t * t * mutflag) Hashtbl.t;
 	tmptypes : (string, t * t list * (string,t) Hashtbl.t) Hashtbl.t;
@@ -341,14 +341,15 @@ let register_function ctx name pl e rt p =
 		| Some rt -> type_type ~h ctx rt p
 	) in
 	let ft = mk_fun ctx.gen (List.map snd el) rt in
-	ctx.functions <- (expr,ft,el,e,rt,p) :: ctx.functions;
-	(match name with None | Some "_" -> () | Some name -> ctx.idents <- PMap.add name ft ctx.idents);
+	let name = (match name with None -> "_" | Some n -> n) in
+	ctx.functions <- (name,expr,ft,el,e,rt,p) :: ctx.functions;
+	if name <> "_" then ctx.idents <- PMap.add name ft ctx.idents;
 	mk (TMut expr) ft p
 
 let rec type_functions ctx =
 	let l = ctx.functions in
 	ctx.functions <- [];
-	let l = List.map (fun (expr,ft,el,e,rt,p) ->
+	let l = List.map (fun (name,expr,ft,el,e,rt,p) ->
 		let idents = ctx.idents in
 		List.iter (fun (p,pt) ->
 			if p <> "_" then ctx.idents <- PMap.add p pt ctx.idents;
@@ -357,7 +358,7 @@ let rec type_functions ctx =
 		ctx.idents <- idents;
 		let ft2 = mk_fun ctx.gen (List.map snd el) e.etype in
 		unify ctx ft ft2 p;
-		expr := mk (TFunction (el,e)) ft2 p;
+		expr := mk (TFunction (name,el,e)) ft2 p;
 		ft2
 	) (List.rev l) in
 	List.iter (polymorphize ctx.gen) l
@@ -369,13 +370,14 @@ and type_expr ctx (e,p) =
 		mk (TConst TVoid) t_void p
 	| EBlock (e :: l) ->
 		let idents = ctx.idents in
-		let e = List.fold_left (fun acc e ->
+		let e = type_block ctx e in
+		let el , t = List.fold_left (fun (l,t) e ->
 			let e = type_block ctx e in
-			mk (TNext (acc,e)) e.etype (punion (pos acc) (pos e))
-		) (type_block ctx e) l in
+			e :: l , e.etype
+		) ([e] , e.etype) l in
 		type_functions ctx;
 		ctx.idents <- idents;
-		e
+		mk (TBlock (List.rev el)) t p
 	| ECall ((EConst (Constr "TYPE"),_),[e]) ->
 		let e = type_expr ctx e in
 		prerr_endline ("type : " ^ s_type e.etype);
@@ -728,6 +730,15 @@ let context cpath =
 	Hashtbl.add ctx.modules [] ctx.current;
 	ctx
 
+let modules ctx =
+	let h = Hashtbl.create 0 in
+	Hashtbl.iter (fun p m -> 
+		match m.expr with 
+		| None -> ()
+		| Some e -> Hashtbl.add h p e
+	) ctx.modules;
+	h
+
 let open_file ctx file p =
 	let rec loop = function
 		| [] -> error (Custom ("File not found " ^ file)) p
@@ -764,12 +775,13 @@ let load_module ctx m p =
 			let ast = Mlparser.parse (Lexing.from_channel ch) file in
 			let e = (match ast with
 				| EBlock (e :: l) , p ->
-					let e = List.fold_left (fun acc e ->
+					let e = type_block ctx e in
+					let el , t = List.fold_left (fun (l,t) e ->
 						let e = type_block ctx e in
-						mk (TNext (acc,e)) e.etype (punion (pos acc) (pos e))
-					) (type_block ctx e) l in
+						e :: l , e.etype
+					) ([e] , e.etype) l in
 					type_functions ctx;
-					e
+					mk (TBlock (List.rev el)) t p
 				| _ ->
 					type_expr ctx ast
 			) in
