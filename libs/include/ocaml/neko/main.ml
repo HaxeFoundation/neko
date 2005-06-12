@@ -79,7 +79,15 @@ let dump file =
 
 let nekoml file =
 	let ctx = Mltyper.context ["";Filename.dirname file ^ "/"] in
-	ignore(Mltyper.load_module ctx [String.capitalize (Filename.chop_extension (Filename.basename file))] Mlast.null_pos)
+	ignore(Mltyper.load_module ctx [String.capitalize (Filename.chop_extension (Filename.basename file))] Mlast.null_pos);
+	Hashtbl.iter (fun m e ->
+		let e = Mlneko.generate e in
+		let file = String.concat "/" m ^ ".neko" in
+		let ch = IO.output_channel (open_out file) in
+		let ctx = Printer.create ch in
+		Printer.print ctx e;
+		IO.close_out ch
+	) (Mltyper.modules ctx)
 
 ;;
 try	
