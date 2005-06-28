@@ -23,13 +23,15 @@ INLINE value *otable_find(objtable t,field id) {
 	int max = t->count;
 	int mid;
 	field cid;
+	if( !max )
+		return NULL;
 	while( min < max ) {
 		mid = (min + max) >> 1;
 		cid = t->cells[mid].id;
 		if( cid < id )
-			max = mid;
+			min = mid + 1;
 		else if( cid > id )
-			min = mid;
+			max = mid;
 		else
 			return &t->cells[mid].v;
 	}

@@ -20,19 +20,22 @@ int otable_remove( objtable t, field id ) {
 	int mid;
 	field cid;
 	cell *c = t->cells;
+	if( !max )
+		return 0;
 	while( min < max ) {
 		mid = (min + max) >> 1;
 		cid = c[mid].id;
 		if( cid < id )
-			max = mid;
+			min = mid + 1;
 		else if( cid > id )
-			min = mid;
+			max = mid;
 		else {
 			t->count--;
 			while( mid < t->count ) {
 				c[mid] = c[mid+1];
 				mid++;
 			}
+			c[mid].v = NULL;
 			return 1;
 		}
 	}
@@ -49,27 +52,30 @@ void otable_optimize( objtable t ) {
 		if( v != val_null )
 			c[cur++] = c[i];
 	}
+	for(i=cur;i<max;i++)
+		c[i].v = NULL;	
 	t->count = cur;
 }
 
 void otable_replace( objtable t, field id, value data ) {
 	int min = 0;
 	int max = t->count;
-	int mid = 0;
+	int mid;
 	field cid;
 	cell *c = t->cells;
 	while( min < max ) {
 		mid = (min + max) >> 1;
 		cid = c[mid].id;
 		if( cid < id )
-			max = mid;
+			min = mid + 1;
 		else if( cid > id )
-			min = mid;
+			max = mid;
 		else {
 			c[mid].v = data;
 			return;
 		}
 	}
+	mid = (min + max) >> 1;
 	c = (cell*)alloc(sizeof(cell)*(t->count+1));
 	min = 0;
 	while( min < mid ) {
