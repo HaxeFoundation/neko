@@ -8,7 +8,7 @@
 #include "objtable.h"
 
 objtable otable_empty() {
-	objtable t2 = (objtable)alloc(sizeof(objtable));
+	objtable t2 = (objtable)alloc(sizeof(struct _objtable));
 	t2->count = 0;
 	t2->cells = NULL;
 	return t2;
@@ -93,7 +93,7 @@ void otable_replace( objtable t, field id, value data ) {
 }
 
 objtable otable_copy( objtable t ) {
-	objtable t2 = (objtable)alloc(sizeof(objtable));
+	objtable t2 = (objtable)alloc(sizeof(struct _objtable));
 	t2->count = t->count;
 	t2->cells = (cell*)alloc(sizeof(cell)*t->count);
 	memcpy(t2->cells,t->cells,sizeof(cell)*t->count);
