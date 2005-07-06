@@ -362,16 +362,21 @@ static value builtin_objopt( value o ) {
 	return val_true;
 }
 
+static void builtin_objFields_rec( value d, field id, void *a ) {
+	*((*(value**)a)++) = alloc_int((int)id);
+	
+}
+
 static value builtin_objFields( value o ) {
-	int i;
 	value a;
+	value *aptr;
 	objtable t;
 	if( !val_is_object(o) )
 		return val_null;
 	t = ((vobject*)o)->table;
-	a = alloc_array(t->count);
-	for(i=0;i<t->count;i++)
-		val_array_ptr(a)[i] = alloc_int((int)t->cells[i].id);
+	a = alloc_array(otable_count(t));
+	aptr = val_array_ptr(a);
+	otable_iter(t,builtin_objFields_rec,&aptr);
 	return a;
 }
 
