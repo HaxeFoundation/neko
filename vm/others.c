@@ -168,6 +168,8 @@ EXTERN field val_id( const char *name ) {
 		name++;
 	}
 	f = (field)val_int(acc);
+	if( NEKO_VM() == NULL )
+		return f;	
 	fields = NEKO_VM()->fields;
 	old = otable_find(fields,f);
 	if( old != NULL ) {
