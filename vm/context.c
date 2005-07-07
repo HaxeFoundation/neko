@@ -5,8 +5,6 @@
 /*																			*/
 /* ************************************************************************ */
 #include "context.h"
-#include <malloc.h>
-#include <string.h>
 
 #ifdef __WIN32
 #include <windows.h>
@@ -34,6 +32,7 @@ void *context_get( _context *ctx ) {
 #else
 /* ************************************************************************ */
 #include "objtable.h"
+#include <malloc.h>
 
 struct _context {
 	void *data;
