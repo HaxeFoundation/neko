@@ -31,6 +31,7 @@ static void null_warn_proc( char *msg, int arg ) {
 
 void gc_init() {
 	GC_no_dls = 1;
+	GC_dont_expand = 1;
 	GC_clear_roots();
 	GC_set_warn_proc(null_warn_proc);
 }
@@ -109,11 +110,11 @@ value alloc_module_function( void *m, int pos, int nargs ) {
 
 EXTERN value copy_object( value cpy ) {
 	vobject *v;
-	if( !val_is_null(cpy) && !val_is_object(cpy) )
+	if( cpy != NULL && !val_is_null(cpy) && !val_is_object(cpy) )
 		return val_null;
 	v = (vobject*)GC_MALLOC(sizeof(vobject));
 	v->t = VAL_OBJECT;
-	if( val_is_null(cpy) ) {
+	if( cpy == NULL || val_is_null(cpy) ) {
 		v->data = NULL;
 		v->ot = (otype)0xFFFFFFFF;
 		v->table = otable_empty();
