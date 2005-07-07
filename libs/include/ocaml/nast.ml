@@ -236,7 +236,9 @@ let builtins_list = [
 	"stof",1;
 	"typeof",1;
 	"closure",var_args;
-	"compare",2
+	"compare",2;
+	"loader",0;
+	"exports",0;
 ]
 
 let builtins_hash = 
