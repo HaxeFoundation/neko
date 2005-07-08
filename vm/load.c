@@ -5,6 +5,7 @@
 /*																			*/
 /* ************************************************************************ */
 #include <string.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include "load.h"
 #include "interp.h"
@@ -196,13 +197,21 @@ static neko_module *neko_module_read( reader r, readp p, value loader ) {
 	return m;
 }
 
-static value neko_default_loadprim( value prim ) {
+static value neko_default_loadprim( value prim, value nargs ) {
 	value o = val_this();
 	val_check_obj(o,t_loader);
-	if( !val_is_string(prim) )
+	if( !val_is_string(prim) || !val_is_int(nargs) || val_int(nargs) > 10 || val_int(nargs) < -1 )
 		return val_null;
-	val_throw(prim);
-	return val_null;
+	{
+		loader *l = (loader*)val_odata(o);
+		void *ptr = l->p(val_string(prim),val_int(nargs),&l->custom);
+		if( ptr == NULL ) {
+			buffer b = alloc_buffer("Primitive not found : ");
+			val_buffer(b,prim);
+			val_throw(buffer_to_string(b));
+		}
+		return alloc_function(ptr,val_int(nargs));
+	}	
 }
 
 static value neko_default_loadmodule( value mname, value this ) {
@@ -234,11 +243,102 @@ static value neko_default_loadmodule( value mname, value this ) {
 	}	
 }
 
+#ifdef _WIN32
+#	undef ERROR
+#	include <windows.h>
+#	define dlopen(l,p)		(void*)LoadLibrary(l)
+#	define dlsym(h,n)		GetProcAddress((HANDLE)h,n)
+#endif
+
+static int file_reader( readp p, void *buf, int size ) {
+	int len = 0;
+	while( size > 0 ) {
+		int l = fread(buf,1,size,(FILE*)p);
+		if( l <= 0 )
+			return len;
+		size -= l;
+		len += l;
+		buf = (char*)buf+l;
+	}
+	return len;
+}
+
+int default_load_module( const char *mname, reader *r, readp *p ) {
+	FILE *f = fopen(mname,"rb");
+	if( f == NULL )
+		return 0;
+	*r = file_reader;
+	*p = f;
+	return 1;
+}
+
+void default_load_done( readp p ) {
+	fclose(p);
+}
+
+typedef struct _liblist {
+	char *name;
+	void *handle;
+	struct _liblist *next;
+} liblist;
+
+void *default_load_primitive( const char *prim, int nargs, void **custom ) {
+	char *pos = strchr(prim,'_');
+	int len;	
+	liblist *l;
+	if( pos == NULL )
+		return NULL;
+	l = (liblist*)*custom;
+	len = strlen(prim) + 1;
+	*pos = 0;
+	while( l != NULL ) {
+		if( memcmp(l->name,prim,len) == 0 )
+			break;
+		l = l->next;
+	}
+	if( l == NULL ) {
+		void *h = dlopen(prim,RTLD_LAZY);
+		if( h == NULL ) {
+			*pos = '_';
+			return NULL;
+		}
+		l = (liblist*)alloc(sizeof(liblist));
+		l->handle = h;
+		l->name = alloc(len);
+		memcpy(l->name,prim,len);
+		l->next = (liblist*)*custom;
+		*custom = l;
+	}
+	*pos++ = '_';
+	{
+		char buf[100];
+		PRIM0 ptr;
+		if( strlen(pos) > 90 )
+			return NULL;
+		if( nargs == VAR_ARGS )
+			sprintf(buf,"%s__MULT",pos);
+		else
+			sprintf(buf,"%s__%d",pos,nargs);
+		ptr = (PRIM0)dlsym(l->handle,buf);
+		if( ptr == NULL )
+			return NULL;
+		return ptr();
+	}
+}
+
 value neko_default_loader( loader *l ) {
 	value o = alloc_object(NULL);
+	if( l == NULL ) {
+		l = (loader*)alloc(sizeof(loader));
+		l->l = default_load_module;
+		l->d = default_load_done;
+		l->p = default_load_primitive;
+		l->custom = NULL;
+		l->cache = alloc_object(NULL);
+	}
 	val_otype(o) = t_loader;
 	val_odata(o) = (value)l;
-	alloc_field(o,val_id("loadprim"),alloc_function(neko_default_loadprim,1));
+	alloc_field(o,val_id("loadprim"),alloc_function(neko_default_loadprim,2));
 	alloc_field(o,val_id("loadmodule"),alloc_function(neko_default_loadmodule,2));
 	return o;
 }
