@@ -21,7 +21,6 @@ struct _neko_vm {
 	objtable fields;
 	value env;
 	value val_this;
-	const char *error;
 	printer print;
 	jmp_buf start;
 	char tmp[100];
