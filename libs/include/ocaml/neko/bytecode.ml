@@ -268,7 +268,7 @@ let read ch =
 				| 0 -> code lsr 2 , 0
 				| 1 -> code lsr 3 , ((code lsr 2) land 1)
 				| 2 -> code lsr 2 , IO.read_byte ch
-				| 3 -> code lsr 3 , IO.read_i32 ch
+				| 3 -> code lsr 2 , IO.read_i32 ch
 				| _ -> assert false
 			) in
 			let op = (match op with
