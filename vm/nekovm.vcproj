@@ -41,7 +41,8 @@
 			<Tool
 				Name="VCMIDLTool"/>
 			<Tool
-				Name="VCPostBuildEventTool"/>
+				Name="VCPostBuildEventTool"
+				CommandLine="copy Debug\nekovm.exe .."/>
 			<Tool
 				Name="VCPreBuildEventTool"/>
 			<Tool
@@ -89,7 +90,8 @@
 			<Tool
 				Name="VCMIDLTool"/>
 			<Tool
-				Name="VCPostBuildEventTool"/>
+				Name="VCPostBuildEventTool"
+				CommandLine="copy Release\nekovm.exe .."/>
 			<Tool
 				Name="VCPreBuildEventTool"/>
 			<Tool
