@@ -534,6 +534,12 @@ void init_builtins() {
 	BUILTIN(typeof,1);
 	BUILTIN(closure,VAR_ARGS);
 	BUILTIN(compare,2);
+	if( p != LOADER_BUILTIN )
+		*(char*)NULL = 0;
+	builtins[p++] = val_null;
+	if( p != EXPORTS_BUILTIN )
+		*(char*)NULL = 0;
+	builtins[p++] = val_null;
 	if( p != NBUILTINS )
 		*(char*)NULL = 0;
 }
