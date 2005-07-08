@@ -1,7 +1,9 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html>
 
 <head>
 <title>Neko Language Specification</title>
+<meta http-equiv="Content-Type" content="text/html;charset=ISO-8859-15"/>
 <link rel="StyleSheet" href="style.css" type="text/css"/>
 </head>
 
@@ -70,7 +72,7 @@ The syntax is parsed using a left-to-right LL(1) parser. That means that after r
 		| [a-zA-Z_@] [a-zA-Z0-9_@:]*
 
 	    <i>binop</i> :=
-		| [!=*/&lt;&gt;&|^%+:-]+
+		| [!=*/&lt;&gt;&amp;|^%+:-]+
 
 	    <i>value</i> :=
 		| [0-9]+
@@ -166,7 +168,7 @@ Some precisions :
 <ul>
 <li>integers are 31 bits for virtual machine performances reasons, an access to full 32 bits integers will be made possible soon.</li>
 <li>floating points are 64 bits double precision floating points values.</li>
-<li>strings are 8-bit binary values. A string can contain \0 characters, the string length is determined by the amount of data available and not by the number of characters before the first \0. Maximum string size might depend of virtual machine specification, but should be at least 65535 bytes.</i>
+<li>strings are 8-bit binary values. A string can contain \0 characters, the string length is determined by the amount of data available and not by the number of characters before the first \0. Maximum string size might depend of virtual machine specification, but should be at least 65535 bytes.</li>
 </ul>
 
 <!-- ****************************************************************************** -->
@@ -184,7 +186,7 @@ Values :
 
 <ul>
 <li><code>[0-9]+ | 0x[0-9A-Fa-f]+</code> : evaluate to the corresponding integer value</li>
-<li><code>[0-9]+ <b>DOT</b> [0-9]* | <b>DOT</b> [0-9]+</code> : evaluate to the corresponding floating point value</code></li>
+<li><code>[0-9]+ <b>DOT</b> [0-9]* | <b>DOT</b> [0-9]+</code> : evaluate to the corresponding floating point value.</li>
 <li><code><b>DOUBLEQUOTE</b> <i>characters</i> <b>DOUBLEQUOTE</b></code> : evaluate to the corresponding string. Escaped characters are simular to the C language.</li>
 <li><code><b>DOLLAR</b> <i>ident</i></code> : identifiers prefixed with a dollar are primitives. They enable you to call some compiler constructors or optimized calls (see Primitives).</li>
 <li><code><b>SHARP</b> <i>ident</i></code> : identifiers prefixed with a sharp are modules. See later for explanations of module loading and linking (see Modules).</li>
@@ -547,7 +549,7 @@ Operations substract ( - ) divide ( / ) multiply ( * ) and modulo ( % ) :
 	<li><code>&gt;&gt;</code> right bit shift</li>
 	<li><code>&gt;&gt;&gt;</code> right unsigned bit shift</li>
 	<li><code>|</code> or bits</li>
-	<li><code>&</code> and bits</li>
+	<li><code>&amp;</code> and bits</li>
 	<li><code>^</code> xor bits</li>
 </ul>
 
@@ -559,7 +561,7 @@ Operations substract ( - ) divide ( / ) multiply ( * ) and modulo ( % ) :
 <h3>Boolean operations</h3>
 
 <p>
-	Before applying a boolean operation such as <code>&&</code> and <code>||</code>, values are converted to booleans using the following rules :
+	Before applying a boolean operation such as <code>&amp;&amp;</code> and <code>||</code>, values are converted to booleans using the following rules :
 </p>
 
 <p>
@@ -580,13 +582,22 @@ Operations substract ( - ) divide ( / ) multiply ( * ) and modulo ( % ) :
 	As you can see, only the values <code>null</code>, the boolean <code>false</code> and the integer <code>0</code> evaluates to false. You can use the primitive <code>$isTrue</code> to get the corresponding boolean from any value.
 </p>
 
+
 <p>
-	Operation BooleanAnd ( && ) :
+	<code>$not</code>
+</p>
+
+<p>
+	<code>$not</code> is the inverse of <code>$isTrue</code>, it returns the other boolean returned by <code>$isTrue</code>.
+</p>
+
+<p>
+	Operation BooleanAnd ( &amp;&amp; ) :
 </p>
 
 <table>
 <tr>
-	<th> &&</th>
+	<th> &amp;&amp;</th>
 	<th>true</th>
 	<th>false</th>
 </tr>
@@ -625,7 +636,7 @@ Operations substract ( - ) divide ( / ) multiply ( * ) and modulo ( % ) :
 </table>
 
 <p>
-	Note : boolean operations are short-circuited. That means that if the first operand of an <code>&&</code> evaluates to <code>false</code> or the first operand of an <code>||</code> evaluated to <code>true</code>, than the second operand is not evaluated.
+	Note : boolean operations are short-circuited. That means that if the first operand of an <code>&amp;&amp;</code> evaluates to <code>false</code> or the first operand of an <code>||</code> evaluated to <code>true</code>, than the second operand is not evaluated.
 </p>
 
 <p>
@@ -633,7 +644,7 @@ Operations substract ( - ) divide ( / ) multiply ( * ) and modulo ( % ) :
 </p>
 
 <a name="compares"></a>
-<h3>Equality & Comparisons</h3>
+<h3>Equality &amp; Comparisons</h3>
 
 <p>
 	Physical comparison occurs when the following operations are performed : equality <code>==</code>, difference<code>!=</code>, greater <code>&gt;</code>, lower <code>&lt;</code>, greater or equal <code>&gt;=</code> or lower or equal <code>&lt;=</code>.
@@ -755,7 +766,7 @@ Operations substract ( - ) divide ( / ) multiply ( * ) and modulo ( % ) :
 	<li>fcmp is the same as icmp but compares floats instead of integers.</li>
 	<li>strcmp compares strings, it can be seen as a icmp applied to every byte of the two strings.</li>
 	<li>acmp compares two addresses a and b,  returns 0 if they're the same, -1 if b&gt;a and 1 if a&gt;b</li>
-	<li>bcmp returns 0 if a and b are both true or both false, 1 if a is true and b and false, -1 if a is false and b is true.</b>
+	<li>bcmp returns 0 if a and b are both true or both false, 1 if a is true and b and false, -1 if a is false and b is true.</li>
 	<li> - means that the comparison is invalid, the returned value is null when using $compare and false when using an operator.</li>
 </ul>
 
@@ -773,45 +784,45 @@ Operations substract ( - ) divide ( / ) multiply ( * ) and modulo ( % ) :
 </tr>
 <tr>
 	<th> == </th>
-	<td>false</th>
-	<td>false</th>
-	<td>true</th>
-	<td>false</th>
+	<td>false</td>
+	<td>false</td>
+	<td>true</td>
+	<td>false</td>
 </tr>
 <tr>
 	<th> != </th>
-	<td>true</th>
-	<td>true</th>
-	<td>false</th>
-	<td>true</th>
+	<td>true</td>
+	<td>true</td>
+	<td>false</td>
+	<td>true</td>
 </tr>
 <tr>
 	<th> &lt;= </th>
-	<td>false</th>
-	<td>true</th>
-	<td>true</th>
-	<td>false</th>
+	<td>false</td>
+	<td>true</td>
+	<td>true</td>
+	<td>false</td>
 </tr>
 <tr>
 	<th> &lt; </th>
-	<td>false</th>
-	<td>true</th>
-	<td>false</th>
-	<td>false</th>
+	<td>false</td>
+	<td>true</td>
+	<td>false</td>
+	<td>false</td>
 </tr>
 <tr>
 	<th> &gt;= </th>
-	<td>false</th>
-	<td>false</th>
-	<td>true</th>
-	<td>true</th>
+	<td>false</td>
+	<td>false</td>
+	<td>true</td>
+	<td>true</td>
 </tr>
 <tr>
 	<th> &gt; </th>
-	<td>false</th>
-	<td>false</th>
-	<td>true</th>
-	<td>true</th>
+	<td>false</td>
+	<td>false</td>
+	<td>true</td>
+	<td>true</td>
 </tr>
 </table>
 
@@ -932,7 +943,7 @@ The primitive <code>$typeof</code> returns an integer specifying the type of a v
 <!-- ****************************************************************************** -->
 
 <a name="functions"></a>
-<h2>Function & Function Calls</h2>
+<h2>Function &amp; Function Calls</h2>
 
 <p>
 Defining new functions is easy, since functions are values, you can simply assign them to a local or a global variable :
@@ -1308,7 +1319,7 @@ When you want to generate from another language to Neko, you might need some syn
 
 <pre>
 	is_true = function(x) {
-		x && x != ""
+		x &amp;&amp; x != ""
 	}
 	...
 	if( 'is_true(...) )
@@ -1328,7 +1339,7 @@ Will be turned into :
 </p>
 
 <pre>
-	if( { 33 && 33 != "" } )
+	if( { 33 &amp;&amp; 33 != "" } )
 </pre>
 
 <p>
@@ -1344,7 +1355,7 @@ Expands to :
 </p>
 
 <pre>
-	if( { f(x) && f(x) != "" } )
+	if( { f(x) &amp;&amp; f(x) != "" } )
 </pre>
 
 <p>
@@ -1354,7 +1365,7 @@ Which is wrong, since we don't want to evaluate twice the expression, or call tw
 <pre>
 	is_true = function(x) {
 		var tmp = x;
-		tmp && tmp != ""
+		tmp &amp;&amp; tmp != ""
 	}
 </pre>
 
@@ -1363,7 +1374,7 @@ Now previous case correctly expands to :
 </p>
 
 <pre>
-	if( { var tmp = f(x); tmp && tmp != "" } )
+	if( { var tmp = f(x); tmp &amp;&amp; tmp != "" } )
 </pre>
 
 <p>
