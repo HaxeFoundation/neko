@@ -176,7 +176,7 @@ EXTERN field val_id( const char *name ) {
 		if( scmp(val_string(*old),val_strlen(*old),oname,name - oname) != 0 )
 			val_throw(alloc_string("field conflict"));
 	} else
-		otable_replace(fields,f,copy_string(oname,name - oname));
+		otable_replace(NEKO_VM()->fields,f,copy_string(oname,name - oname));
 	return f;
 }
 
