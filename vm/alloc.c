@@ -56,8 +56,9 @@ EXTERN value alloc_empty_string( unsigned int size ) {
 	vstring *s;
 	if( size > max_string_size )
 		val_throw(alloc_string("max_string_size reached"));
-	s = (vstring*)GC_MALLOC_ATOMIC(size+sizeof(val_type));
+	s = (vstring*)GC_MALLOC_ATOMIC((size+1)+sizeof(val_type));
 	s->t = VAL_STRING | (size << 3);
+	(&s->c)[size] = 0;
 	return (value)s;
 }
 
