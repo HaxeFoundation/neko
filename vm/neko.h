@@ -188,10 +188,10 @@ C_FUNCTION_BEGIN
 	EXTERN value val_call1( value f, value arg );
 	EXTERN value val_call2( value f, value arg1, value arg2 );
 	EXTERN value val_callN( value f, value *args, int nargs );
-
 	EXTERN value val_ocall0( value o, field f );
 	EXTERN value val_ocall1( value o, field f, value arg );
 	EXTERN value val_ocallN( value o, field f, value *args, int nargs );
+	EXTERN value val_callEx( value this, value f, value *args, int nargs, value *exc );
 
 	EXTERN value *alloc_root( unsigned int nvals );
 	EXTERN void free_root( value *r );
