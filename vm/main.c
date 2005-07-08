@@ -21,23 +21,36 @@ static int file_reader( readp p, void *buf, int size ) {
 	return len;
 }
 
+static int load_module( const char *mname, reader *r, readp *p ) {
+	FILE *f = fopen(mname,"rb");
+	if( f == NULL )
+		return 0;
+	*r = file_reader;
+	*p = f;
+	return 1;
+}
+
+static void load_done( readp p ) {
+	fclose(p);
+}
+
 static int execute( neko_vm *vm, char *file ) {
-	FILE *f = fopen(file,"rb");
-	neko_module *m = NULL;
-	if( f == NULL ) {
-		printf("File not found %s\n",file);
-		return -1;
-	}
-	m = neko_module_load(file_reader,f);
-	fclose(f);
-	if( m == NULL ) {
-		printf("File %s is not a valid bytecode file\n",file);
-		return -2;
-	}
-	neko_vm_execute(vm,m);
-	if( neko_vm_error(vm) ) {
-		printf("Error %s\n",neko_vm_error(vm));
-		return -3;
+	loader l;
+	value mload;
+	l.l = load_module;
+	l.d = load_done;
+	mload = neko_default_loader(&l);
+	{
+		value args[] = { alloc_string(file), mload };
+		value exc = NULL;
+		neko_vm_select(vm);
+		val_callEx(mload,val_field(mload,val_id("loadmodule")),args,2,&exc);
+		if( exc != NULL ) {
+			buffer b = alloc_buffer(NULL);
+			val_buffer(b,exc);
+			printf("Uncaught exception - %s\n",val_string(buffer_to_string(b)));
+			return 1;
+		}
 	}
 	return 0;
 }

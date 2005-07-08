@@ -51,6 +51,7 @@ neko_vm *neko_vm_alloc() {
 		*--vm->sp = (int)val_null;
 	vm->csp = vm->spmin - 1;
 	vm->val_this = val_null;
+	vm->env = alloc_array(0);
 	vm->fields = otable_empty();
 	return vm;
 }
@@ -62,52 +63,16 @@ void neko_vm_select( neko_vm *vm ) {
 	context_set(vm_context,vm);
 }
 
+neko_vm *neko_vm_current() {
+	return (neko_vm*)context_get(vm_context);
+}
+
 void neko_vm_execute( neko_vm *vm, neko_module *m ) {
 	unsigned int i;
-	int *c;
-	value env;
-	value ret = val_null;
 	neko_vm_select(vm);
 	for(i=0;i<m->nfields;i++)
 		val_id(val_string(m->fields[i]));
-	c = m->code;
-	env = alloc_array(0);
-	while( true ) {
-		if( setjmp(vm->start) ) {
-			int *sp;
-			ret = vm->val_this;
-			if( vm->trap == 0 ) // uncaught exception
-				break;
-			vm->trap = vm->spmax - (int)vm->trap;
-			if( vm->trap < vm->sp ) {
-				// trap outside stack
-				vm->error = "INVALID_TRAP";
-				break;
-			}
-
-			// pop csp
-			sp = vm->spmin + val_int(vm->trap[0]);
-			while( vm->csp > sp )
-				*vm->csp-- = NULL;
-		
-			// restore state
-			vm->val_this = (value)vm->trap[1];
-			env = (value)vm->trap[2];
-			c = int_address(vm->trap[3]);
-
-			// pop sp
-			sp = vm->trap + 5;
-			vm->trap = (int*)val_int(vm->trap[4]);
-			while( vm->sp < sp )
-				*vm->sp++ = NULL;
-		}
-		ret = interp(vm,(int)ret,c,env);
-		break;
-	}
-}
-
-const char *neko_vm_error( neko_vm *vm ) {
-	return vm->error;
+	interp(vm,(int)val_null,m->code,alloc_array(0));
 }
 
 static int stack_expand( int *sp, int *csp, neko_vm *vm ) {
@@ -139,7 +104,7 @@ typedef int (*c_prim3)(int,int,int);
 typedef int (*c_prim4)(int,int,int,int);
 typedef int (*c_primN)(value*,int);
 
-#define DynError(cond,err)		if( cond ) { vm->error = #err; return val_null; }
+#define DynError(cond,err)		if( cond ) { val_throw(alloc_string(#err)); }
 #define Error(cond,err)			DynError(cond,err)
 #define Instr(x)	case x:
 #define Next		break;
@@ -160,10 +125,10 @@ typedef int (*c_primN)(value*,int);
 
 #define RestoreAfterCall() \
 		if( acc == NULL ) acc = (int)val_null; \
+		sp = vm->sp; \
+		csp = vm->csp; \
 		vm->env = old_env; \
-		vm->val_this = old_this; \
-		if( vm->error ) \
-			return val_null;
+		vm->val_this = old_this;
 
 #define DoCall(this_arg) \
 		if( acc & 1 ) { \
@@ -277,10 +242,79 @@ typedef int (*c_primN)(value*,int);
 		acc = (int)v; \
 	}
 
+void neko_setup_trap( neko_vm *vm, int where ) {
+	vm->sp -= 5;
+	if( vm->sp <= vm->csp )
+		DynError( !stack_expand(vm->sp,vm->csp,vm) , OVERFLOW );	
+	vm->sp[0] = (int)alloc_int((int)(vm->csp - vm->spmin));
+	vm->sp[1] = (int)vm->val_this;
+	vm->sp[2] = (int)vm->env;
+	vm->sp[3] = address_int(where);
+	vm->sp[4] = (int)alloc_int((int)vm->trap);
+	vm->trap = (int*)(vm->spmax - vm->sp);
+}
+
+void neko_process_trap( neko_vm *vm ) {
+	// pop csp
+	int *sp;
+	vm->trap = vm->spmax - (int)vm->trap;
+	sp = vm->spmin + val_int(vm->trap[0]);
+	while( vm->csp > sp )
+		*vm->csp-- = NULL;
+
+	// restore state
+	vm->val_this = (value)vm->trap[1];
+	vm->env = (value)vm->trap[2];
+
+	// pop sp
+	sp = vm->trap + 5;
+	vm->trap = (int*)val_int(vm->trap[4]);
+	while( vm->sp < sp )
+		*vm->sp++ = NULL;
+}
+
 value interp( neko_vm *vm, register int acc, register int *pc, value env ) {
 	register int *sp = vm->sp;
 	register int *csp = vm->csp;
 	int tmp;
+	int *init_sp = (int*)(vm->spmax - sp);
+	jmp_buf old;
+	memcpy(&old,&vm->start,sizeof(jmp_buf));
+	if( setjmp(vm->start) ) {
+		acc = (int)vm->val_this;
+		if( vm->trap == 0 ) {
+			// uncaught exception
+			return val_null;
+		}
+
+		// if outside init stack, reraise
+		if( vm->trap <= init_sp ) {
+			memcpy(&vm->start,&old,sizeof(jmp_buf));
+			longjmp(vm->start,1);
+		}
+
+		vm->trap = vm->spmax - (int)vm->trap;
+		if( vm->trap < vm->sp ) {
+			// trap outside stack
+			return val_null;
+		}
+
+		// pop csp
+		sp = vm->spmin + val_int(vm->trap[0]);
+		while( vm->csp > sp )
+			*vm->csp-- = NULL;
+	
+		// restore state
+		vm->val_this = (value)vm->trap[1];
+		env = (value)vm->trap[2];
+		pc = int_address(vm->trap[3]);
+
+		// pop sp
+		sp = vm->trap + 5;
+		vm->trap = (int*)val_int(vm->trap[4]);
+		while( vm->sp < sp )
+			*vm->sp++ = NULL;
+	}
 	while( true ) {
 		switch( *pc++ ) {
 	Instr(AccNull)
@@ -350,8 +384,10 @@ value interp( neko_vm *vm, register int acc, register int *pc, value env ) {
 		val_array_ptr(env)[*pc++] = (value)acc;
 		Next;
 	Instr(SetField)
+		Error( sp == vm->spmax , UNDERFLOW );
 		if( val_is_object(acc) )
-			otable_replace(((vobject*)acc)->table,(field)*pc,(value)acc);
+			otable_replace(((vobject*)acc)->table,(field)*pc,(value)*sp);
+		*sp++ = NULL;
 		pc++;
 		Next;
 	Instr(SetArray)
@@ -533,8 +569,13 @@ value interp( neko_vm *vm, register int acc, register int *pc, value env ) {
 	Instr(Gte)
 		Test(>=)
 	Instr(Last)
-		return (value)acc;
+		goto end;
 	}}
+end:
+	vm->sp = sp;
+	vm->csp = csp;
+	memcpy(&vm->start,&old,sizeof(jmp_buf));
+	return (value)acc;
 }
 
 /* ************************************************************************ */
