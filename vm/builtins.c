@@ -487,6 +487,10 @@ static value builtin_compare( value a, value b ) {
 	return (r == invalid_comparison)?val_null:alloc_int(r);
 }
 
+static value builtin_not( value f ) {
+	return alloc_bool(f == val_false || f == val_null || f == alloc_int(0));
+}
+
 void init_builtins() {
 	int p = 0;
 	builtins = alloc_root(NBUILTINS);
@@ -540,8 +544,9 @@ void init_builtins() {
 	if( p != EXPORTS_BUILTIN )
 		*(char*)NULL = 0;
 	builtins[p++] = val_null;
+	BUILTIN(not,1);
 	if( p != NBUILTINS )
-		*(char*)NULL = 0;
+		*(char*)NULL = 0;	
 }
 
 void free_builtins() {

@@ -239,6 +239,7 @@ let builtins_list = [
 	"compare",2;
 	"loader",0;
 	"exports",0;
+	"not",1;
 ]
 
 let builtins_hash = 
