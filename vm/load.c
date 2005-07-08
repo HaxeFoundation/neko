@@ -225,6 +225,10 @@ static value neko_default_loadmodule( value mname, value this ) {
 		readp p;
 		neko_module *m;
 		neko_vm *vm;
+		field mid = val_id(val_string(mname));
+		value v = val_field(l->cache,mid);
+		if( v != NULL )
+			return v;
 		if( !l->l(val_string(mname),&r,&p) ) {
 			buffer b = alloc_buffer("Module not found : ");
 			val_buffer(b,mname);
@@ -238,6 +242,7 @@ static value neko_default_loadmodule( value mname, value this ) {
 			val_throw(buffer_to_string(b));
 		}
 		vm = neko_vm_current();
+		alloc_field(l->cache,mid,m->exports);
 		neko_vm_execute(vm,m);
 		return m->exports;
 	}	
