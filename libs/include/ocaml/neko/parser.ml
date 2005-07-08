@@ -63,9 +63,13 @@ and expr = parser
 	| [< '(Keyword Do,p1); e = expr; '(Keyword While,_); cond = expr; s >] ->
 		expr_next (EWhile (cond,e,DoWhile), punion p1 (pos cond)) s
 	| [< '(Keyword If,p1); cond = expr; e = expr; s >] ->
-		(match s with parser
-		| [< '(Keyword Else,_); e2 = expr; s >] -> expr_next (EIf (cond,e,Some e2),punion p1 (pos e2)) s
-		| [< >] -> expr_next (EIf (cond,e,None),punion p1 (pos e)) s)
+		let rec loop s = 
+			match s with parser
+			| [< '(Keyword Else,_); e2 = expr; s >] -> expr_next (EIf (cond,e,Some e2),punion p1 (pos e2)) s
+			| [< '(Semicolon,_); s >] -> loop s
+			| [< >] -> expr_next (EIf (cond,e,None),punion p1 (pos e)) s
+		in
+		loop s
 	| [< '(Keyword Function,p1); '(ParentOpen,po); p = parameter_names; s >] ->
 		(match s with parser
 		| [< '(ParentClose,_); e = expr; s >] -> expr_next (EFunction (p,e),punion p1 (pos e)) s
