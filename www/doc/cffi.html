@@ -1,0 +1,176 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+
+<head>
+<title>NekoVM C API</title>
+<meta http-equiv="Content-Type" content="text/html;charset=ISO-8859-15"/>
+<link rel="StyleSheet" href="style.css" type="text/css"/>
+</head>
+
+<body>
+
+<center>
+<table class="main">
+<tr class="main">
+<td class="main">
+
+<h1>NekoVM C API</h1>
+
+<!-- ****************************************************************************** -->
+
+<h2>Writing Primitives</h2>
+
+<p>
+	The NekoVM itself have enough operations to compute any value. However it cannot do everything, like accessing files, connecting to server, or display and manage a window with menus and buttons. All theses features and much more are however accessible from C code that will use operating system libraries. Since the NekoVM cannot call directly C functions, it is needed to write some glue C code that will wrap the OS libraries in order to make them accessible. Theses glue functions are called "primitives".
+</p>
+
+<!-- ****************************************************************************** -->
+
+<h2>A small sample</h2>
+
+<p>
+	Here's an Hello World sample on how to write a Neko primitive in C :
+</p>
+
+<pre>
+	#include &lt;neko.h&gt;
+
+	value test() {
+		return alloc_string("Hello world");
+	}
+
+	DEFINE_PRIM(test,0); // function test with 0 arguments
+</pre>
+
+<p>
+	Now all you have to do is to compile this C file into a DLL/SO named "hello.dll" or "hello.so" on Linux. In order to test your primitive, it is very easy to use it from a Neko program. Simply call the $loader <code>loadprim</code> method and request the primitive with the declared number of arguments :
+</p>
+
+<pre>
+	var p = $loader.loadprim("hello@test",0);
+	$print( p() );
+</pre>
+
+<p>
+	The format of primitive name is <i>name_of_the_dll</i>@<i>name_of_thefunction</i>. You can then define several functions in the same dll.
+</p>
+
+<!-- ****************************************************************************** -->
+
+<h2>Manipulating Values</h2>
+
+<p>
+	Every value given as argument to a primitive or returned by a primitive must be of the type <code>value</code>. The Neko API is defined in one single include file <code>neko.h</code>. There is several kind of API functions :
+</p>
+
+<ul>
+	<li><code>val_is_*</code> functions are working on any value and are returning 1 if the value is of the given type or 0 either.</li>
+	<li><code>val_*</code> functions enable you to retreive the content of a value. Please note that you must first ENSURE that the value is of the given type before using such function or the program might crash or have impredictable behavior.</li>
+	<li><code>alloc_*</code> functions enable you to convert a C value to a Neko value.</li>
+</ul>
+
+<p>
+	Here's a list of most common functions :
+</p>
+
+<ul>
+	<li><code>val_null</code> : the Neko null value.</li>
+	<li><code>val_true</code> : the Neko true value.</li>
+	<li><code>val_false</code> : the Neko false value.</li>
+</ul>
+
+<ul>
+	<li><code>val_is_null(v)</code> : check if a value is null.</li>
+	<li><code>val_is_int(v)</code> : check if a value is an integer.</li>
+	<li><code>val_is_float(v)</code> : check if a value is a float.</li>
+	<li><code>val_is_string(v)</code> : check if a value is a string.</li>
+	<li><code>val_is_bool(v)</code> : check if a value is a boolean.</li>
+	<li><code>val_is_array(v)</code> : check if a value is an array.</li>
+	<li><code>val_is_object(v)</code> : check if a value is an object.</li>
+	<li><code>val_is_function(v)</code> : check if a value is a function.</li>
+	<li><code>val_is_number(v)</code> : check if a value is either an integer or a float.</li>
+</ul>
+
+<ul>
+	<li><code>val_int(v)</code> : retrieve the integer stored into a value.</li>
+	<li><code>val_bool(v)</code> : retrieve the boolean stored into a value.</li>
+	<li><code>val_float(v)</code> : retrieve the float stored into a value.</li>
+	<li><code>val_string(v)</code> : retrieve the string stored into a value.</li>
+	<li><code>val_strlen(v)</code> : retrieve the length of the string stored into a value.</li>
+	<li><code>val_number(v)</code> : retrieve the float or the integer stored into a value.</li>
+	<li><code>val_array_ptr(v)</code> : retrieve the array stored into a value as a value*.</li>
+	<li><code>val_array_size(v)</code> : retrieve the size of the array stored into a value.</li>
+	<li><code>val_fun_nargs(v)</code> : retrieve the number of arguments of the function stored into a value.</li>
+</ul>
+
+<ul>
+	<li><code>alloc_int(i)</code> : return a value from a C int.</li>
+	<li><code>alloc_float(f)</code> : return a value from a C float.</li>
+	<li><code>alloc_string(f)</code> : return a value from a C float.</li>
+	<li><code>alloc_bool(b)</code> : return a value from a C bool (0 is false, true either).</li>
+	<li><code>alloc_array(size)</code> : create a Neko array from the given size.</li>
+</ul>
+
+<!-- ****************************************************************************** -->
+
+<h2>Another sample</h2>
+
+<p>
+	Using what we have learn from the Neko API, we can now write a function that print any value :
+</p>
+
+<pre>
+    #include &lt;stdio.h&gt;
+    #include &lt;neko.h&gt;
+
+    value print( value v ) {
+        if( val_is_null(v) )
+            printf("null");
+        else if( val_is_int(v) )
+            printf("int : %d",val_int(v));
+        else if( val_is_float(v) )
+            printf("float : %f",val_float(v));
+        else if( val_is_bool(v) )
+            printf("bool : %s",val_bool(b)?"true":"false");
+        else if( val_is_array(v) )
+            printf("array : size %d",val_array_size(v));
+        else if( val_is_function(v) )
+            printf("function : %d args",val_fun_nargs(v));
+        else if( val_is_string(v) )
+            printf("string : %s (%d bytes)",val_string(v),val_strlen(v));
+        else if( val_is_object(v) )
+            printf("object");
+        else
+            printf("?????");
+        return val_null;
+    }
+
+    DEFIME_PRIM(print,1);
+</pre>
+
+
+<!-- ****************************************************************************** -->
+
+<h2>Working with Objects</h2>
+
+<!-- ****************************************************************************** -->
+
+<h2>Callbacks</h2>
+
+<!-- ****************************************************************************** -->
+
+<h2>Managing Memory</h2>
+
+<!-- ****************************************************************************** -->
+
+<h2>Misc Functions</h2>
+
+<!-- ****************************************************************************** -->
+
+</td>
+</tr>
+</table>
+</center>
+
+</body>
+</html>
