@@ -244,7 +244,7 @@ static value neko_default_loadmodule( value mname, value this ) {
 		vm = neko_vm_current();
 		alloc_field(l->cache,mid,m->exports);
 		neko_vm_execute(vm,m);
-		return m->exports;
+		return copy_object(m->exports);
 	}	
 }
 
