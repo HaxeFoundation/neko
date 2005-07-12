@@ -49,7 +49,7 @@ typedef struct {
 typedef struct {
 	val_type t;
 	otype ot;
-	value data;
+	void *data;
 	objtable table;
 } vobject;
 
@@ -144,7 +144,7 @@ typedef struct {
 #define VAR_ARGS (-1)
 #define DEFINE_PRIM_MULT(func) C_FUNCTION_BEGIN EXPORT void *func##__MULT() { return &func; } C_FUNCTION_END
 #define DEFINE_PRIM(func,nargs) C_FUNCTION_BEGIN EXPORT void *func##__##nargs() { return &func; } C_FUNCTION_END
-#define DEFINE_CLASS(dll,name) extern value dll##_##name(); otype t_##name = (otype)dll##_##name; DEFINE_PRIM(dll##_##name,0);
+#define DEFINE_CLASS(name) extern value class_##name(); otype t_##name = (otype)class_##name; DEFINE_PRIM(class_##name,0);
 
 #ifdef CLASS_PRIM_IMPORTS
 #	define DECLARE_PRIM(func,nargs) C_FUNCTION_BEGIN IMPORT void *func##__##nargs(); C_FUNCTION_END
