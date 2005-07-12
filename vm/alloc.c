@@ -29,18 +29,18 @@ struct _otype {
 static void null_warn_proc( char *msg, int arg ) {
 }
 
-void gc_init() {
+void neko_gc_init() {
 	GC_no_dls = 1;
 	GC_dont_expand = 1;
 	GC_clear_roots();
 	GC_set_warn_proc(null_warn_proc);
 }
 
-void gc_loop() {
+void neko_gc_loop() {
 	GC_collect_a_little();
 }
 
-void gc_major() {
+void neko_gc_major() {
 	GC_gcollect();
 }
 
@@ -240,17 +240,19 @@ EXTERN void free_root(value *v) {
 	GC_free(v);
 }
 
-extern void init_builtins();
-extern void free_builtins();
+extern void neko_init_builtins();
+extern void neko_init_fields();
+extern void neko_free_builtins();
 
 void neko_global_init() {
-	gc_init();
+	neko_gc_init();
 	vm_context = context_new();
-	init_builtins();
+	neko_init_builtins();
+	neko_init_fields();
 }
 
 void neko_global_free() {
-	free_builtins();
+	neko_free_builtins();
 #ifdef _DEBUG
 	if( roots != NULL ) {
 		printf("Some roots are not free");
@@ -259,7 +261,7 @@ void neko_global_free() {
 	context_delete(roots_context);
 #endif
 	context_delete(vm_context);
-	gc_major();
+	neko_gc_major();
 }
 
 /* ************************************************************************ */
