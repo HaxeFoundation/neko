@@ -12,6 +12,14 @@
 
 #define C(x,y)	((x << 8) | y)
 
+static field id_compare;
+static field id_string;
+
+void neko_init_fields() {
+	id_compare = val_id("__compare");
+	id_string = val_id("__string");
+}
+
 INLINE int icmp( int a, int b ) {
 	return (a == b)?0:((a < b)?-1:1);
 }
@@ -50,6 +58,13 @@ EXTERN int val_compare( value a, value b ) {
 		return scmp(val_bool(a)?"true":"false",val_bool(a)?4:5,val_string(b),val_strlen(b));
 	case C(VAL_STRING,VAL_STRING):
 		return scmp(val_string(a),val_strlen(a),val_string(b),val_strlen(b));
+	case C(VAL_OBJECT,VAL_OBJECT):
+		if( a == b )
+			return 0;
+		a = val_ocall1(a,id_compare,b);
+		if( val_is_int(a) )
+			return val_int(a);
+		return invalid_comparison;
 	default:
 		if( a == b )
 			return 0;
@@ -69,7 +84,7 @@ struct _buffer {
 };
 
 EXTERN buffer alloc_buffer( const char *init ) {
-	buffer b = (buffer)alloc_abstract(sizeof(struct _buffer));
+	buffer b = (buffer)alloc(sizeof(struct _buffer));
 	b->totlen = 0;
 	b->data = NULL;
 	if( init )
@@ -82,7 +97,7 @@ EXTERN void buffer_append_sub( buffer b, const char *s, int len ) {
 	if( s == NULL || len <= 0 )
 		return;
 	b->totlen += len;
-	it = (stringitem)alloc_abstract(sizeof(struct _stringitem));
+	it = (stringitem)alloc(sizeof(struct _stringitem));
 	it->str = alloc_abstract(len+1);
 	memcpy(it->str,s,len);
 	it->str[len] = 0;
@@ -135,10 +150,14 @@ EXTERN void val_buffer( buffer b, value v ) {
 		break;
 	case VAL_FUNCTION:
 	case VAL_PRIMITIVE:
-		buffer_append_sub(b,buf,sprintf(buf,"#functions:%d",val_fun_nargs(v)));
+		buffer_append_sub(b,buf,sprintf(buf,"#function:%d",val_fun_nargs(v)));
 		break;	
 	case VAL_OBJECT:
-		buffer_append_sub(b,"#object",7);
+		v = val_ocall0(v,id_string);
+		if( val_is_string(v) )
+			buffer_append_sub(b,val_string(v),val_strlen(v));
+		else
+			buffer_append_sub(b,"#object",7);
 		break;
 	case VAL_ARRAY:
 		buffer_append_sub(b,"[",1);
@@ -201,7 +220,7 @@ EXTERN void val_print( value v ) {
 
 EXTERN void val_throw( value v ) {
 	neko_vm *vm = NEKO_VM();
-	vm->val_this = v;
+	vm->this = v;
 	longjmp(vm->start,1);
 }
 

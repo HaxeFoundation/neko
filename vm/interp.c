@@ -50,7 +50,7 @@ neko_vm *neko_vm_alloc() {
 	for(i=0;i<STACK_DELTA;i++)
 		*--vm->sp = (int)val_null;
 	vm->csp = vm->spmin - 1;
-	vm->val_this = val_null;
+	vm->this = val_null;
 	vm->env = alloc_array(0);
 	vm->fields = otable_empty();
 	return vm;
@@ -116,9 +116,9 @@ typedef int (*c_primN)(value*,int);
 			*sp++ = NULL;
 
 #define SetupBeforeCall(this_arg) \
-		value old_this = vm->val_this; \
+		value old_this = vm->this; \
 		value old_env = vm->env; \
-		vm->val_this = this_arg; \
+		vm->this = this_arg; \
 		vm->env = ((vfunction*)acc)->env; \
 		vm->sp = sp; \
 		vm->csp = csp;
@@ -128,7 +128,7 @@ typedef int (*c_primN)(value*,int);
 		sp = vm->sp; \
 		csp = vm->csp; \
 		vm->env = old_env; \
-		vm->val_this = old_this;
+		vm->this = old_this;
 
 #define DoCall(this_arg) \
 		if( acc & 1 ) { \
@@ -142,9 +142,9 @@ typedef int (*c_primN)(value*,int);
 			} \
 			*++csp = (int)(pc+1); \
 			*++csp = (int)env; \
-			*++csp = (int)vm->val_this; \
+			*++csp = (int)vm->this; \
 			pc = (int*)((vfunction*)acc)->addr; \
-			vm->val_this = this_arg; \
+			vm->this = this_arg; \
 			env = ((vfunction*)acc)->env; \
 		} else if( val_tag(acc) == VAL_PRIMITIVE ) { \
 			Error( sp + *pc > vm->spmax , UNDERFLOW ); \
@@ -247,7 +247,7 @@ void neko_setup_trap( neko_vm *vm, int where ) {
 	if( vm->sp <= vm->csp )
 		DynError( !stack_expand(vm->sp,vm->csp,vm) , OVERFLOW );	
 	vm->sp[0] = (int)alloc_int((int)(vm->csp - vm->spmin));
-	vm->sp[1] = (int)vm->val_this;
+	vm->sp[1] = (int)vm->this;
 	vm->sp[2] = (int)vm->env;
 	vm->sp[3] = address_int(where);
 	vm->sp[4] = (int)alloc_int((int)vm->trap);
@@ -263,7 +263,7 @@ void neko_process_trap( neko_vm *vm ) {
 		*vm->csp-- = NULL;
 
 	// restore state
-	vm->val_this = (value)vm->trap[1];
+	vm->this = (value)vm->trap[1];
 	vm->env = (value)vm->trap[2];
 
 	// pop sp
@@ -281,7 +281,7 @@ value interp( neko_vm *vm, register int acc, register int *pc, value env ) {
 	jmp_buf old;
 	memcpy(&old,&vm->start,sizeof(jmp_buf));
 	if( setjmp(vm->start) ) {
-		acc = (int)vm->val_this;
+		acc = (int)vm->this;
 		if( vm->trap == 0 ) {
 			// uncaught exception
 			return val_null;
@@ -305,7 +305,7 @@ value interp( neko_vm *vm, register int acc, register int *pc, value env ) {
 			*vm->csp-- = NULL;
 	
 		// restore state
-		vm->val_this = (value)vm->trap[1];
+		vm->this = (value)vm->trap[1];
 		env = (value)vm->trap[2];
 		pc = int_address(vm->trap[3]);
 
@@ -327,7 +327,7 @@ value interp( neko_vm *vm, register int acc, register int *pc, value env ) {
 		acc = (int)val_false;
 		Next;
 	Instr(AccThis)
-		acc = (int)vm->val_this;
+		acc = (int)vm->this;
 		Next;
 	Instr(AccInt)
 		acc = *pc++;
@@ -399,6 +399,9 @@ value interp( neko_vm *vm, register int acc, register int *pc, value env ) {
 		}
 		*sp++ = NULL;
 		Next;
+	Instr(SetThis)
+		vm->this = (value)acc;
+		Next;
 	Instr(Push)
 		--sp;
 		if( sp <= csp ) {
@@ -412,7 +415,7 @@ value interp( neko_vm *vm, register int acc, register int *pc, value env ) {
 		PopMacro(*pc++)
 		Next;
 	Instr(Call)
-		DoCall(vm->val_this);
+		DoCall(vm->this);
 		Next;
 	Instr(ObjCall)
 		Error( sp == vm->spmax , UNDERFLOW );
@@ -443,7 +446,7 @@ value interp( neko_vm *vm, register int acc, register int *pc, value env ) {
 			csp = vm->csp;
 		}
 		sp[0] = (int)alloc_int((int)(csp - vm->spmin));
-		sp[1] = (int)vm->val_this;
+		sp[1] = (int)vm->this;
 		sp[2] = (int)env;
 		sp[3] = address_int(*pc);
 		sp[4] = (int)alloc_int((int)vm->trap);
@@ -456,7 +459,7 @@ value interp( neko_vm *vm, register int acc, register int *pc, value env ) {
 	Instr(Ret)
 		Error( csp - 2 < vm->spmin , UNDERFLOW );
 		PopMacro( *pc++ );
-		vm->val_this = (value)*csp;
+		vm->this = (value)*csp;
 		*csp-- = NULL;
 		env = (value)*csp;
 		*csp-- = NULL;
@@ -479,6 +482,17 @@ value interp( neko_vm *vm, register int acc, register int *pc, value env ) {
 				acc = (int)val_null;
 		}
 		Next;
+	Instr(MakeArray)
+		{
+			int n = *pc++;
+			acc = (int)alloc_array(n);
+			Error( sp + n > vm->spmax , UNDERFLOW);
+			while( n-- ) {
+				val_array_ptr(acc)[n] = (value)*sp;
+				*sp++ = NULL;
+			}
+		}
+		Next;
 	Instr(Bool)
 		acc = (acc == (int)val_false || acc == (int)val_null || acc == 1)?(int)val_false:(int)val_true;
 		Next;
@@ -489,27 +503,37 @@ value interp( neko_vm *vm, register int acc, register int *pc, value env ) {
 		else if( acc & 1 ) {
 			if( val_tag(*sp) == VAL_FLOAT )
 				acc = (int)alloc_float(val_float(*sp) + val_int(acc));
-			else if( (val_tag(*sp)&7) == VAL_STRING )
+			else if( (tmp = (val_tag(*sp)&7)) == VAL_STRING  )
 				AppendString(*sp,"%d",val_int(acc),true)
-			else
+			else if( tmp == VAL_OBJECT ) {
+				buffer b = alloc_buffer(NULL);
+				val_buffer(b,(value)*sp);
+				val_buffer(b,(value)acc);
+				acc = (int)buffer_to_string(b);
+			} else
 				acc = (int)val_null;
 		} else if( *sp & 1 ) {
 			if( val_tag(acc) == VAL_FLOAT )
 				acc = (int)alloc_float(val_int(*sp) + val_float(acc));
-			else if( (val_tag(acc)&7) == VAL_STRING )
+			else if( (tmp = (val_tag(acc)&7)) == VAL_STRING )
 				AppendString(acc,"%d",val_int(*sp),false)
-			else
+			else if( tmp == VAL_OBJECT ) {
+				buffer b = alloc_buffer(NULL);
+				val_buffer(b,(value)*sp);
+				val_buffer(b,(value)acc);
+				acc = (int)buffer_to_string(b);
+			} else
 				acc = (int)val_null;
 		} else if( val_tag(acc) == VAL_FLOAT && val_tag(*sp) == VAL_FLOAT )
 			acc = (int)alloc_float(val_float(*sp) + val_float(acc));
-		else if( (tmp = val_tag(acc)&7) == VAL_STRING && (val_tag(*sp)&7) == VAL_STRING ) {
+		else if( (tmp = (val_tag(acc)&7)) == VAL_STRING && (val_tag(*sp)&7) == VAL_STRING ) {
 			int len1 = val_strlen(*sp);
 			int len2 = val_strlen(acc);
 			value v = alloc_empty_string(len1+len2);
 			memcpy((char*)val_string(v),val_string(*sp),len1);
 			memcpy((char*)val_string(v)+len1,val_string(acc),len2+1);
 			acc = (int)v;
-		} else if( tmp == VAL_STRING || (val_tag(*sp)&7) == VAL_STRING ) {
+		} else if( tmp == VAL_STRING || (val_tag(*sp)&7) == VAL_STRING || tmp == VAL_OBJECT || (val_tag(*sp)&7) == VAL_OBJECT ) {
 			buffer b = alloc_buffer(NULL);
 			val_buffer(b,(value)*sp);
 			val_buffer(b,(value)acc);
@@ -523,13 +547,12 @@ value interp( neko_vm *vm, register int acc, register int *pc, value env ) {
 	Instr(Mult)
 		NumberOp(*,MULT)
 	Instr(Div)
-		if( acc == 1 ) { // division by integer 0
-			Error( sp == vm->spmax , UNDERFLOW );
-			acc	= (int)val_null;
-			*sp++ = NULL;
-			Next;
-		}
-		NumberOp(/,DIV);
+		if( val_is_number(acc) && val_is_number(*sp) )
+			acc = (int)alloc_float( ((tfloat)val_number(*sp)) / val_number(acc) );
+		else
+			acc = (int)val_null;	
+		*sp++ = NULL;
+		Next;
 	Instr(Mod)
 		if( acc == 1 ) {
 			Error( sp == vm->spmax , UNDERFLOW );

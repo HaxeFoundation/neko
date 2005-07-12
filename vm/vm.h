@@ -20,7 +20,7 @@ struct _neko_vm {
 	int *trap;
 	objtable fields;
 	value env;
-	value val_this;
+	value this;
 	printer print;
 	jmp_buf start;
 	char tmp[100];

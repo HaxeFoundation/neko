@@ -23,6 +23,7 @@ enum OPCODE {
 	SetEnv,
 	SetField,
 	SetArray,
+	SetThis,
 	Push,
 	Pop,
 	Call,
@@ -34,6 +35,7 @@ enum OPCODE {
 	EndTrap,
 	Ret,
 	MakeEnv,
+	MakeArray,
 	Bool,
 	Add,
 	Sub,
@@ -78,6 +80,7 @@ static int parameter_table[] = {
 	1, // SetEnv
 	1, // SetField
 	0, // SetArray
+	0, // SetThis
 	0, // Push
 	1, // Pop
 	1, // Call
@@ -89,6 +92,7 @@ static int parameter_table[] = {
 	0, // EndTrap
 	1, // Ret
 	1, // MakeEnv
+	1, // MakeArray
 	0, // Bool
 	0, // Add
 	0, // Sub

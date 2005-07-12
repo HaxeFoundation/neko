@@ -34,6 +34,21 @@ static int read_string( reader r, readp p, char *buf ) {
 	return -1;
 }
 
+static int builtin_id( neko_module *m, field id ) {
+	value f = val_field(builtins[NBUILTINS],id);
+	if( f == NULL ) {
+		unsigned int i;
+		for(i=0;i<m->nfields;i++)
+			if( val_id(val_string(m->fields[i])) == id ) {
+				buffer b = alloc_buffer("Builtin not found : ");
+				val_buffer(b,m->fields[i]);
+				val_throw(buffer_to_string(b));
+			}
+		return 0;
+	}
+	return val_int(f);
+}
+
 static neko_module *neko_module_read( reader r, readp p, value loader ) {
 	unsigned int i;
 	unsigned int itmp;
@@ -72,10 +87,17 @@ static neko_module *neko_module_read( reader r, readp p, value loader ) {
 			break;
 		case 3:
 			READ(&stmp,2);
-			if( stmp > MAXSIZE )
-				ERROR();
-			READ(tmp,stmp);
-			m->globals[i] = copy_string(tmp,stmp);
+			if( stmp > MAXSIZE ) {
+				char *ttmp;
+				if( stmp > 0x100000 )
+					val_throw(alloc_string("Too much big string"));
+				ttmp = alloc_abstract(stmp);
+				READ(ttmp,stmp);
+				m->globals[i] = copy_string(ttmp,stmp);
+			} else {
+				READ(tmp,stmp);
+				m->globals[i] = copy_string(tmp,stmp);
+			}
 			break;
 		case 4:
 			if( read_string(r,p,tmp) == -1 )
@@ -172,6 +194,7 @@ static neko_module *neko_module_read( reader r, readp p, value loader ) {
 				ERROR();
 			break;
 		case AccBuiltin:
+			itmp = builtin_id(m,(field)itmp);
 			if( itmp >= NBUILTINS )
 				ERROR();
 			if( itmp == LOADER_BUILTIN )
@@ -184,11 +207,15 @@ static neko_module *neko_module_read( reader r, readp p, value loader ) {
 		case Call:
 		case ObjCall:
 			if( itmp > CALL_MAX_ARGS )
-				ERROR();
+				val_throw(alloc_string("Too many arguments for a call"));
 			break;
 		case MakeEnv:
 			if( itmp > 0xFF )
-				ERROR();
+				val_throw(alloc_string("Too much big environment"));
+			break;
+		case MakeArray:
+			if( itmp > 0x10000 )
+				val_throw(alloc_string("Too much big array"));
 			break;
 		}
 		if( !tmp[i+1] )
@@ -269,7 +296,12 @@ static int file_reader( readp p, void *buf, int size ) {
 }
 
 int default_load_module( const char *mname, reader *r, readp *p ) {
-	FILE *f = fopen(mname,"rb");
+	char buf[100];
+	FILE *f;
+	if( strlen(mname) > 90 )
+		return 0;
+	sprintf(buf,"%s.n",mname);
+	f = fopen(buf,"rb");
 	if( f == NULL )
 		return 0;
 	*r = file_reader;
@@ -288,7 +320,8 @@ typedef struct _liblist {
 } liblist;
 
 void *default_load_primitive( const char *prim, int nargs, void **custom ) {
-	char *pos = strchr(prim,'_');
+	char buf[100];
+	char *pos = strchr(prim,'@');
 	int len;	
 	liblist *l;
 	if( pos == NULL )
@@ -302,9 +335,13 @@ void *default_load_primitive( const char *prim, int nargs, void **custom ) {
 		l = l->next;
 	}
 	if( l == NULL ) {
-		void *h = dlopen(prim,RTLD_LAZY);
+		void *h;
+		if( strlen(prim) > 90 )
+			return NULL;
+		sprintf(buf,"%s.ndll",prim);
+		h = dlopen(buf,RTLD_LAZY);
 		if( h == NULL ) {
-			*pos = '_';
+			*pos = '@';
 			return NULL;
 		}
 		l = (liblist*)alloc(sizeof(liblist));
@@ -314,9 +351,8 @@ void *default_load_primitive( const char *prim, int nargs, void **custom ) {
 		l->next = (liblist*)*custom;
 		*custom = l;
 	}
-	*pos++ = '_';
+	*pos++ = '@';
 	{
-		char buf[100];
 		PRIM0 ptr;
 		if( strlen(pos) > 90 )
 			return NULL;

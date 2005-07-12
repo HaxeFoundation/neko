@@ -162,6 +162,41 @@ typedef value (*PRIM2)( value v1, value v2 );
 #define CALL_PRIM1(func,v) ((PRIM1)func##__1())(v)
 #define CALL_PRIM2(func,v1,v2) ((PRIM2)func##__2())(v1,v2)
 
+#define alloc_float			neko_alloc_float
+#define alloc_string		neko_alloc_string
+#define alloc_empty_string	neko_alloc_empty_string
+#define copy_string			neko_copy_string
+#define val_this			neko_val_this
+#define val_id				neko_val_id
+#define val_field			neko_val_field
+#define copy_object			neko_copy_object
+#define alloc_object		neko_alloc_object
+#define alloc_class			neko_alloc_class
+#define alloc_field			neko_alloc_field
+#define alloc_array			neko_alloc_array
+#define val_call0			neko_val_call0
+#define val_call1			neko_val_call1
+#define val_call2			neko_val_call2
+#define val_callN			neko_val_callN
+#define val_ocall0			neko_val_ocall0
+#define val_ocall1			neko_val_ocall1
+#define val_ocallN			neko_val_ocallN
+#define val_callEx			neko_val_callEx
+#define	alloc_root			neko_alloc_root
+#define free_root			neko_free_root
+#define alloc				neko_alloc
+#define alloc_abstract		neko_alloc_abstract
+#define alloc_function		neko_alloc_function
+#define alloc_buffer		neko_alloc_buffer
+#define buffer_append		neko_buffer_append
+#define buffer_append_sub	neko_buffer_append_sub
+#define buffer_to_string	neko_buffer_to_string
+#define val_buffer			neko_val_buffer
+#define val_compare			neko_val_compare
+#define val_print			neko_val_print
+#define val_gc				neko_val_gc
+#define val_throw			neko_val_throw
+
 C_FUNCTION_BEGIN
 
 	EXTERN value val_null;
@@ -212,9 +247,9 @@ C_FUNCTION_BEGIN
 
 C_FUNCTION_END
 
-#define Constr(o,t,nargs) { field f__new_##nargs = val_id("#" #nargs); alloc_field(o,f__new_##nargs,alloc_fun(#t".new",t##_new##nargs,nargs) ); }
-#define Method(o,t,name,nargs) { field f__##name = val_id(#name); alloc_field(o,f__##name,alloc_fun(#t"."#name,t##_##name,nargs) ); }
-#define MethodMult(o,t,name) { field f__##name = val_id(#name); alloc_field(o,f__##name,alloc_fun(#t"."#name,t##_##name,VAR_ARGS) ); }
+#define Constr(o,t,nargs) { field f__new_##nargs = val_id("new"); alloc_field(o,f__new_##nargs,alloc_function(t##_new##nargs,nargs) ); }
+#define Method(o,t,name,nargs) { field f__##name = val_id(#name); alloc_field(o,f__##name,alloc_function(t##_##name,nargs) ); }
+#define MethodMult(o,t,name) { field f__##name = val_id(#name); alloc_field(o,f__##name,alloc_function(t##_##name,VAR_ARGS) ); }
 #define Property(o,t,name)	Method(o,t,get_##name,0); Method(o,t,set_##name,1)
 
 #endif/* ************************************************************************ */
