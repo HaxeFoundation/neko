@@ -125,7 +125,7 @@ and variables sp = parser
 	| [< '(Const (Ident name),p); s >] ->
 		(match s with parser
 		| [< '(Binop "=",_); e = expr; v , p = variables_next (pos e) >] -> (name, Some e) :: v , p
-		| [< v , p = variables p >] -> (name, None) :: v , p)
+		| [< v , p = variables_next p >] -> (name, None) :: v , p)
 
 and variables_next sp = parser
 	| [< '(Comma,p); v = variables p >] -> v
