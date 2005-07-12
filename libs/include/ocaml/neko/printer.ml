@@ -34,6 +34,14 @@ let rec print_list ctx sep f = function
 
 let rec print_ast ctx (e,p) =
 	match e with
+	| EConst (String s) ->
+		let b = Buffer.create 0 in
+		for i = 0 to String.length s - 1 do
+			let c = String.unsafe_get s i in
+			if c = '"' || c == '\\' then Buffer.add_string b "\\";
+			Buffer.add_char b c;
+		done;
+		print ctx "\"%s\"" (Buffer.contents b)
 	| EConst c ->
 		print ctx "%s" (s_constant c)
 	| EBlock el ->
@@ -76,6 +84,7 @@ let rec print_ast ctx (e,p) =
 				print ctx " = ";
 				print_ast ctx e
 		) vl;
+		print ctx ";";
 		newline ctx
 	| EFor (init,cond,incr,e) ->
 		print ctx "for(";
@@ -142,6 +151,13 @@ and level_expr ctx (e,p) =
 	| EBlock _ -> 
 		if ctx.tabs then print ctx " ";
 		print_ast ctx (e,p)
+	| EParenthesis e ->
+		if ctx.tabs then print ctx " ";
+		print ctx "{";
+		level ctx true;
+		print_ast ctx e;
+		level ctx false;
+		print ctx "}";
 	| _ ->
 		level ctx true;
 		print_ast ctx (e,p);		
