@@ -33,6 +33,7 @@
 			<li><a href="#boolops">Boolean Operations</a></li>
 			<li><a href="#compares">Equality and Comparisons</a></li>
 			<li><a href="#converts">Conversions</a></li>
+			<li><a href="#optim">Optimized Operations</a></li>
 		</ul>
 	</li>
 	<li><a href="#rtti">Runtime Type Information</a></li>
@@ -225,7 +226,7 @@ Before evaluating any expression, all sub-expressions are evaluated in an unspec
 </ul>
 
 <p>
-	Please note that <code>if</code>, <code>for</code> and <code>while</code> conditions only sucess for the boolean <code>true</code> and for no other value. You might need to add a <code>$isTrue</code> code before each expression in order to convert the expression result into a boolean.
+	Please note that <code>if</code>, <code>for</code> and <code>while</code> conditions only sucess for the boolean <code>true</code> and for no other value. You might need to add a <code>$istrue</code> code before each expression in order to convert the expression result into a boolean.
 </p>
 
 <!-- ****************************************************************************** -->
@@ -409,7 +410,7 @@ Operation add ( + ) :
 	<td>-</td>
 	<td>concat</td>
 	<td>-</td>
-	<td>-</td>
+	<td>concat</td>
 	<td>-</td>
 	<td>-</td>
 </tr>
@@ -420,7 +421,7 @@ Operation add ( + ) :
 	<td>float</td>
 	<td>concat</td>
 	<td>-</td>
-	<td>-</td>
+	<td>concat</td>
 	<td>-</td>
 	<td>-</td>
 </tr>
@@ -431,7 +432,7 @@ Operation add ( + ) :
 	<td>float</td>
 	<td>concat</td>
 	<td>-</td>
-	<td>-</td>
+	<td>concat</td>
 	<td>-</td>
 	<td>-</td>
 </tr>
@@ -453,20 +454,20 @@ Operation add ( + ) :
 	<td>-</td>
 	<td>concat</td>
 	<td>-</td>
-	<td>-</td>
+	<td>concat</td>
 	<td>-</td>
 	<td>-</td>
 </tr>
 <tr>
 	<th>object</th>
-	<td>-</td>
-	<td>-</td>
-	<td>-</td>
 	<td>concat</td>
-	<td>-</td>
-	<td>-</td>
-	<td>-</td>
-	<td>-</td>
+	<td>concat</td>
+	<td>concat</td>
+	<td>concat</td>
+	<td>concat</td>
+	<td>concat</td>
+	<td>concat</td>
+	<td>concat</td>
 </tr>
 <tr>
 	<th>array</th>
@@ -475,7 +476,7 @@ Operation add ( + ) :
 	<td>-</td>
 	<td>concat</td>
 	<td>-</td>
-	<td>-</td>
+	<td>concat</td>
 	<td>-</td>
 	<td>-</td>
 </tr>
@@ -486,7 +487,7 @@ Operation add ( + ) :
 	<td>-</td>
 	<td>concat</td>
 	<td>-</td>
-	<td>-</td>
+	<td>concat</td>
 	<td>-</td>
 	<td>-</td>
 </tr>
@@ -505,7 +506,7 @@ Operations substract ( - ) divide ( / ) multiply ( * ) and modulo ( % ) :
 </tr>
 <tr>
 	<th>int</th>
-	<td>int</td>
+	<td>int (float for /)</td>
 	<td>float</td>
 </tr>
 <tr>
@@ -516,21 +517,16 @@ Operations substract ( - ) divide ( / ) multiply ( * ) and modulo ( % ) :
 </table>
 
 <p>
-	Please note that unlike some languages, the divide operation between two integers does not returns a float. You can use the <code>$div</code> primitive that always performs float division :
+	Please note that unlike some languages, the divide operation between two integers does returns a float. You can use the <code>$idiv</code> primitive that performs integer division.
 </p>
-
-<pre>
-	$print(7/2); // prints 3
-	$print($div(7,2)); // prints 3.5
-</pre>
 
 <p>
-	Dividing or doing modulo of one integer by the integer zero returns <code>null</code>. For floats, it's hardware dependant and usually return the float +infinity. You can test it using the primitive <code>$isInf</code> :
+	Dividing or doing modulo of one integer by the integer zero returns <code>null</code>. For floats, it's hardware dependant and usually return the float +infinity. You can test it using the primitive <code>$isinfinite</code>, and there is also <code>$isnan</code> for testing NaN :
 </p>
 
 <pre>
-	$print(1/0); // prints null
-	$print($isInf(1.0/0)); // prints true
+	$print($isinfinite(1/0)); // prints true
+	$print($isnan(0/0)); // prints true
 </pre>
 
 <p>
@@ -565,7 +561,7 @@ Operations substract ( - ) divide ( / ) multiply ( * ) and modulo ( % ) :
 </p>
 
 <p>
-	<code>$isTrue</code> :
+	<code>$istrue</code> :
 </p>
 <ul>
 	<li>null : false</li>
@@ -579,16 +575,16 @@ Operations substract ( - ) divide ( / ) multiply ( * ) and modulo ( % ) :
 </ul>
 
 <p>
-	As you can see, only the values <code>null</code>, the boolean <code>false</code> and the integer <code>0</code> evaluates to false. You can use the primitive <code>$isTrue</code> to get the corresponding boolean from any value.
+	As you can see, only the values <code>null</code>, the boolean <code>false</code> and the integer <code>0</code> evaluates to false. You can use the primitive <code>$istrue</code> to get the corresponding boolean from any value.
 </p>
 
 
 <p>
-	<code>$not</code>
+	<code>$not</code> :
 </p>
 
 <p>
-	<code>$not</code> is the inverse of <code>$isTrue</code>, it returns the other boolean returned by <code>$isTrue</code>.
+	<code>$not</code> is the inverse of <code>$istrue</code>, it returns the other boolean returned by <code>$istrue</code>.
 </p>
 
 <p>
@@ -640,7 +636,7 @@ Operations substract ( - ) divide ( / ) multiply ( * ) and modulo ( % ) :
 </p>
 
 <p>
-	<em>For better performances, it might be useful to add primitives that does not do the isTrue conversion but directly test "true" equality</em>
+	<em>For better performances, it might be useful to add primitives that does not do the istrue conversion but directly test "true" equality</em>
 </p>
 
 <a name="compares"></a>
@@ -729,7 +725,7 @@ Operations substract ( - ) divide ( / ) multiply ( * ) and modulo ( % ) :
 	<td>-</td>
 	<td>-</td>
 	<td>-</td>
-	<td>acmp</td>
+	<td>ocmp</td>
 	<td>-</td>
 	<td>-</td>
 </tr>
@@ -767,6 +763,7 @@ Operations substract ( - ) divide ( / ) multiply ( * ) and modulo ( % ) :
 	<li>strcmp compares strings, it can be seen as a icmp applied to every byte of the two strings.</li>
 	<li>acmp compares two addresses a and b,  returns 0 if they're the same, -1 if b&gt;a and 1 if a&gt;b</li>
 	<li>bcmp returns 0 if a and b are both true or both false, 1 if a is true and b and false, -1 if a is false and b is true.</li>
+	<li>ocmp does "object comparison". If the two objects addresses are same, then it returns 0, else it calls the method <code>__compare</code> on the first object, with the second object as argument. If the returned value is an integer, the integer is returned by $compare, else null is returned.</li>
 	<li> - means that the comparison is invalid, the returned value is null when using $compare and false when using an operator.</li>
 </ul>
 
@@ -834,12 +831,12 @@ Operations substract ( - ) divide ( / ) multiply ( * ) and modulo ( % ) :
 <h3>Conversions</h3>
 
 <p>
-To convert any value to a Boolean, you can use the <code>$isTrue</code> primitive, as specified in <a href="#boolops">Boolean operations</a>.
+To convert any value to a Boolean, you can use the <code>$istrue</code> primitive, as specified in <a href="#boolops">Boolean operations</a>.
 </p>
 
 <pre>
-	$isTrue(null); // false
-	$isTrue(1); // true
+	$istrue(null); // false
+	$istrue(1); // true
 </pre>
 
 <p>
@@ -853,12 +850,13 @@ To convert a string or a float to an integer, you can use the <code>$int</code> 
 </pre>
 
 <p>
-To convert a string to a float you can use the <code>$stof</code> primitive :
+To convert a string to a float you can use the <code>$float</code> primitive :
 </p>
 
 <pre>
-	$stof("1.345"); // 1.345
-	$stof($object()); // null
+	$float("1.345"); // 1.345
+	$float(12345); // 12345.0000
+	$float($array()); // null
 </pre>
 
 <p>
@@ -872,8 +870,25 @@ Any value can be converted to a string using <code>$string</code>, this operatio
 </pre>
 
 <p>
-	<em>Should $string call an object method such as toString if exists ? Should function string representation (currently &lt;function:nargs&gt;) be specified ?</em>
+	On objects, <code>$string</code> calls the <code>__string</code> method on the object if it exists. If the returned value is a string, this string is returned, else the string <code>#object</code> is returned.
 </p>
+
+<p>
+	On functions, <code>#function:n</code> is returned where <code>n</code> is the number of arguments of the function (or -1 if multiple arguments).
+</p>
+
+<a name="optim"></a>
+<h3>Optimized Operations</h3>
+
+<p>
+There is several optimized operations on integers : <code>$iadd, $isub, $imult, $idiv</code>. They are all skipping some typechecks so are more fast. Their results will always be a valid integer, but its value is unspecified when one of the two values is not an integer. <code>$idiv</code> raise an exception when division by 0 occurs :
+</p>
+
+<pre>
+	$print( $iadd(1,3) ); // 4
+	$print( $idiv(5,3) ); // 2
+	$print( $idiv(1,0) ); // exception
+</pre>
 
 <!-- ****************************************************************************** -->
 
@@ -956,19 +971,8 @@ Defining new functions is easy, since functions are values, you can simply assig
 </pre>
 
 <p>
-	Functions are called by-value, that means that <code>foo(1)</code> calls the function which is the value of the variable foo. Calling a value that is not a function or that does not accept this number of arguments returns a <code>null</code> value. You can use the <code>$isfun</code> primitive to add a runtime check that will raise an exception if the value is not a function or if the number of arguments is not correct, and that will simply returns the function either :
+	Functions are called by-value, that means that <code>foo(1)</code> calls the function which is the value of the variable foo. Calling a value that is not a function or that does not accept this number of arguments returns a <code>null</code> value.
 </p>
-
-<pre>
-	var foo = 3;
-	foo(); // null
-	$isfun(foo,0); // exception
-
-	var foo = function() { return 0; };
-	foo(3); // null
-	$isfun(foo,1)(3); // exception
-	$isfun(foo,0)(); // ok
-</pre>
 
 <p>
 	You can know the number of arguments needed by a function by using the primitive <code>$nargs</code>. A function that accepts a variable number of arguments returns -1 when used with <code>$nargs</code>. Please note also that primitives can be used as values :
@@ -976,14 +980,12 @@ Defining new functions is easy, since functions are values, you can simply assig
 
 <pre>
 	$print($nargs(function(a,b) { return a + b; }); // prints 2
-	$print($nargs($callopt)); // prints -1
+	$print($nargs($print)); // prints -1
 	$print($nargs(0)); // prints null
-
-	$isfun($callopt,3); // ok, since we can call $callopt with 3 args
 </pre>
 
 <p>
-	<em>Note :It might be useful to provide syntax so the user can define its own variable arguments functions.</em>
+	<em>Note : it might be useful to provide syntax so the user can define its own variable arguments functions.</em>
 </p>
 
 <p>
@@ -994,20 +996,6 @@ Defining new functions is easy, since functions are values, you can simply assig
 	// call the foo function with null context
 	// and two parameters 3 and 4
 	$call(foo,null,$array(3,4));
-</pre>
-
-<p>
-	A function call is successful only if the value is a function and is called with the exact number of arguments needed. In you need optional arguments, you can use the primitive <code>$callopt</code> that will call the function, adding <code>null</code> arguments if missing and ignoring additional arguments :
-</p>
-
-<pre>
-	var foo = function(x,y) { $print(x+y) };
-	foo(3); // null
-	// call foo(3,null) with null context : prints "null"
-	$callopt(foo,null,$array(3));
-	// call foo(3,4) with null context : prints "7"
-	$callopt(foo,null,$array(3,4,5));
-	$callopt(null,null); // null
 </pre>
 
 <p>
@@ -1068,26 +1056,25 @@ Defining new functions is easy, since functions are values, you can simply assig
 </p>
 
 <p>
-	If a field is not defined when accessed for reading, the <code>null</code> value is returned. If a field does not exists when a field is accessed for writing, the field is added. If you want safe accesses that ensure that no field is added and that no field is accessed if it doesn't exists, you can use the primitives <code>$safeget</code> and <code>$safeset</code> that throw exceptions if the field doesn't exist.
+	If a field is not defined when accessed for reading, the <code>null</code> value is returned. If a field does not exists when a field is accessed for writing, the field is added.
 </p>
 
 <p>
-	To check for a field existance, you can use the <code>$haveField</code> primitive that checks if an object o have a given field, even if that field is set to the <code>null</code> value :
+	To check for a field existance, you can use the <code>$objfield</code> primitive that checks if an object o have a given field, even if that field is set to the <code>null</code> value :
 </p>
 
 <pre>
-	$haveField(o,"field"); // true if o have "field"
-	$haveField(o,33); // false
-	$haveField(null,33); // false
+	$objfield(o,"field"); // true if o have "field"
+	$objfield(o,33); // false
+	$objfield(null,33); // false
 </pre>
 
 <p>
-	You can remove an object field with the <code>$objrem</code> primitive or remove all fields that have <code>null</code> values with <code>$objopt</code> :
+	You can remove an object field with the <code>$objremove</code> primitive :
 </p>
 
 <pre>
-	$objrem(o,"field"); // remove "field" from o
-	$objopt(o); // optimize o field table
+	$objremove(o,"field"); // remove "field" from o
 </pre>
 
 <h3>Methods</h3>
@@ -1105,16 +1092,6 @@ Defining new functions is easy, since functions are values, you can simply assig
 </pre>
 
 <p>
-	There is also a way to call methods with ensuring that the object have the method with the correct number of arguments :
-</p>
-
-<pre>
-	$safecall(o,"add",$array()); // exception
-	$safecall(o,"add",$array(2)); // prints 3
-	$safecall(o,"add",$array(2,3)); // exception
-</pre>
-
-<p>
 	The context value <code>this</code>, like true or false, cannot be modified directly. The context is set when a object function is called and can be accessed from any sub function :
 </p>
 
@@ -1129,15 +1106,14 @@ Defining new functions is easy, since functions are values, you can simply assig
 </pre>
 
 <p>
-	You can modify the value of <code>this</code> at runtime by using the primitive <code>$setThis</code>. It can be set to any value, not only objects. When returning from an object call, the context is restored, so any modifications are lost :
+	You can modify the value of <code>this</code> at runtime by simply assigning it to another value. It can be set to any value, not only objects. When returning from an object call, the context is restored, so any modifications are lost :
 </p>
 
 <pre>
-	$setThis(1);
+	this = 1;
 	o.foo = function() {
-		// this = o
-		$setThis(2);
-		// this = 2
+		// here , we have this = o;
+		this = 2; // modify
 	};
 	o.foo();
 	$print(this); // 1
@@ -1154,11 +1130,11 @@ Defining new functions is easy, since functions are values, you can simply assig
 </p>
 
 <p>
-	The primitive <code>$objFields</code> returns an array containing all fields identifiers for the given object :
+	The primitive <code>$objfields</code> returns an array containing all fields identifiers for the given object :
 </p>
 
 <pre>
-	var a = $objFields(o);
+	var a = $objfields(o);
 	for(i=0;i&lt;$asize(a);i = i + 1) {
 		var fname = $field(a[i]);
 		var fval = $objget(o,fname);
@@ -1196,20 +1172,6 @@ Defining new functions is easy, since functions are values, you can simply assig
 <pre>
 	a = $array(1,2,3);
 	$print($asize(a)); // prints 3
-</pre>
-
-<p>
-	If you want to be sure that arrays are not accessed for reading or for writing outside their bounds then you can use the safe array access primitives <code>$aget</code> and <code>$aset</code> which throw an exception if the integer key is not inside array bounds, if the key is not an integer, or if the value is not an array :
-</p>
-
-<pre>
-	a = $array(1,2,3);
-	$aset(a,4,"test"); // exception
-	$aget(a,5); // exception
-	$aset(a,2,"test"); // ok
-
-	$aget(null,2); // exception
-	$aget(a,"3"); // exception
 </pre>
 
 <p>
