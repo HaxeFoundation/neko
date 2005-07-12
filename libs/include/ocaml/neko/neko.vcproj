@@ -72,16 +72,6 @@
 			</File>
 		</Filter>
 		<Filter
-			Name="ocaml"
-			Filter="">
-			<File
-				RelativePath="..\ocaml\neko.ml">
-			</File>
-			<File
-				RelativePath="..\ocaml\ocamlgen.ml">
-			</File>
-		</Filter>
-		<Filter
 			Name="ml"
 			Filter="">
 			<File

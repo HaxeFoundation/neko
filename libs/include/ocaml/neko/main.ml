@@ -47,16 +47,6 @@ let interp file =
 		Interp.Error (Interp.Module_not_found m,_) when m = mname -> 
 			failwith ("File not found " ^ file)
 
-let ocamlgen file = 
-	let ch = open_file file in
-	let ast = Parser.parse (Lexing.from_channel ch) file in
-	let ast = Parser.expand ast in
-	close_in ch;
-	let fout = switch_ext file ".ml" in
-	let ch = IO.output_channel (open_out fout) in
-	Ocamlgen.generate_file ch ast;
-	IO.close_out ch
-
 let compile file =
 	let ch = open_file file in
 	let ast = Parser.parse (Lexing.from_channel ch) file in
@@ -94,7 +84,6 @@ try
 	let usage = "Neko v0.3 - (c)2005 Nicolas Cannasse\n Usage : neko.exe [options] <files...>\n Options :" in
 	let args_spec = [
 		("-msvc",Arg.Unit (fun () -> print_style := StyleMSVC),": use MSVC style errors");
-		("-ml", Arg.String ocamlgen,"<file> : convert file to OCaml");
 		("-x", Arg.String interp,"<file> : interpret neko program");
 		("-c", Arg.String compile,"<file> : compile file to NekoVM bytecode");
 		("-d", Arg.String dump,"<file> : dump NekoVM bytecode");
