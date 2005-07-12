@@ -6,6 +6,7 @@
 /* ************************************************************************ */
 #include <string.h>
 #include "neko.h"
+#include "load.h"
 #include "objtable.h"
 #include "vmcontext.h"
 
@@ -21,19 +22,19 @@ extern void neko_process_trap( neko_vm *vm );
 
 EXTERN value val_callEx( value this, value f, value *args, int nargs, value *exc ) {
 	neko_vm *vm = NEKO_VM();
-	value old_this = vm->val_this;
+	value old_this = vm->this;
 	value ret = val_null;
 	jmp_buf oldjmp;
-	if( !val_is_function(f) || nargs < 0 )
-		return val_null;
+	if( nargs > CALL_MAX_ARGS )
+		val_throw(alloc_string("Too many arguments for a call"));
 	if( this != NULL )
-		vm->val_this = this;
+		vm->this = this;
 	if( exc ) {
 		memcpy(&oldjmp,&vm->start,sizeof(jmp_buf));
 		if( setjmp(vm->start) ) {
-			*exc = vm->val_this;
+			*exc = vm->this;
 			neko_process_trap(vm);
-			vm->val_this = old_this;
+			vm->this = old_this;
 			memcpy(&vm->start,&oldjmp,sizeof(jmp_buf));
 			return val_null;
 		}
@@ -59,9 +60,6 @@ EXTERN value val_callEx( value this, value f, value *args, int nargs, value *exc
 			case 4:
 				ret = ((c_prim4)((vfunction*)f)->addr)(args[0],args[1],args[2],args[3]);
 				break;
-			default:
-				ret = val_null;
-				break;
 			}
 		} else if( ((vfunction*)f)->nargs == -1 )
 			ret = (value)((c_primN)((vfunction*)f)->addr)(args,nargs);
@@ -74,21 +72,21 @@ EXTERN value val_callEx( value this, value f, value *args, int nargs, value *exc
 			if( vm->csp + 3 >= vm->sp - nargs ) {
 				if( exc )
 					memcpy(&vm->start,&oldjmp,sizeof(jmp_buf));	
-				vm->val_this = old_this;
+				vm->this = old_this;
 				val_throw(alloc_string("OVERFLOW"));
 			} else {
 				for(n=0;n<nargs;n++)
 					*--vm->sp = (unsigned int)args[n];
 				*++vm->csp = (int)callback_return;
 				*++vm->csp = 0;
-				*++vm->csp = (int)vm->val_this;
+				*++vm->csp = (int)vm->this;
 				ret = interp(vm,(int)val_null,(int*)((vfunction*)f)->addr,((vfunction*)f)->env);
 			}
 		}
 	}
 	if( exc )
 		memcpy(&vm->start,&oldjmp,sizeof(jmp_buf));	
-	vm->val_this = old_this;
+	vm->this = old_this;
 	return ret;
 }
 
@@ -98,8 +96,6 @@ EXTERN value val_callN( value f, value *args, int nargs ) {
 
 EXTERN value val_ocallN( value o, field f, value *args, int nargs ) {
 	value *meth;
-	if( !val_is_object(o) )
-		return val_null;
 	meth = otable_find(((vobject*)o)->table,f);
 	if( meth == NULL )
 		return val_null;
@@ -128,7 +124,7 @@ EXTERN value val_ocall1( value o, field f, value arg ) {
 }
 
 EXTERN value val_this() {
-	return (value)NEKO_VM()->val_this;
+	return (value)NEKO_VM()->this;
 }
 
 /* ************************************************************************ */
