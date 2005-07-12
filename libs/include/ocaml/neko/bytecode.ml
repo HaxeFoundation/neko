@@ -11,13 +11,14 @@ type opcode =
 	| AccEnv of int
 	| AccField of string
 	| AccArray
-	| AccBuiltin of int
+	| AccBuiltin of string
 	(* setters *)
 	| SetStack of int
 	| SetGlobal of int
 	| SetEnv of int
 	| SetField of string
 	| SetArray
+	| SetThis
 	(* stack ops *)
 	| Push
 	| Pop of int
@@ -30,6 +31,7 @@ type opcode =
 	| EndTrap
 	| Ret of int
 	| MakeEnv of int
+	| MakeArray of int
 	(* value ops *)
 	| Bool
 	| Add
@@ -59,6 +61,7 @@ type global =
 exception Invalid_file
 
 let trap_stack_delta = 5
+let max_call_args = 4
 
 let hash_field s =
 	let acc = ref 0 in
@@ -87,6 +90,7 @@ let op_param = function
 	| JumpIfNot _
 	| Trap _
 	| MakeEnv _ 
+	| MakeArray _
 	| Ret _
 		-> true
 	| AccNull
@@ -95,6 +99,7 @@ let op_param = function
 	| AccThis
 	| AccArray
 	| SetArray
+	| SetThis
 	| Push
 	| EndTrap
 	| Bool
@@ -121,7 +126,8 @@ let code_tables ops =
 	let ids = Hashtbl.create 0 in
 	Array.iter (function
 		| AccField s
-		| SetField s ->
+		| SetField s
+		| AccBuiltin s ->
 			let id = hash_field s in
 			(try
 				let f = Hashtbl.find ids id in
@@ -170,41 +176,43 @@ let write ch (globals,ops) =
 			| AccEnv n -> pop := Some n; 7
 			| AccField s -> pop := Some (hash_field s); 8
 			| AccArray -> 9
-			| AccBuiltin n -> pop := Some n; 10
+			| AccBuiltin s -> pop := Some (hash_field s); 10
 			| SetStack n -> pop := Some n; 11
 			| SetGlobal n -> pop := Some n; 12
 			| SetEnv n -> pop := Some n; 13
 			| SetField s -> pop := Some (hash_field s); 14
 			| SetArray -> 15
-			| Push -> 16
-			| Pop n -> pop := Some n; 17
-			| Call n -> pop := Some n; 18
-			| ObjCall n -> pop := Some n; 19
-			| Jump n -> pop := Some (pos.(i+n) - pos.(i)); 20
-			| JumpIf n -> pop := Some (pos.(i+n) - pos.(i)); 21
-			| JumpIfNot n -> pop := Some (pos.(i+n) - pos.(i)); 22
-			| Trap n -> pop := Some (pos.(i+n) - pos.(i)); 23
-			| EndTrap -> 24
-			| Ret n -> pop := Some n; 25
-			| MakeEnv n -> pop := Some n; 26
-			| Bool -> 27
-			| Add -> 28
-			| Sub -> 29
-			| Mult -> 30
-			| Div -> 31
-			| Mod -> 32
-			| Shl -> 33
-			| Shr -> 34
-			| UShr -> 35
-			| Or -> 36
-			| And -> 37
-			| Xor -> 38
-			| Eq -> 39
-			| Neq -> 40
-			| Gt -> 41
-			| Gte -> 42
-			| Lt -> 43
-			| Lte -> 44
+			| SetThis -> 16
+			| Push -> 17
+			| Pop n -> pop := Some n; 18
+			| Call n -> pop := Some n; 19
+			| ObjCall n -> pop := Some n; 20
+			| Jump n -> pop := Some (pos.(i+n) - pos.(i)); 21
+			| JumpIf n -> pop := Some (pos.(i+n) - pos.(i)); 22
+			| JumpIfNot n -> pop := Some (pos.(i+n) - pos.(i)); 23
+			| Trap n -> pop := Some (pos.(i+n) - pos.(i)); 24
+			| EndTrap -> 25
+			| Ret n -> pop := Some n; 26
+			| MakeEnv n -> pop := Some n; 27
+			| MakeArray n -> pop := Some n; 28
+			| Bool -> 29
+			| Add -> 30
+			| Sub -> 31
+			| Mult -> 32
+			| Div -> 33
+			| Mod -> 34
+			| Shl -> 35
+			| Shr -> 36
+			| UShr -> 37
+			| Or -> 38
+			| And -> 39
+			| Xor -> 40
+			| Eq -> 41
+			| Neq -> 42
+			| Gt -> 43
+			| Gte -> 44
+			| Lt -> 45
+			| Lte -> 46
 		) in
 		match !pop with
 		| None -> IO.write_byte ch (opid lsl 2)
@@ -282,41 +290,43 @@ let read ch =
 				| 7 -> AccEnv p
 				| 8 -> AccField (try Hashtbl.find ids p with Not_found -> raise Invalid_file)
 				| 9 -> AccArray
-				| 10 -> AccBuiltin p
+				| 10 -> AccBuiltin (try Hashtbl.find ids p with Not_found -> raise Invalid_file)
 				| 11 -> SetStack p
 				| 12 -> SetGlobal p
 				| 13 -> SetEnv p
 				| 14 -> SetField (try Hashtbl.find ids p with Not_found -> raise Invalid_file)
 				| 15 -> SetArray
-				| 16 -> Push
-				| 17 -> Pop p
-				| 18 -> Call p
-				| 19 -> ObjCall p
-				| 20 -> jumps := (!cpos , DynArray.length ops) :: !jumps; Jump p
-				| 21 -> jumps := (!cpos , DynArray.length ops) :: !jumps; JumpIf p
-				| 22 -> jumps := (!cpos , DynArray.length ops) :: !jumps; JumpIfNot p
-				| 23 -> jumps := (!cpos , DynArray.length ops) :: !jumps; Trap p
-				| 24 -> EndTrap
-				| 25 -> Ret p
-				| 26 -> MakeEnv p
-				| 27 -> Bool
-				| 28 -> Add
-				| 29 -> Sub
-				| 30 -> Mult
-				| 31 -> Div
-				| 32 -> Mod
-				| 33 -> Shl
-				| 34 -> Shr
-				| 35 -> UShr
-				| 36 -> Or
-				| 37 -> And
-				| 38 -> Xor
-				| 39 -> Eq
-				| 40 -> Neq
-				| 41 -> Gt
-				| 42 -> Gte
-				| 43 -> Lt
-				| 44 -> Lte
+				| 16 -> SetThis
+				| 17 -> Push
+				| 18 -> Pop p
+				| 19 -> Call p
+				| 20 -> ObjCall p
+				| 21 -> jumps := (!cpos , DynArray.length ops) :: !jumps; Jump p
+				| 22 -> jumps := (!cpos , DynArray.length ops) :: !jumps; JumpIf p
+				| 23 -> jumps := (!cpos , DynArray.length ops) :: !jumps; JumpIfNot p
+				| 24 -> jumps := (!cpos , DynArray.length ops) :: !jumps; Trap p
+				| 25 -> EndTrap
+				| 26 -> Ret p
+				| 27 -> MakeEnv p
+				| 28 -> MakeArray p
+				| 29 -> Bool
+				| 30 -> Add
+				| 31 -> Sub
+				| 32 -> Mult
+				| 33 -> Div
+				| 34 -> Mod
+				| 35 -> Shl
+				| 36 -> Shr
+				| 37 -> UShr
+				| 38 -> Or
+				| 39 -> And
+				| 40 -> Xor
+				| 41 -> Eq
+				| 42 -> Neq
+				| 43 -> Gt
+				| 44 -> Gte
+				| 45 -> Lt
+				| 46 -> Lte
 				| _ -> raise Invalid_file
 			) in
 			pos.(!cpos) <- DynArray.length ops;
@@ -367,7 +377,7 @@ let dump ch (globals,ops) =
 	) globals;
 	IO.printf ch "FIELDS =\n";
 	Hashtbl.iter (fun h f ->
-		IO.printf ch "  %s (%d)\n" f h;
+		IO.printf ch "  %s%s%.8X\n" f (if String.length f >= 24 then " " else String.make (24 - String.length f) ' ') h;
 	) ids;
 	IO.printf ch "CODE =\n";
 	let str s i = s ^ " " ^ string_of_int i in
@@ -383,12 +393,13 @@ let dump ch (globals,ops) =
 			| AccEnv i -> str "AccEnv" i
 			| AccField s -> "AccField " ^ s
 			| AccArray -> "AccArray"
-			| AccBuiltin i -> str "AccBuiltin" i ^ " : " ^ (try fst (List.nth Ast.builtins_list i) with _ -> "???")
+			| AccBuiltin s -> "AccBuiltin " ^ s
 			| SetStack i -> str "SetStack" i
 			| SetGlobal i -> str "SetGlobal" i
 			| SetEnv i -> str "SetEnv" i
 			| SetField f -> "SetField " ^ f
 			| SetArray -> "SetArray"
+			| SetThis -> "SetThis"
 			| Push -> "Push"
 			| Pop i -> str "Pop" i
 			| Call i -> str "Call" i
@@ -400,6 +411,7 @@ let dump ch (globals,ops) =
 			| EndTrap -> "EndTrap"
 			| Ret i -> str "Ret" i
 			| MakeEnv i -> str "MakeEnv" i
+			| MakeArray i -> str "MakeArray" i
 			| Bool -> "Bool"
 			| Add -> "Add"
 			| Sub -> "Sub" 

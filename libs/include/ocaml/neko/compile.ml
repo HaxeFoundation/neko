@@ -44,6 +44,7 @@ let stack_delta = function
 	| SetGlobal _
 	| SetStack _
 	| SetEnv _
+	| SetThis
 	| Bool
 		-> 0
 	| Add
@@ -71,7 +72,7 @@ let stack_delta = function
 	| Pop x -> -x
 	| Call nargs -> -nargs
 	| ObjCall nargs -> -(nargs + 1)
-	| MakeEnv size -> -size
+	| MakeEnv size | MakeArray size -> -size
 	| Trap _ -> trap_stack_delta
 	| EndTrap -> -trap_stack_delta
 
@@ -128,15 +129,6 @@ let check_breaks ctx =
 	List.iter (fun (_,p) -> error (Custom "Break outside a loop") p) ctx.breaks;
 	List.iter (fun (_,p) -> error (Custom "Continue outside a loop") p) ctx.continues
 
-let id_builtins =
-	let h = Hashtbl.create 0 in
-	let id = ref 0 in
-	List.iter (fun (b,_) ->
-		Hashtbl.add h b !id;
-		incr id;
-	) builtins_list;
-	h
-
 let compile_constant ctx c p =
 	match c with
 	| True -> write ctx AccTrue
@@ -146,7 +138,7 @@ let compile_constant ctx c p =
 	| Int n -> write ctx (AccInt n)
 	| Float f -> write ctx (AccGlobal (global ctx (GlobalFloat f)))
 	| String s -> write ctx (AccGlobal (global ctx (GlobalString s)))
-	| Builtin s -> write ctx (AccBuiltin (try Hashtbl.find id_builtins s with Not_found -> error (Custom "Unknown builtin") p))
+	| Builtin s -> write ctx (AccBuiltin s)
 	| Module s -> assert false
 	| Macro _ -> error (Custom "Ast was not macro-expanded") p
 	| Ident s ->
@@ -196,6 +188,8 @@ let rec compile_binop ctx op e1 e2 p =
 			write ctx Push;
 			compile ctx e1;
 			write ctx SetArray
+		| EConst This ->
+			write ctx SetThis
 		| _ ->
 			error (Custom "Invalid assign") p)
 	| "&&" ->
@@ -312,6 +306,14 @@ and compile ctx (e,p) =
 	| EField (e,f) ->
 		compile ctx e;
 		write ctx (AccField f)
+	| ECall ((EConst (Builtin "array"),_),el) ->
+		List.iter (fun e ->
+			compile ctx e;
+			write ctx Push;
+		) el;
+		write ctx (MakeArray (List.length el));
+	| ECall (_,el) when List.length el > max_call_args ->
+		error (Custom "Too many arguments") p
 	| ECall ((EField (e,f),_),el) ->
 		List.iter (fun e ->
 			compile ctx e;
