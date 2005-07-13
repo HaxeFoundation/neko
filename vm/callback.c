@@ -15,6 +15,7 @@ typedef value (*c_prim1)(value);
 typedef value (*c_prim2)(value,value);
 typedef value (*c_prim3)(value,value,value);
 typedef value (*c_prim4)(value,value,value,value);
+typedef value (*c_prim5)(value,value,value,value,value);
 typedef value (*c_primN)(value*,int);
 
 extern void neko_setup_trap( neko_vm *vm, int where );
@@ -60,6 +61,9 @@ EXTERN value val_callEx( value this, value f, value *args, int nargs, value *exc
 			case 4:
 				ret = ((c_prim4)((vfunction*)f)->addr)(args[0],args[1],args[2],args[3]);
 				break;
+			case 5:
+				ret = ((c_prim5)((vfunction*)f)->addr)(args[0],args[1],args[2],args[3],args[4]);
+				break;
 			}
 		} else if( ((vfunction*)f)->nargs == -1 )
 			ret = (value)((c_primN)((vfunction*)f)->addr)(args,nargs);
@@ -80,7 +84,7 @@ EXTERN value val_callEx( value this, value f, value *args, int nargs, value *exc
 				*++vm->csp = (int)callback_return;
 				*++vm->csp = 0;
 				*++vm->csp = (int)vm->this;
-				ret = interp(vm,(int)val_null,(int*)((vfunction*)f)->addr,((vfunction*)f)->env);
+				ret = neko_interp(vm,(int)val_null,(int*)((vfunction*)f)->addr,((vfunction*)f)->env);
 			}
 		}
 	}

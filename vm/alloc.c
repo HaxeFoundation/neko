@@ -22,10 +22,6 @@ EXTERN value val_null = (value)&t_null;
 EXTERN value val_true = (value)&t_true;
 EXTERN value val_false = (value)&t_false;
 
-struct _otype {
-	value (*init)();
-};
-
 static void null_warn_proc( char *msg, int arg ) {
 }
 
@@ -48,7 +44,7 @@ EXTERN char *alloc( unsigned int nbytes ) {
 	return GC_MALLOC(nbytes);
 }
 
-EXTERN char *alloc_abstract( unsigned int nbytes ) {
+EXTERN char *alloc_private( unsigned int nbytes ) {
 	return GC_MALLOC_ATOMIC(nbytes);
 }
 
@@ -84,6 +80,14 @@ EXTERN value alloc_array( unsigned int n ) {
 	return v;
 }
 
+EXTERN value alloc_abstract( vkind k, void *data ) {
+	vabstract *v = (vabstract*)GC_MALLOC(sizeof(vabstract));
+	v->t = VAL_ABSTRACT;
+	v->kind = k;
+	v->data = data;
+	return (value)v;
+}
+
 EXTERN value alloc_function( void *c_prim, unsigned int nargs ) {
 	vfunction *v;
 	if( c_prim == NULL || (nargs < 0 && nargs != VAR_ARGS) )
@@ -109,21 +113,16 @@ value alloc_module_function( void *m, int pos, int nargs ) {
 	return (value)v;
 }
 
-EXTERN value copy_object( value cpy ) {
+EXTERN value alloc_object( value cpy ) {
 	vobject *v;
 	if( cpy != NULL && !val_is_null(cpy) && !val_is_object(cpy) )
 		return val_null;
 	v = (vobject*)GC_MALLOC(sizeof(vobject));
 	v->t = VAL_OBJECT;
-	if( cpy == NULL || val_is_null(cpy) ) {
-		v->data = NULL;
-		v->ot = (otype)0xFFFFFFFF;
+	if( cpy == NULL || val_is_null(cpy) )
 		v->table = otable_empty();
-	} else {
-		v->data = ((vobject*)cpy)->data;
-		v->ot =	((vobject*)cpy)->ot;
+	else
 		v->table = otable_copy(((vobject*)cpy)->table);
-	}
 	return (value)v;
 }
 
@@ -132,47 +131,6 @@ EXTERN value copy_string( const char *str, unsigned int strlen ) {
 	char *c = (char*)val_string(v);
 	memcpy(c,str,strlen);
 	return v;
-}
-
-// not static, used by interp
-value create_instance( value baseclass ) {
-	value o;
-	if( !val_is_object(baseclass) )
-		return val_null;
-	o = copy_object(baseclass);
-	val_odata(o) = val_null;
-	val_otype(o) = (otype)val_odata(baseclass);
-	return o;
-}
-
-EXTERN value alloc_object( otype *t ) {
-	value baseclass;
-	if( !t )
-		return copy_object(NULL);
-	if( GC_base(*t) )
-		baseclass = (value)(*t);
-	else {
-		baseclass = ((otype)t)->init();
- 		*t = (otype)baseclass;
-	}
-	return create_instance(baseclass);
-}
-
-EXTERN value alloc_class( otype *t ) {
-	value baseclass;
-	if( !t ) {
-		baseclass = copy_object(NULL);
-		val_otype(baseclass) = t_class;
-	} else if( GC_base(*t) )
-		baseclass = (value)(*t);
-	else {
-		baseclass = (value)GC_MALLOC_UNCOLLECTABLE(sizeof(vobject));
-		baseclass->t = VAL_OBJECT;
-		val_otype(baseclass) = t_class;
-		val_odata(baseclass) = baseclass;
-		*t = (otype)baseclass;
-	}
-	return baseclass;
 }
 
 EXTERN void alloc_field( value obj, field f, value v ) {
@@ -244,14 +202,14 @@ extern void neko_init_builtins();
 extern void neko_init_fields();
 extern void neko_free_builtins();
 
-void neko_global_init() {
+EXTERN void neko_global_init() {
 	neko_gc_init();
 	vm_context = context_new();
 	neko_init_builtins();
 	neko_init_fields();
 }
 
-void neko_global_free() {
+EXTERN void neko_global_free() {
 	neko_free_builtins();
 #ifdef _DEBUG
 	if( roots != NULL ) {

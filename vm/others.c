@@ -14,10 +14,20 @@
 
 static field id_compare;
 static field id_string;
+field id_loader;
+field id_exports;
+field id_add;
+field id_preadd;
+field id_data;
 
 void neko_init_fields() {
 	id_compare = val_id("__compare");
 	id_string = val_id("__string");
+	id_add = val_id("__add");
+	id_preadd = val_id("__preadd");
+	id_loader = val_id("loader");
+	id_exports = val_id("exports");
+	id_data = val_id("__data");
 }
 
 INLINE int icmp( int a, int b ) {
@@ -98,7 +108,7 @@ EXTERN void buffer_append_sub( buffer b, const char *s, int len ) {
 		return;
 	b->totlen += len;
 	it = (stringitem)alloc(sizeof(struct _stringitem));
-	it->str = alloc_abstract(len+1);
+	it->str = alloc_private(len+1);
 	memcpy(it->str,s,len);
 	it->str[len] = 0;
 	it->len = len;
@@ -149,7 +159,6 @@ EXTERN void val_buffer( buffer b, value v ) {
 			buffer_append_sub(b,"false",5);
 		break;
 	case VAL_FUNCTION:
-	case VAL_PRIMITIVE:
 		buffer_append_sub(b,buf,sprintf(buf,"#function:%d",val_fun_nargs(v)));
 		break;	
 	case VAL_OBJECT:
@@ -169,6 +178,9 @@ EXTERN void val_buffer( buffer b, value v ) {
 		if( l >= 0 )
 			val_buffer(b,val_array_ptr(v)[l]);
 		buffer_append_sub(b,"]",1);
+		break;
+	case VAL_ABSTRACT:
+		buffer_append_sub(b,"#abstract",9);
 		break;
 	default:
 		buffer_append_sub(b,"#unknown",8);
@@ -202,10 +214,10 @@ EXTERN field val_id( const char *name ) {
 EXTERN value val_field( value o, field id ) {
 	value *f;
 	if( !val_is_object(o) )
-		return NULL;
+		return val_null;
 	f = otable_find(((vobject*)o)->table,id);
 	if( f == NULL )
-		return NULL;
+		return val_null;
 	return *f;
 }
 

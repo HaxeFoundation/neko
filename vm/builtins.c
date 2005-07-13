@@ -32,7 +32,7 @@ static value builtin_print( value *args, int nargs ) {
 }
 
 static value builtin_new( value o ) {
-	return copy_object(o);
+	return alloc_object(o);
 }
 
 static value builtin_array( value *args, int nargs ) {
@@ -92,6 +92,19 @@ static value builtin_asub( value a, value p, value l ) {
 	return a2;
 }
 
+static value builtin_ablit( value dst, value dp, value src, value sp, value l ) {
+	int dpp, spp, ll;
+	if( !val_is_array(dst) || !val_is_int(dp) || !val_is_array(src) || !val_is_int(sp) || !val_is_int(l) )
+		return val_null;
+	dpp = val_int(dp);
+	spp = val_int(sp);
+	ll = val_int(l);
+	if( dpp < 0 || spp < 0 || ll < 0 || dpp + ll < 0 || spp + ll  < 0 || dpp + ll > val_array_size(dst) || spp + ll > val_array_size(src) )
+		return val_null;
+	memcpy(val_array_ptr(dst)+dpp,val_array_ptr(src)+spp,ll * sizeof(value));
+	return val_true;
+}
+
 static value builtin_smake( value l ) {
 	if( !val_is_int(l) )
 		return val_null;
@@ -146,7 +159,7 @@ static value builtin_sset( value s, value p, value c ) {
 
 static value builtin_sblit( value dst, value dp, value src, value sp, value l ) {
 	int dpp, spp, ll;
-	if( !val_is_string(dst) || !val_is_int(dp) || !val_is_int(src) || !val_is_int(sp) || !val_is_int(l) )
+	if( !val_is_string(dst) || !val_is_int(dp) || !val_is_string(src) || !val_is_int(sp) || !val_is_int(l) )
 		return val_null;
 	dpp = val_int(dp);
 	spp = val_int(sp);
@@ -333,8 +346,9 @@ static value builtin_typeof( value v ) {
 	case VAL_ARRAY:
 		return alloc_int(6);
 	case VAL_FUNCTION:
-	case VAL_PRIMITIVE:
 		return alloc_int(7);
+	case VAL_ABSTRACT:
+		return alloc_int(8);
 	default:
 		return alloc_int(-1);
 	}
@@ -398,14 +412,6 @@ static value builtin_string( value v ) {
 	return buffer_to_string(b);
 }
 
-static value builtin_loader() {
-	return val_null;
-}
-
-static value builtin_exports() {
-	return val_null;
-}
-
 #define BUILTIN(name,nargs)	\
 	alloc_field(builtins[NBUILTINS],val_id(#name),alloc_int(p)); \
 	builtins[p++] = alloc_function(builtin_##name,nargs)
@@ -415,12 +421,14 @@ void neko_init_builtins() {
 	builtins = alloc_root(NBUILTINS+1);
 	builtins[NBUILTINS] = alloc_object(NULL);
 	BUILTIN(print,VAR_ARGS);
-	BUILTIN(new,1);
+	
 	BUILTIN(array,VAR_ARGS);
 	BUILTIN(amake,1);
 	BUILTIN(acopy,1);
 	BUILTIN(asize,1);
 	BUILTIN(asub,3);
+	BUILTIN(ablit,5);
+
 	BUILTIN(smake,1);
 	BUILTIN(ssize,1);
 	BUILTIN(scopy,1);
@@ -428,12 +436,8 @@ void neko_init_builtins() {
 	BUILTIN(sget,2);
 	BUILTIN(sset,3);
 	BUILTIN(sblit,5);
-	BUILTIN(throw,1);
-	BUILTIN(nargs,1);
-	BUILTIN(call,3);
-	BUILTIN(isnan,1);
-	BUILTIN(isinfinite,1);
-	BUILTIN(istrue,1);
+
+	BUILTIN(new,1);	
 	BUILTIN(objget,2);
 	BUILTIN(objset,3);
 	BUILTIN(objcall,3);
@@ -442,19 +446,21 @@ void neko_init_builtins() {
 	BUILTIN(objfields,1);
 	BUILTIN(hash,1);
 	BUILTIN(field,1);
+
 	BUILTIN(int,1);
 	BUILTIN(float,1);
+	BUILTIN(string,1);
 	BUILTIN(typeof,1);
 	BUILTIN(closure,VAR_ARGS);
 	BUILTIN(compare,2);
-	if( p != LOADER_BUILTIN )
-		*(char*)NULL = 0;
-	BUILTIN(loader,0);
-	if( p != EXPORTS_BUILTIN )
-		*(char*)NULL = 0;
-	BUILTIN(exports,0);
 	BUILTIN(not,1);
-	BUILTIN(string,1);
+	BUILTIN(throw,1);
+	BUILTIN(nargs,1);
+	BUILTIN(call,3);
+	BUILTIN(isnan,1);
+	BUILTIN(isinfinite,1);
+	BUILTIN(istrue,1);
+	
 	BUILTIN(iadd,2);
 	BUILTIN(isub,2);
 	BUILTIN(imult,2);
@@ -462,7 +468,7 @@ void neko_init_builtins() {
 
 	//----- DONE ---------------
 	if( p != NBUILTINS )
-		*(char*)NULL = 0;	
+		*(char*)NULL = 0;
 }
 
 void neko_free_builtins() {

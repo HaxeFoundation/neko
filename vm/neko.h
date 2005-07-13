@@ -20,7 +20,8 @@ typedef enum {
 	VAL_OBJECT		= 4,
 	VAL_ARRAY		= 5,
 	VAL_FUNCTION	= 6,
-	VAL_PRIMITIVE	= 7,
+	VAL_ABSTRACT	= 7,
+	VAL_PRIMITIVE	= 6 | 8,
 	VAL_32_BITS		= 0xFFFFFFFF
 } val_type;
 
@@ -28,12 +29,12 @@ struct _value {
 	val_type t;
 };
 
-struct _otype;
 struct _field;
 struct _objtable;
 struct _bufffer;
-typedef struct _value* value;
-typedef struct _otype *otype;
+struct _vkind;
+typedef struct _vkind *vkind;
+typedef struct _value *value;
 typedef struct _field *field;
 typedef struct _objtable* objtable;
 typedef struct _buffer *buffer;
@@ -48,8 +49,6 @@ typedef struct {
 
 typedef struct {
 	val_type t;
-	otype ot;
-	void *data;
 	objtable table;
 } vobject;
 
@@ -71,7 +70,12 @@ typedef struct {
 	value ptr;
 } varray;
 
-#define t_class				((otype)0x00000001)
+typedef struct {
+	val_type t;
+	vkind kind;
+	void *data;
+} vabstract;
+
 #define val_tag(v)			(*(val_type*)v)
 #define val_is_null(v)		(v == val_null)
 #define val_is_int(v)		((((int)(v)) & 1) != 0)
@@ -82,22 +86,22 @@ typedef struct {
 #define val_is_function(v)	(!val_is_int(v) && (val_tag(v) == VAL_FUNCTION || val_tag(v) == VAL_PRIMITIVE))
 #define val_is_object(v)	(!val_is_int(v) && val_tag(v) == VAL_OBJECT)
 #define val_is_array(v)		(!val_is_int(v) && (val_tag(v)&7) == VAL_ARRAY)
-#define val_is_obj(v,t)		(val_is_object(v) && val_otype(v) == t)
-#define val_check_obj(v,t)	{ if( !val_is_obj(v,t) ) return val_null; }
+#define val_is_abstract(v)  (!val_is_int(v) && val_tag(v) == VAL_ABSTRACT)
+#define val_kind(v,t)		(val_is_abstract(v) && ((vabstract*)v)->kind == (t))
+#define val_check_kind(v,t)	if( !val_kind(v,t) ) return val_null;
+#define val_data(v)			((vabstract*)v)->data
 
 #define val_type(v)			(val_is_int(v) ? VAL_INT : (val_tag(v)&7))
 #define val_int(v)			(((int)(v)) >> 1)
-#define val_float(v)		((vfloat*)(v))->f
+#define val_float(v)		(CONV_FLOAT ((vfloat*)(v))->f)
 #define val_bool(v)			(v == val_true)
-#define val_number(v)		(val_is_int(v)?val_int(v): CONV_FLOAT(val_float(v)) )
+#define val_number(v)		(val_is_int(v)?val_int(v):val_float(v))
 #define val_string(v)		(&((vstring*)(v))->c)
 #define val_strlen(v)		(val_tag(v) >> 3)
 
 #define val_array_size(v)	(val_tag(v) >> 3)
 #define val_array_ptr(v)	(&((varray*)(v))->ptr)
 #define val_fun_nargs(v)	((vfunction*)(v))->nargs
-#define val_otype(v)		((vobject*)(v))->ot
-#define val_odata(v)		((vobject*)(v))->data
 #define alloc_int(v)		((value)(((v) << 1) | 1))
 #define alloc_bool(b)		((b)?val_true:val_false)
 
@@ -118,7 +122,7 @@ typedef struct {
 #	define IMPORT
 #endif
 
-#ifdef MTSVM_SOURCE
+#ifdef NEKO_SOURCES
 #	define EXTERN EXPORT
 #else
 #	define EXTERN IMPORT
@@ -144,14 +148,19 @@ typedef struct {
 #define VAR_ARGS (-1)
 #define DEFINE_PRIM_MULT(func) C_FUNCTION_BEGIN EXPORT void *func##__MULT() { return &func; } C_FUNCTION_END
 #define DEFINE_PRIM(func,nargs) C_FUNCTION_BEGIN EXPORT void *func##__##nargs() { return &func; } C_FUNCTION_END
-#define DEFINE_CLASS(name) extern value class_##name(); otype t_##name = (otype)class_##name; DEFINE_PRIM(class_##name,0);
+#define DEFINE_KIND(name) int __kind_##name = 0; vkind name = (vkind)&__kind_##name;
+#define DEFINE_ENTRY_POINT(name) C_FUNCTION_BEGIN void name(); EXPORT void *__neko_entry_point() { return &name; } C_FUNCTION_END
 
-#ifdef CLASS_PRIM_IMPORTS
+#define Constr(o,t,nargs) { field __f = val_id("new"); alloc_field(o,__f,alloc_function(t##_new##nargs,nargs) ); }
+#define Method(o,t,name,nargs) { field __f = val_id(#name); alloc_field(o,__f,alloc_function(t##_##name,nargs) ); }
+#define Property(o,t,name)	Method(o,t,get_##name,0); Method(o,t,set_##name,1)
+
+#ifdef HEADER_IMPORTS
 #	define DECLARE_PRIM(func,nargs) C_FUNCTION_BEGIN IMPORT void *func##__##nargs(); C_FUNCTION_END
-#	define DECLARE_CLASS(name) C_FUNCTION_BEGIN IMPORT extern otype t_##name; C_FUNCTION_END
+#	define DECLARE_KIND(name) C_FUNCTION_BEGIN IMPORT extern vkind name; C_FUNCTION_END
 #else
 #	define DECLARE_PRIM(func,nargs) C_FUNCTION_BEGIN EXPORT void *func##__##nargs(); C_FUNCTION_END
-#	define DECLARE_CLASS(name) C_FUNCTION_BEGIN EXPORT extern otype t_##name; C_FUNCTION_END
+#	define DECLARE_KIND(name) C_FUNCTION_BEGIN EXPORT extern vkind name; C_FUNCTION_END
 #endif
 
 typedef value (*PRIM0)();
@@ -169,9 +178,7 @@ typedef value (*PRIM2)( value v1, value v2 );
 #define val_this			neko_val_this
 #define val_id				neko_val_id
 #define val_field			neko_val_field
-#define copy_object			neko_copy_object
 #define alloc_object		neko_alloc_object
-#define alloc_class			neko_alloc_class
 #define alloc_field			neko_alloc_field
 #define alloc_array			neko_alloc_array
 #define val_call0			neko_val_call0
@@ -185,6 +192,7 @@ typedef value (*PRIM2)( value v1, value v2 );
 #define	alloc_root			neko_alloc_root
 #define free_root			neko_free_root
 #define alloc				neko_alloc
+#define alloc_private		neko_alloc_private
 #define alloc_abstract		neko_alloc_abstract
 #define alloc_function		neko_alloc_function
 #define alloc_buffer		neko_alloc_buffer
@@ -212,12 +220,11 @@ C_FUNCTION_BEGIN
 	EXTERN value val_this();
 	EXTERN field val_id( const char *str );
 	EXTERN value val_field( value o, field f );
-	EXTERN value copy_object( value o );
-	EXTERN value alloc_object( otype *t );
-	EXTERN value alloc_class( otype *t );
+	EXTERN value alloc_object( value o );
 	EXTERN void alloc_field( value obj, field f, value v );
 
 	EXTERN value alloc_array( unsigned int n );
+	EXTERN value alloc_abstract( vkind k, void *data );
 
 	EXTERN value val_call0( value f );
 	EXTERN value val_call1( value f, value arg );
@@ -231,7 +238,7 @@ C_FUNCTION_BEGIN
 	EXTERN value *alloc_root( unsigned int nvals );
 	EXTERN void free_root( value *r );
 	EXTERN char *alloc( unsigned int nbytes );
-	EXTERN char *alloc_abstract( unsigned int nbytes );
+	EXTERN char *alloc_private( unsigned int nbytes );
 	EXTERN value alloc_function( void *c_prim, unsigned int nargs );
 
 	EXTERN buffer alloc_buffer( const char *init );
@@ -246,10 +253,5 @@ C_FUNCTION_BEGIN
 	EXTERN void val_throw( value v );
 
 C_FUNCTION_END
-
-#define Constr(o,t,nargs) { field f__new_##nargs = val_id("new"); alloc_field(o,f__new_##nargs,alloc_function(t##_new##nargs,nargs) ); }
-#define Method(o,t,name,nargs) { field f__##name = val_id(#name); alloc_field(o,f__##name,alloc_function(t##_##name,nargs) ); }
-#define MethodMult(o,t,name) { field f__##name = val_id(#name); alloc_field(o,f__##name,alloc_function(t##_##name,VAR_ARGS) ); }
-#define Property(o,t,name)	Method(o,t,get_##name,0); Method(o,t,set_##name,1)
 
 #endif/* ************************************************************************ */

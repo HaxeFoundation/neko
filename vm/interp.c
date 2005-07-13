@@ -22,6 +22,8 @@
 #define int_address(a)	(int*)(a & ~1)
 
 static int op_last = Last;
+extern field id_add;
+extern field id_preadd;
 _context *vm_context = NULL;
 int *callback_return = &op_last;
 
@@ -40,7 +42,7 @@ static void default_printer( const char *s, int len ) {
 	fputc('\n',stdout);
 }
 
-neko_vm *neko_vm_alloc() {
+EXTERN neko_vm *neko_vm_alloc() {
 	int i;
 	neko_vm *vm = (neko_vm*)alloc(sizeof(neko_vm));
 	vm->spmin = (int*)alloc(INIT_STACK_SIZE*sizeof(int));
@@ -56,23 +58,23 @@ neko_vm *neko_vm_alloc() {
 	return vm;
 }
 
-void neko_vm_free( neko_vm *vm ) {
+EXTERN void neko_vm_free( neko_vm *vm ) {
 }
 
-void neko_vm_select( neko_vm *vm ) {
+EXTERN void neko_vm_select( neko_vm *vm ) {
 	context_set(vm_context,vm);
 }
 
-neko_vm *neko_vm_current() {
+EXTERN neko_vm *neko_vm_current() {
 	return (neko_vm*)context_get(vm_context);
 }
 
-void neko_vm_execute( neko_vm *vm, neko_module *m ) {
+EXTERN void neko_vm_execute( neko_vm *vm, neko_module *m ) {
 	unsigned int i;
 	neko_vm_select(vm);
 	for(i=0;i<m->nfields;i++)
 		val_id(val_string(m->fields[i]));
-	interp(vm,(int)val_null,m->code,alloc_array(0));
+	neko_interp(vm,(int)val_null,m->code,alloc_array(0));
 }
 
 static int stack_expand( int *sp, int *csp, neko_vm *vm ) {
@@ -102,6 +104,7 @@ typedef int (*c_prim1)(int);
 typedef int (*c_prim2)(int,int);
 typedef int (*c_prim3)(int,int,int);
 typedef int (*c_prim4)(int,int,int,int);
+typedef int (*c_prim5)(int,int,int,int,int);
 typedef int (*c_primN)(value*,int);
 
 #define DynError(cond,err)		if( cond ) { val_throw(alloc_string(#err)); }
@@ -166,6 +169,9 @@ typedef int (*c_primN)(value*,int);
 				case 4: \
 					acc = ((c_prim4)((vfunction*)acc)->addr)(sp[3],sp[2],sp[1],sp[0]); \
 					break; \
+				case 5: \
+					acc = ((c_prim5)((vfunction*)acc)->addr)(sp[4],sp[3],sp[2],sp[1],sp[0]); \
+					break; \
 				} \
 				RestoreAfterCall(); \
 			} \
@@ -226,6 +232,9 @@ typedef int (*c_primN)(value*,int);
 		*sp++ = NULL; \
 		Next;
 
+#define ObjectOp(obj,param,id) \
+		acc = (int)val_ocall1((value)obj,id,(value)param);
+
 #define AppendString(str,fmt,x,way) { \
 		int len, len2; \
 		value v; \
@@ -273,7 +282,7 @@ void neko_process_trap( neko_vm *vm ) {
 		*vm->sp++ = NULL;
 }
 
-value interp( neko_vm *vm, register int acc, register int *pc, value env ) {
+value neko_interp( neko_vm *vm, register int acc, register int *pc, value env ) {
 	register int *sp = vm->sp;
 	register int *csp = vm->csp;
 	int tmp;
@@ -391,12 +400,13 @@ value interp( neko_vm *vm, register int acc, register int *pc, value env ) {
 		pc++;
 		Next;
 	Instr(SetArray)
-		Error( sp == vm->spmax , UNDERFLOW);
-		if( val_is_int(acc) && val_is_array(*sp) ) {
-			int k = val_int(acc);
-			if( k >= 0 && k < val_array_size(*sp) )
-				val_array_ptr(*sp)[k] = (value)acc;
+		Error( sp >= vm->spmax - 1 , UNDERFLOW);
+		if( val_is_int(*sp) && val_is_array(acc) ) {
+			int k = val_int(*sp);
+			if( k >= 0 && k < val_array_size(acc) )
+				val_array_ptr(acc)[k] = (value)sp[1];
 		}
+		*sp++ = NULL;
 		*sp++ = NULL;
 		Next;
 	Instr(SetThis)
@@ -505,24 +515,18 @@ value interp( neko_vm *vm, register int acc, register int *pc, value env ) {
 				acc = (int)alloc_float(val_float(*sp) + val_int(acc));
 			else if( (tmp = (val_tag(*sp)&7)) == VAL_STRING  )
 				AppendString(*sp,"%d",val_int(acc),true)
-			else if( tmp == VAL_OBJECT ) {
-				buffer b = alloc_buffer(NULL);
-				val_buffer(b,(value)*sp);
-				val_buffer(b,(value)acc);
-				acc = (int)buffer_to_string(b);
-			} else
+			else if( tmp == VAL_OBJECT )
+				ObjectOp(*sp,acc,id_add)
+			else
 				acc = (int)val_null;
 		} else if( *sp & 1 ) {
 			if( val_tag(acc) == VAL_FLOAT )
 				acc = (int)alloc_float(val_int(*sp) + val_float(acc));
 			else if( (tmp = (val_tag(acc)&7)) == VAL_STRING )
 				AppendString(acc,"%d",val_int(*sp),false)
-			else if( tmp == VAL_OBJECT ) {
-				buffer b = alloc_buffer(NULL);
-				val_buffer(b,(value)*sp);
-				val_buffer(b,(value)acc);
-				acc = (int)buffer_to_string(b);
-			} else
+			else if( tmp == VAL_OBJECT )
+				ObjectOp(acc,*sp,id_preadd)
+			else
 				acc = (int)val_null;
 		} else if( val_tag(acc) == VAL_FLOAT && val_tag(*sp) == VAL_FLOAT )
 			acc = (int)alloc_float(val_float(*sp) + val_float(acc));
@@ -533,12 +537,16 @@ value interp( neko_vm *vm, register int acc, register int *pc, value env ) {
 			memcpy((char*)val_string(v),val_string(*sp),len1);
 			memcpy((char*)val_string(v)+len1,val_string(acc),len2+1);
 			acc = (int)v;
-		} else if( tmp == VAL_STRING || (val_tag(*sp)&7) == VAL_STRING || tmp == VAL_OBJECT || (val_tag(*sp)&7) == VAL_OBJECT ) {
+		} else if( tmp == VAL_STRING || (val_tag(*sp)&7) == VAL_STRING ) {
 			buffer b = alloc_buffer(NULL);
 			val_buffer(b,(value)*sp);
 			val_buffer(b,(value)acc);
 			acc = (int)buffer_to_string(b);
-		} else
+		} else if( tmp == VAL_OBJECT )
+			ObjectOp(acc,*sp,id_preadd)
+		else if( (val_tag(*sp)&7) == VAL_OBJECT )
+			ObjectOp(*sp,acc,id_add)
+		else
 			acc = (int)val_null;
 		*sp++ = NULL;
 		Next;
@@ -582,7 +590,10 @@ value interp( neko_vm *vm, register int acc, register int *pc, value env ) {
 	Instr(Eq)
 		Test(==)
 	Instr(Neq)
-		Test(!=)
+		Error( sp == vm->spmax , UNDERFLOW );
+		acc = (int)((val_compare((value)*sp,(value)acc) == 0)?val_false:val_true);
+		*sp++ = NULL;
+		Next
 	Instr(Lt)
 		Test(<)
 	Instr(Lte)

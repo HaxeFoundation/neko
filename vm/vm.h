@@ -31,6 +31,6 @@ extern _context *vm_context;
 
 #define NEKO_VM()	((neko_vm*)context_get(vm_context))
 
-extern value interp( neko_vm *vm, int acc, int *pc, value env );
+extern value neko_interp( neko_vm *vm, int acc, int *pc, value env );
 
 /* ************************************************************************ */

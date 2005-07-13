@@ -2,8 +2,8 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="7.10"
-	Name="nekovm"
-	ProjectGUID="{C9796A2F-49BA-4EE2-A28A-2707C5151D0E}"
+	Name="nekovm_dll"
+	ProjectGUID="{FEBA0CA8-4D9C-49C3-B3CC-1A7CFF9BB8B3}"
 	Keyword="Win32Proj">
 	<Platforms>
 		<Platform
@@ -14,15 +14,15 @@
 			Name="Debug|Win32"
 			OutputDirectory="Debug"
 			IntermediateDirectory="Debug"
-			ConfigurationType="1"
+			ConfigurationType="2"
 			CharacterSet="2">
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;MTSVM_SOURCE"
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;NEKOVM_DLL_EXPORTS;NEKO_SOURCES"
 				MinimalRebuild="TRUE"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="5"
+				RuntimeLibrary="1"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="FALSE"
@@ -31,18 +31,20 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="..\neko.lib"
-				OutputFile="$(OutDir)/nekovm.exe"
+				AdditionalDependencies="gc/gc.lib"
+				OutputFile="$(OutDir)/neko.dll"
 				LinkIncremental="2"
 				GenerateDebugInformation="TRUE"
-				ProgramDatabaseFile="$(OutDir)/nekovm.pdb"
-				SubSystem="1"
+				ProgramDatabaseFile="$(OutDir)/nekovm_dll.pdb"
+				SubSystem="2"
+				ImportLibrary="$(OutDir)/neko.lib"
 				TargetMachine="1"/>
 			<Tool
 				Name="VCMIDLTool"/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="copy Debug\nekovm.exe .."/>
+				CommandLine="copy Debug\neko.dll ..
+copy Debug\neko.lib .."/>
 			<Tool
 				Name="VCPreBuildEventTool"/>
 			<Tool
@@ -64,13 +66,12 @@
 			Name="Release|Win32"
 			OutputDirectory="Release"
 			IntermediateDirectory="Release"
-			ConfigurationType="1"
+			ConfigurationType="2"
 			CharacterSet="2">
 			<Tool
 				Name="VCCLCompilerTool"
-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;MTSVM_SOURCE"
-				RuntimeLibrary="4"
-				BufferSecurityCheck="FALSE"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;NEKOVM_DLL_EXPORTS;NEKO_SOURCES"
+				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="FALSE"
@@ -79,19 +80,21 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="..\neko.lib"
-				OutputFile="$(OutDir)/nekovm.exe"
+				AdditionalDependencies="gc/gc.lib"
+				OutputFile="$(OutDir)/neko.dll"
 				LinkIncremental="1"
 				GenerateDebugInformation="TRUE"
-				SubSystem="1"
+				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
+				ImportLibrary="$(OutDir)/neko.lib"
 				TargetMachine="1"/>
 			<Tool
 				Name="VCMIDLTool"/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="copy Release\nekovm.exe .."/>
+				CommandLine="copy Release\neko.dll ..
+copy Release\neko.lib .."/>
 			<Tool
 				Name="VCPreBuildEventTool"/>
 			<Tool
@@ -113,9 +116,61 @@
 	<References>
 	</References>
 	<Files>
-		<File
-			RelativePath=".\main.c">
-		</File>
+		<Filter
+			Name="Source Files"
+			Filter="cpp;c;cxx;def;odl;idl;hpj;bat;asm;asmx"
+			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}">
+			<File
+				RelativePath=".\alloc.c">
+			</File>
+			<File
+				RelativePath=".\builtins.c">
+			</File>
+			<File
+				RelativePath=".\callback.c">
+			</File>
+			<File
+				RelativePath=".\context.c">
+			</File>
+			<File
+				RelativePath=".\interp.c">
+			</File>
+			<File
+				RelativePath=".\load.c">
+			</File>
+			<File
+				RelativePath=".\objtable.c">
+			</File>
+			<File
+				RelativePath=".\others.c">
+			</File>
+		</Filter>
+		<Filter
+			Name="Header Files"
+			Filter="h;hpp;hxx;hm;inl;inc;xsd"
+			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}">
+			<File
+				RelativePath=".\context.h">
+			</File>
+			<File
+				RelativePath=".\interp.h">
+			</File>
+			<File
+				RelativePath=".\load.h">
+			</File>
+			<File
+				RelativePath=".\neko.h">
+			</File>
+			<File
+				RelativePath=".\objtable.h">
+			</File>
+			<File
+				RelativePath=".\opcodes.h">
+			</File>
+			<File
+				RelativePath=".\vmcontext.h">
+			</File>
+		</Filter>
 	</Files>
 	<Globals>
 	</Globals>

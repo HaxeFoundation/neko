@@ -12,12 +12,15 @@
 #define PARAMETER_TABLE
 #include "opcodes.h"
 
-#define t_loader				((otype)0x00000003)
+DEFINE_KIND(k_loader);
 
 #define MAXSIZE 0x100
 #define ERROR() { return NULL; }
 #define READ(buf,len) if( r(p,buf,len) == -1 ) ERROR()
 
+extern field id_loader;
+extern field id_exports;
+extern field id_data;
 extern value *builtins;
 extern value alloc_module_function( void *m, int pos, int nargs );
 
@@ -36,7 +39,7 @@ static int read_string( reader r, readp p, char *buf ) {
 
 static int builtin_id( neko_module *m, field id ) {
 	value f = val_field(builtins[NBUILTINS],id);
-	if( f == NULL ) {
+	if( val_is_null(f) ) {
 		unsigned int i;
 		for(i=0;i<m->nfields;i++)
 			if( val_id(val_string(m->fields[i])) == id ) {
@@ -64,10 +67,10 @@ static neko_module *neko_module_read( reader r, readp p, value loader ) {
 	READ(&m->codesize,4);
 	if( m->nglobals < 0 || m->nglobals > 0xFFFF || m->nfields < 0 || m->nfields > 0xFFFF || m->codesize < 0 || m->codesize > 0xFFFFF )
 		ERROR();
-	tmp = alloc_abstract(sizeof(char)*(((m->codesize+1)>MAXSIZE)?(m->codesize+1):MAXSIZE));
+	tmp = alloc_private(sizeof(char)*(((m->codesize+1)>MAXSIZE)?(m->codesize+1):MAXSIZE));
 	m->globals = (value*)alloc(m->nglobals * sizeof(value));
 	m->fields = (value*)alloc(sizeof(value*)*m->nfields);
-	m->code = (int*)alloc_abstract(sizeof(int)*(m->codesize+1));
+	m->code = (int*)alloc_private(sizeof(int)*(m->codesize+1));
 	m->loader = loader;
 	m->exports = alloc_object(NULL);
 	// Init global table
@@ -91,7 +94,7 @@ static neko_module *neko_module_read( reader r, readp p, value loader ) {
 				char *ttmp;
 				if( stmp > 0x100000 )
 					val_throw(alloc_string("Too much big string"));
-				ttmp = alloc_abstract(stmp);
+				ttmp = alloc_private(stmp);
 				READ(ttmp,stmp);
 				m->globals[i] = copy_string(ttmp,stmp);
 			} else {
@@ -194,15 +197,16 @@ static neko_module *neko_module_read( reader r, readp p, value loader ) {
 				ERROR();
 			break;
 		case AccBuiltin:
-			itmp = builtin_id(m,(field)itmp);
-			if( itmp >= NBUILTINS )
-				ERROR();
-			if( itmp == LOADER_BUILTIN )
+			if( (field)itmp == id_loader )
 				m->code[i+1] = (int)loader;
-			else if( itmp == EXPORTS_BUILTIN )
+			else if( (field)itmp == id_exports )
 				m->code[i+1] = (int)m->exports;
-			else
+			else {
+				itmp = builtin_id(m,(field)itmp);
+				if(	itmp >= NBUILTINS )
+					ERROR();
 				m->code[i+1] = (int)builtins[itmp];
+			}
 			break;
 		case Call:
 		case ObjCall:
@@ -224,13 +228,17 @@ static neko_module *neko_module_read( reader r, readp p, value loader ) {
 	return m;
 }
 
-static value neko_default_loadprim( value prim, value nargs ) {
+static value default_loadprim( value prim, value nargs ) {
 	value o = val_this();
-	val_check_obj(o,t_loader);
+	value data;
+	if( !val_is_object(o) )
+		return val_null;
+	data = val_field(o,id_data);
+	val_check_kind(data,k_loader);
 	if( !val_is_string(prim) || !val_is_int(nargs) || val_int(nargs) > 10 || val_int(nargs) < -1 )
 		return val_null;
 	{
-		loader *l = (loader*)val_odata(o);
+		loader *l = (loader*)val_data(data);
 		void *ptr = l->p(val_string(prim),val_int(nargs),&l->custom);
 		if( ptr == NULL ) {
 			buffer b = alloc_buffer("Primitive not found : ");
@@ -238,23 +246,27 @@ static value neko_default_loadprim( value prim, value nargs ) {
 			val_throw(buffer_to_string(b));
 		}
 		return alloc_function(ptr,val_int(nargs));
-	}	
+	}
 }
 
-static value neko_default_loadmodule( value mname, value this ) {
+static value default_loadmodule( value mname, value this ) {
 	value o = val_this();
-	val_check_obj(o,t_loader);
+	value data;
+	if( !val_is_object(o) )
+		return val_null;
+	data = val_field(o,id_data);
+	val_check_kind(data,k_loader);
 	if( !val_is_string(mname) || !val_is_object(this) )
 		return val_null;
 	{
-		loader *l = (loader*)val_odata(o);
+		loader *l = (loader*)val_data(data);
 		reader r;
 		readp p;
 		neko_module *m;
 		neko_vm *vm;
 		field mid = val_id(val_string(mname));
 		value v = val_field(l->cache,mid);
-		if( v != NULL )
+		if( !val_is_null(v) )
 			return v;
 		if( !l->l(val_string(mname),&r,&p) ) {
 			buffer b = alloc_buffer("Module not found : ");
@@ -271,8 +283,8 @@ static value neko_default_loadmodule( value mname, value this ) {
 		vm = neko_vm_current();
 		alloc_field(l->cache,mid,m->exports);
 		neko_vm_execute(vm,m);
-		return copy_object(m->exports);
-	}	
+		return alloc_object(m->exports);
+	}
 }
 
 #ifdef _WIN32
@@ -295,7 +307,7 @@ static int file_reader( readp p, void *buf, int size ) {
 	return len;
 }
 
-int default_load_module( const char *mname, reader *r, readp *p ) {
+EXTERN int neko_default_load_module( const char *mname, reader *r, readp *p ) {
 	char buf[100];
 	FILE *f;
 	if( strlen(mname) > 90 )
@@ -309,7 +321,7 @@ int default_load_module( const char *mname, reader *r, readp *p ) {
 	return 1;
 }
 
-void default_load_done( readp p ) {
+EXTERN void neko_default_load_done( readp p ) {
 	fclose(p);
 }
 
@@ -319,11 +331,12 @@ typedef struct _liblist {
 	struct _liblist *next;
 } liblist;
 
-void *default_load_primitive( const char *prim, int nargs, void **custom ) {
+EXTERN void *neko_default_load_primitive( const char *prim, int nargs, void **custom ) {
 	char buf[100];
 	char *pos = strchr(prim,'@');
 	int len;	
 	liblist *l;
+	PRIM0 ptr;
 	if( pos == NULL )
 		return NULL;
 	l = (liblist*)*custom;
@@ -350,10 +363,12 @@ void *default_load_primitive( const char *prim, int nargs, void **custom ) {
 		memcpy(l->name,prim,len);
 		l->next = (liblist*)*custom;
 		*custom = l;
+		ptr = (PRIM0)dlsym(l->handle,"__neko_entry_point");
+		if( ptr != NULL )
+			((PRIM0)ptr())();
 	}
 	*pos++ = '@';
-	{
-		PRIM0 ptr;
+	{		
 		if( strlen(pos) > 90 )
 			return NULL;
 		if( nargs == VAR_ARGS )
@@ -367,20 +382,19 @@ void *default_load_primitive( const char *prim, int nargs, void **custom ) {
 	}
 }
 
-value neko_default_loader( loader *l ) {
+EXTERN value neko_default_loader( loader *l ) {
 	value o = alloc_object(NULL);
 	if( l == NULL ) {
 		l = (loader*)alloc(sizeof(loader));
-		l->l = default_load_module;
-		l->d = default_load_done;
-		l->p = default_load_primitive;
+		l->l = neko_default_load_module;
+		l->d = neko_default_load_done;
+		l->p = neko_default_load_primitive;
 		l->custom = NULL;
 		l->cache = alloc_object(NULL);
 	}
-	val_otype(o) = t_loader;
-	val_odata(o) = (value)l;
-	alloc_field(o,val_id("loadprim"),alloc_function(neko_default_loadprim,2));
-	alloc_field(o,val_id("loadmodule"),alloc_function(neko_default_loadmodule,2));
+	alloc_field(o,id_data,alloc_abstract(k_loader,l));
+	alloc_field(o,val_id("loadprim"),alloc_function(default_loadprim,2));
+	alloc_field(o,val_id("loadmodule"),alloc_function(default_loadmodule,2));
 	return o;
 }
 
