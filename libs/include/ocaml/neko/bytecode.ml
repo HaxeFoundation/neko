@@ -61,7 +61,7 @@ type global =
 exception Invalid_file
 
 let trap_stack_delta = 5
-let max_call_args = 4
+let max_call_args = 5
 
 let hash_field s =
 	let acc = ref 0 in
@@ -365,13 +365,16 @@ let dump ch (globals,ops) =
 	let ids, pos , csize = code_tables ops in
 	IO.printf ch "nglobals : %d\n" (Array.length globals);
 	IO.printf ch "nfields : %d\n" (Hashtbl.length ids);
-	IO.printf ch "codesize : %d (%d)\n" (Array.length ops) csize;
+	IO.printf ch "codesize : %d ops , %d total\n" (Array.length ops) csize;
 	IO.printf ch "GLOBALS =\n";
+	let marks = Array.create csize false in
 	Array.iteri (fun i g ->
 		IO.printf ch "  global %d : %s\n" i 
 			(match g with
 			| GlobalVar s -> "var " ^ s
-			| GlobalFunction (p,n) -> "function " ^ string_of_int p ^ " nargs " ^ string_of_int n
+			| GlobalFunction (p,n) -> 
+				if p >= 0 && p < csize then marks.(p) <- true;
+				"function " ^ string_of_int p ^ " nargs " ^ string_of_int n
 			| GlobalString s -> "string \"" ^ escape s ^ "\""
 			| GlobalFloat s -> "float " ^ s)
 	) globals;
@@ -382,6 +385,7 @@ let dump ch (globals,ops) =
 	IO.printf ch "CODE =\n";
 	let str s i = s ^ " " ^ string_of_int i in
 	Array.iteri (fun pos op ->
+		if marks.(pos) then IO.write ch '\n';
 		IO.printf ch "%6d    %s\n" pos (match op with
 			| AccNull -> "AccNull"
 			| AccTrue -> "AccTrue"
