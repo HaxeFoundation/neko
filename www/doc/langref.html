@@ -160,6 +160,7 @@ A value in Neko can be one of the following :
 <li><a href="#arrays"><b>Array</b></a> : arrays are indexed table of values, starting at index 0, they provide fast random access.</li>
 <li><a href="#objects"><b>Object</b></a> : an object is an association table, which bind an ident or a string to a value, see how you can create and manage objects later.</li>
 <li><a href="#functions"><b>Function</b></a> : a function is also a value in Neko, and can then be stored into any variable.</li>
+<li><b>Abstract</b> : an abstract value is some C data that cannot be accessed from a Neko program.</li>
 </ul>
 
 <p>
@@ -410,7 +411,7 @@ Operation add ( + ) :
 	<td>-</td>
 	<td>concat</td>
 	<td>-</td>
-	<td>concat</td>
+	<td>__preadd</td>
 	<td>-</td>
 	<td>-</td>
 </tr>
@@ -421,7 +422,7 @@ Operation add ( + ) :
 	<td>float</td>
 	<td>concat</td>
 	<td>-</td>
-	<td>concat</td>
+	<td>__preadd</td>
 	<td>-</td>
 	<td>-</td>
 </tr>
@@ -432,7 +433,7 @@ Operation add ( + ) :
 	<td>float</td>
 	<td>concat</td>
 	<td>-</td>
-	<td>concat</td>
+	<td>__preadd</td>
 	<td>-</td>
 	<td>-</td>
 </tr>
@@ -443,7 +444,7 @@ Operation add ( + ) :
 	<td>concat</td>
 	<td>concat</td>
 	<td>concat</td>
-	<td>concat</td>
+	<td>__preadd</td>
 	<td>concat</td>
 	<td>concat</td>
 </tr>
@@ -454,20 +455,20 @@ Operation add ( + ) :
 	<td>-</td>
 	<td>concat</td>
 	<td>-</td>
-	<td>concat</td>
+	<td>__preadd</td>
 	<td>-</td>
 	<td>-</td>
 </tr>
 <tr>
 	<th>object</th>
-	<td>concat</td>
-	<td>concat</td>
-	<td>concat</td>
-	<td>concat</td>
-	<td>concat</td>
-	<td>concat</td>
-	<td>concat</td>
-	<td>concat</td>
+	<td>__add</td>
+	<td>__add</td>
+	<td>__add</td>
+	<td>__add</td>
+	<td>__add</td>
+	<td>__add</td>
+	<td>__add</td>
+	<td>__add</td>
 </tr>
 <tr>
 	<th>array</th>
@@ -476,7 +477,7 @@ Operation add ( + ) :
 	<td>-</td>
 	<td>concat</td>
 	<td>-</td>
-	<td>concat</td>
+	<td>__preadd</td>
 	<td>-</td>
 	<td>-</td>
 </tr>
@@ -487,11 +488,15 @@ Operation add ( + ) :
 	<td>-</td>
 	<td>concat</td>
 	<td>-</td>
-	<td>concat</td>
+	<td>__preadd</td>
 	<td>-</td>
 	<td>-</td>
 </tr>
 </table>
+
+<p>
+	Addition can be overridden for objects : <code>a + b</code> will call <code>a.__add(b)</code> if <code>a</code> is an object, or <code>b.__preadd(a)</code> if <code>b</code> is an object.
+</p>
 
 <p>
 Operations substract ( - ) divide ( / ) multiply ( * ) and modulo ( % ) :
@@ -940,6 +945,10 @@ The primitive <code>$typeof</code> returns an integer specifying the type of a v
 	<td>function</td>
 	<td>7</td>
 </tr>
+<tr>
+	<td>abstract</td>
+	<td>8</td>
+</tr>
 </table>
 
 <p>
@@ -1187,7 +1196,18 @@ Defining new functions is easy, since functions are values, you can simply assig
 </pre>
 
 <p>
-	<em>It is needed to specify maximum array size</em>
+	There is also a <code>$ablit</code> function to copy elements from one array to another :
+</p>
+
+<pre>
+	a = $array(1,2,3,4);
+	b = $array(6,7,8);
+	$ablit(a,1,b,0,2); // copy 2 elements from b+0 to a+1
+	$print(a); // [1,6,7,4]
+</pre>
+
+<p>
+	Arrays can contain a maximum of 2^39 - 1 éléments, or <code>$amake</code> and <code>$array</code> will raise an exception.
 </p>
 
 <!-- ****************************************************************************** -->
@@ -1240,8 +1260,11 @@ Defining new functions is easy, since functions are values, you can simply assig
 </pre>
 
 <p>
+	Strings can contain a maximum of 2 ^ 29 - 1 characters, or <code>$smake</code> will raise an exception.
+</p>
+
+<p>
 	<em>Need to add safe string accesses with exceptions on bounds ? safe blit ?</em>
-	<em>Need to specify maximum string size</em>
 </p>
 
 <!-- ****************************************************************************** -->
