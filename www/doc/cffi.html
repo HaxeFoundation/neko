@@ -43,7 +43,7 @@
 </pre>
 
 <p>
-	Now all you have to do is to compile this C file into a DLL/SO named "hello.dll" or "hello.so" on Linux. In order to test your primitive, it is very easy to use it from a Neko program. Simply call the $loader <code>loadprim</code> method and request the primitive with the declared number of arguments :
+	Now all you have to do is to compile this C file into a DLL/SO named "hello.ndll". In order to test your primitive, it is very easy to use it from a Neko program. Simply call the $loader <code>loadprim</code> method and request the primitive with the declared number of arguments :
 </p>
 
 <pre>
@@ -52,7 +52,7 @@
 </pre>
 
 <p>
-	The format of primitive name is <i>name_of_the_dll</i>@<i>name_of_thefunction</i>. You can then define several functions in the same dll.
+	The format of primitive name is <i>name_of_the_dll</i>@<i>name_of_thefunction</i>. You can then define several primitives in the same dll.
 </p>
 
 <!-- ****************************************************************************** -->
@@ -70,14 +70,18 @@
 </ul>
 
 <p>
-	Here's a list of most common functions :
+	Please note that most (almost all) of theses functions are actually C macros, so there is no call done. You can have a look at <code>neko.h</code> if you're performance-oriented and want to differentiate between macros and real API functions.
 </p>
+
+<h3>Constant Values</h3>
 
 <ul>
 	<li><code>val_null</code> : the Neko null value.</li>
 	<li><code>val_true</code> : the Neko true value.</li>
 	<li><code>val_false</code> : the Neko false value.</li>
 </ul>
+
+<h3>Typecheck Functions</h3>
 
 <ul>
 	<li><code>val_is_null(v)</code> : check if a value is null.</li>
@@ -88,8 +92,16 @@
 	<li><code>val_is_array(v)</code> : check if a value is an array.</li>
 	<li><code>val_is_object(v)</code> : check if a value is an object.</li>
 	<li><code>val_is_function(v)</code> : check if a value is a function.</li>
+	<li><code>val_is_abstract(v)</code> : check if a value is an abstract.</li>
+	<li><code>val_is_kind(v,k)</code> : check if a value is an abstract of the kind <code>k</code>.</li>
 	<li><code>val_is_number(v)</code> : check if a value is either an integer or a float.</li>
 </ul>
+
+<h3>Access Functions</h3>
+
+<p>
+	In order to use the following functions, you must be sure first that the type of the value is correct, using above functions.
+</p>
 
 <ul>
 	<li><code>val_int(v)</code> : retrieve the integer stored into a value.</li>
@@ -101,19 +113,29 @@
 	<li><code>val_array_ptr(v)</code> : retrieve the array stored into a value as a value*.</li>
 	<li><code>val_array_size(v)</code> : retrieve the size of the array stored into a value.</li>
 	<li><code>val_fun_nargs(v)</code> : retrieve the number of arguments of the function stored into a value.</li>
+	<li><code>val_data(v)</code> : retrieve the data stored into an abstract value.</li>
+	<li><code>val_kind(v)</code> : retrieve the kind of an abstract value.</li>
 </ul>
+
+<h3>Allocation Functions</h3>
+
+<p>
+	All of theses functions are returning a value from some C data :
+</p>
 
 <ul>
 	<li><code>alloc_int(i)</code> : return a value from a C int.</li>
 	<li><code>alloc_float(f)</code> : return a value from a C float.</li>
-	<li><code>alloc_string(f)</code> : return a value from a C float.</li>
 	<li><code>alloc_bool(b)</code> : return a value from a C bool (0 is false, true either).</li>
 	<li><code>alloc_array(size)</code> : create a Neko array from the given size.</li>
+	<li><code>alloc_string(str)</code> : return a value from a C string (make a copy).</li>
+	<li><code>alloc_empty_string(n)</code> : return an unitialized string value capable of storing <code>n</code> bytes.</li>
+	<li><code>copy_string(str,size)</code> : return a copy the <code>size</code> first bytes of the string <code>str</code> as a value.</li>
 </ul>
 
 <!-- ****************************************************************************** -->
 
-<h2>Another sample</h2>
+<h2>Printing a value</h2>
 
 <p>
 	Using what we have learn from the Neko API, we can now write a function that print any value :
@@ -140,12 +162,104 @@
             printf("string : %s (%d bytes)",val_string(v),val_strlen(v));
         else if( val_is_object(v) )
             printf("object");
+        else if( val_is_abstract(v) )
+        	printf("abstract of kind %X",val_kind(v));
         else
             printf("?????");
         return val_null;
     }
 
-    DEFIME_PRIM(print,1);
+    DEFINE_PRIM(print,1);
+</pre>
+
+<p>
+	Please note that it's pretty ineficient since we are are doing a test for each type, while we could simply dispatch using <code>val_type</code> result :
+</p>
+
+<pre>
+    #include &lt;stdio.h&gt;
+    #include &lt;neko.h&gt;
+
+    value print( value v ) {
+        switch( val_type(v) ) {
+        case VAL_NULL:
+            printf("null");
+            break;
+        case VAL_INT:
+            printf("int : %d",val_int(v));
+            break;
+        case VAL_FLOAT:
+            printf("float : %f",val_float(v));
+            break;
+        case VAL_BOOL:
+            printf("bool : %s",val_bool(b)?"true":"false");
+            break;
+        case VAL_ARRAY:
+            printf("array : size %d",val_array_size(v));
+            break;
+        case VAL_FUNCTION:
+            printf("function : %d args",val_fun_nargs(v));
+            break;
+        case VAL_STRING:
+            printf("string : %s (%d bytes)",val_string(v),val_strlen(v));
+            break;
+        case VAL_OBJECT:
+            printf("object");
+            break;
+        case VAL_ABSTRACT:
+            printf("abstract of kind %X",val_kind(v));
+            break;
+        default:
+            printf("?????");
+            break;
+        }
+        return val_null;
+    }
+
+    DEFINE_PRIM(print,1);
+</pre>
+
+<p>
+	The <code>default</code> case is not supposed to happen unless there is some bug into a C code function that doesn't return a correct value (or memory corruption). Since the NekoVM is safe in regard to memory manipulation, such problem can only arise from a buggy C primitive.
+</p>
+
+<!-- ****************************************************************************** -->
+
+<h2>Buffers</h2>
+
+<p>
+	The printing of value is a little more complex than that. In particular in case of objects we must call the <code>__string()</code> method to retreive a representation of the object if available.
+</p>
+
+<p>
+	In order to easily construct strings of mixed constant C strings and values converted to strings, Neko AP have <code>buffer</code>s. A buffer is NOT a value, so you cannot return it outside of C primitive, but it is garbage collected so you don't to free them after usage.
+</p>
+
+<p>
+	Here's a list of functions for using buffers :
+</p>
+
+<ul>
+	<li><code>alloc_buffer(str)</code> will allocate a fresh buffer with an string <code>str</code> or no data if <code>str</code> is <code>NULL</code>.</li>
+	<li><code>val_buffer(b,v)</code> will add a string representation of the value <code>v</code> to the buffer <code>b</code>.</li>
+	<li><code>buffer_append(b,str)</code> will append the C string <code>str</code> at the end of the buffer <code>b</code>.</li>
+	<li><code>buffer_append_sub(b,str,n)</code> will append the <code>n</code> first bytes of the C string <code>str</code> at the end of the buffer <code>b</code>.</li>
+	<li><code>buffer_to_string(b)</code> allocate and return a string value of the content of the buffer.</li>
+</ul>
+
+<p>
+	Here's a small example of a buffer usage :
+</p>
+
+<pre>
+    value print2( value v1, value v2 ) {
+        buffer b = alloc_buffer("Values");
+        buffer_append(b," = ");
+        val_buffer(b,v1);
+        buffer_append_sub(b,",xxx",1); // only first byte, so ','
+        val_buffer(b,v2);
+        return buffer_to_string(b);
+    }
 </pre>
 
 
@@ -153,12 +267,91 @@
 
 <h2>Working with Objects</h2>
 
+<p>
+	Objects in Neko are also values, and there is several functions in the Neko API to access and modify object fields :
+</p>
+
+<ul>
+	<li><code>alloc_object(o)</code> returns a copy of the object o, or a new empty object if o is <code>NULL</code> or <code>val_null</code>.</li>
+	<li><code>val_is_object(v)</code> check that the value is an object.</li>
+	<li><code>val_id("fname")</code> : in the Neko specification, it is told that object tables does not contain directly fields names but a hashed identifier of the field name. <code>val_id</code> return a <code>field</code> identifier from a field name.</li>
+	<li><code>val_field(o,f)</code> access a field for reading. It returns <code>NULL</code> (0 in C) if <code>o</code> is not an object or if the field doesn't exists, or it returns the value of the field either. A field having a null value will then return <code>val_null</code>. <code>f</code> is the <code>field</code> identifier as retreived with <code>val_id</code>.</li>
+	<li><code>alloc_field(o,f,v)</code> will set or replace the value of the field <code>f</code> of object <code>o</code> by the value <code>v</code>.</li>
+</ul>
+
+<p>
+	Here's a small example that allocate an object with two fields x and y from two values :
+</p>
+
+<pre>
+    #include&lt;neko.h&gt;
+
+    value make_point( value x, value y ) {
+        value o;
+        if( !val_is_number(x) || !val_is_number(y) )
+            return val_null;
+        o = alloc_object(NULL);
+        alloc_field(o,val_id("x"),x);
+        alloc_field(o,val_id("y"),y);
+        return o;
+    }
+
+    DEFINE_PRIM(make_point,2);
+</pre>
+
+<h3>Methods</h3>
+
+<p>
+	If we want to add an method <code>__string</code> to the object in order to display its display when printed we can do the following :
+</p>
+
+<pre>
+    #include&lt;neko.h&gt;
+
+    value point_to_string() {
+        value o = val_this();
+        value x , y;
+        buffer b;
+        if( !val_is_object(o) )
+            return val_null;
+        x = val_field(o,val_id("x"));
+        y = val_field(o,val_id("y"))
+        b = alloc_buffer("Point : ");
+        val_buffer(b,x);
+        buffer_append(b," , ");
+        val_buffer(b,y);
+        return buffer_to_string(b);
+    }
+
+    value make_point( value x, value y ) {
+        value f = alloc_function(point_to_string,0);
+        ....
+        alloc_field(o,val_id("__string"),f);
+        return o;
+    }
+</pre>
+
+<p>
+	Let's see a little what is done here :
+</p>
+
+<p>
+	In <code>make_point</code> we are setting the field <code>__string</code> of the object <code>o</code> to a value function allocated with <code>alloc_function</code>, which takes two parameters : the address of the C function and the number of parameters.
+</p>
+
+<p>
+	In <code>point_to_string</code> we are first retreiving <code>val_this()</code> which is the current <code>this</code> value. Since it might not be an object, we test it first before accessing its fields <code>x</code> and <code>y</code>. Then we want to construct the string <code>Point : x , y</code> with values of <code>x</code> and <code>y</code>, we're using for this a <code>buffer</code> (see Buffers).
+</p>
+
 <!-- ****************************************************************************** -->
 
-<h2>Callbacks</h2>
+<h2>Function Callbacks</h2>
 
 <!-- ****************************************************************************** -->
 
+<h2>Abstracts and Kinds</h2>
+
+<!-- ****************************************************************************** -->
 <h2>Managing Memory</h2>
 
 <!-- ****************************************************************************** -->
