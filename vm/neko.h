@@ -87,9 +87,10 @@ typedef struct {
 #define val_is_object(v)	(!val_is_int(v) && val_tag(v) == VAL_OBJECT)
 #define val_is_array(v)		(!val_is_int(v) && (val_tag(v)&7) == VAL_ARRAY)
 #define val_is_abstract(v)  (!val_is_int(v) && val_tag(v) == VAL_ABSTRACT)
-#define val_kind(v,t)		(val_is_abstract(v) && ((vabstract*)v)->kind == (t))
-#define val_check_kind(v,t)	if( !val_kind(v,t) ) return val_null;
+#define val_is_kind(v,t)	(val_is_abstract(v) && val_kind(v) == (t))
+#define val_check_kind(v,t)	if( !val_is_kind(v,t) ) return val_null;
 #define val_data(v)			((vabstract*)v)->data
+#define val_kind(v)			((vabstract*)v)->kind
 
 #define val_type(v)			(val_is_int(v) ? VAL_INT : (val_tag(v)&7))
 #define val_int(v)			(((int)(v)) >> 1)
