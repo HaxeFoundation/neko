@@ -331,6 +331,8 @@ typedef struct _liblist {
 	struct _liblist *next;
 } liblist;
 
+typedef value (*PRIM0)();
+
 EXTERN void *neko_default_load_primitive( const char *prim, int nargs, void **custom ) {
 	char buf[100];
 	char *pos = strchr(prim,'@');
