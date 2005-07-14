@@ -142,6 +142,8 @@ static void __on_finalize(value v, void *f ) {
 }
 
 EXTERN void val_gc(value v, finalizer f ) {
+	if( !val_is_abstract(v) )
+		return;
 	if( f )
 		GC_register_finalizer(v,(GC_finalization_proc)__on_finalize,f,0,0);
 	else
