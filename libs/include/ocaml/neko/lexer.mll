@@ -114,8 +114,6 @@ rule token = parse
 	| number+ '.' number*
 	| '.' number+ { mk lexbuf (Const (Float (lexeme lexbuf))) }
 	| '$' (ident as v) { mk lexbuf (Const (Builtin v)) }
-	| '#' (ident as v) { mk lexbuf (Const (Module v)) }
-	| '\'' (ident as v) { mk lexbuf (Const (Macro v)) }
 	| "true" { mk lexbuf (Const True) } 
 	| "false" { mk lexbuf (Const False) }
 	| "null" { mk lexbuf (Const Null) }

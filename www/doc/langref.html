@@ -42,7 +42,6 @@
 	<li><a href="#arrays">Arrays</a></li>
 	<li><a href="#strings">Strings</a></li>
 	<li><a href="#exceptions">Exceptions</a></li>
-	<li><a href="#macros">Macros</a></li>
 	<li><a href="#credits">Credits</a></li>
 </ul>
 
@@ -192,7 +191,6 @@ Values :
 <li><code><b>DOUBLEQUOTE</b> <i>characters</i> <b>DOUBLEQUOTE</b></code> : evaluate to the corresponding string. Escaped characters are simular to the C language.</li>
 <li><code><b>DOLLAR</b> <i>ident</i></code> : identifiers prefixed with a dollar are primitives. They enable you to call some compiler constructors or optimized calls (see Primitives).</li>
 <li><code><b>SHARP</b> <i>ident</i></code> : identifiers prefixed with a sharp are modules. See later for explanations of module loading and linking (see Modules).</li>
-<li><code><b>QUOTE</b> <i>ident</i></code> : execute a macro at parsing-time (see Macros)</li>
 <li><code><b>true</b> | <b>false</b></code> : evaluate to the corresponding boolean.</li>
 <li><code><b>null</b></code> : evaluate to the null value.</li>
 <li><code><b>this</b></code> : evaluate to the local object value (see later for objects).</li>
@@ -1291,83 +1289,6 @@ Exceptions are often referred as "non local jumps". It's a very good way for han
 <em>
 Being able to print the program stack when catching an exceptions or during execution is an interesting feature, very used in the Java language. Since this is more a Virtual Machine debugging feature than a language specification one, it will not be discussed here.
 </em>
-</p>
-
-<!-- ****************************************************************************** -->
-
-<a name="macros"></a>
-<h2>Macros</h2>
-
-<p>
-When you want to generate from another language to Neko, you might need some syntactic shortcuts for operations that are often used. For example let's imagine a language where the empty string evaluate to <code>false</code>, that means that in Neko for each test (if, while...) you will have to test for <code>true</code> and for the empty string. Macros enable you to do that easily :
-</p>
-
-<pre>
-	is_true = function(x) {
-		x &amp;&amp; x != ""
-	}
-	...
-	if( 'is_true(...) )
-		...
-</pre>
-
-<p>
-As you noticed, macro are function which are called with an preceding quote, that means that the macro will be expanded before even starting execution, so you will not call function is_true actually, but replace its contents by the corresponding expression. Let's see how it works :
-</p>
-
-<pre>
-	if( 'is_true(33) )
-</pre>
-
-<p>
-Will be turned into :
-</p>
-
-<pre>
-	if( { 33 &amp;&amp; 33 != "" } )
-</pre>
-
-<p>
-Please note that the last syntactic assignment of "is_true" is used as macro. That means that macros generation are not done at runtime and that the value of <code>is_true</code> at the time the <code>if</code> is evaluated will not change anything. Another thing, is that you have to be careful about macros, since in previous case 33 is evaluated twice, macro expansion can break some code :
-</p>
-
-<pre>
-	if( 'is_true(f(x)) )
-</pre>
-
-<p>
-Expands to :
-</p>
-
-<pre>
-	if( { f(x) &amp;&amp; f(x) != "" } )
-</pre>
-
-<p>
-Which is wrong, since we don't want to evaluate twice the expression, or call twice the function in this case. We need then to redefine the macro is_true this way :
-</p>
-
-<pre>
-	is_true = function(x) {
-		var tmp = x;
-		tmp &amp;&amp; tmp != ""
-	}
-</pre>
-
-<p>
-Now previous case correctly expands to :
-</p>
-
-<pre>
-	if( { var tmp = f(x); tmp &amp;&amp; tmp != "" } )
-</pre>
-
-<p>
-Please note that macros can't really define new variables since every macro expansion will be enclosed into curly braced block that will prevent them from escaping the scope.
-</p>
-
-<p>
-In such case, the naming of the variable <code>tmp</code> is not important, since we're evaluating f(x) before adding it to the scope, it can't then hide or replace an user define variable. But in some more complex macros that can be the case. Macro locals variables have then to be carefuly chosen. (<em>or maybe the Neko macro expander should rename macros local variables with unique name, which will guarantee that they will not break</em>).
 </p>
 
 <!-- ****************************************************************************** -->

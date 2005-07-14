@@ -15,8 +15,6 @@ type constant =
 	| String of string
 	| Builtin of string
 	| Ident of string
-	| Module of string
-	| Macro of string
 
 type keyword =
 	| Var
@@ -156,8 +154,6 @@ let s_constant = function
 	| String s -> "\"" ^ escape s ^ "\""
 	| Builtin s -> "$" ^ s
 	| Ident s -> s
-	| Module s -> "#" ^ s
-	| Macro s -> "'" ^ s
 
 let s_keyword = function
 	| Var -> "var"

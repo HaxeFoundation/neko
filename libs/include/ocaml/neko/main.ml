@@ -50,7 +50,6 @@ let interp file =
 let compile file =
 	let ch = open_file file in
 	let ast = Parser.parse (Lexing.from_channel ch) file in
-	let ast = Parser.expand ast in
 	close_in ch;
 	let data = Compile.compile file ast in
 	let file = switch_ext file ".n" in

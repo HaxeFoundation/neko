@@ -139,8 +139,6 @@ let compile_constant ctx c p =
 	| Float f -> write ctx (AccGlobal (global ctx (GlobalFloat f)))
 	| String s -> write ctx (AccGlobal (global ctx (GlobalString s)))
 	| Builtin s -> write ctx (AccBuiltin s)
-	| Module s -> assert false
-	| Macro _ -> error (Custom "Ast was not macro-expanded") p
 	| Ident s ->
 		try
 			let e = PMap.find s ctx.env in
