@@ -164,14 +164,6 @@ typedef struct {
 #	define DECLARE_KIND(name) C_FUNCTION_BEGIN EXPORT extern vkind name; C_FUNCTION_END
 #endif
 
-typedef value (*PRIM0)();
-typedef value (*PRIM1)( value v );
-typedef value (*PRIM2)( value v1, value v2 );
-
-#define CALL_PRIM(func) ((PRIM0)func##__0())()
-#define CALL_PRIM1(func,v) ((PRIM1)func##__1())(v)
-#define CALL_PRIM2(func,v1,v2) ((PRIM2)func##__2())(v1,v2)
-
 #define alloc_float			neko_alloc_float
 #define alloc_string		neko_alloc_string
 #define alloc_empty_string	neko_alloc_empty_string
