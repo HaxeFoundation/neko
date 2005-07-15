@@ -1,0 +1,18 @@
+Sql = $new(null);
+sql_connect = $loader.loadprim("mysql@connect",1);
+
+Sql.connect = function(params) {
+	var c = sql_connect(params);
+	if( c == null )
+		return null;
+	var s = $new(@Connection);
+	s.@c = c;
+	return s;
+}
+
+@Connection = $new(null);
+@Connection.@c = null;
+
+// methods
+
+$exports.Sql = Sql;
