@@ -119,12 +119,22 @@ EXTERN value val_call2( value f, value v1, value v2 ) {
 	return val_callN(f,args,2);
 }
 
+EXTERN value val_call3( value f, value arg1, value arg2, value arg3 ) {
+	value args[3] = { arg1, arg2, arg3 };
+	return val_callN(f,args,3);
+}
+
 EXTERN value val_ocall0( value o, field f ) {
 	return val_ocallN(o,f,NULL,0);
 }
 
 EXTERN value val_ocall1( value o, field f, value arg ) {
 	return val_ocallN(o,f,&arg,1);
+}
+
+EXTERN value val_ocall2( value o, field f, value arg1, value arg2 ) {
+	value args[2] = { arg1, arg2 };
+	return val_ocallN(o,f,args,2);
 }
 
 EXTERN value val_this() {

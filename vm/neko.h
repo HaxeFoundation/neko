@@ -99,6 +99,8 @@ typedef struct {
 #define val_number(v)		(val_is_int(v)?val_int(v):val_float(v))
 #define val_string(v)		(&((vstring*)(v))->c)
 #define val_strlen(v)		(val_tag(v) >> 3)
+#define val_set_length(v,l) val_tag(v) = (val_tag(v)&7) | ((l) << 3)
+#define val_set_size		val_set_length
 
 #define val_array_size(v)	(val_tag(v) >> 3)
 #define val_array_ptr(v)	(&((varray*)(v))->ptr)
@@ -222,9 +224,11 @@ C_FUNCTION_BEGIN
 	EXTERN value val_call0( value f );
 	EXTERN value val_call1( value f, value arg );
 	EXTERN value val_call2( value f, value arg1, value arg2 );
+	EXTERN value val_call3( value f, value arg1, value arg2, value arg3 );
 	EXTERN value val_callN( value f, value *args, int nargs );
 	EXTERN value val_ocall0( value o, field f );
 	EXTERN value val_ocall1( value o, field f, value arg );
+	EXTERN value val_ocall2( value o, field f, value arg1, value arg2 );
 	EXTERN value val_ocallN( value o, field f, value *args, int nargs );
 	EXTERN value val_callEx( value this, value f, value *args, int nargs, value *exc );
 
