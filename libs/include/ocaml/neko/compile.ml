@@ -147,6 +147,7 @@ let compile_constant ctx c p =
 			let l = PMap.find s ctx.locals in
 			if l < ctx.limit then begin
 				let e = ctx.nenv in
+				ctx.nenv <- ctx.nenv + 1;
 				ctx.env <- PMap.add s e ctx.env;
 				write ctx (AccEnv e);
 			end else
@@ -168,6 +169,7 @@ let rec compile_binop ctx op e1 e2 p =
 				let l = PMap.find s ctx.locals in
 				if l < ctx.limit then begin
 					let e = ctx.nenv in
+					ctx.nenv <- ctx.nenv + 1;
 					ctx.env <- PMap.add s e ctx.env;
 					write ctx (SetEnv e);
 				end else
@@ -266,7 +268,7 @@ and compile_function ctx params e =
 		PMap.iter (fun v i -> a.(i) <- v) ctx.env;
 		Array.iter (fun v ->
 			let l = (try PMap.find v ctx.locals with Not_found -> assert false) in
-			write ctx (AccStack (pos ctx - l));
+			write ctx (AccStack (ctx.stack - l));
 			write ctx Push;
 		) a;
 		write ctx (AccGlobal gid);
