@@ -50,8 +50,6 @@ static value builtin_amake( value size ) {
 		return NULL;
 	s = val_int(size);
 	a = alloc_array(s);
-	if( val_is_null(a) )
-		return val_null;
 	for(i=0;i<s;i++)
 		val_array_ptr(a)[i] = val_null;
 	return a;
