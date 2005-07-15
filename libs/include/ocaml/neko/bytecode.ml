@@ -384,9 +384,10 @@ let dump ch (globals,ops) =
 	) ids;
 	IO.printf ch "CODE =\n";
 	let str s i = s ^ " " ^ string_of_int i in
+	let bpos = ref 0 in
 	Array.iteri (fun pos op ->
 		if marks.(pos) then IO.write ch '\n';
-		IO.printf ch "%6d    %s\n" pos (match op with
+		IO.printf ch "%.6X %6d    %s\n" (!bpos) pos (match op with
 			| AccNull -> "AccNull"
 			| AccTrue -> "AccTrue"
 			| AccFalse -> "AccFalse"
@@ -434,7 +435,8 @@ let dump ch (globals,ops) =
 			| Gte -> "Gte"
 			| Lt -> "Lt"
 			| Lte -> "Lte"
-		)
+		);
+		bpos := !bpos + if op_param op then 2 else 1;
 	) ops;
 	IO.printf ch "END\n"
 
