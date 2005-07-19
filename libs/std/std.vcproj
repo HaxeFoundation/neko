@@ -132,6 +132,9 @@
 			RelativePath=".\random.c">
 		</File>
 		<File
+			RelativePath=".\serialize.c">
+		</File>
+		<File
 			RelativePath=".\socket.c">
 		</File>
 		<File
