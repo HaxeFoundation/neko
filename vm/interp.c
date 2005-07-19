@@ -118,20 +118,26 @@ typedef int (*c_primN)(value*,int);
 		while( tmp-- > 0 ) \
 			*sp++ = NULL;
 
+#define BeginCall() \
+		vm->sp = sp; \
+		vm->csp = csp;
+
+#define EndCall() \
+		sp = vm->sp; \
+		csp = vm->csp
+
 #define SetupBeforeCall(this_arg) \
 		value old_this = vm->this; \
 		value old_env = vm->env; \
 		vm->this = this_arg; \
 		vm->env = ((vfunction*)acc)->env; \
-		vm->sp = sp; \
-		vm->csp = csp;
+		BeginCall(); \
 
 #define RestoreAfterCall() \
 		if( acc == NULL ) acc = (int)val_null; \
-		sp = vm->sp; \
-		csp = vm->csp; \
 		vm->env = old_env; \
-		vm->this = old_this;
+		vm->this = old_this; \
+		EndCall();
 
 #define DoCall(this_arg) \
 		if( acc & 1 ) { \
@@ -202,7 +208,9 @@ typedef int (*c_primN)(value*,int);
 
 #define Test(test) \
 		Error( sp == vm->spmax , UNDERFLOW ); \
+		BeginCall(); \
 		acc = (int)val_compare((value)*sp,(value)acc); \
+		EndCall(); \
 		*sp++ = NULL; \
 		acc = (int)((acc test 0 && acc != invalid_comparison)?val_true:val_false); \
 		Next
@@ -232,8 +240,11 @@ typedef int (*c_primN)(value*,int);
 		*sp++ = NULL; \
 		Next;
 
-#define ObjectOp(obj,param,id) \
-		acc = (int)val_ocall1((value)obj,id,(value)param);
+#define ObjectOp(obj,param,id) { \
+		BeginCall(); \
+		acc = (int)val_ocall1((value)obj,id,(value)param); \
+		EndCall(); \
+	}
 
 #define AppendString(str,fmt,x,way) { \
 		int len, len2; \
@@ -539,8 +550,10 @@ value neko_interp( neko_vm *vm, register int acc, register int *pc, value env ) 
 			acc = (int)v;
 		} else if( tmp == VAL_STRING || (val_tag(*sp)&7) == VAL_STRING ) {
 			buffer b = alloc_buffer(NULL);
+			BeginCall();
 			val_buffer(b,(value)*sp);
 			val_buffer(b,(value)acc);
+			EndCall();
 			acc = (int)buffer_to_string(b);
 		} else if( tmp == VAL_OBJECT )
 			ObjectOp(acc,*sp,id_preadd)
@@ -591,7 +604,9 @@ value neko_interp( neko_vm *vm, register int acc, register int *pc, value env ) 
 		Test(==)
 	Instr(Neq)
 		Error( sp == vm->spmax , UNDERFLOW );
+		BeginCall();
 		acc = (int)((val_compare((value)*sp,(value)acc) == 0)?val_false:val_true);
+		EndCall();
 		*sp++ = NULL;
 		Next
 	Instr(Lt)
