@@ -153,8 +153,8 @@ and string = parse
 	| eof { raise Exit }
 	| '\r' { string lexbuf }
 	| '\n' { newline lexbuf; store lexbuf; string lexbuf }
-	| "\\\"" { store lexbuf; string lexbuf }
-	| "\\\\" { store lexbuf; string lexbuf }
+	| "\\\"" { add "\""; string lexbuf }
+	| "\\\\" { add "\\"; string lexbuf }
 	| "\\n" { add "\n"; string lexbuf }
 	| "\\t" { add "\t"; string lexbuf }
 	| "\\r" { add "\r"; string lexbuf }
