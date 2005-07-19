@@ -221,6 +221,10 @@ EXTERN value val_field( value o, field id ) {
 	return *f;
 }
 
+EXTERN void iter_fields( value o, void f( value , field, void * ) , void *p ) {
+	otable_iter( ((vobject*)o)->table, f, p );
+}
+
 EXTERN void val_print( value v ) {
 	if( !val_is_string(v) ) {
 		buffer b = alloc_buffer(NULL);
