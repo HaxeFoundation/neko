@@ -2,7 +2,6 @@
 #include <time.h>
 #include <stdio.h>
 #include <memory.h>
-#include <locale.h>
 
 DEFINE_KIND(k_date);
 
@@ -143,12 +142,6 @@ static value date_sub( value o, value d ) {
 	return r;
 }
 
-static value set_locale(l) {
-	if( !val_is_string(l) )
-		return val_null;
-	return alloc_bool(setlocale(LC_TIME,val_string(l)) != NULL);
-}
-
 DEFINE_PRIM(date_now,0);
 DEFINE_PRIM(date_new,1);
 DEFINE_PRIM(date_format,2);
@@ -158,5 +151,3 @@ DEFINE_PRIM(date_get_time,1);
 DEFINE_PRIM(date_get_day,1);
 DEFINE_PRIM(date_compare,2);
 DEFINE_PRIM(date_sub,2);
-DEFINE_PRIM(set_locale,1);
-
