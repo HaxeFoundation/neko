@@ -1,5 +1,6 @@
 #include <neko.h>
 #include <string.h>
+#include <locale.h>
 
 static value string_split( value o, value s ) {
 	value l, first;
@@ -40,4 +41,11 @@ static value string_split( value o, value s ) {
 	return first;
 }
 
+static value set_locale(l) {
+	if( !val_is_string(l) )
+		return val_null;
+	return alloc_bool(setlocale(LC_TIME,val_string(l)) != NULL);
+}
+
 DEFINE_PRIM(string_split,2);
+DEFINE_PRIM(set_locale,1);
