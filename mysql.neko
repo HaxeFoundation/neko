@@ -1,8 +1,31 @@
-Sql = $new(null);
+Std = $loader.loadmodule("std",$loader);
+
+String = Std.String;
+List = Std.List;
+
 sql_connect = $loader.loadprim("mysql@connect",1);
+sql_select_db = $loader.loadprim("mysql@selectDB",2);
+sql_request = $loader.loadprim("mysql@request",2);
+sql_close = $loader.loadprim("mysql@close",1);
+
+result_get_length = $loader.loadprim("mysql@result_get_length",1);
+result_get_nfields = $loader.loadprim("mysql@result_get_nfields",1);
+result_next = $loader.loadprim("mysql@result_next",1);
+result_get = $loader.loadprim("mysql@result_get",2);
+result_get_int = $loader.loadprim("mysql@result_get_int",2);
+result_get_float = $loader.loadprim("mysql@result_get_float",2);
+
+Sql = $new(null);
 
 Sql.connect = function(params) {
-	var c = sql_connect(params);
+	$print("connect");
+	var o = $new(null);
+	o.host = params.host.@s;
+	o.port = params.port;
+	o.user = params.user.@s;
+	o.pass = params.pass.@s;
+	o.socket = params.socket.@s;
+	var c = sql_connect(o);
 	if( c == null )
 		return null;
 	var s = $new(@Connection);
@@ -13,6 +36,79 @@ Sql.connect = function(params) {
 @Connection = $new(null);
 @Connection.@c = null;
 
-// methods
+@Connection.selectDB = function(db) {
+	$print("selectDB "+db.@s);
+	return sql_select_db(this.@c,db.@s);
+}
+
+@Connection.request = function(s) {
+	$print("request "+s.@s);
+	var r = sql_request(this.@c,s.@s);
+	if( r == null )
+		return null;
+	var o = $new(@Result);
+	o.@r = r;
+	return o;
+}
+
+@Connection.close = function() {
+	$print("close");
+	sql_close(this.@c);
+}
+
+@Result = $new(null);
+@Result.@r = null;
+@Result.current = null;
+
+@Result.get_length = function() {
+	return result_get_length(this.@r);
+}
+
+@Result.get_nfields = function() {
+	return result_get_nfields(this.@r);
+}
+
+@Result.next = function() {
+	var c = result_next(this.@r);
+	this.current = c;
+	if( c == null )
+		return false;
+	var f = $objfields(c);
+	var i = 0;
+	var l = $asize(f);
+	while( i < l ) {
+		var fname = $field(f[i]);
+		var v = $objget(c,fname);
+		if( $typeof(v) == 4 )
+			$objset(c,fname,String.new(v));
+		i = i + 1;
+	}
+	return true;
+}
+
+@Result.getResult = function(n) {
+	return String.new(result_get(this.@r,n));
+}
+
+@Result.getIntResult = function(n) {
+	return result_get_int(this.@r,n);
+}
+
+@Result.getFloatResult = function(n) {
+	return result_get_float(this.@r,n);
+}
+
+@Result.results = function() {
+	var l = List.new();
+	var r = this.@r;
+	this.current = null;
+	do {
+		var c = result_next(r);
+		if( c == null )
+			break;
+		l.add(c);
+	} while( true );
+	return l;
+}
 
 $exports.Sql = Sql;
