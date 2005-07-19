@@ -304,10 +304,89 @@ $exports.Array = Array;
 Hash = $new(null);
 
 Hash.new = function() {
-	$throw("Hash.new");
+	var o = $new(@Hash);
+	o.@h = $amake(64);
+	return o;
 }
 
-//get,set,remove,exists,iter,toString
+@Hash = $new(null);
+@Hash.@h = null;
+@Hash.get = function(k) {
+	var l = this.@h[$field(k) & 63];
+	while( l != null ) {
+		if( l[0] == k )
+			return l[1];
+		l = l[2];
+	}
+	return null;
+}
+
+@Hash.set = function(k,v) {
+	var p = $field(k) & 63;
+	var l = this.@h[p];
+	while( l != null ) {
+		if( l[0] == k ) {
+			l[1] = v;
+			return;
+		}
+		l = l[2];
+	}
+	var h = $amake(3);
+	h[0] = k;
+	h[1] = v;
+	h[2] = this.@h[p];
+	this.@h[p] = h;
+}
+
+@Hash.remove = function(k) {
+	var p = $field(k) & 63;
+	var prev = null;
+	var l = this.@h[p];
+	while( l != null ) {
+		if( l[0] == k ) {
+			if( prev == null )
+				this.@h[p] = l[2];
+			else
+				prev[2] = l[2];
+			return true;
+		}
+		prev = l;
+		l = l[2];
+	}
+	return false;
+}
+
+@Hash.exists = function(k) {
+	var l = this.@h[$field(k) & 63];
+	while( l != null ) {
+		if( l[0] == k )
+			return true;
+		l = l[2];
+	}
+	return false;
+}
+
+@Hash.iter = function(f) {
+	var i = 0;
+	while( i < 64 ) {
+		var l = this.@h[i];
+		while( l != null ) {
+			f(l[0],l[1]);
+			l = l[2];
+		}
+		i = i + 1;
+	}
+}
+
+@Hash.toString = function() {
+	return String.new(this.__string());
+}
+
+@Hash.__string = function() {
+	return "#hash";
+}
+
+$exports.Hash = Hash;
 
 // ----------------------------------------------------------------------
 // Stringbuf
@@ -332,6 +411,8 @@ StringBuf.new = function() {
 @StringBuf.toString = function() {
 	return String.new(this.__string());
 }
+
+$exports.StringBuf = StringBuf;
 
 // ----------------------------------------------------------------------
 // String
@@ -479,6 +560,15 @@ parse_xml = $loader.loadprim("std@parse_xml",3);
 
 fxml = function(parent,name,att) {
 	var o = $new(@Xml);
+	var f = $objfields(att);
+
+	var i = 0;
+	var l = $asize(f);
+	while( i < l ) {
+		var fname = $field(f[i]);
+		$objset(att,fname, String.new($objget(att,fname)) );
+		i = i + 1;
+	}
 	o.att = att;
 	o.text = String.new("");
 	o.node = String.new(name);
@@ -688,8 +778,14 @@ Random.new = function() {
 
 @Random.random = @Random.int;
 
+$exports.Random = Random;
+
 // ----------------------------------------------------------------------
 // Std
+
+set_locale = $loader.loadprim("std@set_locale",1);
+serialize = $loader.loadprim("std@serialize",1);
+unserialize = $loader.loadprim("std@unserialize",1);
 
 Std = $new(null);
 Std.print = $print;
@@ -707,10 +803,6 @@ Std.fieldCall = function(o,id,params) {
 	return $objcall(o,id,params.@a);
 }
 
-Std.field = function(o,f) {
-	return $objget(o,f);
-}
-
 Std.fields = function(o) {
 	var a = $objfields(o);
 	var l = $asize(a);
@@ -723,6 +815,14 @@ Std.fields = function(o) {
 	return li;
 }
 
+Std.setField = function(o,f,v) {
+	$objset(o,$field(f),v);
+}
+
+Std.field = function(o,f) {
+	return $objget(o,$field(f));
+}
+
 std_rnd = random_new();
 
 Std.random = function(m) {
@@ -733,6 +833,30 @@ Std.rnd = function() {
 	return random_float(std_rnd);
 }
 
-Std.setField = $objset;
+Std.setLocale = function(l) {
+	return set_locale(l.@s);
+}
+
+Std.system = function(cmd) {
+	$throw("Std.system");
+}
+
+Std.abort = function() {
+	$throw("aborted");
+}
+
+Std.serialize = function(o) {
+	return String.new(serialize(o));
+}
+
+Std.unserialize = function(s) {
+	return unserialize(s.@s);
+}
+
+Std.setMain = function(l) {
+	$throw("Std.setMain");
+}
 
 $exports.Std = Std;
+
+// ----------------------------------------------------------------------
