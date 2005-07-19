@@ -1,0 +1,47 @@
+
+Std = $loader.loadmodule("std",$loader);
+String = Std.String;
+
+regexp_new = $loader.loadprim("regexp@regexp_new",1);
+regexp_match = $loader.loadprim("regexp@regexp_match",2);
+regexp_exact_match = $loader.loadprim("regexp@regexp_exact_match",2);
+regexp_replace = $loader.loadprim("regexp@regexp_replace",3);
+regexp_replace_all = $loader.loadprim("regexp@regexp_replace_all",3);
+regexp_matched = $loader.loadprim("regexp@regexp_matched",2);
+regexp_matched_pos = $loader.loadprim("regexp@regexp_matched_pos",2);
+Regexp = $new(null);
+
+Regexp.new = function(s) {
+	var o = $new(@Regexp);
+	o.@r = regexp_new(s.@s);
+	return o;
+}
+
+@Regexp = $new(null);
+@Regexp.@r = null;
+
+@Regexp.match = function(s) {
+	return regexp_match(this.@r,s.@s);
+}
+
+@Regexp.exactMatch = function(s) {
+	return regexp_exact_match(this.@r,s.@s);
+}
+
+@Regexp.matched = function(n) {
+	return String.new(regexp_matched(this.@r,n));
+}
+
+@Regexp.matchedPos = function(n) {
+	return regexp_matched_pos(this.@r,n);
+}
+
+@Regexp.replace = function(s,s2) {
+	return String.new(regexp_replace(this.@r,s.@s,s2.@s));
+}
+
+@Regexp.replace_all = function(s,s2) {
+	return String.new(regexp_replace_all(this.@r,s.@s,s2.@s));
+}
+
+$exports.Regexp = Regexp;
