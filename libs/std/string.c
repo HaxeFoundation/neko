@@ -1,6 +1,14 @@
 #include <neko.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <locale.h>
+
+#ifdef _WIN32
+#	include <direct.h>
+#else
+#	include <unistd.h>
+#endif
 
 static value string_split( value o, value s ) {
 	value l, first;
@@ -47,5 +55,11 @@ static value set_locale(l) {
 	return alloc_bool(setlocale(LC_TIME,val_string(l)) != NULL);
 }
 
+static value get_cwd() {
+	char buf[256];
+	return alloc_string(getcwd(buf,256));
+}
+
 DEFINE_PRIM(string_split,2);
 DEFINE_PRIM(set_locale,1);
+DEFINE_PRIM(get_cwd,0);
