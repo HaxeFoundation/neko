@@ -386,13 +386,27 @@ Hash.new = function() {
 }
 
 @Hash.__string = function() {
-	return "#hash";
+	var s = StringBuf.new();
+	var i = 0;
+	s.add("#hash[");
+	while( i < 64 ) {
+		var h = this.@h[i];
+		while( h != null ) {
+			s.add(h[0]);
+			s.add(" => ");
+			s.add(h[1]);
+			h = h[2];
+		}
+		i = i + 1;
+	}
+	s.add("]");
+	return s.__string();
 }
 
 $exports.Hash = Hash;
 
 // ----------------------------------------------------------------------
-// Stringbuf
+// StringBuf
 
 StringBuf = $new(null);
 
@@ -787,7 +801,7 @@ $exports.Random = Random;
 
 set_locale = $loader.loadprim("std@set_locale",1);
 serialize = $loader.loadprim("std@serialize",1);
-unserialize = $loader.loadprim("std@unserialize",1);
+unserialize = $loader.loadprim("std@unserialize",2);
 
 Std = $new(null);
 Std.print = $print;
@@ -852,7 +866,7 @@ Std.serialize = function(o) {
 }
 
 Std.unserialize = function(s) {
-	return unserialize(s.@s);
+	return unserialize(s.@s,$loader);
 }
 
 Std.setMain = function(l) {
