@@ -25,6 +25,9 @@ typedef struct {
 	int totlen;
 } sbuffer;
 
+extern field id_mod;
+extern field id_loadmodule;
+
 static void buffer_alloc( sbuffer *b, int size ) {
 	strlist *str = (strlist*)alloc(sizeof(strlist));
 	str->str = b->cur;
@@ -170,6 +173,9 @@ void serialize_rec( sbuffer *b, value o ) {
 				val_throw(alloc_string("Cannot Serialize Primitive"));			
 			write_char(b,'L');
 			m = (neko_module*)((vfunction*)o)->module;
+			serialize_rec(b,m->name);
+			write_int(b,(int*)((vfunction*)o)->addr - m->code);
+			write_int(b,((vfunction*)o)->nargs);
 			serialize_rec(b,((vfunction*)o)->env);
 		}
 		break;
@@ -212,7 +218,7 @@ static value serialize( value o ) {
 	return v;
 }
 
-static value unserialize_rec( sbuffer *b ) {
+static value unserialize_rec( sbuffer *b, value loader ) {
 	switch( read_char(b) ) {
 	case 'N':
 		return val_null;
@@ -247,7 +253,7 @@ static value unserialize_rec( sbuffer *b ) {
 			value o = alloc_object(NULL);
 			add_ref(b,o);
 			while( (f = read_int(b)) != 0 ) {
-				value fval = unserialize_rec(b);
+				value fval = unserialize_rec(b,loader);
 				alloc_field(o,(field)f,fval);
 			}
 			return o;
@@ -280,16 +286,58 @@ static value unserialize_rec( sbuffer *b ) {
 			t = val_array_ptr(o);
 			add_ref(b,o);
 			for(i=0;i<n;i++)
-				t[i] = unserialize_rec(b);
+				t[i] = unserialize_rec(b,loader);
 			return o;
 
 		}
 	case 'L':
 		{
-			value env = unserialize_rec(b);
-			if( !val_is_array(env) ) {
+			value mname = unserialize_rec(b,loader);
+			int pos = read_int(b);
+			int nargs = read_int(b);
+			value env = unserialize_rec(b,loader);
+			if( !val_is_string(mname) || !val_is_array(env) ) {
 				b->error = true;
 				return NULL;
+			}
+			{
+				value exp = val_ocall2(loader,id_loadmodule,mname,loader);
+				value mval;
+				unsigned int i;
+				int *mpos;
+				neko_module *m;
+				if( !val_is_object(exp) ) {
+					buffer b = alloc_buffer("module ");
+					val_buffer(b,mname);
+					buffer_append(b," is not an object");
+					val_throw(buffer_to_string(b));
+				}
+				mval = val_field(exp,id_mod);
+				if( !val_is_kind(mval,k_module) ) {
+					buffer b = alloc_buffer("module ");
+					val_buffer(b,mname);
+					buffer_append(b," have invalid type");
+					val_throw(buffer_to_string(b));
+				}
+				m = (neko_module*)val_data(mval);
+				mpos = m->code + pos;
+				for(i=0;i<m->nglobals;i++) {
+					vfunction *g = (vfunction*)m->globals[i];
+					if( val_is_function(g) && g->addr == mpos && g->module == m && g->nargs == nargs ) {						
+						vfunction *f = (vfunction*)alloc_function(mpos,nargs);
+						f->t = VAL_FUNCTION;
+						f->env = env;
+						f->module = m;
+						add_ref(b,(value)f);
+						return (value)f;
+					}
+				}
+				{
+					buffer b = alloc_buffer("module ");
+					val_buffer(b,mname);
+					buffer_append(b," have been modified");
+					val_throw(buffer_to_string(b));
+				}
 			}
 			return val_null;
 		}
@@ -299,7 +347,7 @@ static value unserialize_rec( sbuffer *b ) {
 	}
 }
 
-static value unserialize( value s ) {
+static value unserialize( value s, value loader ) {
 	value v;
 	sbuffer b;
 	if( !val_is_string(s) )
@@ -311,11 +359,11 @@ static value unserialize( value s ) {
 	b.refs = NULL;
 	b.size = val_strlen(s);
 	b.totlen = 0;
-	v = unserialize_rec(&b);
+	v = unserialize_rec(&b,loader);
 	if( b.error )
 		return NULL;
 	return v;
 }
 
 DEFINE_PRIM(serialize,1);
-DEFINE_PRIM(unserialize,1);
+DEFINE_PRIM(unserialize,2);
