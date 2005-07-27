@@ -44,7 +44,6 @@ Cgi.getURI = function() {
 }
 
 Cgi.redirect = function(s) {
-	$throw("<br><br><br>redirect:"+s);
 	redirect(s.@s);
 }
 
@@ -66,9 +65,11 @@ Cgi.getPostData = function() {
 
 Cgi.getParams = function() {
 	var h = Hash.new();
+	var o = $new(null);
 	var p = get_params();
 	while( p != null ) {
-		h.set(p[0],p[1]);
+		o.@s = p[0];
+		h.set(o,String.new(p[1]));
 		p = p[2];
 	}
 	return h;
@@ -76,9 +77,11 @@ Cgi.getParams = function() {
 
 Cgi.getCookies = function() {
 	var h = Hash.new();
+	var o = $new(null);
 	var p = get_cookies();
 	while( p != null ) {
-		h.set(p[0],p[1]);
+		o.@s = p[0];
+		h.set(o,String.new(p[1]));
 		p = p[2];
 	}
 	return h;
