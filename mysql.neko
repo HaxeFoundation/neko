@@ -1,7 +1,8 @@
-Std = $loader.loadmodule("std",$loader);
+std = $loader.loadmodule("std",$loader);
 
-String = Std.String;
-List = Std.List;
+Std = std.Std;
+String = std.String;
+List = std.List;
 
 sql_connect = $loader.loadprim("mysql@connect",1);
 sql_select_db = $loader.loadprim("mysql@selectDB",2);
@@ -96,14 +97,8 @@ Sql.connect = function(params) {
 
 @Result.results = function() {
 	var l = List.new();
-	var r = this.@r;
-	this.current = null;
-	do {
-		var c = result_next(r);
-		if( c == null )
-			break;
-		l.add(c);
-	} while( true );
+	while( this.next() )
+		l.add(this.current);
 	return l;
 }
 
