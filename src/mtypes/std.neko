@@ -30,7 +30,6 @@ List.new = function() {
 @List.push = function(x) {
 	var a = $array(x,this.h);
 	this.h = a;
-
 	if( this.q == null )
 		this.q = a;
 	this.l = this.l + 1;
@@ -110,7 +109,7 @@ list_at = function(cur,p) {
 @List.exists = function(f) {
 	var p = this.h;
 	while( p != null ) {
-		if( f(p[0]) != null )
+		if( f(p[0]) )
 			return true;
 		p = p[1];
 	}
@@ -312,7 +311,8 @@ Hash.new = function() {
 @Hash = $new(null);
 @Hash.@h = null;
 @Hash.get = function(k) {
-	var l = this.@h[$field(k) & 63];
+	k = k.@s;
+	var l = this.@h[$hash(k) & 63];
 	while( l != null ) {
 		if( l[0] == k )
 			return l[1];
@@ -322,7 +322,8 @@ Hash.new = function() {
 }
 
 @Hash.set = function(k,v) {
-	var p = $field(k) & 63;
+	k = k.@s;
+	var p = $hash(k) & 63;
 	var l = this.@h[p];
 	while( l != null ) {
 		if( l[0] == k ) {
@@ -339,7 +340,8 @@ Hash.new = function() {
 }
 
 @Hash.remove = function(k) {
-	var p = $field(k) & 63;
+	k = k.@s;
+	var p = $hash(k) & 63;
 	var prev = null;
 	var l = this.@h[p];
 	while( l != null ) {
@@ -357,7 +359,8 @@ Hash.new = function() {
 }
 
 @Hash.exists = function(k) {
-	var l = this.@h[$field(k) & 63];
+	k = k.@s;
+	var l = this.@h[$hash(k) & 63];
 	while( l != null ) {
 		if( l[0] == k )
 			return true;
@@ -371,7 +374,7 @@ Hash.new = function() {
 	while( i < 64 ) {
 		var l = this.@h[i];
 		while( l != null ) {
-			f(l[0],l[1]);
+			f(String.new(l[0]),l[1]);
 			l = l[2];
 		}
 		i = i + 1;
@@ -449,6 +452,8 @@ String.new = function(s) {
 }
 
 @String.sub = function(s,l) {
+	if( l == null )
+		l = $ssize(this.@s) - s;
 	return String.new( $ssub(this.@s,s,l) );
 }
 
@@ -565,8 +570,7 @@ fxml = function(parent,name,att) {
 	var i = 0;
 	var l = $asize(f);
 	while( i < l ) {
-		var fname = $field(f[i]);
-		$objset(att,fname, String.new($objget(att,fname)) );
+		$objset(att,f[i], String.new($objget(att,f[i])) );
 		i = i + 1;
 	}
 	o.att = att;
@@ -668,9 +672,7 @@ $exports.Math = Math;
 // File
 
 getcwd = $new(null);
-getcwd.ref = function() {
-	return "d:\\prog\\shared\\dinoparc\\www\\";
-}
+getcwd.ref = $loader.loadprim("std@get_cwd",0);
 $exports.getcwd = getcwd;
 
 file_new = $loader.loadprim("std@file_new",2);
@@ -796,7 +798,7 @@ Std.int = function(s) {
 }
 
 Std.fieldId = function(s) {
-	return $field(s.@s);
+	return $hash(s.@s);
 }
 
 Std.fieldCall = function(o,id,params) {
@@ -816,11 +818,11 @@ Std.fields = function(o) {
 }
 
 Std.setField = function(o,f,v) {
-	$objset(o,$field(f),v);
+	$objset(o,$hash(f),v);
 }
 
 Std.field = function(o,f) {
-	return $objget(o,$field(f));
+	return $objget(o,$hash(f));
 }
 
 std_rnd = random_new();
