@@ -35,11 +35,11 @@ void neko_gc_init() {
 	GC_set_warn_proc(null_warn_proc);
 }
 
-void neko_gc_loop() {
+EXTERN void neko_gc_loop() {
 	GC_collect_a_little();
 }
 
-void neko_gc_major() {
+EXTERN void neko_gc_major() {
 	GC_gcollect();
 }
 
