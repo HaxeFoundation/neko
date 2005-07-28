@@ -145,7 +145,7 @@ let compile_constant ctx c p =
 			write ctx (AccEnv e);
 		with Not_found -> try
 			let l = PMap.find s ctx.locals in
-			if l < ctx.limit then begin
+			if l <= ctx.limit then begin
 				let e = ctx.nenv in
 				ctx.nenv <- ctx.nenv + 1;
 				ctx.env <- PMap.add s e ctx.env;
@@ -167,7 +167,7 @@ let rec compile_binop ctx op e1 e2 p =
 				write ctx (SetEnv e);
 			with Not_found -> try
 				let l = PMap.find s ctx.locals in
-				if l < ctx.limit then begin
+				if l <= ctx.limit then begin
 					let e = ctx.nenv in
 					ctx.nenv <- ctx.nenv + 1;
 					ctx.env <- PMap.add s e ctx.env;
