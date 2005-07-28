@@ -19,6 +19,7 @@ field id_exports;
 field id_add;
 field id_preadd;
 field id_data;
+field id_mod;
 
 void neko_init_fields() {
 	id_compare = val_id("__compare");
@@ -28,6 +29,7 @@ void neko_init_fields() {
 	id_loader = val_id("loader");
 	id_exports = val_id("exports");
 	id_data = val_id("__data");
+	id_mod = val_id("@m");
 }
 
 INLINE int icmp( int a, int b ) {
