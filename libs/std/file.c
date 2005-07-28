@@ -26,7 +26,7 @@ static value file_new( value cwd, value fname ) {
 	f = alloc_abstract(k_file, alloc(sizeof(fio)) );
 	io = val_data(f);
 	b = alloc_buffer(NULL);
-	if( *val_string(f) == '~' ) {
+	if( *val_string(fname) == '~' ) {
 #ifdef _WIN32
 		char buf[MAX_PATH];
 		GetTempPath(MAX_PATH,buf);

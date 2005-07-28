@@ -43,9 +43,11 @@ static value date_new( value s ) {
 			sscanf(val_string(s),"%4d-%2d-%2d",&t.tm_year,&t.tm_mon,&t.tm_mday);
 			break;
 		default:
-			val_print(alloc_string("Invalid date format : "));
-			val_print(s);
-			return NULL;
+			{
+				buffer b = alloc_buffer("Invalid date format : ");
+				val_buffer(b,s);
+				val_throw(buffer_to_string(b));
+			}
 		}
 		if( recal ) {
 			t.tm_year -= 1900;
@@ -71,7 +73,7 @@ static value date_format( value o, value fmt ) {
 	return alloc_string(buf);
 }
 
-static value date_set_time( value o, value h, value m, value s ) {
+static value date_set_hour( value o, value h, value m, value s ) {
 	struct tm *t;
 	val_check_kind(o,k_date);
 	if( !val_is_int(h) || !val_is_int(m) || !val_is_int(s) )
@@ -111,7 +113,7 @@ static value date_get_day( value o ) {
 	return r;
 }
 
-static value date_get_time( value o ) {
+static value date_get_hour( value o ) {
 	value r;
 	struct tm *t;
 	val_check_kind(o,k_date);
@@ -142,12 +144,46 @@ static value date_sub( value o, value d ) {
 	return r;
 }
 
+static value date_add( value o, value d ) {
+	value r;
+	val_check_kind(o,k_date);
+	val_check_kind(d,k_date);
+	r = alloc_abstract(k_date,alloc_private(sizeof(time_t)));	
+	*val_date(r) = *val_date(o) + *val_date(d);
+	return r;
+}
+
+static value date_delta( value o, value d ) {
+	val_check_kind(o,k_date);
+	if( !val_is_int(d) )
+		return val_null;	
+	*val_date(o) = *val_date(o) + val_int(d);
+	return val_true;
+}
+
+static value date_get_time( value o ) {
+	val_check_kind(o,k_date);
+	return alloc_int( (int)*val_date(o) );
+}
+
+static value date_set_time( value o, value v ) {
+	val_check_kind(o,k_date);
+	if( !val_is_int(v) )
+		return val_null;
+	*val_date(o) = (time_t)val_int(v);
+	return v;
+}
+
 DEFINE_PRIM(date_now,0);
 DEFINE_PRIM(date_new,1);
 DEFINE_PRIM(date_format,2);
-DEFINE_PRIM(date_set_time,4);
+DEFINE_PRIM(date_set_hour,4);
 DEFINE_PRIM(date_set_day,4);
-DEFINE_PRIM(date_get_time,1);
+DEFINE_PRIM(date_get_hour,1);
 DEFINE_PRIM(date_get_day,1);
 DEFINE_PRIM(date_compare,2);
 DEFINE_PRIM(date_sub,2);
+DEFINE_PRIM(date_add,2);
+DEFINE_PRIM(date_delta,2);
+DEFINE_PRIM(date_get_time,1);
+DEFINE_PRIM(date_set_time,2);

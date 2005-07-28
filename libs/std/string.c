@@ -57,9 +57,24 @@ static value set_locale(l) {
 
 static value get_cwd() {
 	char buf[256];
-	return alloc_string(getcwd(buf,256));
+	int l;
+	if( getcwd(buf,256) == NULL )
+		return val_null;
+	l = strlen(buf);
+	if( buf[l-1] != '/' && buf[l-1] != '\\' ) {
+		buf[l] = '/';
+		buf[l+1] = 0;
+	}
+	return alloc_string(buf);
+}
+
+static value sys_command( value cmd ) {
+	if( !val_is_string(cmd) || val_strlen(cmd) == 0 )
+		return val_null;
+	return alloc_int( system(val_string(cmd)) );
 }
 
 DEFINE_PRIM(string_split,2);
 DEFINE_PRIM(set_locale,1);
 DEFINE_PRIM(get_cwd,0);
+DEFINE_PRIM(sys_command,1);

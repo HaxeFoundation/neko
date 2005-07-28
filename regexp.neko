@@ -40,7 +40,7 @@ Regexp.new = function(s) {
 	return String.new(regexp_replace(this.@r,s.@s,s2.@s));
 }
 
-@Regexp.replace_all = function(s,s2) {
+@Regexp.replaceAll = function(s,s2) {
 	return String.new(regexp_replace_all(this.@r,s.@s,s2.@s));
 }
 

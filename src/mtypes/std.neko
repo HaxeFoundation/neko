@@ -225,7 +225,24 @@ Array.new1 = function(a) {
 }
 
 @Array.sort = function(f) {
-	$throw("Array.sort");
+	var a = this.@a;
+	var i = 0;
+	var l = $asize(a);
+	while( i < l ) {
+		var swap = false;
+		var j = 0;
+		var max = len - i - 1;
+		while( j < max ) {
+			if( f(a[j],a[j+1]) > 0 ) {
+				var tmp = a[j+1];
+				a[j+1] = a[j];
+				a[j] = tmp;
+				swap = true;
+			}
+		}
+		if( $not(swap) )
+			break;
+	}
 }
 
 @Array.iter = function(f) {
@@ -281,18 +298,17 @@ Array.new1 = function(a) {
 }
 
 @Array.__string = function() {
-	var i = 0;
+	return $string(this.@a);
+}
+
+@Array.set = function(p,v) {
 	var a = this.@a;
-	var l = $asize(a);
-	var b = StringBuf.new();
-	b.add("[");
-	while( i < l ) {
-		b.add(a[i]);
-		i = i + 1;
-		if( i != l )
-			b.add(",");
-	}
-	return b.__string();
+	if( $asize(a) > p )
+		return (a[p] = v);
+	var a2 = $amake(p+1);
+	$ablit(a2,0,a,0,$asize(a));
+	this.@a = a2;
+	return (a2[p] = v);
 }
 
 $exports.Array = Array;
@@ -388,10 +404,15 @@ Hash.new = function() {
 @Hash.__string = function() {
 	var s = StringBuf.new();
 	var i = 0;
+	var first = true;
 	s.add("#hash[");
 	while( i < 64 ) {
 		var h = this.@h[i];
 		while( h != null ) {
+			if( first )
+				first = false;
+			else
+				s.add(", ");
 			s.add(h[0]);
 			s.add(" => ");
 			s.add(h[1]);
@@ -509,13 +530,17 @@ $exports.String = String;
 
 date_new = $loader.loadprim("std@date_new",1);
 date_now = $loader.loadprim("std@date_now",0);
-date_set_time = $loader.loadprim("std@date_set_time",4);
+date_set_hour = $loader.loadprim("std@date_set_hour",4);
 date_set_day = $loader.loadprim("std@date_set_day",4);
-date_get_time = $loader.loadprim("std@date_get_time",1);
+date_get_hour = $loader.loadprim("std@date_get_hour",1);
 date_get_day = $loader.loadprim("std@date_get_day",1);
 date_format = $loader.loadprim("std@date_format",2);
 date_sub = $loader.loadprim("std@date_sub",2);
+date_add = $loader.loadprim("std@date_add",2);
+date_delta = $loader.loadprim("std@date_delta",2);
 date_compare = $loader.loadprim("std@date_compare",2);
+date_set_time = $loader.loadprim("std@date_set_time",2);
+date_get_time = $loader.loadprim("std@date_get_time",1);
 
 Date = $new(null);
 
@@ -535,7 +560,7 @@ Date.now = function() {
 @Date.@d = null;
 
 @Date.setTime = function(h,m,s) {
-	date_set_time(this.@d,h,m,s);
+	date_set_hour(this.@d,h,m,s);
 };
 
 @Date.setDay = function(y,m,d) {
@@ -543,7 +568,7 @@ Date.now = function() {
 }
 
 @Date.getTime = function() {
-	return date_get_time(this.@d);
+	return date_get_hour(this.@d);
 }
 
 @Date.getDay = function() {
@@ -558,6 +583,14 @@ Date.now = function() {
 	return Date.new(date_sub(this.@d,d.@d));
 }
 
+@Date.add = function(d) {
+	return Date.new(date_add(this.@d,d.@d));
+}
+
+@Date.delta = function(d) {
+	date_delta(this.@d,d);
+}
+
 @Date.compare = function(d) {
 	return date_compare(this.@d,d.@d);
 }
@@ -568,6 +601,14 @@ Date.now = function() {
 
 @Date.__string = function() {
 	return date_format(this.@d,null);
+}
+
+@Date.get_time = function() {
+	return date_get_time(this.@d);
+}
+
+@Date.set_time = function(t) {
+	return date_set_time(this.@d,t);
 }
 
 $exports.Date = Date;
@@ -802,6 +843,7 @@ $exports.Random = Random;
 set_locale = $loader.loadprim("std@set_locale",1);
 serialize = $loader.loadprim("std@serialize",1);
 unserialize = $loader.loadprim("std@unserialize",2);
+sys_command = $loader.loadprim("std@sys_command",1);
 
 Std = $new(null);
 Std.print = $print;
@@ -831,13 +873,8 @@ Std.fields = function(o) {
 	return li;
 }
 
-Std.setField = function(o,f,v) {
-	$objset(o,$hash(f),v);
-}
-
-Std.field = function(o,f) {
-	return $objget(o,$hash(f));
-}
+Std.setField = $objset;
+Std.field = $objget;
 
 std_rnd = random_new();
 
@@ -854,7 +891,7 @@ Std.setLocale = function(l) {
 }
 
 Std.system = function(cmd) {
-	$throw("Std.system");
+	return sys_command(cmd.@s);
 }
 
 Std.abort = function() {
@@ -866,11 +903,11 @@ Std.serialize = function(o) {
 }
 
 Std.unserialize = function(s) {
-	return unserialize(s.@s,$loader);
-}
-
-Std.setMain = function(l) {
-	$throw("Std.setMain");
+	try {
+		return unserialize(s.@s,$loader);
+	} catch e {
+		return null;
+	}
 }
 
 $exports.Std = Std;

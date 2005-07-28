@@ -237,7 +237,7 @@ static void free_connection( value o ) {
 	mysql_close(MYSQLDATA(o));
 }
 
-value connect( value params  ) {
+static value connect( value params  ) {
 	value host, port, user, pass, socket;
 	if( !val_is_object(params) )
 		return val_null;

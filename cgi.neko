@@ -1,6 +1,8 @@
-Std = $loader.loadmodule("std",$loader);
-String = Std.String;
-Hash = Std.Hash;
+std = $loader.loadmodule("std",$loader);
+String = std.String;
+Hash = std.Hash;
+
+std.Std.setMain = $loader.loadprim("mod_neko@cgi_set_main",1);
 
 get_host_name = $loader.loadprim("mod_neko@get_host_name",0);
 get_client_ip = $loader.loadprim("mod_neko@get_client_ip",0);
@@ -19,7 +21,7 @@ set_cookie = $loader.loadprim("mod_neko@set_cookie",2);
 url_encode = $loader.loadprim("mod_neko@url_encode",1);
 url_decode = $loader.loadprim("mod_neko@url_decode",1);
 
-Std.getcwd.ref = $loader.loadprim("mod_neko@cgi_get_cwd",0);
+std.getcwd.ref = $loader.loadprim("mod_neko@cgi_get_cwd",0);
 
 Cgi = $new(null);
 
@@ -48,7 +50,7 @@ Cgi.redirect = function(s) {
 }
 
 Cgi.header = function(k,v) {
-	header(k.@s,v.@s)
+	set_header(k.@s,v.@s)
 }
 
 Cgi.getClientHeader = function(s) {

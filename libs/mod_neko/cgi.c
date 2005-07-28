@@ -339,8 +339,15 @@ static value cgi_get_cwd() {
 	return v;
 }
 
-DEFINE_PRIM(cgi_get_cwd,0);
+static value cgi_set_main( value f ) {
+	if( !val_is_function(f) || (val_fun_nargs(f) != 1 && val_fun_nargs(f) != VAR_ARGS) )
+		return val_null;
+	CONTEXT()->main = f;
+	return val_true;
+}
 
+DEFINE_PRIM(cgi_get_cwd,0);
+DEFINE_PRIM(cgi_set_main,1);
 DEFINE_PRIM(get_cookies,0);
 DEFINE_PRIM(set_cookie,2);
 DEFINE_PRIM(get_content_type,0);
