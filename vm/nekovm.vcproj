@@ -69,7 +69,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;MTSVM_SOURCE"
-				RuntimeLibrary="4"
+				RuntimeLibrary="2"
 				BufferSecurityCheck="FALSE"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -79,9 +79,10 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="..\neko.lib"
+				AdditionalDependencies="..\neko.lib msvcrt60.lib"
 				OutputFile="$(OutDir)/nekovm.exe"
 				LinkIncremental="1"
+				IgnoreDefaultLibraryNames="MSVCRT"
 				GenerateDebugInformation="TRUE"
 				SubSystem="1"
 				OptimizeReferences="2"

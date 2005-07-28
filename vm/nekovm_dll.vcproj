@@ -44,7 +44,8 @@
 			<Tool
 				Name="VCPostBuildEventTool"
 				CommandLine="copy Debug\neko.dll ..
-copy Debug\neko.lib .."/>
+copy Debug\neko.lib ..
+"/>
 			<Tool
 				Name="VCPreBuildEventTool"/>
 			<Tool
@@ -71,7 +72,8 @@ copy Debug\neko.lib .."/>
 			<Tool
 				Name="VCCLCompilerTool"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;NEKOVM_DLL_EXPORTS;NEKO_SOURCES"
-				RuntimeLibrary="0"
+				RuntimeLibrary="2"
+				BufferSecurityCheck="FALSE"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="FALSE"
@@ -80,9 +82,10 @@ copy Debug\neko.lib .."/>
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="gc/gc.lib"
+				AdditionalDependencies="gc/gc.lib msvcrt60.lib"
 				OutputFile="$(OutDir)/neko.dll"
 				LinkIncremental="1"
+				IgnoreDefaultLibraryNames="MSVCRT"
 				GenerateDebugInformation="TRUE"
 				SubSystem="2"
 				OptimizeReferences="2"
@@ -94,7 +97,8 @@ copy Debug\neko.lib .."/>
 			<Tool
 				Name="VCPostBuildEventTool"
 				CommandLine="copy Release\neko.dll ..
-copy Release\neko.lib .."/>
+copy Release\neko.lib ..
+"/>
 			<Tool
 				Name="VCPreBuildEventTool"/>
 			<Tool

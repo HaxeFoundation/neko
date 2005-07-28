@@ -72,7 +72,8 @@
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories="../../vm;apache"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;MOD_NEKO_EXPORTS"
-				RuntimeLibrary="0"
+				RuntimeLibrary="2"
+				BufferSecurityCheck="FALSE"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="FALSE"
@@ -81,9 +82,10 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="../../neko.lib apache/ApacheCore.lib"
+				AdditionalDependencies="../../neko.lib apache/ApacheCore.lib msvcrt60.lib"
 				OutputFile="../mod_neko.ndll"
 				LinkIncremental="1"
+				IgnoreDefaultLibraryNames="MSVCRT"
 				GenerateDebugInformation="TRUE"
 				SubSystem="2"
 				OptimizeReferences="2"

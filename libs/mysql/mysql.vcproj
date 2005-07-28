@@ -70,19 +70,22 @@
 			CharacterSet="2">
 			<Tool
 				Name="VCCLCompilerTool"
+				AdditionalIncludeDirectories="..\..\vm;mysql"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;MYSQL_EXPORTS"
-				RuntimeLibrary="0"
+				RuntimeLibrary="2"
+				BufferSecurityCheck="FALSE"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
-				Detect64BitPortabilityProblems="TRUE"
+				Detect64BitPortabilityProblems="FALSE"
 				DebugInformationFormat="3"/>
 			<Tool
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="mysql\mysqlclient.lib"
+				AdditionalDependencies="mysql\mysqlclient.lib ..\..\neko.lib ws2_32.lib msvcrt60.lib"
 				OutputFile="../mysql.ndll"
 				LinkIncremental="1"
+				IgnoreDefaultLibraryNames="MSVCRT;LIBCMT"
 				GenerateDebugInformation="TRUE"
 				SubSystem="2"
 				OptimizeReferences="2"

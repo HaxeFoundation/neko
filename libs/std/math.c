@@ -1,6 +1,11 @@
 #include <neko.h>
 #include <math.h>
 
+#ifdef _WIN32
+	long _ftol( double f );
+	long _ftol2( double f) { return _ftol(f); };
+#endif
+
 #define MATH_PRIM(f) \
 	value math_##f( value n ) { \
 		if( !val_is_number(n) ) \

@@ -4,11 +4,6 @@
 #include "mod_neko.h"
 #undef neko_module
 
-#ifdef _WIN32
-long _ftol( double f );
-long _ftol2( double f) { return _ftol(f); };
-#endif
-
 static void send_headers( mcontext *c ) {
 	if( !c->headers_sent ) {
 		ap_send_http_header(c->r);
@@ -23,7 +18,7 @@ void request_print( const char *data, int size ) {
 		ap_rputs(data,c->r);
 }
 
-static int neko_handler(request_rec *r) {
+static int neko_handler_rec( request_rec *r ) {
 	mcontext ctx;
 	neko_vm *vm;
 	neko_params params;
@@ -76,6 +71,12 @@ static int neko_handler(request_rec *r) {
 
 	send_headers(&ctx);
     return OK;
+}
+
+static int neko_handler( request_rec *r ) {
+	int ret = neko_handler_rec(r);
+	neko_gc_major();
+	return ret;
 }
 
 static void neko_init(server_rec *s, pool *p) {

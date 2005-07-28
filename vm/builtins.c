@@ -11,6 +11,11 @@
 #include "objtable.h"
 #include "vmcontext.h"
 
+#ifdef _WIN32
+	long _ftol( double f );
+	long _ftol2( double f) { return _ftol(f); };
+#endif
+
 value *builtins = NULL;
 
 static void builtin_error( const char *msg ) {

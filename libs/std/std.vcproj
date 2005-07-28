@@ -71,7 +71,8 @@
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories="../../vm"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;STD_EXPORTS"
-				RuntimeLibrary="0"
+				RuntimeLibrary="2"
+				BufferSecurityCheck="FALSE"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="FALSE"
@@ -80,8 +81,10 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalDependencies="../../neko.lib ws2_32.lib msvcrt60.lib"
 				OutputFile="../std.ndll"
 				LinkIncremental="1"
+				IgnoreDefaultLibraryNames="MSVCRT"
 				GenerateDebugInformation="TRUE"
 				SubSystem="2"
 				OptimizeReferences="2"
