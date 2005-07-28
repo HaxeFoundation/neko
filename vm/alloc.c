@@ -18,9 +18,12 @@
 static val_type t_null = VAL_NULL;
 static val_type t_true = VAL_BOOL;
 static val_type t_false = VAL_BOOL;
+static val_type t_array = VAL_ARRAY;
 EXTERN value val_null = (value)&t_null;
 EXTERN value val_true = (value)&t_true;
 EXTERN value val_false = (value)&t_false;
+static value empty_array = (value)&t_array;
+static vstring empty_string = { VAL_STRING, 0 };
 
 static void null_warn_proc( char *msg, int arg ) {
 }
@@ -50,6 +53,8 @@ EXTERN char *alloc_private( unsigned int nbytes ) {
 
 EXTERN value alloc_empty_string( unsigned int size ) {
 	vstring *s;
+	if( size == 0 )
+		return (value)&empty_string;
 	if( size > max_string_size )
 		val_throw(alloc_string("max_string_size reached"));
 	s = (vstring*)GC_MALLOC_ATOMIC((size+1)+sizeof(val_type));
@@ -73,6 +78,8 @@ EXTERN value alloc_float( tfloat f ) {
 
 EXTERN value alloc_array( unsigned int n ) {
 	value v;
+	if( n == 0 )
+		return empty_array;
 	if( n > max_array_size )
 		val_throw(alloc_string("max_array_size reached"));
 	v = (value)GC_MALLOC(n*sizeof(value)+sizeof(val_type));
@@ -92,11 +99,12 @@ EXTERN value alloc_function( void *c_prim, unsigned int nargs ) {
 	vfunction *v;
 	if( c_prim == NULL || (nargs < 0 && nargs != VAR_ARGS) )
 		return val_null;
-	v = (vfunction*)GC_MALLOC(sizeof(vfunction)-sizeof(void*));
+	v = (vfunction*)GC_MALLOC(sizeof(vfunction));
 	v->t = VAL_PRIMITIVE;
 	v->addr = c_prim;
 	v->nargs = nargs;
 	v->env = alloc_array(0);
+	v->module = NULL;
 	return (value)v;
 }
 
