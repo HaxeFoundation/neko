@@ -24,6 +24,7 @@ struct _neko_vm {
 	printer print;
 	jmp_buf start;
 	char tmp[100];
+	void *custom;
 };
 
 extern int *callback_return;

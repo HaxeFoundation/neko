@@ -42,11 +42,12 @@ static void default_printer( const char *s, int len ) {
 	fputc('\n',stdout);
 }
 
-EXTERN neko_vm *neko_vm_alloc() {
+EXTERN neko_vm *neko_vm_alloc( neko_params *p ) {
 	int i;
-	neko_vm *vm = (neko_vm*)alloc(sizeof(neko_vm));
+	neko_vm *vm = (neko_vm*)alloc(sizeof(neko_vm));	
 	vm->spmin = (int*)alloc(INIT_STACK_SIZE*sizeof(int));
-	vm->print = default_printer;
+	vm->print = (p && p->printer)?p->printer:default_printer;
+	vm->custom = p?p->custom:NULL;
 	vm->spmax = vm->spmin + INIT_STACK_SIZE;
 	vm->sp = vm->spmax;
 	for(i=0;i<STACK_DELTA;i++)
@@ -67,6 +68,10 @@ EXTERN void neko_vm_select( neko_vm *vm ) {
 
 EXTERN neko_vm *neko_vm_current() {
 	return (neko_vm*)context_get(vm_context);
+}
+
+EXTERN void *neko_vm_custom( neko_vm *vm ) {
+	return vm->custom;
 }
 
 EXTERN void neko_vm_execute( neko_vm *vm, neko_module *m ) {
