@@ -30,7 +30,7 @@ int main( int argc, char *argv[] ) {
 	int r;
 	_CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_DELAY_FREE_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
 	neko_global_init();
-	vm = neko_vm_alloc();
+	vm = neko_vm_alloc(NULL);
 	if( argc == 1 ) {
 		printf("Usage : nekovm.exe <file>\n");
 		r = 1;
