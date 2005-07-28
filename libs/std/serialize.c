@@ -240,7 +240,7 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 			value v;
 			if( l < 0 || l >= 0x1000000 ) {
 				b->error = true;
-				return NULL;
+				return val_null;
 			}
 			v = alloc_empty_string(l);
 			add_ref(b,v);
@@ -280,7 +280,7 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 			value *t;
 			if( n < 0 || n >= 0x100000 ) {
 				b->error = true;
-				return NULL;
+				return val_null;
 			}
 			o = alloc_array(n);
 			t = val_array_ptr(o);
@@ -292,13 +292,19 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 		}
 	case 'L':
 		{
-			value mname = unserialize_rec(b,loader);
-			int pos = read_int(b);
-			int nargs = read_int(b);
-			value env = unserialize_rec(b,loader);
+			vfunction *f = (vfunction*)alloc_function((void*)1,0);
+			value mname; 
+			int pos;
+			int nargs;
+			value env;
+			add_ref(b,(value)f);
+			mname = unserialize_rec(b,loader);
+			pos = read_int(b);
+			nargs = read_int(b);
+			env = unserialize_rec(b,loader);
 			if( !val_is_string(mname) || !val_is_array(env) ) {
 				b->error = true;
-				return NULL;
+				return val_null;
 			}
 			{
 				value exp = val_ocall2(loader,id_loadmodule,mname,loader);
@@ -323,12 +329,12 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 				mpos = m->code + pos;
 				for(i=0;i<m->nglobals;i++) {
 					vfunction *g = (vfunction*)m->globals[i];
-					if( val_is_function(g) && g->addr == mpos && g->module == m && g->nargs == nargs ) {						
-						vfunction *f = (vfunction*)alloc_function(mpos,nargs);
+					if( val_is_function(g) && g->addr == mpos && g->module == m && g->nargs == nargs ) {
 						f->t = VAL_FUNCTION;
 						f->env = env;
+						f->addr = mpos;
+						f->nargs = nargs;
 						f->module = m;
-						add_ref(b,(value)f);
 						return (value)f;
 					}
 				}
@@ -343,7 +349,7 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 		}
 	default:
 		b->error = true;
-		return NULL;
+		return val_null;
 	}
 }
 
@@ -361,7 +367,7 @@ static value unserialize( value s, value loader ) {
 	b.totlen = 0;
 	v = unserialize_rec(&b,loader);
 	if( b.error )
-		return NULL;
+		val_throw(alloc_string("Invalid serialized data"));
 	return v;
 }
 
