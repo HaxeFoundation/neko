@@ -7,12 +7,15 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/stat.h> 
+#include "vmcontext.h"
 #include "load.h"
 #include "interp.h"
 #define PARAMETER_TABLE
 #include "opcodes.h"
 
 DEFINE_KIND(k_loader);
+DEFINE_KIND(k_module);
 
 #define MAXSIZE 0x100
 #define ERROR() { return NULL; }
@@ -21,6 +24,7 @@ DEFINE_KIND(k_loader);
 extern field id_loader;
 extern field id_exports;
 extern field id_data;
+extern field id_mod;
 extern value *builtins;
 extern value alloc_module_function( void *m, int pos, int nargs );
 
@@ -73,6 +77,7 @@ static neko_module *neko_module_read( reader r, readp p, value loader ) {
 	m->code = (int*)alloc_private(sizeof(int)*(m->codesize+1));
 	m->loader = loader;
 	m->exports = alloc_object(NULL);
+	alloc_field(m->exports,id_mod,alloc_abstract(k_module,m));
 	// Init global table
 	for(i=0;i<m->nglobals;i++) {
 		READ(&t,1);
@@ -280,6 +285,7 @@ static value default_loadmodule( value mname, value this ) {
 			val_buffer(b,mname);
 			val_throw(buffer_to_string(b));
 		}
+		m->name = alloc_string(val_string(mname));
 		vm = neko_vm_current();
 		alloc_field(l->cache,mid,m->exports);
 		neko_vm_execute(vm,m);
@@ -308,12 +314,9 @@ static int file_reader( readp p, void *buf, int size ) {
 }
 
 EXTERN int neko_default_load_module( const char *mname, reader *r, readp *p ) {
-	char buf[100];
 	FILE *f;
-	if( strlen(mname) > 90 )
-		return 0;
-	sprintf(buf,"%s.n",mname);
-	f = fopen(buf,"rb");
+	value fname = neko_select_file(mname,neko_vm_current()->env,".n");
+	f = fopen(val_string(fname),"rb");
 	if( f == NULL )
 		return 0;
 	*r = file_reader;
@@ -334,7 +337,6 @@ typedef struct _liblist {
 typedef value (*PRIM0)();
 
 EXTERN void *neko_default_load_primitive( const char *prim, int nargs, void **custom ) {
-	char buf[100];
 	char *pos = strchr(prim,'@');
 	int len;	
 	liblist *l;
@@ -351,10 +353,9 @@ EXTERN void *neko_default_load_primitive( const char *prim, int nargs, void **cu
 	}
 	if( l == NULL ) {
 		void *h;
-		if( strlen(prim) > 90 )
-			return NULL;
-		sprintf(buf,"%s.ndll",prim);
-		h = dlopen(buf,RTLD_LAZY);
+		value pname;
+		pname = neko_select_file(prim,neko_vm_current()->env,".ndll");
+		h = dlopen(val_string(pname),RTLD_LAZY);
 		if( h == NULL ) {
 			*pos = '@';
 			return NULL;
@@ -370,7 +371,8 @@ EXTERN void *neko_default_load_primitive( const char *prim, int nargs, void **cu
 			((PRIM0)ptr())();
 	}
 	*pos++ = '@';
-	{		
+	{
+		char buf[100];
 		if( strlen(pos) > 90 )
 			return NULL;
 		if( nargs == VAR_ARGS )
@@ -384,19 +386,72 @@ EXTERN void *neko_default_load_primitive( const char *prim, int nargs, void **cu
 	}
 }
 
+EXTERN value neko_init_path( const char *path ) {
+	value l = val_null, tmp;
+	char *p;
+	while( true ) {
+		p = strchr(path,';');
+		if( p != NULL )
+			*p = 0;
+		tmp = alloc_array(2);
+		if( (p && p[-1] != '/' && p[-1] != '\\') || (!p && path[strlen(path)-1] != '/' && path[strlen(path)-1] != '\\') ) {
+			buffer b = alloc_buffer(path);
+			char c = '/';
+			buffer_append_sub(b,&c,1);
+			val_array_ptr(tmp)[0] = buffer_to_string(b);
+		} else
+			val_array_ptr(tmp)[0] = alloc_string(path);
+		val_array_ptr(tmp)[1] = l;
+		l = tmp;
+		if( p != NULL )
+			*p = ';';
+		else
+			break;
+		path = p+1;
+	}
+	return l;
+}
+
+EXTERN value neko_select_file( const char *file, value path, const char *ext ) {
+	struct stat s;
+	value ff;
+	buffer b = alloc_buffer(file);
+	buffer_append(b,ext);
+	ff = buffer_to_string(b);
+	if( stat(val_string(ff),&s) == 0 )
+		return ff;
+	while( val_is_array(path) && val_array_size(path) == 2 ) {
+		value p = val_array_ptr(path)[0];
+		buffer b = alloc_buffer(NULL);
+		path = val_array_ptr(path)[1];
+		val_buffer(b,p);
+		val_buffer(b,ff);
+		p = buffer_to_string(b);
+		if( stat(val_string(p),&s) == 0 )
+			return p;
+	}
+	return ff;
+}
+
 EXTERN value neko_default_loader( loader *l ) {
 	value o = alloc_object(NULL);
+	value tmp;
 	if( l == NULL ) {
 		l = (loader*)alloc(sizeof(loader));
 		l->l = neko_default_load_module;
 		l->d = neko_default_load_done;
 		l->p = neko_default_load_primitive;
 		l->custom = NULL;
+		l->paths = neko_init_path(getenv("NEKOPATH"));
 		l->cache = alloc_object(NULL);
 	}
 	alloc_field(o,id_data,alloc_abstract(k_loader,l));
-	alloc_field(o,val_id("loadprim"),alloc_function(default_loadprim,2));
-	alloc_field(o,val_id("loadmodule"),alloc_function(default_loadmodule,2));
+	tmp = alloc_function(default_loadprim,2);
+	((vfunction*)tmp)->env = l->paths;
+	alloc_field(o,val_id("loadprim"),tmp);
+	tmp = alloc_function(default_loadmodule,2);
+	((vfunction*)tmp)->env = l->paths;
+	alloc_field(o,val_id("loadmodule"),tmp);
 	return o;
 }
 
