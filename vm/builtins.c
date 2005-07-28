@@ -250,32 +250,32 @@ static value builtin_istrue( value f ) {
 }
 
 static value builtin_objget( value o, value f ) {
-	if( !val_is_string(f) )
+	if( !val_is_int(f) )
 		return val_null;
-	return val_field(o,val_id(val_string(f)));
+	return val_field(o,(field)val_int(f));
 }
 
 static value builtin_objset( value o, value f, value v ) {
-	if( !val_is_string(f) )
+	if( !val_is_int(f) )
 		return val_null;
-	alloc_field(o,val_id(val_string(f)),v);
+	alloc_field(o,(field)val_int(f),v);
 	return v;
 }
 
 static value builtin_objcall( value o, value f, value args ) {
-	if( !val_is_string(f) || !val_is_array(args) )
+	if( !val_is_int(f) || !val_is_array(args) )
 		return val_null;
-	return val_ocallN(o,val_id(val_string(f)),val_array_ptr(args),val_array_size(args));
+	return val_ocallN(o,(field)val_int(f),val_array_ptr(args),val_array_size(args));
 }
 
 static value builtin_objfield( value o, value f ) {
-	return alloc_bool( val_is_object(o) && val_is_string(f) && otable_find(((vobject*)o)->table, val_id(val_string(f))) != NULL );
+	return alloc_bool( val_is_object(o) && val_is_int(f) && otable_find(((vobject*)o)->table, (field)val_int(f)) != NULL );
 }
 
 static value builtin_objremove( value o, value f ) {
-	if( !val_is_object(o) || !val_is_string(f) )
+	if( !val_is_object(o) || !val_is_int(f) )
 		return val_null;
-	return alloc_bool( otable_remove(((vobject*)o)->table,val_id(val_string(f))) );
+	return alloc_bool( otable_remove(((vobject*)o)->table,(field)val_int(f)) );
 }
 
 static void builtin_objfields_rec( value d, field id, void *a ) {
