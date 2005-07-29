@@ -4,6 +4,15 @@
 #include "mod_neko.h"
 #undef neko_module
 
+typedef struct cache {
+	value file;
+	value main;
+	time_t time;
+	struct cache *next;
+} cache;
+
+static _context *cache_root = NULL;
+
 static void send_headers( mcontext *c ) {
 	if( !c->headers_sent ) {
 		ap_send_http_header(c->r);
@@ -18,18 +27,58 @@ void request_print( const char *data, int size ) {
 		ap_rputs(data,c->r);
 }
 
+static value cache_find( request_rec *r ) {
+	cache *c = (cache*)context_get(cache_root);
+	cache *prev = NULL;
+	value fname = alloc_string(r->filename);
+	while( c != NULL ) {
+		if( val_compare(fname,c->file) == 0 ) {
+			if( r->finfo.st_mtime == c->time )
+				return c->main;
+			if( prev == NULL )
+				context_set(cache_root,c->next);
+			else
+				prev->next = c->next;
+			free_root((value*)c);
+			break;
+		}
+		prev = c;
+		c = c->next;
+	}
+	return NULL;
+}
+
+static void cache_module( request_rec *r, value main ) {
+	cache *c = (cache*)context_get(cache_root);
+	value fname = alloc_string(r->filename);
+	while( c != NULL ) {
+		if( val_compare(fname,c->file) == 0 ) {
+			c->main = main;
+			c->time = r->finfo.st_mtime;
+			return;
+		}
+		c = c->next;
+	}
+	c = (cache*)alloc_root(sizeof(struct cache) / sizeof(value));
+	c->file = fname;
+	c->main = main;
+	c->time = r->finfo.st_mtime;
+	c->next = (cache*)context_get(cache_root);
+	context_set(cache_root,c);
+}
+
 static int neko_handler_rec( request_rec *r ) {
 	mcontext ctx;
 	neko_vm *vm;
 	neko_params params;
-
-    r->content_type = "text/html";
+	value exc = NULL;
 
 	ctx.r = r;
-	ctx.main = NULL;
+	ctx.main = cache_find(r);
 	ctx.post_data = val_null;
 	ctx.allow_write = true;
 	ctx.headers_sent = false;
+    r->content_type = "text/html";
 
 	if( ap_setup_client_block(r,REQUEST_CHUNKED_ERROR) != 0 ) {
 		send_headers(&ctx);
@@ -52,21 +101,26 @@ static int neko_handler_rec( request_rec *r ) {
 
 	vm = neko_vm_alloc(&params);
 	neko_vm_select(vm);
-	{
+	
+	if( ctx.main != NULL )
+		val_callEx(val_null,ctx.main,NULL,0,&exc);
+	else {
 		value mload = neko_default_loader(NULL);
 		value args[] = { alloc_string(r->filename), mload };
-		value exc = NULL;
 		char *p = strrchr(val_string(args[0]),'.');
 		if( p != NULL )
 			*p = 0;
 		val_callEx(mload,val_field(mload,val_id("loadmodule")),args,2,&exc);
-		if( exc != NULL ) {
-			buffer b = alloc_buffer(NULL);
-			val_buffer(b,exc);
-			send_headers(&ctx);
-			ap_rprintf(r,"Uncaught exception - %s\n",val_string(buffer_to_string(b)));
-			return OK;
-		}
+		if( ctx.main != NULL )
+			cache_module(r,ctx.main);		
+	}
+
+	if( exc != NULL ) {
+		buffer b = alloc_buffer(NULL);
+		val_buffer(b,exc);
+		send_headers(&ctx);
+		ap_rprintf(r,"Uncaught exception - %s\n",val_string(buffer_to_string(b)));
+		return OK;
 	}
 
 	send_headers(&ctx);
@@ -80,6 +134,7 @@ static int neko_handler( request_rec *r ) {
 }
 
 static void neko_init(server_rec *s, pool *p) {
+	cache_root = context_new();
 	neko_global_init();
 }
 
