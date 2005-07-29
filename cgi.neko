@@ -2,7 +2,20 @@ std = $loader.loadmodule("std",$loader);
 String = std.String;
 Hash = std.Hash;
 
-std.Std.setMain = $loader.loadprim("mod_neko@cgi_set_main",1);
+set_main = $loader.loadprim("mod_neko@cgi_set_main",1);
+
+std.Std.setMain = function(f) {
+	if( f == null )
+		set_main(null);
+	else
+		set_main(function() {
+			try {
+				f();
+			} catch e {
+				if( e != "aborted" ) $throw(e);
+			}
+		});
+}
 
 get_host_name = $loader.loadprim("mod_neko@get_host_name",0);
 get_client_ip = $loader.loadprim("mod_neko@get_client_ip",0);
