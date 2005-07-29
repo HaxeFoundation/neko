@@ -9,8 +9,8 @@
 #include <stdio.h>
 #undef NULL
 #include "context.h"
-#include "interp.h"
 #include "load.h"
+#include "interp.h"
 #include "opcodes.h"
 #include "vmcontext.h"
 #include "objtable.h"
