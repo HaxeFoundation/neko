@@ -133,6 +133,8 @@ let iter f (e,p) =
 	| EContinue
 	| EConst _ -> ()
 
+let is_printable c = c >= '\032' && c <= '\126'
+
 let escape s =
 	let b = Buffer.create (String.length s) in
 	for i = 0 to (String.length s) - 1 do
@@ -140,6 +142,9 @@ let escape s =
 		| '\n' -> Buffer.add_string b "\\n"
 		| '\t' -> Buffer.add_string b "\\t"
 		| '\r' -> Buffer.add_string b "\\r"
+		| '\\' -> Buffer.add_string b "\\\\"
+		| '"' -> Buffer.add_string b "\\\""
+		| c when not (is_printable c) -> Buffer.add_string b (Printf.sprintf "\\%.3d" (int_of_char c))
 		| c -> Buffer.add_char b c
 	done;
 	Buffer.contents b
