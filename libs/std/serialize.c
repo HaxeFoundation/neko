@@ -152,7 +152,7 @@ void serialize_rec( sbuffer *b, value o ) {
 	case VAL_OBJECT:
 		if( !write_ref(b,o) ) {
 			write_char(b,'o');
-			iter_fields(o,serialize_fields_rec,b);
+			val_iter_fields(o,serialize_fields_rec,b);
 			write_int(b,0);
 		}
 		break;
