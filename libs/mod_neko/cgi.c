@@ -340,7 +340,7 @@ static value cgi_get_cwd() {
 }
 
 static value cgi_set_main( value f ) {
-	if( !val_is_function(f) || (val_fun_nargs(f) != 1 && val_fun_nargs(f) != VAR_ARGS) )
+	if( !val_is_function(f) || (val_fun_nargs(f) != 0 && val_fun_nargs(f) != VAR_ARGS) )
 		return val_null;
 	CONTEXT()->main = f;
 	return val_true;
