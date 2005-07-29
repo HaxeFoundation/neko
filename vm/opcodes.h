@@ -4,7 +4,8 @@
 /*  (c)2005 Nicolas Cannasse												*/
 /*																			*/
 /* ************************************************************************ */
-#pragma once
+#ifndef _NEKO_OPCODES_H
+#define _NEKO_OPCODES_H
 
 enum OPCODE {
 	AccNull,
@@ -114,4 +115,5 @@ static int parameter_table[] = {
 };
 #endif
 
+#endif
 /* ************************************************************************ */

@@ -4,7 +4,8 @@
 /*  (c)2005 Nicolas Cannasse												*/
 /*																			*/
 /* ************************************************************************ */
-#pragma once
+#ifndef _NEKO_CONTEXT_H
+#define _NEKO_CONTEXT_H
 
 typedef struct _context _context;
 
@@ -13,4 +14,5 @@ void context_delete( _context *ctx );
 void context_set( _context *ctx, void *v );
 void *context_get( _context *ctx );
 
+#endif
 /* ************************************************************************ */
