@@ -8,9 +8,9 @@ field id_d;
 field id_mod;
 field id_loadmodule;
 
-DEFINE_ENTRY_POINT(main);
+DEFINE_ENTRY_POINT(std_main);
 
-void main() {
+void std_main() {
 	id_h = val_id("h");
 	id_m = val_id("m");
 	id_s = val_id("s");
