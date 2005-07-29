@@ -390,6 +390,8 @@ EXTERN void *neko_default_load_primitive( const char *prim, int nargs, void **cu
 EXTERN value neko_init_path( const char *path ) {
 	value l = val_null, tmp;
 	char *p;
+	if( !path )
+		return val_null;
 	while( true ) {
 		p = strchr(path,';');
 		if( p != NULL )
