@@ -23,7 +23,11 @@ static int execute( neko_vm *vm, char *file ) {
 	return 0;
 }
 
-#include <crtdbg.h>
+#ifdef _WIN32
+#	include <crtdbg.h>
+#else
+#	define _CrtSetDbgFlag(x)
+#endif
 
 int main( int argc, char *argv[] ) {
 	neko_vm *vm;
