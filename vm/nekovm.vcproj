@@ -79,7 +79,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="..\neko.lib msvcrt60.lib"
+				AdditionalDependencies="..\bin\neko.lib msvcrt60.lib"
 				OutputFile="$(OutDir)/nekovm.exe"
 				LinkIncremental="1"
 				IgnoreDefaultLibraryNames="MSVCRT"
