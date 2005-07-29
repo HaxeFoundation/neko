@@ -12,8 +12,7 @@
 
 typedef void (*printer)( const char *, int );
 
-#undef neko_vm
-typedef struct _neko_vm {
+struct _neko_vm {
 	int *spmin;
 	int *spmax;
 	int *sp;
@@ -25,7 +24,12 @@ typedef struct _neko_vm {
 	jmp_buf start;
 	char tmp[100];
 	void *custom;
-} neko_vm;
+};
+
+#ifndef neko_vm_def
+typedef struct _neko_vm neko_vm;
+#define neko_vm_def
+#endif
 
 extern int *callback_return;
 extern _context *neko_vm_context;
