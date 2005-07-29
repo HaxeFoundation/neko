@@ -46,7 +46,7 @@ void neko_gc_init() {
 	GC_no_dls = 1;
 	GC_dont_expand = 1;
 	GC_clear_roots();
-	GC_set_warn_proc(null_warn_proc);
+	GC_set_warn_proc((GC_warn_proc)null_warn_proc);
 }
 
 EXTERN void neko_gc_loop() {
