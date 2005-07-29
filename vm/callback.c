@@ -20,6 +20,7 @@ typedef value (*c_primN)(value*,int);
 
 extern void neko_setup_trap( neko_vm *vm, int where );
 extern void neko_process_trap( neko_vm *vm );
+extern int neko_stack_expand( int *sp, int *csp, neko_vm *vm );
 
 EXTERN value val_callEx( value this, value f, value *args, int nargs, value *exc ) {
 	neko_vm *vm = NEKO_VM();
@@ -73,9 +74,11 @@ EXTERN value val_callEx( value this, value f, value *args, int nargs, value *exc
 	} else if( val_tag(f) == VAL_FUNCTION ) {
 		if( nargs == ((vfunction*)f)->nargs )  {
 			int n;
-			if( vm->csp + 3 >= vm->sp - nargs ) {
-				if( exc )
+			if( vm->csp + 3 >= vm->sp - nargs && !neko_stack_expand(vm->sp,vm->csp,vm) ) {
+				if( exc ) {
+					neko_process_trap(vm);
 					memcpy(&vm->start,&oldjmp,sizeof(jmp_buf));	
+				}
 				vm->this = old_this;
 				val_throw(alloc_string("OVERFLOW"));
 			} else {
@@ -88,8 +91,10 @@ EXTERN value val_callEx( value this, value f, value *args, int nargs, value *exc
 			}
 		}
 	}
-	if( exc )
+	if( exc ) {
+		neko_process_trap(vm);
 		memcpy(&vm->start,&oldjmp,sizeof(jmp_buf));	
+	}
 	vm->this = old_this;
 	return ret;
 }
