@@ -10,6 +10,7 @@ type context = {
 	mutable stack : int;
 	mutable loop_limit : int;
 	mutable limit : int;
+	mutable ntraps : int;
 	mutable breaks : ((unit -> unit) * pos) list;
 	mutable continues : ((unit -> unit) * pos) list;
 	mutable functions : (opcode DynArray.t * int * int) list;
@@ -46,6 +47,7 @@ let stack_delta = function
 	| SetEnv _
 	| SetThis
 	| Bool
+	| EndTrap
 		-> 0
 	| Add
 	| Sub
@@ -74,7 +76,6 @@ let stack_delta = function
 	| ObjCall nargs -> -(nargs + 1)
 	| MakeEnv size | MakeArray size -> -size
 	| Trap _ -> trap_stack_delta
-	| EndTrap -> -trap_stack_delta
 
 let pos ctx =
 	DynArray.length ctx.ops
@@ -238,11 +239,13 @@ and compile_function ctx params e =
 	let locals = ctx.locals in
 	let env = ctx.env in
 	let nenv = ctx.nenv in
+	let ntraps = ctx.ntraps in
 	ctx.ops <- DynArray.create();
 	ctx.breaks <- [];
 	ctx.continues <- [];
 	ctx.env <- PMap.empty;
 	ctx.nenv <- 0;
+	ctx.ntraps <- 0;
 	ctx.limit <- ctx.stack;
 	ctx.stack <- ctx.stack + 1;
 	List.iter (fun v ->
@@ -276,6 +279,7 @@ and compile_function ctx params e =
 	end else
 		write ctx (AccGlobal gid);
 	ctx.env <- env;
+	ctx.ntraps <- ntraps;
 	ctx.nenv <- nenv
 
 and compile_builtin ctx b el p =
@@ -393,7 +397,10 @@ and compile ctx (e,p) =
 	| ETry (e,v,ecatch) ->
 		let start = pos ctx in
 		write ctx (Trap 0);
+		ctx.ntraps <- ctx.ntraps + 1;
 		compile ctx e;
+		ctx.ntraps <- ctx.ntraps - 1;
+		ctx.stack <- ctx.stack - trap_stack_delta;
 		write ctx EndTrap;
 		let jend = jmp ctx in
 		DynArray.set ctx.ops start (Trap (pos ctx - start));
@@ -408,17 +415,25 @@ and compile ctx (e,p) =
 		compile_binop ctx op e1 e2 p
 	| EReturn None ->
 		write ctx AccNull;
+		for i = 1 to ctx.ntraps do
+			write ctx EndTrap;
+		done;
 		write ctx (Ret (ctx.stack - ctx.limit - 1));
 	| EReturn (Some e) ->
 		compile ctx e;
-		write ctx (Ret (ctx.stack - ctx.limit - 1));
+		for i = 1 to ctx.ntraps do
+			write ctx EndTrap;
+		done;
+		write ctx (Ret (ctx.stack - ctx.limit - 1 - ctx.ntraps * trap_stack_delta));
 	| EBreak e ->
+		assert (ctx.ntraps = 0);
 		(match e with
 		| None -> ()
 		| Some e -> compile ctx e);
 		if ctx.loop_limit <> ctx.stack then DynArray.add ctx.ops (Pop (ctx.stack - ctx.loop_limit));
 		ctx.breaks <- (jmp ctx , p) :: ctx.breaks
 	| EContinue ->
+		assert (ctx.ntraps = 0);
 		if ctx.loop_limit <> ctx.stack then DynArray.add ctx.ops (Pop (ctx.stack - ctx.loop_limit));
 		ctx.continues <- (jmp ctx , p) :: ctx.continues
 	| EFunction (params,e) ->
@@ -441,6 +456,7 @@ let compile file ast =
 		functions = [];
 		env = PMap.empty;
 		nenv = 0;
+		ntraps = 0;
 	} in
 	compile ctx ast;
 	check_breaks ctx;
