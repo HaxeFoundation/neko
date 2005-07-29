@@ -82,7 +82,7 @@ EXTERN void neko_vm_execute( neko_vm *vm, neko_module *m ) {
 	neko_interp(vm,(int)val_null,m->code,alloc_array(0));
 }
 
-static int stack_expand( int *sp, int *csp, neko_vm *vm ) {
+int neko_stack_expand( int *sp, int *csp, neko_vm *vm ) {
 	int i;
 	int size = (((int)vm->spmax - (int)vm->spmin) / sizeof(int)) << 1;
 	int *nsp;
@@ -112,7 +112,7 @@ typedef int (*c_prim4)(int,int,int,int);
 typedef int (*c_prim5)(int,int,int,int,int);
 typedef int (*c_primN)(value*,int);
 
-#define DynError(cond,err)		if( cond ) { val_throw(alloc_string(#err)); }
+#define DynError(cond,err)		if( cond ) { *(char*)NULL = 0; val_throw(alloc_string(#err)); }
 #define Error(cond,err)			DynError(cond,err)
 #define Instr(x)	case x:
 #define Next		break;
@@ -150,7 +150,7 @@ typedef int (*c_primN)(value*,int);
 			PopMacro(*pc++); \
 		} else if( val_tag(acc) == VAL_FUNCTION && *pc == ((vfunction*)acc)->nargs ) { \
 			if( csp + 3 >= sp ) { \
-				DynError( !stack_expand(sp,csp,vm) , OVERFLOW ); \
+				DynError( !neko_stack_expand(sp,csp,vm) , OVERFLOW ); \
 				sp = vm->sp; \
 				csp = vm->csp; \
 			} \
@@ -270,7 +270,7 @@ typedef int (*c_primN)(value*,int);
 void neko_setup_trap( neko_vm *vm, int where ) {
 	vm->sp -= 5;
 	if( vm->sp <= vm->csp )
-		DynError( !stack_expand(vm->sp,vm->csp,vm) , OVERFLOW );	
+		DynError( !neko_stack_expand(vm->sp,vm->csp,vm) , OVERFLOW );	
 	vm->sp[0] = (int)alloc_int((int)(vm->csp - vm->spmin));
 	vm->sp[1] = (int)vm->this;
 	vm->sp[2] = (int)vm->env;
@@ -282,6 +282,9 @@ void neko_setup_trap( neko_vm *vm, int where ) {
 void neko_process_trap( neko_vm *vm ) {
 	// pop csp
 	int *sp;
+	if( vm->trap == 0 )
+		return;
+
 	vm->trap = vm->spmax - (int)vm->trap;
 	sp = vm->spmin + val_int(vm->trap[0]);
 	while( vm->csp > sp )
@@ -307,13 +310,8 @@ value neko_interp( neko_vm *vm, register int acc, register int *pc, value env ) 
 	memcpy(&old,&vm->start,sizeof(jmp_buf));
 	if( setjmp(vm->start) ) {
 		acc = (int)vm->this;
-		if( vm->trap == 0 ) {
-			// uncaught exception
-			return val_null;
-		}
-
-		// if outside init stack, reraise
-		if( vm->trap <= init_sp ) {
+		// if uncaught or outside init stack, reraise
+		if( vm->trap == 0 || vm->trap <= init_sp ) {
 			memcpy(&vm->start,&old,sizeof(jmp_buf));
 			longjmp(vm->start,1);
 		}
@@ -321,12 +319,13 @@ value neko_interp( neko_vm *vm, register int acc, register int *pc, value env ) 
 		vm->trap = vm->spmax - (int)vm->trap;
 		if( vm->trap < vm->sp ) {
 			// trap outside stack
-			return val_null;
+			vm->trap = 0;
+			Error( 1 , INVALID_TRAP )
 		}
 
 		// pop csp
-		sp = vm->spmin + val_int(vm->trap[0]);
-		while( vm->csp > sp )
+		csp = vm->spmin + val_int(vm->trap[0]);
+		while( vm->csp > csp )
 			*vm->csp-- = NULL;
 	
 		// restore state
@@ -431,7 +430,7 @@ value neko_interp( neko_vm *vm, register int acc, register int *pc, value env ) 
 	Instr(Push)
 		--sp;
 		if( sp <= csp ) {
-			DynError( !stack_expand(sp,csp,vm) , OVERFLOW );
+			DynError( !neko_stack_expand(sp,csp,vm) , OVERFLOW );
 			sp = vm->sp;
 			csp = vm->csp;
 		}
@@ -467,7 +466,7 @@ value neko_interp( neko_vm *vm, register int acc, register int *pc, value env ) 
 	Instr(Trap)
 		sp -= 5;
 		if( sp <= csp ) {
-			DynError( !stack_expand(sp,csp,vm) , OVERFLOW );
+			DynError( !neko_stack_expand(sp,csp,vm) , OVERFLOW );
 			sp = vm->sp;
 			csp = vm->csp;
 		}
@@ -480,6 +479,8 @@ value neko_interp( neko_vm *vm, register int acc, register int *pc, value env ) 
 		pc++;
 		Next;
 	Instr(EndTrap)
+		Error( vm->spmax - (int)vm->trap != sp , END_TRAP );
+		vm->trap = (int*)val_int(sp[4]);
 		PopMacro(5);
 		Next;
 	Instr(Ret)
