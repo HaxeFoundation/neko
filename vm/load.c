@@ -25,7 +25,7 @@ extern field id_loader;
 extern field id_exports;
 extern field id_data;
 extern field id_mod;
-extern value *builtins;
+extern value *neko_builtins;
 extern value alloc_module_function( void *m, int pos, int nargs );
 
 static int read_string( reader r, readp p, char *buf ) {
@@ -42,7 +42,7 @@ static int read_string( reader r, readp p, char *buf ) {
 }
 
 static int builtin_id( neko_module *m, field id ) {
-	value f = val_field(builtins[NBUILTINS],id);
+	value f = val_field(neko_builtins[NBUILTINS],id);
 	if( val_is_null(f) ) {
 		unsigned int i;
 		for(i=0;i<m->nfields;i++)
@@ -210,7 +210,7 @@ static neko_module *neko_module_read( reader r, readp p, value loader ) {
 				itmp = builtin_id(m,(field)itmp);
 				if(	itmp >= NBUILTINS )
 					ERROR();
-				m->code[i+1] = (int)builtins[itmp];
+				m->code[i+1] = (int)neko_builtins[itmp];
 			}
 			break;
 		case Call:

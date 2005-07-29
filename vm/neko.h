@@ -199,6 +199,9 @@ typedef struct {
 #define val_print			neko_val_print
 #define val_gc				neko_val_gc
 #define val_throw			neko_val_throw
+#define val_iter_fields		neko_val_iter_fields
+#define val_field_name		neko_val_field_name
+#define val_clean_thread	neko_val_clean_thread
 
 C_FUNCTION_BEGIN
 
@@ -217,7 +220,8 @@ C_FUNCTION_BEGIN
 	EXTERN value val_field( value o, field f );
 	EXTERN value alloc_object( value o );
 	EXTERN void alloc_field( value obj, field f, value v );
-	EXTERN void iter_fields( value obj, void f( value v, field f, void * ), void *p );
+	EXTERN void val_iter_fields( value obj, void f( value v, field f, void * ), void *p );
+	EXTERN value val_field_name( field f );
 
 	EXTERN value alloc_array( unsigned int n );
 	EXTERN value alloc_abstract( vkind k, void *data );
@@ -249,6 +253,7 @@ C_FUNCTION_BEGIN
 	EXTERN void val_print( value s );
 	EXTERN void val_gc( value v, finalizer f );
 	EXTERN void val_throw( value v );
+	EXTERN void val_clean_thread();
 
 C_FUNCTION_END
 

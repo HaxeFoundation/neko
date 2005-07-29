@@ -12,35 +12,19 @@
 
 #define C(x,y)	((x << 8) | y)
 
-static field id_compare;
-static field id_string;
-field id_loader;
-field id_exports;
-field id_add;
-field id_preadd;
-field id_data;
-field id_mod;
+extern _context *neko_fields_context;
+extern field id_compare;
+extern field id_string;
 
-void neko_init_fields() {
-	id_compare = val_id("__compare");
-	id_string = val_id("__string");
-	id_add = val_id("__add");
-	id_preadd = val_id("__preadd");
-	id_loader = val_id("loader");
-	id_exports = val_id("exports");
-	id_data = val_id("__data");
-	id_mod = val_id("@m");
-}
-
-INLINE int icmp( int a, int b ) {
+static INLINE int icmp( int a, int b ) {
 	return (a == b)?0:((a < b)?-1:1);
 }
 
-INLINE int fcmp( tfloat a, tfloat b ) {
+static INLINE int fcmp( tfloat a, tfloat b ) {
 	return (a == b)?0:((a < b)?-1:1);
 }
 
-INLINE int scmp( const char *s1, int l1, const char *s2, int l2 ) {
+static INLINE int scmp( const char *s1, int l1, const char *s2, int l2 ) {
 	int r = memcmp(s1,s2,(l1 < l2)?l1:l2); 
 	return r?r:icmp(l1,l2);
 }
@@ -191,9 +175,9 @@ EXTERN void val_buffer( buffer b, value v ) {
 }
 
 EXTERN field val_id( const char *name ) {
-	objtable fields;
+	objtable *data;
+	value *fdata;
 	field f;
-	value *old;
 	value acc = alloc_int(0);
 	const char *oname = name;
 	while( *name ) {
@@ -201,16 +185,42 @@ EXTERN field val_id( const char *name ) {
 		name++;
 	}
 	f = (field)val_int(acc);
-	if( NEKO_VM() == NULL )
-		return f;	
-	fields = NEKO_VM()->fields;
-	old = otable_find(fields,f);
-	if( old != NULL ) {
-		if( scmp(val_string(*old),val_strlen(*old),oname,name - oname) != 0 )
-			val_throw(alloc_string("field conflict"));
+	data = (objtable*)context_get(neko_fields_context);
+	if( data == NULL ) {
+		data = (objtable*)alloc_root(1);
+		*data = otable_empty();
+		context_set(neko_fields_context,data);
+	}
+	fdata = otable_find(*data,f);
+	if( fdata != NULL ) {
+		if( scmp(val_string(*fdata),val_strlen(*fdata),oname,name - oname) != 0 ) {
+			buffer b = alloc_buffer("Field conflict between ");
+			val_buffer(b,*fdata);
+			buffer_append(b," and ");
+			buffer_append(b,oname);
+			val_throw(buffer_to_string(b));
+		}
 	} else
-		otable_replace(NEKO_VM()->fields,f,copy_string(oname,name - oname));
+		otable_replace(*data,f,copy_string(oname,name - oname));
 	return f;
+}
+
+EXTERN value val_field_name( field id ) {
+	objtable *data = (objtable*)context_get(neko_fields_context);
+	value *fdata;
+	if( data == NULL )
+		return val_null;
+	fdata = otable_find(*data,id);
+	if( fdata == NULL )
+		return val_null;
+	return *fdata;
+}
+
+EXTERN void val_clean_thread() {
+	void *f = context_get(neko_fields_context);
+	if( f )
+		free_root(f);
+	context_set(neko_vm_context,NULL);
 }
 
 EXTERN value val_field( value o, field id ) {
@@ -223,7 +233,7 @@ EXTERN value val_field( value o, field id ) {
 	return *f;
 }
 
-EXTERN void iter_fields( value o, void f( value , field, void * ) , void *p ) {
+EXTERN void val_iter_fields( value o, void f( value , field, void * ) , void *p ) {
 	otable_iter( ((vobject*)o)->table, f, p );
 }
 

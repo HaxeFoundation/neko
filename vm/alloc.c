@@ -7,6 +7,7 @@
 #include "neko.h"
 #include "objtable.h"
 #include "load.h"
+#include "opcodes.h"
 #include "vmcontext.h"
 #ifdef _WIN32
 #	define GC_DLL
@@ -15,6 +16,11 @@
 #endif
 #include "gc/gc.h"
 
+static int op_last = Last;
+int *callback_return = &op_last;
+value *neko_builtins = NULL;
+_context *neko_fields_context = NULL;
+_context *neko_vm_context = NULL;
 static val_type t_null = VAL_NULL;
 static val_type t_true = VAL_BOOL;
 static val_type t_false = VAL_BOOL;
@@ -24,6 +30,14 @@ EXTERN value val_true = (value)&t_true;
 EXTERN value val_false = (value)&t_false;
 static value empty_array = (value)&t_array;
 static vstring empty_string = { VAL_STRING, 0 };
+field id_compare;
+field id_string;
+field id_loader;
+field id_exports;
+field id_add;
+field id_preadd;
+field id_data;
+field id_mod;
 
 static void null_warn_proc( char *msg, int arg ) {
 }
@@ -210,17 +224,25 @@ EXTERN void free_root(value *v) {
 
 extern void neko_init_builtins();
 extern void neko_init_fields();
-extern void neko_free_builtins();
 
 EXTERN void neko_global_init() {
 	neko_gc_init();
-	vm_context = context_new();
+	neko_vm_context = context_new();
+	neko_fields_context = context_new();
 	neko_init_builtins();
-	neko_init_fields();
+	id_compare = val_id("__compare");
+	id_string = val_id("__string");
+	id_add = val_id("__add");
+	id_preadd = val_id("__preadd");
+	id_loader = val_id("loader");
+	id_exports = val_id("exports");
+	id_data = val_id("__data");
+	id_mod = val_id("@m");
 }
 
 EXTERN void neko_global_free() {
-	neko_free_builtins();
+	val_clean_thread();
+	free_root(neko_builtins);
 #ifdef _DEBUG
 	if( roots != NULL ) {
 		printf("Some roots are not free");
@@ -228,7 +250,8 @@ EXTERN void neko_global_free() {
 	}
 	context_delete(roots_context);
 #endif
-	context_delete(vm_context);
+	context_delete(neko_vm_context);
+	context_delete(neko_fields_context);
 	neko_gc_major();
 }
 

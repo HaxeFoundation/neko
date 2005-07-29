@@ -16,7 +16,7 @@
 	long _ftol2( double f) { return _ftol(f); };
 #endif
 
-value *builtins = NULL;
+extern value *neko_builtins;
 
 static void builtin_error( const char *msg ) {
 	val_throw(alloc_string(msg));
@@ -307,13 +307,9 @@ static value builtin_hash( value f ) {
 }
 
 static value builtin_field( value f ) {
-	value *s;
 	if( !val_is_int(f) )
 		return val_null;
-	s = otable_find(NEKO_VM()->fields,(field)val_int(f));
-	if( s == NULL )
-		return val_null;
-	return *s;
+	return val_field_name((field)val_int(f));
 }
 
 static value builtin_int( value f ) {
@@ -416,13 +412,13 @@ static value builtin_string( value v ) {
 }
 
 #define BUILTIN(name,nargs)	\
-	alloc_field(builtins[NBUILTINS],val_id(#name),alloc_int(p)); \
-	builtins[p++] = alloc_function(builtin_##name,nargs)
+	alloc_field(neko_builtins[NBUILTINS],val_id(#name),alloc_int(p)); \
+	neko_builtins[p++] = alloc_function(builtin_##name,nargs)
 
 void neko_init_builtins() {
 	int p = 0;
-	builtins = alloc_root(NBUILTINS+1);
-	builtins[NBUILTINS] = alloc_object(NULL);
+	neko_builtins = alloc_root(NBUILTINS+1);
+	neko_builtins[NBUILTINS] = alloc_object(NULL);
 	BUILTIN(print,VAR_ARGS);
 	
 	BUILTIN(array,VAR_ARGS);
@@ -472,10 +468,6 @@ void neko_init_builtins() {
 	//----- DONE ---------------
 	if( p != NBUILTINS )
 		*(char*)NULL = 0;
-}
-
-void neko_free_builtins() {
-	free_root(builtins);
 }
 
 /* ************************************************************************ */

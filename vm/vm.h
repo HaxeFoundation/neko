@@ -18,7 +18,6 @@ struct _neko_vm {
 	int *sp;
 	int *csp;
 	int *trap;
-	objtable fields;
 	value env;
 	value this;
 	printer print;
@@ -28,9 +27,9 @@ struct _neko_vm {
 };
 
 extern int *callback_return;
-extern _context *vm_context;
+extern _context *neko_vm_context;
 
-#define NEKO_VM()	((neko_vm*)context_get(vm_context))
+#define NEKO_VM()	((neko_vm*)context_get(neko_vm_context))
 
 extern value neko_interp( neko_vm *vm, int acc, int *pc, value env );
 

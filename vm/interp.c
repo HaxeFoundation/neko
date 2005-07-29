@@ -21,12 +21,8 @@
 #define address_int(a)	(((int)(a)) | 1)
 #define int_address(a)	(int*)(a & ~1)
 
-static int op_last = Last;
 extern field id_add;
 extern field id_preadd;
-_context *vm_context = NULL;
-int *callback_return = &op_last;
-
 extern value alloc_module_function( void *m, int pos, int nargs );
 
 static void default_printer( const char *s, int len ) {
@@ -55,19 +51,15 @@ EXTERN neko_vm *neko_vm_alloc( neko_params *p ) {
 	vm->csp = vm->spmin - 1;
 	vm->this = val_null;
 	vm->env = alloc_array(0);
-	vm->fields = otable_empty();
 	return vm;
 }
 
-EXTERN void neko_vm_free( neko_vm *vm ) {
-}
-
 EXTERN void neko_vm_select( neko_vm *vm ) {
-	context_set(vm_context,vm);
+	context_set(neko_vm_context,vm);
 }
 
 EXTERN neko_vm *neko_vm_current() {
-	return (neko_vm*)context_get(vm_context);
+	return (neko_vm*)context_get(neko_vm_context);
 }
 
 EXTERN void *neko_vm_custom( neko_vm *vm ) {
