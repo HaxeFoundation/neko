@@ -32,19 +32,17 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="gc/gc.lib"
-				OutputFile="$(OutDir)/neko.dll"
+				OutputFile="../bin/neko.dll"
 				LinkIncremental="2"
 				GenerateDebugInformation="TRUE"
 				ProgramDatabaseFile="$(OutDir)/nekovm_dll.pdb"
 				SubSystem="2"
-				ImportLibrary="$(OutDir)/neko.lib"
+				ImportLibrary="../bin/neko.lib"
 				TargetMachine="1"/>
 			<Tool
 				Name="VCMIDLTool"/>
 			<Tool
-				Name="VCPostBuildEventTool"
-				CommandLine="copy Debug\neko.dll ..\bin
-copy Debug\neko.lib ..\bin"/>
+				Name="VCPostBuildEventTool"/>
 			<Tool
 				Name="VCPreBuildEventTool"/>
 			<Tool
@@ -82,21 +80,19 @@ copy Debug\neko.lib ..\bin"/>
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="gc/gc.lib msvcrt60.lib"
-				OutputFile="$(OutDir)/neko.dll"
+				OutputFile="../bin/neko.dll"
 				LinkIncremental="1"
 				IgnoreDefaultLibraryNames="MSVCRT"
 				GenerateDebugInformation="TRUE"
 				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
-				ImportLibrary="$(OutDir)/neko.lib"
+				ImportLibrary="../bin/neko.lib"
 				TargetMachine="1"/>
 			<Tool
 				Name="VCMIDLTool"/>
 			<Tool
-				Name="VCPostBuildEventTool"
-				CommandLine="copy Release\neko.dll ..\bin
-copy Release\neko.lib ..\bin"/>
+				Name="VCPostBuildEventTool"/>
 			<Tool
 				Name="VCPreBuildEventTool"/>
 			<Tool
