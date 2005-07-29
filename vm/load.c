@@ -8,6 +8,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h> 
+#ifdef __linux__
+#	include <dlfcn.h>
+#endif
 #include "vmcontext.h"
 #include "load.h"
 #include "interp.h"
@@ -97,8 +100,6 @@ static neko_module *neko_module_read( reader r, readp p, value loader ) {
 			READ(&stmp,2);
 			if( stmp > MAXSIZE ) {
 				char *ttmp;
-				if( stmp > 0x100000 )
-					val_throw(alloc_string("Too much big string"));
 				ttmp = alloc_private(stmp);
 				READ(ttmp,stmp);
 				m->globals[i] = copy_string(ttmp,stmp);
