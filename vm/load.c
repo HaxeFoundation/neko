@@ -345,8 +345,8 @@ EXTERN void *neko_default_load_primitive( const char *prim, int nargs, void **cu
 	if( pos == NULL )
 		return NULL;
 	l = (liblist*)*custom;
-	len = strlen(prim) + 1;
 	*pos = 0;
+	len = strlen(prim) + 1;
 	while( l != NULL ) {
 		if( memcmp(l->name,prim,len) == 0 )
 			break;
