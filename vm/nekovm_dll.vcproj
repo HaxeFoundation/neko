@@ -43,9 +43,8 @@
 				Name="VCMIDLTool"/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="copy Debug\neko.dll ..
-copy Debug\neko.lib ..
-"/>
+				CommandLine="copy Debug\neko.dll ..\bin
+copy Debug\neko.lib ..\bin"/>
 			<Tool
 				Name="VCPreBuildEventTool"/>
 			<Tool
@@ -96,9 +95,8 @@ copy Debug\neko.lib ..
 				Name="VCMIDLTool"/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="copy Release\neko.dll ..
-copy Release\neko.lib ..
-"/>
+				CommandLine="copy Release\neko.dll ..\bin
+copy Release\neko.lib ..\bin"/>
 			<Tool
 				Name="VCPreBuildEventTool"/>
 			<Tool

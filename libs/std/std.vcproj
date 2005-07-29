@@ -32,8 +32,8 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="../../neko.lib ws2_32.lib"
-				OutputFile="../std.ndll"
+				AdditionalDependencies="../../bin/neko.lib ws2_32.lib"
+				OutputFile="../../bin/std.ndll"
 				LinkIncremental="2"
 				GenerateDebugInformation="TRUE"
 				ProgramDatabaseFile="$(OutDir)/std.pdb"
@@ -81,8 +81,8 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="../../neko.lib ws2_32.lib msvcrt60.lib"
-				OutputFile="../std.ndll"
+				AdditionalDependencies="../../bin/neko.lib ws2_32.lib msvcrt60.lib"
+				OutputFile="../../bin/std.ndll"
 				LinkIncremental="1"
 				IgnoreDefaultLibraryNames="MSVCRT"
 				GenerateDebugInformation="TRUE"

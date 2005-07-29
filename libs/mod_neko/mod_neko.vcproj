@@ -32,8 +32,8 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="../../neko.lib apache/ApacheCore.lib"
-				OutputFile="../mod_neko.ndll"
+				AdditionalDependencies="../../bin/neko.lib apache/ApacheCore.lib"
+				OutputFile="../../bin/mod_neko.ndll"
 				LinkIncremental="2"
 				GenerateDebugInformation="TRUE"
 				ProgramDatabaseFile="$(OutDir)/mod_neko.pdb"
@@ -43,8 +43,7 @@
 			<Tool
 				Name="VCMIDLTool"/>
 			<Tool
-				Name="VCPostBuildEventTool"
-				CommandLine="copy ..\mod_neko.ndll c:\progra~1\easyphp\apache\modules"/>
+				Name="VCPostBuildEventTool"/>
 			<Tool
 				Name="VCPreBuildEventTool"/>
 			<Tool
@@ -82,8 +81,8 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="../../neko.lib apache/ApacheCore.lib msvcrt60.lib"
-				OutputFile="../mod_neko.ndll"
+				AdditionalDependencies="../../bin/neko.lib apache/ApacheCore.lib msvcrt60.lib"
+				OutputFile="../../bin/mod_neko.ndll"
 				LinkIncremental="1"
 				IgnoreDefaultLibraryNames="MSVCRT"
 				GenerateDebugInformation="TRUE"
@@ -95,8 +94,7 @@
 			<Tool
 				Name="VCMIDLTool"/>
 			<Tool
-				Name="VCPostBuildEventTool"
-				CommandLine="copy ..\mod_neko.ndll c:\progra~1\easyphp\apache\modules"/>
+				Name="VCPostBuildEventTool"/>
 			<Tool
 				Name="VCPreBuildEventTool"/>
 			<Tool
@@ -120,6 +118,9 @@
 	<Files>
 		<File
 			RelativePath=".\cgi.c">
+		</File>
+		<File
+			RelativePath="..\..\vm\context.c">
 		</File>
 		<File
 			RelativePath=".\mod_neko.c">

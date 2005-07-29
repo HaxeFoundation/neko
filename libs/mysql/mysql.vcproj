@@ -32,8 +32,8 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="mysql\mysqlclient.lib ws2_32.lib ..\..\neko.lib"
-				OutputFile="../mysql.ndll"
+				AdditionalDependencies="mysql\mysqlclient.lib ws2_32.lib ..\..\bin\neko.lib"
+				OutputFile="../../bin/mysql.ndll"
 				LinkIncremental="2"
 				IgnoreDefaultLibraryNames="LIBCMT"
 				GenerateDebugInformation="TRUE"
@@ -82,8 +82,8 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="mysql\mysqlclient.lib ..\..\neko.lib ws2_32.lib msvcrt60.lib"
-				OutputFile="../mysql.ndll"
+				AdditionalDependencies="mysql\mysqlclient.lib ..\..\bin\neko.lib ws2_32.lib msvcrt60.lib"
+				OutputFile="../../bin/mysql.ndll"
 				LinkIncremental="1"
 				IgnoreDefaultLibraryNames="MSVCRT;LIBCMT"
 				GenerateDebugInformation="TRUE"

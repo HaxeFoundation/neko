@@ -31,7 +31,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="..\neko.lib"
+				AdditionalDependencies="..\bin\neko.lib"
 				OutputFile="$(OutDir)/nekovm.exe"
 				LinkIncremental="2"
 				GenerateDebugInformation="TRUE"
@@ -42,7 +42,7 @@
 				Name="VCMIDLTool"/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="copy Debug\nekovm.exe .."/>
+				CommandLine="copy Debug\nekovm.exe ..\bin"/>
 			<Tool
 				Name="VCPreBuildEventTool"/>
 			<Tool
@@ -92,7 +92,7 @@
 				Name="VCMIDLTool"/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="copy Release\nekovm.exe .."/>
+				CommandLine="copy Release\nekovm.exe ..\bin"/>
 			<Tool
 				Name="VCPreBuildEventTool"/>
 			<Tool

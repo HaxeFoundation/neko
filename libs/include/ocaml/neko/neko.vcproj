@@ -17,10 +17,10 @@
 			ConfigurationType="0">
 			<Tool
 				Name="VCNMakeTool"
-				BuildCommandLine="ocamake -o ../neko.exe -pp camlp4o neko.vcproj extLib.cma"
-				ReBuildCommandLine="ocamake -o ../neko.exe -pp camlp4o -all neko.vcproj extLib.cma"
-				CleanCommandLine="ocamake -o ../neko.exe -pp camlp4o -clean neko.vcproj extLib.cma"
-				Output="../neko.exe"/>
+				BuildCommandLine="ocamake -o ../bin/neko.exe -pp camlp4o neko.vcproj extLib.cma"
+				ReBuildCommandLine="ocamake -o ../bin/neko.exe -pp camlp4o -all neko.vcproj extLib.cma"
+				CleanCommandLine="ocamake -o ../bin/neko.exe -pp camlp4o -clean neko.vcproj extLib.cma"
+				Output="../bin/neko.exe"/>
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
@@ -29,10 +29,10 @@
 			ConfigurationType="0">
 			<Tool
 				Name="VCNMakeTool"
-				BuildCommandLine="ocamake -o ../neko.exe -pp camlp4o neko.vcproj extLib.cmxa"
-				ReBuildCommandLine="ocamake -all -o ../neko.exe -pp camlp4o neko.vcproj extLib.cmxa"
-				CleanCommandLine="ocamake -clean -o ../neko.exe -pp camlp4o neko.vcproj extLib.cma"
-				Output="../neko.exe"/>
+				BuildCommandLine="ocamake -o ../bin/neko.exe -pp camlp4o neko.vcproj extLib.cmxa"
+				ReBuildCommandLine="ocamake -all -o ../bin/neko.exe -pp camlp4o neko.vcproj extLib.cmxa"
+				CleanCommandLine="ocamake -clean -o ../bin/neko.exe -pp camlp4o neko.vcproj extLib.cma"
+				Output="../bin/neko.exe"/>
 		</Configuration>
 	</Configurations>
 	<References>

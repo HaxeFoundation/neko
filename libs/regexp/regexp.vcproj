@@ -32,8 +32,8 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="../../neko.lib"
-				OutputFile="../regexp.ndll"
+				AdditionalDependencies="../../bin/neko.lib"
+				OutputFile="../../bin/regexp.ndll"
 				LinkIncremental="2"
 				GenerateDebugInformation="TRUE"
 				ProgramDatabaseFile="$(OutDir)/regexp.pdb"
@@ -81,8 +81,8 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="../../neko.lib msvcrt60.lib"
-				OutputFile="../regexp.ndll"
+				AdditionalDependencies="../../bin/neko.lib msvcrt60.lib"
+				OutputFile="../../bin/regexp.ndll"
 				LinkIncremental="1"
 				IgnoreDefaultLibraryNames="MSVCRT"
 				GenerateDebugInformation="TRUE"
