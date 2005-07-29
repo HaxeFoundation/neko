@@ -25,7 +25,7 @@ let genreport ep (msg,p) etype printer =
 	exit 1
 
 let report a b c = genreport Lexer.get_error_pos a b c
-let mlreport a b c = genreport Mllexer.get_error_pos a b c
+(*//let report a b c = genreport Mllexer.get_error_pos a b c*)
 
 let switch_ext file ext =
 	try
@@ -38,6 +38,7 @@ let open_file ?(bin=false) file =
 		if bin then open_in_bin file else open_in file
 	with _ -> failwith ("File not found " ^ file)
 
+(*/*
 let interp file =
 	let ctx = Interp.create ["";normalize_path (Filename.dirname file)] in
 	let mname = switch_ext (Filename.basename file) "" in
@@ -46,6 +47,7 @@ let interp file =
 	with
 		Interp.Error (Interp.Module_not_found m,_) when m = mname -> 
 			failwith ("File not found " ^ file)
+*/*)
 
 let compile file =
 	let ch = open_file file in
@@ -66,6 +68,7 @@ let dump file =
 	Bytecode.dump ch data;
 	IO.close_out ch
 
+(*/*
 let nekoml file =
 	let ctx = Mltyper.context ["";Filename.dirname file ^ "/"] in
 	ignore(Mltyper.load_module ctx [String.capitalize (Filename.chop_extension (Filename.basename file))] Mlast.null_pos);
@@ -77,26 +80,27 @@ let nekoml file =
 		Printer.print ctx e;
 		IO.close_out ch
 	) (Mltyper.modules ctx)
+*/*)
 
 ;;
 try	
 	let usage = "Neko v0.3 - (c)2005 Nicolas Cannasse\n Usage : neko.exe [options] <files...>\n Options :" in
 	let args_spec = [
 		("-msvc",Arg.Unit (fun () -> print_style := StyleMSVC),": use MSVC style errors");
-		("-x", Arg.String interp,"<file> : interpret neko program");
+(*//	("-x", Arg.String interp,"<file> : interpret neko program"); *)
 		("-c", Arg.String compile,"<file> : compile file to NekoVM bytecode");
 		("-d", Arg.String dump,"<file> : dump NekoVM bytecode");
-		("-nml", Arg.String nekoml,"<file> : compile NekoML file");
+(*//	("-nml", Arg.String nekoml,"<file> : compile NekoML file"); *)
 	] in
 	Arg.parse args_spec (fun file -> raise (Arg.Bad file)) usage;
 with	
 	| Lexer.Error (m,p) -> report (m,p) "syntax error" Lexer.error_msg
 	| Parser.Error (m,p) -> report (m,p) "parse error" Parser.error_msg
-	| Interp.Error (m,p) -> report (m,p) "runtime error" Interp.error_msg
 	| Compile.Error (m,p) -> report (m,p) "compile error" Compile.error_msg
+(*/*| Interp.Error (m,p) -> report (m,p) "runtime error" Interp.error_msg
 	| Mllexer.Error (m,p) -> mlreport (m,p) "syntax error" Mllexer.error_msg
 	| Mlparser.Error (m,p) -> mlreport (m,p) "parse error" Mlparser.error_msg
-	| Mltyper.Error (m,p) -> mlreport (m,p) "type error" Mltyper.error_msg
+	| Mltyper.Error (m,p) -> mlreport (m,p) "type error" Mltyper.error_msg */*)
 	| Failure msg ->
 		prerr_endline msg;
 		exit 1;
