@@ -1044,8 +1044,7 @@ Defining new functions is easy, since functions are values, you can simply assig
 
 <pre>
 	o.field = value;
-	$objset(o,"field",value);
-	$objset(o, 33, value); // null
+	$objset(o,$hash("field"),value);
 </pre>
 
 <p>
@@ -1054,12 +1053,11 @@ Defining new functions is easy, since functions are values, you can simply assig
 
 <pre>
 	o.field; // returns "field" value of object o
-	$objget(o,"field"); // returns "field" value of object o
-	$objget(o, 33); // null
+	$objget(o,$hash("field")); // returns "field" value of object o
 </pre>
 
 <p>
-	Please note that <code>$objset</code> and <code>$objget</code> second parameter is evaluated and hashed at runtime so it's a less efficient operation than dot access but enables introspection.
+	Please note that <code>$objset</code> and <code>$objget</code> second parameter is hashed at runtime so it's a bit less efficient operation than dot access but enables introspection.
 </p>
 
 <p>
@@ -1071,8 +1069,7 @@ Defining new functions is easy, since functions are values, you can simply assig
 </p>
 
 <pre>
-	$objfield(o,"field"); // true if o have "field"
-	$objfield(o,33); // false
+	$objfield(o,$hash("field")); // true if o have "field"
 	$objfield(null,33); // false
 </pre>
 
@@ -1081,7 +1078,7 @@ Defining new functions is easy, since functions are values, you can simply assig
 </p>
 
 <pre>
-	$objremove(o,"field"); // remove "field" from o
+	$objremove(o,$hash("field")); // remove "field" from o
 </pre>
 
 <h3>Methods</h3>
@@ -1095,7 +1092,7 @@ Defining new functions is easy, since functions are values, you can simply assig
 	o.x = 1;
 	o.add = function(y) { return this.x + y; }
 	$print(o.add(2)); // prints 3
-	$print( $objcall(o,"add",$array(2)) ); // prints 3
+	$print( $objcall(o,$hash("add"),$array(2)) ); // prints 3
 </pre>
 
 <p>
@@ -1144,7 +1141,7 @@ Defining new functions is easy, since functions are values, you can simply assig
 	var a = $objfields(o);
 	for(i=0;i&lt;$asize(a);i = i + 1) {
 		var fname = $field(a[i]);
-		var fval = $objget(o,fname);
+		var fval = $objget(o,a[i]);
 		$print( fname + " = " + fval + "\n" );
 	}
 </pre>
@@ -1216,6 +1213,19 @@ Defining new functions is easy, since functions are values, you can simply assig
 <p>
 	Like arrays, strings are a type and not objects. They are arrays of bytes, so can be convenient for storing large quantity of small numbers or binary data, that might not be scanned by the Garbage Colllector. Please note that unlike C language, the size of the string is stored so you can easily put binary data into it without caring about ending \000 character.
 </p>
+
+<p>
+	Constant strings can contain any character, including newlines and binary data. However doublequotes and backslashs need to be escaped. A backslash is used for escaping some special characters, here's a list of recognized escape sequences :
+</p>
+
+<ul>
+	<li><code>\"</code> : doublequote</li>
+	<li><code>\\</code> : backslash</li>
+	<li><code>\n</code> : newline</li>
+	<li><code>\r</code> : carriage return</li>
+	<li><code>\t</code> : tab</li>
+	<li><code>\xxx</code> : xxx are three digits that represent a decimal binary code between 000 and 255</li>
+</ul>
 
 <p>
 	Strings can be created using the <code>$smake</code> primitive with a given size. Once allocated, a string can't be resized. The size of a string can be retrieved using the <code>$ssize</code> primitive :
