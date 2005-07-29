@@ -215,7 +215,7 @@ static value do_parse_xml( const char **lp, value fxml, value fpcdata, value par
 // ----------------------------------------------
 
 static value parse_xml( value str, value fxml, value fpcdata ) {
-	char *p;
+	const char *p;
 	value v;
 	if( !val_is_string(str) || !val_is_function(fxml) || !val_is_function(fpcdata) )
 		return val_null;
