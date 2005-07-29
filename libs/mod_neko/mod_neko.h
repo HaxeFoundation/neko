@@ -11,6 +11,7 @@
 #undef INLINE
 #include <context.h>
 #include <interp.h>
+#undef neko_module
 
 typedef struct {
 	request_rec *r;
