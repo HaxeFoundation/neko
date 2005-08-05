@@ -185,9 +185,9 @@ let rec compile_binop ctx op e1 e2 p =
 			write ctx (SetField f)
 		| EArray (e1,e2) ->
 			write ctx Push;
-			compile ctx e2;
-			write ctx Push;
 			compile ctx e1;
+			write ctx Push;
+			compile ctx e2;
 			write ctx SetArray
 		| EConst This ->
 			write ctx SetThis
