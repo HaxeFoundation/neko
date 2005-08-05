@@ -18,7 +18,6 @@ type constant =
 
 type keyword =
 	| Var
-	| For
 	| While
 	| Do
 	| If
@@ -61,7 +60,6 @@ type expr_decl =
 	| ECall of expr * expr list
 	| EArray of expr * expr	
 	| EVars of (string * expr option) list
-	| EFor of expr * expr * expr * expr
 	| EWhile of expr * expr * while_flag
 	| EIf of expr * expr * expr option
 	| ETry of expr * string * expr
@@ -97,7 +95,6 @@ let map f (e,p) =
 	| ECall (e,el) -> ECall (f e, List.map f el)
 	| EArray (e1,e2) -> EArray (f e1, f e2)
 	| EVars vl -> EVars (List.map (fun (v,e) -> v , match e with None -> None | Some e -> Some (f e)) vl)
-	| EFor (e1,e2,e3,e4) -> EFor (f e1, f e2, f e3, f e4)
 	| EWhile (e1,e2,flag) -> EWhile (f e1, f e2, flag)
 	| EIf (e,e1,e2) -> EIf (f e, f e1, match e2 with None -> None | Some e -> Some (f e))
 	| ETry (e,ident,e2) -> ETry (f e, ident, f e2)
@@ -119,7 +116,6 @@ let iter f (e,p) =
 	| ECall (e,el) -> f e; List.iter f el
 	| EArray (e1,e2) -> f e1; f e2
 	| EVars vl -> List.iter (fun (_,e) -> match e with None -> () | Some e -> f e) vl
-	| EFor (e1,e2,e3,e4) -> f e1; f e2; f e3; f e4
 	| EWhile (e1,e2,_) -> f e1; f e2
 	| EIf (e,e1,e2) -> f e; f e1; (match e2 with None -> () | Some e -> f e)
 	| ETry (e1,_,e2) -> f e1; f e2
@@ -162,7 +158,6 @@ let s_constant = function
 
 let s_keyword = function
 	| Var -> "var"
-	| For -> "for"
 	| While -> "while"
 	| Do -> "do"
 	| If -> "if"

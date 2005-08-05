@@ -349,18 +349,6 @@ and compile ctx (e,p) =
 			write ctx Push;
 			ctx.locals <- PMap.add v ctx.stack ctx.locals;
 		) vl
-	| EFor (einit,econd,eincr,e) ->
-		compile ctx einit;
-		let start = pos ctx in
-		compile ctx econd;
-		let jend = jmp ~cond:false ctx in
-		let save = save_breaks ctx in
-		compile ctx e;
-		process_continues save;
-		compile ctx eincr;
-		goto ctx start;
-		process_breaks save;
-		jend();
 	| EWhile (econd,e,NormalWhile) ->
 		let start = pos ctx in
 		compile ctx econd;

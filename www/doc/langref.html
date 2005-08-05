@@ -81,7 +81,6 @@ The syntax is parsed using a left-to-right LL(1) parser. That means that after r
 		| <b>DOT</b> [0-9]+
 		| <b>DOUBLEQUOTE</b> <i>characters</i> <b>DOUBLEQUOTE</b>
 		| <b>DOLLAR</b> <i>ident</i>
-		| <b>SHARP</b> <i>ident</i>
 		| <b>QUOTE</b> <i>ident</i>
 		| <b>true</b>
 		| <b>false</b>
@@ -98,7 +97,6 @@ The syntax is parsed using a left-to-right LL(1) parser. That means that after r
 		| <i>expr</i> <i>binop</i> <i>expr</i>
 		| <b>(</b> <i>expr</i> <b>)</b>
 		| <b>var</b> <i>variables</i>
-		| <b>for (</b> <i>expr</i> <i>expr</i> <i>expr</i> <b>)</b> <i>expr</i>
 		| <b>while</b> <i>expr</i> <i>expr</i>
 		| <b>do</b> <i>expr</i> <b>while</b> <i>expr</i>
 		| <b>if</b> <i>expr</i> <i>expr</i> [<b>else</b> <i>expr</i>]
@@ -135,10 +133,9 @@ The syntax is parsed using a left-to-right LL(1) parser. That means that after r
 </p>
 
 <ul>
-<li><code>continue</code> behavior in a <code>for</code> increments part (third expression) is undefined.</li>
-<li><code>continue</code> and <code>break</code> outside a loop are not specified.</li>
+<li><code>continue</code> and <code>break</code> outside a while are not specified.</li>
 <li><code>return</code> in the toplevel (outside a function) is an accepted way of interupting module execution without error.</li>
-<li>There are some few ambiguous cases when two expressions follows each others (in for, while and if). If the second expression is inside parenthesis, it will be parsed as a call of first expression, while such a representation e1 (e2) exists in the AST (the semicolons are optional).</li>
+<li>There are some few ambiguous cases when two expressions follows each others (in while and if). If the second expression is inside parenthesis, it will be parsed as a call of first expression, while such a representation e1 (e2) exists in the AST (the semicolons are optional).</li>
 </ul>
 
 <!-- ****************************************************************************** -->
@@ -190,7 +187,6 @@ Values :
 <li><code>[0-9]+ <b>DOT</b> [0-9]* | <b>DOT</b> [0-9]+</code> : evaluate to the corresponding floating point value.</li>
 <li><code><b>DOUBLEQUOTE</b> <i>characters</i> <b>DOUBLEQUOTE</b></code> : evaluate to the corresponding string. Escaped characters are simular to the C language.</li>
 <li><code><b>DOLLAR</b> <i>ident</i></code> : identifiers prefixed with a dollar are primitives. They enable you to call some compiler constructors or optimized calls (see Primitives).</li>
-<li><code><b>SHARP</b> <i>ident</i></code> : identifiers prefixed with a sharp are modules. See later for explanations of module loading and linking (see Modules).</li>
 <li><code><b>true</b> | <b>false</b></code> : evaluate to the corresponding boolean.</li>
 <li><code><b>null</b></code> : evaluate to the null value.</li>
 <li><code><b>this</b></code> : evaluate to the local object value (see later for objects).</li>
@@ -211,21 +207,20 @@ Before evaluating any expression, all sub-expressions are evaluated in an unspec
 <li><code><i>expr</i> <i>assign-binop</i> <i>v</i></code> : this is a special case, when operation is an assignation (see Operations).</li>
 <li><code><b>(</b> <i>v</i> <b>)</b></code> : evaluate to <code>v</code>.</li>
 <li><code><b>var</b> <i>i1 = v1, i2 = v2, .... ik = vk</i></code> : each variable <code>i</code> is set to the corresponding value <code>v</code> or to <code>null</code> if no initialization expression is provided.</li>
-<li><code><b>for</b>...</code> : classic for-loop, the value returned is either the value returned by a <code>break</code> inside the for or unspecified.</li>
-<li><code><b>while</b> ....  | <b>do</b> ... <b>while</b> ...</code> : classic while-loop, same as for.</li>
+<li><code><b>while</b> ....  | <b>do</b> ... <b>while</b> ...</code> : classic while-loop, the value returned is either the value returned by a <code>break</code> inside the while or unspecified if the loop ends without break.</li>
 <li><code><b>if</b> <i>v1</i> <i>e1</i></code> : if v1 is the boolean <code>true</code>, then <code>e1</code> is evaluated and its value returned, else the evaluated value is unspecified.</li>
 <li><code><b>if</b> <i>v1</i> <i>e1</i> <b>else</b> <i>e2</i></code> : if v1 is the boolean <code>true</code>, then <code>e1</code> is evaluated and its value returned else <code>e2</code> is evaluated and its value returned.</li>
 <li><code><b>try</b> <i>e1</i> <b>catch</b> <i>i</i> <i>e2</i></code> : evaluate <code>e1</code> and returns the evaluated value. If an exception is raised, then evaluate <code>e2</code> and returns evaluated value with local <code>i</code> variable being set to the raised exception value (see Exceptions).</li>
 <li><code><b>function (</b> <i>parameters-names</i> <b>)</b> <i>expr</i></code> : evaluate to the corresponding function.</li>
 <li><code><b>return</b>;</code> : exit current function with unspecified return value.</li>
 <li><code><b>return</b> v</code> : exit current function and return value <code>v</code>.</li>
-<li><code><b>break</b>;</code> : exit current for or while loop with unspecified return value.</li>
-<li><code><b>break</b> v</code> : exit current for or while loop and return value <code>v</code>.</li>
-<li><code><b>continue</b></code> : continue execution to next while/for loop step.</li>
+<li><code><b>break</b>;</code> : exit current while loop with unspecified return value.</li>
+<li><code><b>break</b> v</code> : exit current while loop and return value <code>v</code>.</li>
+<li><code><b>continue</b></code> : continue execution to next while loop step.</li>
 </ul>
 
 <p>
-	Please note that <code>if</code>, <code>for</code> and <code>while</code> conditions only sucess for the boolean <code>true</code> and for no other value. You might need to add a <code>$istrue</code> code before each expression in order to convert the expression result into a boolean.
+	Please note that <code>if</code> and <code>while</code> conditions only sucess for the boolean <code>true</code> and for no other value. You might need to add a <code>$istrue</code> code before each expression in order to convert the expression result into a boolean.
 </p>
 
 <!-- ****************************************************************************** -->
@@ -1139,10 +1134,12 @@ Defining new functions is easy, since functions are values, you can simply assig
 
 <pre>
 	var a = $objfields(o);
-	for(i=0;i&lt;$asize(a);i = i + 1) {
+	var i = 0;
+	while( i < $asize(a) ) {
 		var fname = $field(a[i]);
 		var fval = $objget(o,a[i]);
 		$print( fname + " = " + fval + "\n" );
+		i = i + 1;
 	}
 </pre>
 

@@ -54,10 +54,6 @@ and expr = parser
 		| [< >] -> error (Unclosed "(") p1)
 	| [< '(Keyword Var,p1); v, p2 = variables p1; s >] ->
 		expr_next (EVars v,punion p1 p2) s
-	| [< '(Keyword For,p1); '(ParentOpen,po); e1 = expr; e2 = expr; e3 = expr; s >] ->
-		(match s with parser
-		| [< '(ParentClose,_); e = expr; s >] -> expr_next (EFor (e1,e2,e3,e),punion p1 (pos e)) s
-		| [< >] -> error (Unclosed "(") po)
 	| [< '(Keyword While,p1); cond = expr; e = expr; s >] ->
 		expr_next (EWhile (cond,e,NormalWhile), punion p1 (pos e)) s
 	| [< '(Keyword Do,p1); e = expr; '(Keyword While,_); cond = expr; s >] ->

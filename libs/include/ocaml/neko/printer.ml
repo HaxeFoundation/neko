@@ -78,15 +78,6 @@ let rec print_ast ctx (e,p) =
 		) vl;
 		print ctx ";";
 		newline ctx
-	| EFor (init,cond,incr,e) ->
-		print ctx "for(";
-		print_ast ctx init;
-		print ctx " ";
-		print_ast ctx cond;
-		print ctx " ";
-		print_ast ctx incr;
-		print ctx ")";
-		level_expr ctx e;
 	| EWhile (cond,e,NormalWhile) ->
 		print ctx "while ";
 		print_ast ctx cond;
