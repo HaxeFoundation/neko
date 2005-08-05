@@ -1143,6 +1143,24 @@ Defining new functions is easy, since functions are values, you can simply assig
 	}
 </pre>
 
+<h3>Operators Overloading</h3>
+
+<p>
+	Several operators can be overloaded so when they're applied to objects they are actually calling methods. Here's a list of operators overloadable and corresponding methods names :
+</p>
+
+<ul>
+	<li><b>string conversion</b> : call the <code>__string</code> method on the object with no arguments. A string should be returned.</li>
+	<li><b>object comparison</b> : for any comparison between two different objects, the <code>__compare</code> method is called on the first object with the second object as parameter.</li>
+	<li><b>addition</b> : in the case of <code>a + b</code>, if <code>a</code> is an object, <code>a.__add(b)</code> is called else if <code>b</code> is an object, <code>b.__radd(a)</code> is called.
+	<li><b>subtraction</b> : same as addition but with <code>__sub</code> and <code>__rsub</code>.</li>
+	<li><b>multiplication</b> : same as addition but with <code>__mult</code> and <code>__rmult</code>.</li>
+	<li><b>division</b> : smae a addition but with <code>__div</code> and <code>__rdiv</code>.</li>
+	<li><b>modulo</b> : same as addition but with <code>__mod</code> and <code>__rmod</code>.</li>
+	<li><b>array reading</b> : when an object is accessed as an array for reading, using <code>a[i]</code> actually calls <code>a.__get(i)</code>.</li>
+	<li><b>array writing</b> : when an object is accessed as an array for writing, using <code>a[i] = v</code> actually calls <code>a.__set(i,v)</code>.</li>
+</ul>
+
 <!-- ****************************************************************************** -->
 
 <a name="arrays"></a>
