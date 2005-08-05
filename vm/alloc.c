@@ -34,10 +34,10 @@ field id_compare;
 field id_string;
 field id_loader;
 field id_exports;
-field id_add;
-field id_preadd;
 field id_data;
-field id_mod;
+field id_module;
+field id_get, id_set;
+field id_add, id_radd, id_sub, id_rsub, id_mult, id_rmult, id_div, id_rdiv, id_mod, id_rmod;
 
 static void null_warn_proc( char *msg, int arg ) {
 }
@@ -225,19 +225,31 @@ EXTERN void free_root(value *v) {
 extern void neko_init_builtins();
 extern void neko_init_fields();
 
+#define INIT_ID(x)	id_##x = val_id("__" ## #x)
+
 EXTERN void neko_global_init() {
 	neko_gc_init();
 	neko_vm_context = context_new();
 	neko_fields_context = context_new();
 	neko_init_builtins();
-	id_compare = val_id("__compare");
-	id_string = val_id("__string");
-	id_add = val_id("__add");
-	id_preadd = val_id("__preadd");
 	id_loader = val_id("loader");
 	id_exports = val_id("exports");
-	id_data = val_id("__data");
-	id_mod = val_id("@m");
+	INIT_ID(compare);
+	INIT_ID(string);
+	INIT_ID(data);
+	INIT_ID(module);
+	INIT_ID(add);
+	INIT_ID(radd);
+	INIT_ID(sub);
+	INIT_ID(rsub);
+	INIT_ID(mult);
+	INIT_ID(rmult);
+	INIT_ID(div);
+	INIT_ID(rdiv);
+	INIT_ID(mod);
+	INIT_ID(rmod);
+	INIT_ID(get);
+	INIT_ID(set);
 }
 
 EXTERN void neko_global_free() {

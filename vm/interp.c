@@ -21,8 +21,8 @@
 #define address_int(a)	(((int)(a)) | 1)
 #define int_address(a)	(int*)(a & ~1)
 
-extern field id_add;
-extern field id_preadd;
+extern field id_add, id_radd, id_sub, id_rsub, id_mult, id_rmult, id_div, id_rdiv, id_mod, id_rmod;
+extern field id_get, id_set;
 extern value alloc_module_function( void *m, int pos, int nargs );
 
 static void default_printer( const char *s, int len ) {
@@ -216,22 +216,30 @@ typedef int (*c_primN)(value*,int);
 #define MULT(x,y) ((x) - (y))
 #define DIV(x,y) ((x) / (y))
 
-#define NumberOp(op,fop) \
+#define NumberOp(op,fop,id_op,id_rop) \
 		Error( sp == vm->spmax , UNDERFLOW ); \
 		if( (acc & 1) && (*sp & 1) ) \
 			acc = (int)alloc_int(val_int(*sp) op val_int(acc)); \
 		else if( acc & 1 ) { \
 			if( val_tag(*sp) == VAL_FLOAT ) \
 				acc = (int)alloc_float(fop(val_float(*sp),val_int(acc))); \
+			else if( val_tag(*sp) == VAL_OBJECT ) \
+			    ObjectOp(*sp,acc,id_op) \
 			else \
 				acc = (int)val_null; \
 		} else if( *sp & 1 ) { \
 			if( val_tag(acc) == VAL_FLOAT ) \
 				acc = (int)alloc_float(fop(val_int(*sp),val_float(acc))); \
+			else if( val_tag(acc) == VAL_OBJECT ) \
+				ObjectOp(acc,*sp,id_rop) \
 			else \
 				acc = (int)val_null; \
 		} else if( val_tag(acc) == VAL_FLOAT && val_tag(*sp) == VAL_FLOAT ) \
 			acc = (int)alloc_float(fop(val_float(*sp),val_float(acc))); \
+		else if( val_tag(*sp) == VAL_OBJECT ) \
+			ObjectOp(*sp,acc,id_op) \
+		else if( val_tag(acc) == VAL_OBJECT ) \
+			ObjectOp(acc,*sp,id_rop) \
 		else \
 			acc = (int)val_null; \
 		*sp++ = NULL; \
@@ -378,7 +386,9 @@ value neko_interp( neko_vm *vm, register int acc, register int *pc, value env ) 
 				acc = (int)val_null;
 			else
 				acc = (int)val_array_ptr(*sp)[k];
-		} else
+		} else if( val_is_object(*sp) )
+			ObjectOp(*sp,acc,id_get)
+		else
 			acc = (int)val_null;
 		*sp++ = NULL;
 		Next;
@@ -408,10 +418,14 @@ value neko_interp( neko_vm *vm, register int acc, register int *pc, value env ) 
 		Next;
 	Instr(SetArray)
 		Error( sp >= vm->spmax - 1 , UNDERFLOW);
-		if( val_is_int(*sp) && val_is_array(acc) ) {
-			int k = val_int(*sp);
-			if( k >= 0 && k < val_array_size(acc) )
-				val_array_ptr(acc)[k] = (value)sp[1];
+		if( val_is_int(acc) && val_is_array(*sp) ) {
+			int k = val_int(acc);
+			if( k >= 0 && k < val_array_size(*sp) )
+				val_array_ptr(*sp)[k] = (value)sp[1];
+		} else if( val_is_object(*sp) ) {
+			BeginCall();
+			val_ocall2((value)*sp,id_set,(value)acc,(value)sp[1]);
+			EndCall();
 		}
 		*sp++ = NULL;
 		*sp++ = NULL;
@@ -534,7 +548,7 @@ value neko_interp( neko_vm *vm, register int acc, register int *pc, value env ) 
 			else if( (tmp = (val_tag(acc)&7)) == VAL_STRING )
 				AppendString(acc,"%d",val_int(*sp),false)
 			else if( tmp == VAL_OBJECT )
-				ObjectOp(acc,*sp,id_preadd)
+				ObjectOp(acc,*sp,id_radd)
 			else
 				acc = (int)val_null;
 		} else if( val_tag(acc) == VAL_FLOAT && val_tag(*sp) == VAL_FLOAT )
@@ -553,23 +567,27 @@ value neko_interp( neko_vm *vm, register int acc, register int *pc, value env ) 
 			val_buffer(b,(value)acc);
 			EndCall();
 			acc = (int)buffer_to_string(b);
-		} else if( tmp == VAL_OBJECT )
-			ObjectOp(acc,*sp,id_preadd)
-		else if( (val_tag(*sp)&7) == VAL_OBJECT )
+		} else if( val_tag(*sp) == VAL_OBJECT )
 			ObjectOp(*sp,acc,id_add)
+		else if( tmp == VAL_OBJECT )
+			ObjectOp(acc,*sp,id_radd)
 		else
 			acc = (int)val_null;
 		*sp++ = NULL;
 		Next;
 	Instr(Sub)
-		NumberOp(-,SUB)
+		NumberOp(-,SUB,id_sub,id_rsub)
 	Instr(Mult)
-		NumberOp(*,MULT)
+		NumberOp(*,MULT,id_mult,id_rmult)
 	Instr(Div)
 		if( val_is_number(acc) && val_is_number(*sp) )
 			acc = (int)alloc_float( ((tfloat)val_number(*sp)) / val_number(acc) );
+		else if( val_is_object(acc) )
+			ObjectOp(acc,*sp,id_rdiv)
+		else if( val_is_object(*sp) )
+			ObjectOp(*sp,acc,id_div)
 		else
-			acc = (int)val_null;	
+			acc = (int)val_null;
 		*sp++ = NULL;
 		Next;
 	Instr(Mod)
@@ -579,7 +597,7 @@ value neko_interp( neko_vm *vm, register int acc, register int *pc, value env ) 
 			*sp++ = NULL;
 			Next;
 		}
-		NumberOp(%,fmod);
+		NumberOp(%,fmod,id_mod,id_rmod);
 	Instr(Shl)
 		IntOp(<<);
 	Instr(Shr)
