@@ -27,7 +27,7 @@ DEFINE_KIND(k_module);
 extern field id_loader;
 extern field id_exports;
 extern field id_data;
-extern field id_mod;
+extern field id_module;
 extern value *neko_builtins;
 extern value alloc_module_function( void *m, int pos, int nargs );
 
@@ -80,7 +80,7 @@ static neko_module *neko_module_read( reader r, readp p, value loader ) {
 	m->code = (int*)alloc_private(sizeof(int)*(m->codesize+1));
 	m->loader = loader;
 	m->exports = alloc_object(NULL);
-	alloc_field(m->exports,id_mod,alloc_abstract(k_module,m));
+	alloc_field(m->exports,id_module,alloc_abstract(k_module,m));
 	// Init global table
 	for(i=0;i<m->nglobals;i++) {
 		READ(&t,1);
