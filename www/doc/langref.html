@@ -404,7 +404,7 @@ Operation add ( + ) :
 	<td>-</td>
 	<td>concat</td>
 	<td>-</td>
-	<td>__preadd</td>
+	<td>__radd</td>
 	<td>-</td>
 	<td>-</td>
 </tr>
@@ -415,7 +415,7 @@ Operation add ( + ) :
 	<td>float</td>
 	<td>concat</td>
 	<td>-</td>
-	<td>__preadd</td>
+	<td>__radd</td>
 	<td>-</td>
 	<td>-</td>
 </tr>
@@ -426,7 +426,7 @@ Operation add ( + ) :
 	<td>float</td>
 	<td>concat</td>
 	<td>-</td>
-	<td>__preadd</td>
+	<td>__radd</td>
 	<td>-</td>
 	<td>-</td>
 </tr>
@@ -437,7 +437,7 @@ Operation add ( + ) :
 	<td>concat</td>
 	<td>concat</td>
 	<td>concat</td>
-	<td>__preadd</td>
+	<td>__radd</td>
 	<td>concat</td>
 	<td>concat</td>
 </tr>
@@ -448,7 +448,7 @@ Operation add ( + ) :
 	<td>-</td>
 	<td>concat</td>
 	<td>-</td>
-	<td>__preadd</td>
+	<td>__radd</td>
 	<td>-</td>
 	<td>-</td>
 </tr>
@@ -470,7 +470,7 @@ Operation add ( + ) :
 	<td>-</td>
 	<td>concat</td>
 	<td>-</td>
-	<td>__preadd</td>
+	<td>__radd</td>
 	<td>-</td>
 	<td>-</td>
 </tr>
@@ -481,14 +481,14 @@ Operation add ( + ) :
 	<td>-</td>
 	<td>concat</td>
 	<td>-</td>
-	<td>__preadd</td>
+	<td>__radd</td>
 	<td>-</td>
 	<td>-</td>
 </tr>
 </table>
 
 <p>
-	Addition can be overridden for objects : <code>a + b</code> will call <code>a.__add(b)</code> if <code>a</code> is an object, or <code>b.__preadd(a)</code> if <code>b</code> is an object.
+	Addition can be overridden for objects : <code>a + b</code> will call <code>a.__add(b)</code> if <code>a</code> is an object, or <code>b.__radd(a)</code> if <code>b</code> is an object.
 </p>
 
 <p>
@@ -520,6 +520,10 @@ Operations substract ( - ) divide ( / ) multiply ( * ) and modulo ( % ) :
 
 <p>
 	Dividing or doing modulo of one integer by the integer zero returns <code>null</code>. For floats, it's hardware dependant and usually return the float +infinity. You can test it using the primitive <code>$isinfinite</code>, and there is also <code>$isnan</code> for testing NaN :
+</p>
+
+<p>
+	Objects does also have theses operations overridable, see the Objects section.
 </p>
 
 <pre>
