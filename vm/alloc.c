@@ -225,7 +225,7 @@ EXTERN void free_root(value *v) {
 extern void neko_init_builtins();
 extern void neko_init_fields();
 
-#define INIT_ID(x)	id_##x = val_id("__" ## #x)
+#define INIT_ID(x)	id_##x = val_id("__" #x)
 
 EXTERN void neko_global_init() {
 	neko_gc_init();
