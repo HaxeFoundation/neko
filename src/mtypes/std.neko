@@ -518,7 +518,7 @@ String.new = function(s) {
 	return String.new(this.@s+$string(s));
 }
 
-@String.__preadd = function(s) {
+@String.__radd = function(s) {
 	return String.new($string(s)+this.@s);
 }
 
