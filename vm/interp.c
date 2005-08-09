@@ -397,6 +397,18 @@ value neko_interp( neko_vm *vm, register int acc, register int *pc, value env ) 
 			acc = (int)val_null;
 		*sp++ = NULL;
 		Next;
+	Instr(AccIndex)
+		if( val_is_array(acc) ) {
+			if( *pc < 0 || *pc >= val_array_size(acc) )
+				acc = (int)val_null;
+			else
+				acc = (int)val_array_ptr(acc)[*pc];
+		} else if( val_is_object(acc) )
+			ObjectOp(acc,alloc_int(*pc),id_get)
+		else
+			acc = (int)val_null;
+		*pc++;
+		Next;
 	Instr(AccBuiltin)
 		acc = *pc++;
 		Next;
@@ -433,6 +445,19 @@ value neko_interp( neko_vm *vm, register int acc, register int *pc, value env ) 
 			EndCall();
 		}
 		*sp++ = NULL;
+		*sp++ = NULL;
+		Next;
+	Instr(SetIndex)
+		Error( sp >= vm->spmax , UNDERFLOW);
+		if( val_is_array(acc) ) {
+			if( *pc >= 0 && *pc < val_array_size(acc) )
+				val_array_ptr(acc)[*pc] = (value)*sp;
+		} else if( val_is_object(acc) ) {
+			BeginCall();
+			val_ocall2((value)acc,id_set,(value)alloc_int(*pc),(value)*sp);
+			EndCall();
+		}
+		pc++;
 		*sp++ = NULL;
 		Next;
 	Instr(SetThis)
@@ -533,6 +558,12 @@ value neko_interp( neko_vm *vm, register int acc, register int *pc, value env ) 
 		Next;
 	Instr(Bool)
 		acc = (acc == (int)val_false || acc == (int)val_null || acc == 1)?(int)val_false:(int)val_true;
+		Next;
+	Instr(IsNull)
+		acc = (int)((acc == (int)val_null)?val_true:val_false);
+		Next;
+	Instr(IsNotNull)
+		acc = (int)((acc == (int)val_null)?val_false:val_true);
 		Next;
 	Instr(Add)
 		Error( sp == vm->spmax , UNDERFLOW );

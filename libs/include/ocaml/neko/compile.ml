@@ -38,6 +38,7 @@ let stack_delta = function
 	| AccEnv _
 	| AccField _
 	| AccBuiltin _
+	| AccIndex _
 	| JumpIf _
 	| JumpIfNot _
 	| Jump _ 
@@ -48,6 +49,8 @@ let stack_delta = function
 	| SetThis
 	| Bool
 	| EndTrap
+	| IsNull
+	| IsNotNull
 		-> 0
 	| Add
 	| Sub
@@ -68,7 +71,7 @@ let stack_delta = function
 	| Lte
 		-> -1
 	| AccArray -> -1
-	| SetField _ -> -1
+	| SetField _ | SetIndex _ -> -1
 	| SetArray -> -2
 	| Push -> 1
 	| Pop x -> -x
@@ -183,6 +186,10 @@ let rec compile_binop ctx op e1 e2 p =
 			write ctx Push;
 			compile ctx e;
 			write ctx (SetField f)
+		| EArray (e1,(EConst (Int n),_)) ->
+			write ctx Push;
+			compile ctx e1;
+			write ctx (SetIndex n)
 		| EArray (e1,e2) ->
 			write ctx Push;
 			compile ctx e1;
@@ -208,28 +215,42 @@ let rec compile_binop ctx op e1 e2 p =
 		write ctx Bool;
 		jnext()
 	| _ ->
-		compile ctx e1;
-		write ctx Push;
-		compile ctx e2;
-		match op with
-		| "+" -> write ctx Add
-		| "-" -> write ctx Sub
-		| "/" -> write ctx Div
-		| "*" -> write ctx Mult
-		| "%" -> write ctx Mod
-		| "<<" -> write ctx Shl
-		| ">>" -> write ctx Shr
-		| ">>>" -> write ctx UShr
-		| "|" -> write ctx Or
-		| "&" -> write ctx And
-		| "^" -> write ctx Xor
-		| "==" -> write ctx Eq
-		| "!=" -> write ctx Neq
-		| ">" -> write ctx Gt
-		| ">=" -> write ctx Gte
-		| "<" -> write ctx Lt
-		| "<=" -> write ctx Lte
-		| _ -> error (Custom "Unknown operation") p
+		match op , e1 , e2 with
+		| "==" , _ , (EConst Null,_) ->
+			compile ctx e1;
+			write ctx IsNull
+		| "!=" , _ , (EConst Null,_) ->
+			compile ctx e1;
+			write ctx IsNotNull
+		| "==" , (EConst Null,_) , _ ->
+			compile ctx e2;
+			write ctx IsNull
+		| "!=" , (EConst Null,_) , _ ->
+			compile ctx e2;
+			write ctx IsNotNull
+		| _ ->
+			compile ctx e1;
+			write ctx Push;
+			compile ctx e2;
+			match op with
+			| "+" -> write ctx Add
+			| "-" -> write ctx Sub
+			| "/" -> write ctx Div
+			| "*" -> write ctx Mult
+			| "%" -> write ctx Mod
+			| "<<" -> write ctx Shl
+			| ">>" -> write ctx Shr
+			| ">>>" -> write ctx UShr
+			| "|" -> write ctx Or
+			| "&" -> write ctx And
+			| "^" -> write ctx Xor
+			| "==" -> write ctx Eq
+			| "!=" -> write ctx Neq
+			| ">" -> write ctx Gt
+			| ">=" -> write ctx Gte
+			| "<" -> write ctx Lt
+			| "<=" -> write ctx Lte
+			| _ -> error (Custom "Unknown operation") p
 
 and compile_function ctx params e =
 	let limit = ctx.limit in
@@ -336,6 +357,9 @@ and compile ctx (e,p) =
 		) el;
 		compile ctx e;
 		write ctx (Call (List.length el))
+	| EArray (e1,(EConst (Int n),_)) ->
+		compile ctx e1;
+		write ctx (AccIndex n)
 	| EArray (e1,e2) ->
 		compile ctx e1;
 		write ctx Push;

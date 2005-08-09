@@ -18,12 +18,14 @@ enum OPCODE {
 	AccEnv,
 	AccField,
 	AccArray,
+	AccIndex,
 	AccBuiltin,
 	SetStack,
 	SetGlobal,
 	SetEnv,
 	SetField,
 	SetArray,
+	SetIndex,
 	SetThis,
 	Push,
 	Pop,
@@ -38,6 +40,8 @@ enum OPCODE {
 	MakeEnv,
 	MakeArray,
 	Bool,
+	IsNull,
+	IsNotNull,
 	Add,
 	Sub,
 	Mult,
@@ -75,12 +79,14 @@ static int parameter_table[] = {
 	1, // AccEnv
 	1, // AccField
 	0, // AccArray
+	1, // AccIndex
 	1, // AccBuiltin
 	1, // SetStack
 	1, // SetGlobal
 	1, // SetEnv
 	1, // SetField
 	0, // SetArray
+	1, // SetIndex
 	0, // SetThis
 	0, // Push
 	1, // Pop
@@ -95,6 +101,8 @@ static int parameter_table[] = {
 	1, // MakeEnv
 	1, // MakeArray
 	0, // Bool
+	0, // IsNull
+	0, // IsNotNull
 	0, // Add
 	0, // Sub
 	0, // Mult

@@ -11,6 +11,7 @@ type opcode =
 	| AccEnv of int
 	| AccField of string
 	| AccArray
+	| AccIndex of int
 	| AccBuiltin of string
 	(* setters *)
 	| SetStack of int
@@ -18,6 +19,7 @@ type opcode =
 	| SetEnv of int
 	| SetField of string
 	| SetArray
+	| SetIndex of int
 	| SetThis
 	(* stack ops *)
 	| Push
@@ -34,6 +36,8 @@ type opcode =
 	| MakeArray of int
 	(* value ops *)
 	| Bool
+	| IsNull
+	| IsNotNull
 	| Add
 	| Sub
 	| Mult
@@ -92,6 +96,8 @@ let op_param = function
 	| MakeEnv _ 
 	| MakeArray _
 	| Ret _
+	| AccIndex _
+	| SetIndex _
 		-> true
 	| AccNull
 	| AccTrue
@@ -120,6 +126,8 @@ let op_param = function
 	| Gte
 	| Lt
 	| Lte
+	| IsNull
+	| IsNotNull
 		-> false
 
 let code_tables ops =
@@ -176,43 +184,47 @@ let write ch (globals,ops) =
 			| AccEnv n -> pop := Some n; 7
 			| AccField s -> pop := Some (hash_field s); 8
 			| AccArray -> 9
-			| AccBuiltin s -> pop := Some (hash_field s); 10
-			| SetStack n -> pop := Some n; 11
-			| SetGlobal n -> pop := Some n; 12
-			| SetEnv n -> pop := Some n; 13
-			| SetField s -> pop := Some (hash_field s); 14
-			| SetArray -> 15
-			| SetThis -> 16
-			| Push -> 17
-			| Pop n -> pop := Some n; 18
-			| Call n -> pop := Some n; 19
-			| ObjCall n -> pop := Some n; 20
-			| Jump n -> pop := Some (pos.(i+n) - pos.(i)); 21
-			| JumpIf n -> pop := Some (pos.(i+n) - pos.(i)); 22
-			| JumpIfNot n -> pop := Some (pos.(i+n) - pos.(i)); 23
-			| Trap n -> pop := Some (pos.(i+n) - pos.(i)); 24
-			| EndTrap -> 25
-			| Ret n -> pop := Some n; 26
-			| MakeEnv n -> pop := Some n; 27
-			| MakeArray n -> pop := Some n; 28
-			| Bool -> 29
-			| Add -> 30
-			| Sub -> 31
-			| Mult -> 32
-			| Div -> 33
-			| Mod -> 34
-			| Shl -> 35
-			| Shr -> 36
-			| UShr -> 37
-			| Or -> 38
-			| And -> 39
-			| Xor -> 40
-			| Eq -> 41
-			| Neq -> 42
-			| Gt -> 43
-			| Gte -> 44
-			| Lt -> 45
-			| Lte -> 46
+			| AccIndex n -> pop := Some n; 10
+			| AccBuiltin s -> pop := Some (hash_field s); 11
+			| SetStack n -> pop := Some n; 12
+			| SetGlobal n -> pop := Some n; 13
+			| SetEnv n -> pop := Some n; 14
+			| SetField s -> pop := Some (hash_field s); 15
+			| SetArray -> 16
+			| SetIndex n -> pop := Some n; 17
+			| SetThis -> 18
+			| Push -> 19
+			| Pop n -> pop := Some n; 20
+			| Call n -> pop := Some n; 21
+			| ObjCall n -> pop := Some n; 22
+			| Jump n -> pop := Some (pos.(i+n) - pos.(i)); 23
+			| JumpIf n -> pop := Some (pos.(i+n) - pos.(i)); 24
+			| JumpIfNot n -> pop := Some (pos.(i+n) - pos.(i)); 25
+			| Trap n -> pop := Some (pos.(i+n) - pos.(i)); 26
+			| EndTrap -> 27
+			| Ret n -> pop := Some n; 28
+			| MakeEnv n -> pop := Some n; 29
+			| MakeArray n -> pop := Some n; 30
+			| Bool -> 31
+			| IsNull -> 32
+			| IsNotNull -> 33
+			| Add -> 34
+			| Sub -> 35
+			| Mult -> 36
+			| Div -> 37
+			| Mod -> 38
+			| Shl -> 39
+			| Shr -> 40
+			| UShr -> 41
+			| Or -> 42
+			| And -> 43
+			| Xor -> 44
+			| Eq -> 45
+			| Neq -> 46
+			| Gt -> 47
+			| Gte -> 48
+			| Lt -> 49
+			| Lte -> 50
 		) in
 		match !pop with
 		| None -> IO.write_byte ch (opid lsl 2)
@@ -290,43 +302,47 @@ let read ch =
 				| 7 -> AccEnv p
 				| 8 -> AccField (try Hashtbl.find ids p with Not_found -> raise Invalid_file)
 				| 9 -> AccArray
-				| 10 -> AccBuiltin (try Hashtbl.find ids p with Not_found -> raise Invalid_file)
-				| 11 -> SetStack p
-				| 12 -> SetGlobal p
-				| 13 -> SetEnv p
-				| 14 -> SetField (try Hashtbl.find ids p with Not_found -> raise Invalid_file)
-				| 15 -> SetArray
-				| 16 -> SetThis
-				| 17 -> Push
-				| 18 -> Pop p
-				| 19 -> Call p
-				| 20 -> ObjCall p
-				| 21 -> jumps := (!cpos , DynArray.length ops) :: !jumps; Jump p
-				| 22 -> jumps := (!cpos , DynArray.length ops) :: !jumps; JumpIf p
-				| 23 -> jumps := (!cpos , DynArray.length ops) :: !jumps; JumpIfNot p
-				| 24 -> jumps := (!cpos , DynArray.length ops) :: !jumps; Trap p
-				| 25 -> EndTrap
-				| 26 -> Ret p
-				| 27 -> MakeEnv p
-				| 28 -> MakeArray p
-				| 29 -> Bool
-				| 30 -> Add
-				| 31 -> Sub
-				| 32 -> Mult
-				| 33 -> Div
-				| 34 -> Mod
-				| 35 -> Shl
-				| 36 -> Shr
-				| 37 -> UShr
-				| 38 -> Or
-				| 39 -> And
-				| 40 -> Xor
-				| 41 -> Eq
-				| 42 -> Neq
-				| 43 -> Gt
-				| 44 -> Gte
-				| 45 -> Lt
-				| 46 -> Lte
+				| 10 -> AccIndex p
+				| 11 -> AccBuiltin (try Hashtbl.find ids p with Not_found -> raise Invalid_file)
+				| 12 -> SetStack p
+				| 13 -> SetGlobal p
+				| 14 -> SetEnv p
+				| 15 -> SetField (try Hashtbl.find ids p with Not_found -> raise Invalid_file)
+				| 16 -> SetArray
+				| 17 -> SetIndex p
+				| 18 -> SetThis
+				| 19 -> Push
+				| 20 -> Pop p
+				| 21 -> Call p
+				| 22 -> ObjCall p
+				| 23 -> jumps := (!cpos , DynArray.length ops) :: !jumps; Jump p
+				| 24 -> jumps := (!cpos , DynArray.length ops) :: !jumps; JumpIf p
+				| 25 -> jumps := (!cpos , DynArray.length ops) :: !jumps; JumpIfNot p
+				| 26 -> jumps := (!cpos , DynArray.length ops) :: !jumps; Trap p
+				| 27 -> EndTrap
+				| 28 -> Ret p
+				| 29 -> MakeEnv p
+				| 30 -> MakeArray p
+				| 31 -> Bool
+				| 32 -> IsNull
+				| 33 -> IsNotNull
+				| 34 -> Add
+				| 35 -> Sub
+				| 36 -> Mult
+				| 37 -> Div
+				| 38 -> Mod
+				| 39 -> Shl
+				| 40 -> Shr
+				| 41 -> UShr
+				| 42 -> Or
+				| 43 -> And
+				| 44 -> Xor
+				| 45 -> Eq
+				| 46 -> Neq
+				| 47 -> Gt
+				| 48 -> Gte
+				| 49 -> Lt
+				| 50 -> Lte
 				| _ -> raise Invalid_file
 			) in
 			pos.(!cpos) <- DynArray.length ops;
@@ -398,12 +414,14 @@ let dump ch (globals,ops) =
 			| AccEnv i -> str "AccEnv" i
 			| AccField s -> "AccField " ^ s
 			| AccArray -> "AccArray"
+			| AccIndex i -> str "AccIndex" i
 			| AccBuiltin s -> "AccBuiltin " ^ s
 			| SetStack i -> str "SetStack" i
 			| SetGlobal i -> str "SetGlobal" i
 			| SetEnv i -> str "SetEnv" i
 			| SetField f -> "SetField " ^ f
 			| SetArray -> "SetArray"
+			| SetIndex i -> str "SetIndex" i
 			| SetThis -> "SetThis"
 			| Push -> "Push"
 			| Pop i -> str "Pop" i
@@ -418,6 +436,8 @@ let dump ch (globals,ops) =
 			| MakeEnv i -> str "MakeEnv" i
 			| MakeArray i -> str "MakeArray" i
 			| Bool -> "Bool"
+			| IsNull -> "IsNull"
+			| IsNotNull -> "IsNotNull"
 			| Add -> "Add"
 			| Sub -> "Sub" 
 			| Mult -> "Mult"
