@@ -104,8 +104,13 @@ typedef int (*c_prim4)(int,int,int,int);
 typedef int (*c_prim5)(int,int,int,int,int);
 typedef int (*c_primN)(value*,int);
 
-#define DynError(cond,err)		if( cond ) { *(char*)NULL = 0; val_throw(alloc_string(#err)); }
-#define Error(cond,err)			DynError(cond,err)
+#define DynError(cond,err)		if( cond ) { val_throw(alloc_string(#err)); }
+#ifdef NEKO_OPTIMIZE
+#	define Error(cond,err)
+#else
+#	define Error(cond,err)			DynError(cond,err)
+#endif
+
 #define Instr(x)	case x:
 #define Next		break;
 
