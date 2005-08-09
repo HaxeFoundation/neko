@@ -32,7 +32,7 @@ let rec print_list ctx sep f = function
 	| x :: [] -> f x
 	| x :: l -> f x; print ctx "%s" sep; print_list ctx sep f l
 
-let rec print_ast ctx (e,p) =
+let rec print_ast ?(binop=false) ctx (e,p) =
 	match e with
 	| EConst c ->
 		print ctx "%s" (s_constant c)
@@ -108,9 +108,11 @@ let rec print_ast ctx (e,p) =
 		print ctx ")";
 		level_expr ctx e;
 	| EBinop (op,e1,e2) ->
-		print_ast ctx e1;
+		if binop then print ctx "(";
+		print_ast ~binop:true ctx e1;
 		print ctx " %s " op;
-		print_ast ctx e2
+		print_ast ~binop:true ctx e2;
+		if binop then print ctx ")";
 	| EReturn None ->
 		print ctx "return;";
 	| EReturn (Some e) ->
