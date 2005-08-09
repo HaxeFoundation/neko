@@ -5,7 +5,7 @@ field id_m;
 field id_s;
 field id_y;
 field id_d;
-field id_mod;
+field id_module;
 field id_loadmodule;
 
 DEFINE_ENTRY_POINT(std_main);
@@ -17,5 +17,5 @@ void std_main() {
 	id_y = val_id("y");
 	id_d = val_id("d");
 	id_loadmodule = val_id("loadmodule");
-	id_mod = val_id("@m");
+	id_module = val_id("__module");
 }

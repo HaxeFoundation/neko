@@ -25,7 +25,7 @@ typedef struct {
 	int totlen;
 } sbuffer;
 
-extern field id_mod;
+extern field id_module;
 extern field id_loadmodule;
 
 static void buffer_alloc( sbuffer *b, int size ) {
@@ -318,7 +318,7 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 					buffer_append(b," is not an object");
 					val_throw(buffer_to_string(b));
 				}
-				mval = val_field(exp,id_mod);
+				mval = val_field(exp,id_module);
 				if( !val_is_kind(mval,k_module) ) {
 					buffer b = alloc_buffer("module ");
 					val_buffer(b,mname);
