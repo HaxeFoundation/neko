@@ -231,7 +231,7 @@ Array.new1 = function(a) {
 	while( i < l ) {
 		var swap = false;
 		var j = 0;
-		var max = len - i - 1;
+		var max = l - i - 1;
 		while( j < max ) {
 			if( f(a[j],a[j+1]) > 0 ) {
 				var tmp = a[j+1];
@@ -239,9 +239,11 @@ Array.new1 = function(a) {
 				a[j] = tmp;
 				swap = true;
 			}
+			j = j + 1;
 		}
 		if( $not(swap) )
 			break;
+		i = i + 1;
 	}
 }
 
@@ -821,7 +823,7 @@ Random.new = function() {
 @Random = $new(null);
 @Random.@r = null;
 
-@Random.set_seed = function(s) {
+@Random.setSeed = function(s) {
 	return random_set_seed(this.@r,s);
 }
 
