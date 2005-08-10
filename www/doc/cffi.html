@@ -163,7 +163,7 @@
         else if( val_is_object(v) )
             printf("object");
         else if( val_is_abstract(v) )
-        	printf("abstract of kind %X",val_kind(v));
+            printf("abstract of kind %X",val_kind(v));
         else
             printf("?????");
         return val_null;
@@ -228,11 +228,11 @@
 <h2>Buffers</h2>
 
 <p>
-	The printing of value is a little more complex than that. In particular in case of objects we must call the <code>__string()</code> method to retreive a representation of the object if available.
+	The printing of a value is a little more complex than that. In particular in case of objects we must call the <code>__string()</code> method to retrieve a representation of the object if available.
 </p>
 
 <p>
-	In order to easily construct strings of mixed constant C strings and values converted to strings, Neko AP have <code>buffer</code>s. A buffer is NOT a value, so you cannot return it outside of C primitive, but it is garbage collected so you don't to free them after usage.
+	In order to easily construct strings of mixed constant C strings and values converted to strings, Neko API have <code>buffer</code>s. A buffer is NOT a value, so you cannot return it outside of C primitive, but it is garbage collected so you don't have to free them after usage.
 </p>
 
 <p>
@@ -240,7 +240,7 @@
 </p>
 
 <ul>
-	<li><code>alloc_buffer(str)</code> will allocate a fresh buffer with an string <code>str</code> or no data if <code>str</code> is <code>NULL</code>.</li>
+	<li><code>alloc_buffer(str)</code> will allocate a fresh buffer with a string <code>str</code> or no data if <code>str</code> is <code>NULL</code>.</li>
 	<li><code>val_buffer(b,v)</code> will add a string representation of the value <code>v</code> to the buffer <code>b</code>.</li>
 	<li><code>buffer_append(b,str)</code> will append the C string <code>str</code> at the end of the buffer <code>b</code>.</li>
 	<li><code>buffer_append_sub(b,str,n)</code> will append the <code>n</code> first bytes of the C string <code>str</code> at the end of the buffer <code>b</code>.</li>
