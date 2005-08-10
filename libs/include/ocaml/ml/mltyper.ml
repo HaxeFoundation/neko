@@ -1,5 +1,6 @@
 open Mlast
 open Mltype
+open Mlmatch
 
 type module_context = {
 	path : string list;
@@ -192,8 +193,6 @@ let rec type_type ?(allow=true) ?(h=Hashtbl.create 0) ctx t p =
 
 let rec type_constant ctx ?(path=[]) c p =
 	match c with
-	| True -> mk (TConst TTrue) t_bool p 
-	| False -> mk (TConst TFalse) t_bool p
 	| Int i -> mk (TConst (TInt i)) t_int p
 	| Float s -> mk (TConst (TFloat s)) t_float p
 	| String s -> mk (TConst (TString s)) t_string p
@@ -365,7 +364,8 @@ let rec type_functions ctx =
 
 and type_expr ctx (e,p) =
 	match e with
-	| EConst c -> type_constant ctx c p
+	| EConst c ->
+		type_constant ctx c p
 	| EBlock [] -> 
 		mk (TConst TVoid) t_void p
 	| EBlock (e :: l) ->
@@ -483,14 +483,14 @@ and type_expr ctx (e,p) =
 					) params in
 					let t = {
 						tid = genid ctx.gen;
-						texpr = TNamed (s_path ctx.current.path tname,tl,{ tid = -1; texpr = TAbstract });
+						texpr = TNamed (s_path ctx.current.path tname,tl,t_abstract);
 					} in
 					Hashtbl.add ctx.current.types tname t;
 					if decl = EAbstract then Hashtbl.add ctx.tmptypes tname (t,tl,h);
 					t , tl , h
 		in
 		let t2 = (match decl with
-			| EAbstract -> { tid = -1; texpr = TAbstract }
+			| EAbstract -> t_abstract
 			| EAlias t -> type_type ~allow:false ~h ctx t p
 			| ERecord fields ->
 				let fields = List.map (fun (f,m,ft) ->
@@ -503,7 +503,7 @@ and type_expr ctx (e,p) =
 			| EUnion constr ->
 				let constr = List.map (fun (c,ft) ->
 					let ft = (match ft with
-						| None -> { tid = -1; texpr = TAbstract }
+						| None -> t_abstract
 						| Some ft -> type_type ~allow:false ~h ctx ft p
 					) in
 					Hashtbl.add ctx.current.constr c (t,ft);
@@ -591,8 +591,6 @@ and type_pattern (ctx:context) h ?(h2 = Hashtbl.create 0) set (pat,p,t) =
 	let pat , pt = (match pat with
 		| PConst c ->
 			let c , t = (match c with
-				| True -> TTrue , t_bool
-				| False -> TFalse , t_bool
 				| Int n -> TInt n , t_int
 				| Float s -> TFloat s , t_float
 				| String s -> TString s , t_string
@@ -673,10 +671,9 @@ and type_match ctx e cl p =
 				first := false;
 				mainset := !set;
 			end else begin
-				let s = SSet.diff !set !mainset in
-				SSet.iter (fun s -> error (Custom ("Variable " ^ s ^ " must occur in all patterns")) p) s;
-				let s = SSet.diff !mainset !set in
-				SSet.iter (fun s -> error (Custom ("Variable " ^ s ^ " must occur in all patterns")) p) s;
+				let s1 = SSet.diff !set !mainset in
+				let s2 = SSet.diff !mainset !set in
+				SSet.iter (fun s -> error (Custom ("Variable " ^ s ^ " must occur in all patterns")) p) (SSet.union s1 s2);
 			end;
 			unify ctx pt e.etype p;
 			pat , p , pt
@@ -691,8 +688,8 @@ and type_match ctx e cl p =
 		ctx.idents <- idents;
 		pl , wh , pe
 	) cl in
-(*//Mlmatch.completeness cl (fun msg p -> error (Custom msg) p) p; *)
-	mk (TMatch (e,cl)) ret p
+	let tree = Mlmatch.make cl e.etype p in
+	mk (TMatch (e,tree)) ret p
 
 let context cpath = 
 	let ctx = {
@@ -727,6 +724,8 @@ let context cpath =
 	polymorphize ctx.gen list;
 	Hashtbl.add ctx.current.types "list" list;
 	Hashtbl.add ctx.current.constr "::" (list,mk_tup ctx.gen [l;list]);
+	Hashtbl.add ctx.current.constr "true" (t_bool,t_abstract);
+	Hashtbl.add ctx.current.constr "false" (t_bool,t_abstract);
 	Hashtbl.add ctx.modules [] ctx.current;
 	ctx
 
@@ -790,4 +789,5 @@ let load_module ctx m p =
 			ctx.current
 
 ;;
+Mlmatch.error_fun := (fun msg p -> error (Custom msg) p);
 load_module_ref := load_module

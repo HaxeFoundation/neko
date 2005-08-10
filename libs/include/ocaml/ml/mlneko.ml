@@ -24,13 +24,13 @@ let pos (p : Mlast.pos) =
 let rec gen_constant ctx ?(path=[]) c =
 	match c with
 	| TVoid -> EConst Null
-	| TTrue -> EConst True
-	| TFalse -> EConst False
 	| TInt n -> EConst (Int n)
 	| TFloat s -> EConst (Float s)
 	| TString s -> EConst (String s)
 	| TIdent s -> 		
 		if PMap.mem s ctx.refvars then EArray ((EConst (Ident s),null_pos),int 0) else EConst (Ident s)
+	| TConstr "true" -> EConst True
+	| TConstr "false" -> EConst False
 	| TConstr s -> assert false
 	| TModule (path,c) ->
 		gen_constant ctx ~path c

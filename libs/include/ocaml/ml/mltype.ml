@@ -23,8 +23,6 @@ and t = {
 
 type tconstant =
 	| TVoid
-	| TTrue
-	| TFalse
 	| TInt of int
 	| TFloat of string
 	| TString of string
@@ -32,17 +30,21 @@ type tconstant =
 	| TConstr of string
 	| TModule of string list * tconstant
 
-type tpattern_decl =
-	| TPConst of tconstant
-	| TPTuple of tpattern list
-	| TPRecord of (string * tpattern) list
-	| TPConstr of string list * string * tpattern option
-	| TPAlias of string * tpattern
-	| TPList of tpattern list
+type match_id = int
 
-and tpattern = tpattern_decl * pos * t
+type match_tree = 
+	| TMFull
+	| TMAlways of match_id
+	| TMWhen of texpr * match_id * match_tree
+	| TMConstants of tconstant list * texpr option * match_id * match_tree
 
-type texpr_decl =
+and match_entry =
+	| TMTree of match_tree
+	| TMExec of texpr
+
+and match_table = match_entry array
+
+and texpr_decl =
 	| TConst of tconstant
 	| TBlock of texpr list
 	| TParenthesis of texpr
@@ -59,7 +61,7 @@ type texpr_decl =
 	| TRecordDecl of (string * texpr) list
 	| TListDecl of texpr list
 	| TUnop of string * texpr
-	| TMatch of texpr * (tpattern list * texpr option * texpr) list
+	| TMatch of texpr * match_table 
 
 and texpr = {
 	edecl : texpr_decl;
@@ -88,9 +90,11 @@ let mk e t p = {
 	epos = p;
 }
 
+let t_abstract = { tid = -1; texpr = TAbstract }
+
 let abstract s = {
 	tid = -1;
-	texpr = TNamed (s,[], { tid = -1; texpr = TAbstract });
+	texpr = TNamed (s,[], t_abstract);
 }
 
 let t_void = abstract "void"

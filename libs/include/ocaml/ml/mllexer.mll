@@ -115,8 +115,8 @@ rule token = parse
 	| number+ { mk lexbuf (Const (Int (int_of_string (lexeme lexbuf)))) }
 	| number+ '.' number*
 	| '.' number+ { mk lexbuf (Const (Float (lexeme lexbuf))) }
-	| "true" { mk lexbuf (Const True) } 
-	| "false" { mk lexbuf (Const False) }
+	| "true" { mk lexbuf (Const (Constr "true")) } 
+	| "false" { mk lexbuf (Const (Constr "false")) }
 	| ident { mk_ident lexbuf }
 	| modident { mk lexbuf (Const (Constr (lexeme lexbuf))) } 
 	| '"' {

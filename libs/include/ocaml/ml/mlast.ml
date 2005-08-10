@@ -6,8 +6,6 @@ type pos = {
 }
 
 type constant =
-	| True
-	| False
 	| Int of int
 	| Float of string
 	| String of string
@@ -110,8 +108,6 @@ let escape s =
 	Buffer.contents b
 
 let rec s_constant = function
-	| True -> "true"
-	| False -> "false"
 	| Int i -> string_of_int i
 	| Float s -> s
 	| String s -> "\"" ^ escape s ^ "\""
