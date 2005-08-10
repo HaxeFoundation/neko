@@ -164,9 +164,9 @@ Some precisions :
 </p>
 
 <ul>
-<li>integers are 31 bits for virtual machine performances reasons, an access to full 32 bits integers will be made possible soon.</li>
+<li>integers are 31 bits for virtual machine performances reasons, an api for full 32 bits integers can be made using C libraries.</li>
 <li>floating points are 64 bits double precision floating points values.</li>
-<li>strings are 8-bit binary values. A string can contain \0 characters, the string length is determined by the amount of data available and not by the number of characters before the first \0. Maximum string size might depend of virtual machine specification, but should be at least 65535 bytes.</li>
+<li>strings are 8-bit binary values. A string can contain \0 characters, the string length is determined by the amount of data available and not by the number of characters before the first \0.</li>
 </ul>
 
 <!-- ****************************************************************************** -->
@@ -532,7 +532,7 @@ Operations substract ( - ) divide ( / ) multiply ( * ) and modulo ( % ) :
 </pre>
 
 <p>
-	Please note also that overflow on integer operations does not convert them to floats and are not catchable errors. If you want to control overflow you can define your own functions for operations or use floats everywhere.
+	Please note also that overflow on integer operations does not convert them to floats and are not catchable errors. If you want to control overflow you can define your own functions for operations or use floats everywhere, or if you want exact arithmetic use an object with overridden operators.
 </p>
 
 <a name="bitwise"></a>
@@ -634,11 +634,7 @@ Operations substract ( - ) divide ( / ) multiply ( * ) and modulo ( % ) :
 </table>
 
 <p>
-	Note : boolean operations are short-circuited. That means that if the first operand of an <code>&amp;&amp;</code> evaluates to <code>false</code> or the first operand of an <code>||</code> evaluated to <code>true</code>, than the second operand is not evaluated.
-</p>
-
-<p>
-	<em>For better performances, it might be useful to add primitives that does not do the istrue conversion but directly test "true" equality</em>
+	Boolean operations are short-circuited. That means that if the first operand of an <code>&amp;&amp;</code> evaluates to <code>false</code> or the first operand of an <code>||</code> evaluated to <code>true</code>, than the second operand is not evaluated.
 </p>
 
 <a name="compares"></a>
@@ -825,10 +821,6 @@ Operations substract ( - ) divide ( / ) multiply ( * ) and modulo ( % ) :
 </tr>
 </table>
 
-<p>
-	<em>Note : need to add structural comparison in the language</em>
-</p>
-
 <a name="converts"></a>
 <h3>Conversions</h3>
 
@@ -908,42 +900,52 @@ The primitive <code>$typeof</code> returns an integer specifying the type of a v
 <table>
 <tr>
 	<th>Type</th>
-	<th>Code</th>
+	<th>Constant</th>
+	<th>Value</th>
 </tr>
 <tr>
 	<td>null</td>
+	<td><code>$tnull</code></td>
 	<td>0</td>
 </tr>
 <tr>
 	<td>int</td>
+	<td><code>$tint</code></td>
 	<td>1</td>
 </tr>
 <tr>
 	<td>float</td>
+	<td><code>$tfloat</code></td>
 	<td>2</td>
 </tr>
 <tr>
 	<td>bool</td>
+	<td><code>$tbool</code></td>
 	<td>3</td>
 </tr>
 <tr>
 	<td>string</td>
+	<td><code>$tstring</code></td>
 	<td>4</td>
 </tr>
 <tr>
 	<td>object</td>
+	<td><code>$tobject</code></td>
 	<td>5</td>
 </tr>
 <tr>
 	<td>array</td>
+	<td><code>$tarray</code></td>
 	<td>6</td>
 </tr>
 <tr>
 	<td>function</td>
+	<td><code>$tfunction</code></td>
 	<td>7</td>
 </tr>
 <tr>
 	<td>abstract</td>
+	<td><code>$tabstract</code></td>
 	<td>8</td>
 </tr>
 </table>
@@ -955,6 +957,7 @@ The primitive <code>$typeof</code> returns an integer specifying the type of a v
 <pre>
 	$typeof(3); // 1
 	$typeof($array(1,2)); // 6
+	$typeof(null == $tnull); // true
 </pre>
 
 <p>
@@ -989,10 +992,6 @@ Defining new functions is easy, since functions are values, you can simply assig
 	$print($nargs($print)); // prints -1
 	$print($nargs(0)); // prints null
 </pre>
-
-<p>
-	<em>Note : it might be useful to provide syntax so the user can define its own variable arguments functions.</em>
-</p>
 
 <p>
 	There is one other way of calling a function : primitive <code>$call</code> takes an array of arguments and a object context (see Objects section) as parameters. This primitive can be useful for introspection :
@@ -1290,10 +1289,6 @@ Defining new functions is easy, since functions are values, you can simply assig
 	Strings can contain a maximum of 2 ^ 29 - 1 characters, or <code>$smake</code> will raise an exception.
 </p>
 
-<p>
-	<em>Need to add safe string accesses with exceptions on bounds ? safe blit ?</em>
-</p>
-
 <!-- ****************************************************************************** -->
 
 <a name="exceptions"></a>
@@ -1313,12 +1308,6 @@ Exceptions are often referred as "non local jumps". It's a very good way for han
 		$print(e); // prints "failure"
 	}
 </pre>
-
-<p>
-<em>
-Being able to print the program stack when catching an exceptions or during execution is an interesting feature, very used in the Java language. Since this is more a Virtual Machine debugging feature than a language specification one, it will not be discussed here.
-</em>
-</p>
 
 <!-- ****************************************************************************** -->
 
