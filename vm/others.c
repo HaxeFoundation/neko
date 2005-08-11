@@ -203,6 +203,28 @@ value append_strings( value s1, value s2 ) {
 	return v;
 }
 
+int neko_stack_expand( int *sp, int *csp, neko_vm *vm ) {
+	int i;
+	int size = (((int)vm->spmax - (int)vm->spmin) / sizeof(int)) << 1;
+	int *nsp;
+	if( size > MAX_STACK_SIZE )
+		return 0;
+	nsp = (int*)alloc(size * sizeof(int));
+	
+	// csp size
+	i = ((int)(csp + 1) - (int)vm->spmin) / sizeof(int);
+	memcpy(nsp,vm->spmin,sizeof(int) * i);
+	vm->csp = nsp + i - 1;
+	
+	// sp size
+	i = ((int)vm->spmax - (int)sp) / sizeof(int);
+	memcpy(nsp+size-i,sp,sizeof(int) * i);
+	vm->sp = nsp + size - i;
+	vm->spmin = nsp;
+	vm->spmax = nsp + size;
+	return 1;
+}
+
 EXTERN field val_id( const char *name ) {
 	objtable *data;
 	value *fdata;

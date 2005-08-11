@@ -16,17 +16,19 @@
 #include "objtable.h"
 
 #if defined(__GNUC__) && defined(__i386__)
+#	define ACC_SAVE
+#	define ACC_BACKUP	int __acc = acc;
+#	define ACC_RESTORE	acc = __acc;
 #	define ACC_REG asm("%eax")
-#	define PC_REG asm("%ebx")
+#	define PC_REG asm("%esi")
 #	define SP_REG asm("%edi")
 #else
+#	define ACC_BACKUP
+#	define ACC_RESTORE
 #	define ACC_REG
 #	define PC_REG
 #	define SP_REG
 #endif
-
-#define INIT_STACK_SIZE (1 << 7)
-#define MAX_STACK_SIZE	(1 << 18)
 
 #define address_int(a)	(((int)(a)) | 1)
 #define int_address(a)	(int*)(a & ~1)
@@ -95,28 +97,6 @@ EXTERN void neko_vm_execute( neko_vm *vm, neko_module *m ) {
 	neko_interp(vm,(int)val_null,m->code,alloc_array(0));
 }
 
-int neko_stack_expand( int *sp, int *csp, neko_vm *vm ) {
-	int i;
-	int size = (((int)vm->spmax - (int)vm->spmin) / sizeof(int)) << 1;
-	int *nsp;
-	if( size > MAX_STACK_SIZE )
-		return 0;
-	nsp = (int*)alloc(size * sizeof(int));
-	
-	// csp size
-	i = ((int)(csp + 1) - (int)vm->spmin) / sizeof(int);
-	memcpy(nsp,vm->spmin,sizeof(int) * i);
-	vm->csp = nsp + i - 1;
-	
-	// sp size
-	i = ((int)vm->spmax - (int)sp) / sizeof(int);
-	memcpy(nsp+size-i,sp,sizeof(int) * i);
-	vm->sp = nsp + size - i;
-	vm->spmin = nsp;
-	vm->spmax = nsp + size;
-	return 1;
-}
-
 typedef int (*c_prim0)();
 typedef int (*c_prim1)(int);
 typedef int (*c_prim2)(int,int);
@@ -169,7 +149,7 @@ typedef int (*c_primN)(value*,int);
 			PopMacro(*pc++); \
 		} else if( val_tag(acc) == VAL_FUNCTION && *pc == ((vfunction*)acc)->nargs ) { \
 			if( csp + 3 >= sp ) { \
-				DynError( !neko_stack_expand(sp,csp,vm) , OVERFLOW ); \
+				STACK_EXPAND; \
 				sp = vm->sp; \
 				csp = vm->csp; \
 			} \
@@ -279,10 +259,28 @@ typedef int (*c_primN)(value*,int);
 		EndCall(); \
 	}
 
+extern int neko_stack_expand( int *sp, int *csp, neko_vm *vm );
+extern value append_int( neko_vm *vm, value str, int x, bool way );
+extern value append_strings( value s1, value s2 );
+
+#ifdef ACC_SAVE
+#	define STACK_EXPAND { \
+		int _acc = acc; \
+		DynError( !neko_stack_expand(sp,csp,vm) , OVERFLOW ); \
+		acc = _acc; \
+	}
+#else
+#	define STACK_EXPAND DynError( !neko_stack_expand(sp,csp,vm) , OVERFLOW );
+#endif
+
 void neko_setup_trap( neko_vm *vm, int where ) {
+	int acc = 0;
+	int *sp, *csp;
 	vm->sp -= 5;
+	csp = vm->csp;
+	sp = vm->sp;
 	if( vm->sp <= vm->csp )
-		DynError( !neko_stack_expand(vm->sp,vm->csp,vm) , OVERFLOW );	
+		STACK_EXPAND;
 	vm->sp[0] = (int)alloc_int((int)(vm->csp - vm->spmin));
 	vm->sp[1] = (int)vm->this;
 	vm->sp[2] = (int)vm->env;
@@ -312,9 +310,6 @@ void neko_process_trap( neko_vm *vm ) {
 	while( vm->sp < sp )
 		*vm->sp++ = NULL;
 }
-
-extern value append_int( neko_vm *vm, value str, int x, bool way );
-extern value append_strings( value s1, value s2 );
 
 static int interp_loop( neko_vm *vm, int _acc, int *_pc, value env ) {
 	register int acc ACC_REG = _acc;
@@ -405,8 +400,11 @@ static int interp_loop( neko_vm *vm, int _acc, int *_pc, value env ) {
 		Next;
 	Instr(SetField)
 		Error( sp == vm->spmax , UNDERFLOW );
-		if( val_is_object(acc) )
+		if( val_is_object(acc) ) {
+			ACC_BACKUP;
 			otable_replace(((vobject*)acc)->table,(field)*pc,(value)*sp);
+			ACC_RESTORE;
+		}
 		*sp++ = NULL;
 		pc++;
 		Next;
@@ -417,9 +415,11 @@ static int interp_loop( neko_vm *vm, int _acc, int *_pc, value env ) {
 			if( k >= 0 && k < val_array_size(*sp) )
 				val_array_ptr(*sp)[k] = (value)sp[1];
 		} else if( val_is_object(*sp) ) {
+			ACC_BACKUP;
 			BeginCall();
 			val_ocall2((value)*sp,id_set,(value)acc,(value)sp[1]);
 			EndCall();
+			ACC_RESTORE;
 		}
 		*sp++ = NULL;
 		*sp++ = NULL;
@@ -430,9 +430,11 @@ static int interp_loop( neko_vm *vm, int _acc, int *_pc, value env ) {
 			if( *pc >= 0 && *pc < val_array_size(acc) )
 				val_array_ptr(acc)[*pc] = (value)*sp;
 		} else if( val_is_object(acc) ) {
+			ACC_BACKUP;
 			BeginCall();
 			val_ocall2((value)acc,id_set,(value)alloc_int(*pc),(value)*sp);
 			EndCall();
+			ACC_RESTORE;
 		}
 		pc++;
 		*sp++ = NULL;
@@ -443,7 +445,7 @@ static int interp_loop( neko_vm *vm, int _acc, int *_pc, value env ) {
 	Instr(Push)
 		--sp;
 		if( sp <= csp ) {
-			DynError( !neko_stack_expand(sp,csp,vm) , OVERFLOW );
+			STACK_EXPAND;
 			sp = vm->sp;
 			csp = vm->csp;
 		}
@@ -481,7 +483,7 @@ static int interp_loop( neko_vm *vm, int _acc, int *_pc, value env ) {
 	Instr(Trap)
 		sp -= 5;
 		if( sp <= csp ) {
-			DynError( !neko_stack_expand(sp,csp,vm) , OVERFLOW );
+			STACK_EXPAND;
 			sp = vm->sp;
 			csp = vm->csp;
 		}
@@ -511,7 +513,9 @@ static int interp_loop( neko_vm *vm, int _acc, int *_pc, value env ) {
 	Instr(MakeEnv)
 		{
 			int n = *pc++;
+			ACC_BACKUP
 			int tmp = (int)alloc_array(n);
+			ACC_RESTORE;
 			Error( sp + n > vm->spmax , UNDERFLOW);
 			while( n-- ) {
 				val_array_ptr(tmp)[n] = (value)*sp;
@@ -574,9 +578,11 @@ static int interp_loop( neko_vm *vm, int _acc, int *_pc, value env ) {
 		else if( (val_tag(acc)&7) == VAL_STRING && (val_tag(*sp)&7) == VAL_STRING )
 			acc = (int)append_strings((value)*sp,(value)acc);
 		else if( (val_tag(acc)&7) == VAL_STRING || (val_tag(*sp)&7) == VAL_STRING ) {
+			ACC_BACKUP
 			buffer b = alloc_buffer(NULL);
 			BeginCall();
 			val_buffer(b,(value)*sp);
+			ACC_RESTORE;
 			val_buffer(b,(value)acc);
 			EndCall();
 			acc = (int)buffer_to_string(b);

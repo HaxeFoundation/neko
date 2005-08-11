@@ -12,6 +12,9 @@
 
 typedef void (*printer)( const char *, int );
 
+#define INIT_STACK_SIZE (1 << 7)
+#define MAX_STACK_SIZE	(1 << 18)
+
 struct _neko_vm {
 	int *spmin;
 	int *spmax;
