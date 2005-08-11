@@ -42,26 +42,26 @@
 			Name="ast"
 			Filter="">
 			<File
-				RelativePath="..\ast\ast.ml">
+				RelativePath=".\ast.ml">
 			</File>
 			<File
-				RelativePath="..\ast\lexer.mll">
+				RelativePath=".\lexer.mll">
 			</File>
 			<File
-				RelativePath="..\ast\parser.ml">
+				RelativePath=".\parser.ml">
 			</File>
 			<File
-				RelativePath="..\ast\printer.ml">
+				RelativePath=".\printer.ml">
 			</File>
 		</Filter>
 		<Filter
 			Name="compile"
 			Filter="">
 			<File
-				RelativePath="..\compile\bytecode.ml">
+				RelativePath=".\bytecode.ml">
 			</File>
 			<File
-				RelativePath="..\compile\compile.ml">
+				RelativePath=".\compile.ml">
 			</File>
 		</Filter>
 		<Filter

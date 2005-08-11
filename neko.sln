@@ -1,8 +1,4 @@
 Microsoft Visual Studio Solution File, Format Version 8.00
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "neko", "exe\neko.vcproj", "{59B84580-C217-4013-88B0-67D0FB93BA40}"
-	ProjectSection(ProjectDependencies) = postProject
-	EndProjectSection
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "nekovm", "vm\nekovm.vcproj", "{C9796A2F-49BA-4EE2-A28A-2707C5151D0E}"
 	ProjectSection(ProjectDependencies) = postProject
 		{FEBA0CA8-4D9C-49C3-B3CC-1A7CFF9BB8B3} = {FEBA0CA8-4D9C-49C3-B3CC-1A7CFF9BB8B3}
@@ -12,16 +8,16 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "nekovm_dll", "vm\nekovm_dll
 	ProjectSection(ProjectDependencies) = postProject
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "neko", "neko\neko.vcproj", "{59B84580-C217-4013-88B0-67D0FB93BA40}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfiguration) = preSolution
 		Debug = Debug
 		Release = Release
 	EndGlobalSection
 	GlobalSection(ProjectConfiguration) = postSolution
-		{59B84580-C217-4013-88B0-67D0FB93BA40}.Debug.ActiveCfg = Debug|Win32
-		{59B84580-C217-4013-88B0-67D0FB93BA40}.Debug.Build.0 = Debug|Win32
-		{59B84580-C217-4013-88B0-67D0FB93BA40}.Release.ActiveCfg = Release|Win32
-		{59B84580-C217-4013-88B0-67D0FB93BA40}.Release.Build.0 = Release|Win32
 		{C9796A2F-49BA-4EE2-A28A-2707C5151D0E}.Debug.ActiveCfg = Debug|Win32
 		{C9796A2F-49BA-4EE2-A28A-2707C5151D0E}.Debug.Build.0 = Debug|Win32
 		{C9796A2F-49BA-4EE2-A28A-2707C5151D0E}.Release.ActiveCfg = Release|Win32
@@ -30,6 +26,10 @@ Global
 		{FEBA0CA8-4D9C-49C3-B3CC-1A7CFF9BB8B3}.Debug.Build.0 = Debug|Win32
 		{FEBA0CA8-4D9C-49C3-B3CC-1A7CFF9BB8B3}.Release.ActiveCfg = Release|Win32
 		{FEBA0CA8-4D9C-49C3-B3CC-1A7CFF9BB8B3}.Release.Build.0 = Release|Win32
+		{59B84580-C217-4013-88B0-67D0FB93BA40}.Debug.ActiveCfg = Debug|Win32
+		{59B84580-C217-4013-88B0-67D0FB93BA40}.Debug.Build.0 = Debug|Win32
+		{59B84580-C217-4013-88B0-67D0FB93BA40}.Release.ActiveCfg = Release|Win32
+		{59B84580-C217-4013-88B0-67D0FB93BA40}.Release.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 	EndGlobalSection
