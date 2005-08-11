@@ -75,7 +75,7 @@ Sql.connect = function(params) {
 	var l = $asize(f);
 	while( i < l ) {
 		var v = $objget(c,f[i]);
-		if( $typeof(v) == 4 )
+		if( $typeof(v) == $tstring )
 			$objset(c,f[i],String.new(v));
 		i = i + 1;
 	}

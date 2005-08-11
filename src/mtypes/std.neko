@@ -465,7 +465,7 @@ String.new = function(s) {
 	if( s == null )
 		return null;
 
-	if( $typeof(s) != 4 )
+	if( $typeof(s) != $tstring )
 		s = $string(s);
 
 	var o = $new(@String);
@@ -850,13 +850,17 @@ sys_command = $loader.loadprim("std@sys_command",1);
 Std = $new(null);
 Std.print = $print;
 Std.int = function(s) {
-	if( $typeof(s) == 5 )
+	if( $typeof(s) == $tobject )
 		s = s.__string();
 	return $int(s);
 }
 
 Std.fieldId = function(s) {
 	return $hash(s.@s);
+}
+
+Std.fieldInv = function(id) {
+	return $field(id);
 }
 
 Std.fieldCall = function(o,id,params) {
