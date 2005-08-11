@@ -174,6 +174,35 @@ EXTERN void val_buffer( buffer b, value v ) {
 	}
 }
 
+// theses two 'append' function belongs here because we don't want 
+// them to be inlined in interp.c by GCC since this will break 
+// register allocation
+
+value append_int( neko_vm *vm, value str, int x, bool way ) {
+	int len, len2;
+	value v;
+	len = val_strlen(str);
+	len2 = sprintf(vm->tmp,"%d",x);
+	v = alloc_empty_string(len+len2);
+	if( way ) {
+		memcpy((char*)val_string(v),val_string(str),len);
+		memcpy((char*)val_string(v)+len,vm->tmp,len2+1);
+	} else {
+		memcpy((char*)val_string(v),vm->tmp,len2);
+		memcpy((char*)val_string(v)+len2,val_string(str),len+1);
+	}
+	return v;
+}
+
+value append_strings( value s1, value s2 ) {
+	int len1 = val_strlen(s1);
+	int len2 = val_strlen(s2);
+	value v = alloc_empty_string(len1+len2);
+	memcpy((char*)val_string(v),val_string(s1),len1);
+	memcpy((char*)val_string(v)+len1,val_string(s2),len2+1);
+	return v;
+}
+
 EXTERN field val_id( const char *name ) {
 	objtable *data;
 	value *fdata;

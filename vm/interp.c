@@ -15,6 +15,16 @@
 #include "vmcontext.h"
 #include "objtable.h"
 
+#if defined(__GNUC__) && defined(__i386__)
+#	define ACC_REG asm("%eax")
+#	define PC_REG asm("%ebx")
+#	define SP_REG asm("%edi")
+#else
+#	define ACC_REG
+#	define PC_REG
+#	define SP_REG
+#endif
+
 #define INIT_STACK_SIZE (1 << 7)
 #define MAX_STACK_SIZE	(1 << 18)
 
@@ -125,11 +135,12 @@ typedef int (*c_primN)(value*,int);
 #define Instr(x)	case x:
 #define Next		break;
 
-#define PopMacro(n) \
-		tmp = n; \
+#define PopMacro(n) { \
+		int tmp = n; \
 		Error(sp + tmp > vm->spmax, UNDERFLOW); \
 		while( tmp-- > 0 ) \
-			*sp++ = NULL;
+			*sp++ = NULL; \
+	}
 
 #define BeginCall() \
 		vm->sp = sp; \
@@ -196,6 +207,7 @@ typedef int (*c_primN)(value*,int);
 			} \
 			else if( ((vfunction*)acc)->nargs == VAR_ARGS ) { \
 				int args[CALL_MAX_ARGS]; \
+				int tmp; \
 				SetupBeforeCall(this_arg); \
 				sp += *pc; \
 				for(tmp=0;tmp<*pc;tmp++) \
@@ -267,22 +279,6 @@ typedef int (*c_primN)(value*,int);
 		EndCall(); \
 	}
 
-#define AppendString(str,fmt,x,way) { \
-		int len, len2; \
-		value v; \
-		len = val_strlen(str); \
-		len2 = sprintf(vm->tmp,fmt,x); \
-		v = alloc_empty_string(len+len2); \
-		if( way ) { \
-		 	memcpy((char*)val_string(v),val_string(str),len); \
-			memcpy((char*)val_string(v)+len,vm->tmp,len2+1); \
-		} else { \
-			memcpy((char*)val_string(v),vm->tmp,len2); \
-			memcpy((char*)val_string(v)+len2,val_string(str),len+1); \
-		} \
-		acc = (int)v; \
-	}
-
 void neko_setup_trap( neko_vm *vm, int where ) {
 	vm->sp -= 5;
 	if( vm->sp <= vm->csp )
@@ -317,44 +313,14 @@ void neko_process_trap( neko_vm *vm ) {
 		*vm->sp++ = NULL;
 }
 
-value neko_interp( neko_vm *vm, register int acc, register int *pc, value env ) {
-	register int *sp = vm->sp;
-	register int *csp = vm->csp;
-	int tmp;
-	int *init_sp = (int*)(vm->spmax - sp);
-	jmp_buf old;
-	memcpy(&old,&vm->start,sizeof(jmp_buf));
-	if( setjmp(vm->start) ) {
-		acc = (int)vm->this;
-		// if uncaught or outside init stack, reraise
-		if( vm->trap == 0 || vm->trap <= init_sp ) {
-			memcpy(&vm->start,&old,sizeof(jmp_buf));
-			longjmp(vm->start,1);
-		}
+extern value append_int( neko_vm *vm, value str, int x, bool way );
+extern value append_strings( value s1, value s2 );
 
-		vm->trap = vm->spmax - (int)vm->trap;
-		if( vm->trap < vm->sp ) {
-			// trap outside stack
-			vm->trap = 0;
-			Error( 1 , INVALID_TRAP )
-		}
-
-		// pop csp
-		csp = vm->spmin + val_int(vm->trap[0]);
-		while( vm->csp > csp )
-			*vm->csp-- = NULL;
-	
-		// restore state
-		vm->this = (value)vm->trap[1];
-		env = (value)vm->trap[2];
-		pc = int_address(vm->trap[3]);
-
-		// pop sp
-		sp = vm->trap + 5;
-		vm->trap = (int*)val_int(vm->trap[4]);
-		while( vm->sp < sp )
-			*vm->sp++ = NULL;
-	}
+static int interp_loop( neko_vm *vm, int _acc, int *_pc, value env ) {
+	register int acc ACC_REG = _acc;
+	register int *pc PC_REG = _pc;
+	register int *sp SP_REG = vm->sp;
+	int *csp = vm->csp;
 	while( true ) {
 		switch( *pc++ ) {
 	Instr(AccNull)
@@ -491,9 +457,11 @@ value neko_interp( neko_vm *vm, register int acc, register int *pc, value env ) 
 		Next;
 	Instr(ObjCall)
 		Error( sp == vm->spmax , UNDERFLOW );
-		tmp = *sp;
-		*sp++ = NULL;
-		DoCall((value)tmp);
+		{
+			value vtmp = (value)*sp; 
+			*sp++ = NULL;
+			DoCall(vtmp);
+		}
 		Next;
 	Instr(Jump)
 		pc = (int*)*pc;
@@ -543,7 +511,7 @@ value neko_interp( neko_vm *vm, register int acc, register int *pc, value env ) 
 	Instr(MakeEnv)
 		{
 			int n = *pc++;
-			tmp = (int)alloc_array(n);
+			int tmp = (int)alloc_array(n);
 			Error( sp + n > vm->spmax , UNDERFLOW);
 			while( n-- ) {
 				val_array_ptr(tmp)[n] = (value)*sp;
@@ -586,31 +554,26 @@ value neko_interp( neko_vm *vm, register int acc, register int *pc, value env ) 
 		else if( acc & 1 ) {
 			if( val_tag(*sp) == VAL_FLOAT )
 				acc = (int)alloc_float(val_float(*sp) + val_int(acc));
-			else if( (tmp = (val_tag(*sp)&7)) == VAL_STRING  )
-				AppendString(*sp,"%d",val_int(acc),true)
-			else if( tmp == VAL_OBJECT )
+			else if( (val_tag(*sp)&7) == VAL_STRING  )
+				acc = (int)append_int(vm,(value)*sp,val_int(acc),true);
+			else if( val_tag(*sp) == VAL_OBJECT )
 				ObjectOp(*sp,acc,id_add)
 			else
 				acc = (int)val_null;
 		} else if( *sp & 1 ) {
 			if( val_tag(acc) == VAL_FLOAT )
 				acc = (int)alloc_float(val_int(*sp) + val_float(acc));
-			else if( (tmp = (val_tag(acc)&7)) == VAL_STRING )
-				AppendString(acc,"%d",val_int(*sp),false)
-			else if( tmp == VAL_OBJECT )
+			else if( (val_tag(acc)&7) == VAL_STRING )
+				acc = (int)append_int(vm,(value)acc,val_int(*sp),false);
+			else if( val_tag(acc) == VAL_OBJECT )
 				ObjectOp(acc,*sp,id_radd)
 			else
 				acc = (int)val_null;
 		} else if( val_tag(acc) == VAL_FLOAT && val_tag(*sp) == VAL_FLOAT )
 			acc = (int)alloc_float(val_float(*sp) + val_float(acc));
-		else if( (tmp = (val_tag(acc)&7)) == VAL_STRING && (val_tag(*sp)&7) == VAL_STRING ) {
-			int len1 = val_strlen(*sp);
-			int len2 = val_strlen(acc);
-			value v = alloc_empty_string(len1+len2);
-			memcpy((char*)val_string(v),val_string(*sp),len1);
-			memcpy((char*)val_string(v)+len1,val_string(acc),len2+1);
-			acc = (int)v;
-		} else if( tmp == VAL_STRING || (val_tag(*sp)&7) == VAL_STRING ) {
+		else if( (val_tag(acc)&7) == VAL_STRING && (val_tag(*sp)&7) == VAL_STRING )
+			acc = (int)append_strings((value)*sp,(value)acc);
+		else if( (val_tag(acc)&7) == VAL_STRING || (val_tag(*sp)&7) == VAL_STRING ) {
 			buffer b = alloc_buffer(NULL);
 			BeginCall();
 			val_buffer(b,(value)*sp);
@@ -619,7 +582,7 @@ value neko_interp( neko_vm *vm, register int acc, register int *pc, value env ) 
 			acc = (int)buffer_to_string(b);
 		} else if( val_tag(*sp) == VAL_OBJECT )
 			ObjectOp(*sp,acc,id_add)
-		else if( tmp == VAL_OBJECT )
+		else if( val_tag(acc) == VAL_OBJECT )
 			ObjectOp(acc,*sp,id_radd)
 		else
 			acc = (int)val_null;
@@ -702,10 +665,54 @@ value neko_interp( neko_vm *vm, register int acc, register int *pc, value env ) 
 		Next;
 	Instr(Last)
 		goto end;
+#ifdef _MSC_VER
+	default:
+         __assume(0);
+#endif
 	}}
 end:
 	vm->sp = sp;
 	vm->csp = csp;
+	return acc;
+}
+
+value neko_interp( neko_vm *vm, int acc, int *pc, value env ) {
+	int *sp, *csp;
+	int *init_sp = (int*)(vm->spmax - vm->sp);
+	jmp_buf old;
+	memcpy(&old,&vm->start,sizeof(jmp_buf));
+	if( setjmp(vm->start) ) {
+		acc = (int)vm->this;
+		// if uncaught or outside init stack, reraise
+		if( vm->trap == 0 || vm->trap <= init_sp ) {
+			memcpy(&vm->start,&old,sizeof(jmp_buf));
+			longjmp(vm->start,1);
+		}
+
+		vm->trap = vm->spmax - (int)vm->trap;
+		if( vm->trap < vm->sp ) {
+			// trap outside stack
+			vm->trap = 0;
+			Error( 1 , INVALID_TRAP )
+		}
+
+		// pop csp
+		csp = vm->spmin + val_int(vm->trap[0]);
+		while( vm->csp > csp )
+			*vm->csp-- = NULL;
+	
+		// restore state
+		vm->this = (value)vm->trap[1];
+		env = (value)vm->trap[2];
+		pc = int_address(vm->trap[3]);
+
+		// pop sp
+		sp = vm->trap + 5;
+		vm->trap = (int*)val_int(vm->trap[4]);
+		while( vm->sp < sp )
+			*vm->sp++ = NULL;
+	}
+	acc = interp_loop(vm,acc,pc,env);
 	memcpy(&vm->start,&old,sizeof(jmp_buf));
 	return (value)acc;
 }
