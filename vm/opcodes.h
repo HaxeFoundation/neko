@@ -59,6 +59,10 @@ enum OPCODE {
 	Gte,
 	Lt,
 	Lte,
+	Not,
+	TypeOf,
+	Compare,
+	Hash,
 
 	Last,
 
@@ -120,6 +124,10 @@ static int parameter_table[] = {
 	0, // Gte
 	0, // Lt
 	0, // Lte
+	0, // Not
+	0, // TypeOf
+	0, // Compare
+	0, // Hash
 };
 #endif
 

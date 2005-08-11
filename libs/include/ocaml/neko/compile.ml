@@ -51,6 +51,9 @@ let stack_delta = function
 	| EndTrap
 	| IsNull
 	| IsNotNull
+	| Not
+	| Hash
+	| TypeOf
 		-> 0
 	| Add
 	| Sub
@@ -71,7 +74,7 @@ let stack_delta = function
 	| Lte
 		-> -1
 	| AccArray -> -1
-	| SetField _ | SetIndex _ -> -1
+	| SetField _ | SetIndex _ | Compare -> -1
 	| SetArray -> -2
 	| Push -> 1
 	| Pop x -> -x
@@ -142,7 +145,19 @@ let compile_constant ctx c p =
 	| Int n -> write ctx (AccInt n)
 	| Float f -> write ctx (AccGlobal (global ctx (GlobalFloat f)))
 	| String s -> write ctx (AccGlobal (global ctx (GlobalString s)))
-	| Builtin s -> write ctx (AccBuiltin s)
+	| Builtin s -> 
+		(match s with
+		| "tnull" -> write ctx (AccInt 0)
+		| "tint" -> write ctx (AccInt 1)
+		| "tfloat" -> write ctx (AccInt 2)
+		| "tbool" -> write ctx (AccInt 3)
+		| "tstring" -> write ctx (AccInt 4)
+		| "tobject" -> write ctx (AccInt 5)
+		| "tarray" -> write ctx (AccInt 6)
+		| "tfunction" -> write ctx (AccInt 7)
+		| "tabstract" -> write ctx (AccInt 8)
+		| s ->
+			write ctx (AccBuiltin s))
 	| Ident s ->
 		try
 			let e = PMap.find s ctx.env in
@@ -304,7 +319,24 @@ and compile_function ctx params e =
 	ctx.nenv <- nenv
 
 and compile_builtin ctx b el p =
-	match b with
+	match b , el with
+	| "istrue" , [e] ->
+		compile ctx e;
+		write ctx Bool
+	| "not" , [e] ->
+		compile ctx e;
+		write ctx Not
+	| "typeof" , [e] ->
+		compile ctx e;
+		write ctx TypeOf
+	| "hash" , [e] ->
+		compile ctx e;
+		write ctx Hash
+	| "compare" , [e1;e2] ->
+		compile ctx e1;
+		write ctx Push;
+		compile ctx e2;
+		write ctx Compare
 	| _ ->
 		List.iter (fun e ->
 			compile ctx e;

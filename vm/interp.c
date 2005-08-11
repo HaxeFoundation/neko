@@ -25,6 +25,17 @@ extern field id_add, id_radd, id_sub, id_rsub, id_mult, id_rmult, id_div, id_rdi
 extern field id_get, id_set;
 extern value alloc_module_function( void *m, int pos, int nargs );
 
+static value TYPEOF[] = {
+	alloc_int(0),
+	alloc_int(2),
+	alloc_int(3),
+	alloc_int(4),
+	alloc_int(5),
+	alloc_int(6),
+	alloc_int(7),
+	alloc_int(8)
+};
+
 static void default_printer( const char *s, int len ) {
 	while( len > 0 ) {
 		int p = fwrite(s,1,len,stdout);
@@ -559,6 +570,9 @@ value neko_interp( neko_vm *vm, register int acc, register int *pc, value env ) 
 	Instr(Bool)
 		acc = (acc == (int)val_false || acc == (int)val_null || acc == 1)?(int)val_false:(int)val_true;
 		Next;
+	Instr(Not)
+		acc = (acc == (int)val_false || acc == (int)val_null || acc == 1)?(int)val_true:(int)val_false;
+		Next;
 	Instr(IsNull)
 		acc = (int)((acc == (int)val_null)?val_true:val_false);
 		Next;
@@ -660,7 +674,7 @@ value neko_interp( neko_vm *vm, register int acc, register int *pc, value env ) 
 		acc = (int)((val_compare((value)*sp,(value)acc) == 0)?val_false:val_true);
 		EndCall();
 		*sp++ = NULL;
-		Next
+		Next;
 	Instr(Lt)
 		Test(<)
 	Instr(Lte)
@@ -669,6 +683,23 @@ value neko_interp( neko_vm *vm, register int acc, register int *pc, value env ) 
 		Test(>)
 	Instr(Gte)
 		Test(>=)
+	Instr(TypeOf)
+		acc = (int)(val_is_int(acc) ? alloc_int(1) : TYPEOF[val_tag(acc)&7]);
+		Next;
+	Instr(Compare)
+		Error( sp == vm->spmax , UNDERFLOW );
+		BeginCall();
+		acc = (int)val_compare((value)*sp,(value)acc);
+		EndCall();
+		acc = (int)((acc == invalid_comparison)?val_null:alloc_int(acc));
+		*sp++ = NULL;
+		Next;
+	Instr(Hash)
+		if( val_is_string(acc) )
+			acc = (int)alloc_int( (int)val_id(val_string(acc)));
+		else
+			acc = (int)val_null;
+		Next;
 	Instr(Last)
 		goto end;
 	}}
