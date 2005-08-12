@@ -59,6 +59,7 @@ type opcode =
 	| TypeOf
 	| Compare
 	| Hash
+	| New
 
 type global =
 	| GlobalVar of string
@@ -136,6 +137,7 @@ let op_param = function
 	| TypeOf
 	| Compare
 	| Hash
+	| New
 		-> false
 
 let code_tables ops =
@@ -237,6 +239,7 @@ let write ch (globals,ops) =
 			| TypeOf -> 52
 			| Compare -> 53
 			| Hash -> 54
+			| New -> 55
 		) in
 		match !pop with
 		| None -> IO.write_byte ch (opid lsl 2)
@@ -359,6 +362,7 @@ let read ch =
 				| 52 -> TypeOf
 				| 53 -> Compare
 				| 54 -> Hash
+				| 55 -> New
 				| _ -> raise Invalid_file
 			) in
 			pos.(!cpos) <- DynArray.length ops;
@@ -475,6 +479,7 @@ let dump ch (globals,ops) =
 			| TypeOf -> "TypeOf"
 			| Compare -> "Compare"
 			| Hash -> "Hash"
+			| New -> "New"
 		);
 		bpos := !bpos + if op_param op then 2 else 1;
 	) ops;
