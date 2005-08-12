@@ -4,6 +4,7 @@
 /*  (c)2005 Nicolas Cannasse												*/
 /*																			*/
 /* ************************************************************************ */
+#include <string.h>
 #include "neko.h"
 #include "objtable.h"
 #include "load.h"
