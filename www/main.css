@@ -40,10 +40,6 @@ p:first-letter {
 	margin-left : 30px;
 }
 
-.siteContent p:first-child {
-	color	: blue;
-}
-
 h1 {
 	color			: black;
 	text-transform	: capitalize;
@@ -69,12 +65,6 @@ h3 {
 	text-transform	: lowercase;
 	border-bottom	: 2px dotted #ddd;
 }
-
-
-h1+h2 {
-	color: blue;
-}
-
 
 ul {
 	list-style	: none;

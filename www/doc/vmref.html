@@ -1,0 +1,80 @@
+<h1>Neko Virtual Machine</h1>
+
+<p>
+	Before reading this part of the documentation, it is recommend to have already read the <a href="/?doc=doc/cffi">C FFI</a> Documentation or to have a good knowledge of it.
+</p>
+
+<h2>Modules</h2>
+
+<p>
+...
+</p>
+
+<h2>Libraries</h2>
+
+<p>
+...
+</p>
+
+<h2>Custom Loaders</h2>
+
+<p>
+...
+</p>
+
+<h2>Embedding the VM</h2>
+
+<p>
+	The Neko Virtual Machine and its <a href="/?doc=doc/cffi">C FFI</a> are packaged into a single shared library (<code>libneko.so</code> on Unix systems and <code>neko.dll</code> on Windows). With the garbage collector library (<code>libgc</code> on Unix and <code>gc.dll</code> on Windows), this is all you need to add to your application in order to be able to run a Neko Program.
+</p>
+
+<p>
+	Here's a small code snippet that initialize a NekoVM and run a neko module inside it :
+</p>
+
+<pre>
+
+#include &lt;stdio.h&gt;
+#include &lt;load.h&gt;
+#include &lt;interp.h&gt;
+
+value execute( char *module ) {
+	neko_vm *vm;
+	value loader;
+	value args[2];
+	value exc = NULL;
+	value ret;
+
+	neko_global_init();
+	vm = neko_vm_alloc(NULL);
+
+	loader = neko_default_loader(NULL);
+	args[0] = alloc_string(file);
+	args[1] = loader;
+	neko_vm_select(vm);
+	ret = val_callEx(loader,val_field(loader,val_id("loadmodule")),args,2,&exc);
+
+	if( exc != NULL ) {
+		buffer b = alloc_buffer(NULL);
+		val_buffer(b,exc);
+		printf("Uncaught exception - %s\n",val_string(buffer_to_string(b)));
+		ret = val_null;
+	}
+
+	neko_global_free();
+	return ret;
+}
+
+</pre>
+
+<h3>NekoVM API</h3>
+
+<p>
+...
+</p>
+
+<h3>Multithreading</h3>
+
+<p>
+...
+</p>

@@ -1,0 +1,97 @@
+
+<h1>Neko Beginner's Guide</h1>
+
+<p>
+	So you want to learn about Neko ? Here's a step-by-step guide to be able to run your first neko program. But first choose a distribution, download it and get ready to install it.
+</p>
+
+<ul>
+	<li>Installing on <a href="#linux">Linux</a></li>
+	<li>Installing on <a href="#windows">Windows</a></li>
+	<li>Compiling from <a href="#sources">Sources</a></li>
+</ul>
+
+<a name="linux"></a>
+<h2>Linux Binaries</h2>
+
+<p>
+	Decompress the archive and copy the files into a folder you want, for example <code>/usr/lib/neko/</code>. Setup your system so it will look for executable in this path, and shared libraries too (using <code>export LD_LIBRARY_PATH=/usr/lib/neko</code> for example). Set also the <code>NEKOPATH</code> environment variable to the same path.
+</p>
+
+<div class="plink">
+	<a href="#next">Continue...</a>
+</div>
+
+<a name="windows"></a>
+<h2>Windows Binaries</h2>
+
+<p>
+	Unzip the archive and copy the files into the folder you want. Modify your <code>PATH</code> environment variable in order to add that folder to the list of searched paths. Here are instructions for <a href="http://support.microsoft.com/default.aspx?scid=kb;en-us;310519&sd=tech">Windows XP</a> and <a href="http://support.microsoft.com/default.aspx?scid=kb;en-us;311843&sd=tech">Windows 2000</a>. Add also a new environment variable called <code>NEKOPATH</code> and set its value to the same path.
+</p>
+
+<p>
+	You can now open a command terminal using <code>Start / Run..</code> and entering <code>cmd</code> then OK.
+</p>
+
+<div class="plink">
+	<a href="#next">Continue...</a>
+</div>
+
+<a name="sources"></a>
+<h2>From Sources</h2>
+
+<p>
+	Compiling Neko directly from sources is a little more difficult. You need first to install the following packages: <code>libgc</code> and <code>ocaml</code>. Then try edit <code>Makefile</code> with your paths to include headers for <code>APACHE</code>, <code>MYSQL</code> and <code>REGEXP</code> (pcre3). Once done, you can run <code>make extlib</code> to compile an ocaml library needed. Then <code>make</code> to compile the sources. All the compiled files should be compiled inside the <code>bin</code> subdirectory.
+</p>
+
+<p>
+	Compiling for Windows from sources is possible but the VisualStudio Projects file are not part of the release yet.
+</p>
+
+<div class="plink">
+	<a href="#next">Continue...</a>
+</div>
+
+<a name="next"></a>
+<h2>Neko Test</h2>
+
+<p>
+	If install have been correctly done, you should be able to run the test script by executing <code>nekovm test</code>.
+</p>
+
+<p>
+	If the test is successful, that means that Neko is correctly installed.
+</p>
+
+
+<h2>Hello World</h2>
+
+<p>
+
+	You can now start editing your first program <code>hello.neko</code> :
+</p>
+
+<pre>
+	$print("hello neko world !");
+</pre>
+
+<p>
+	Compile your <code>hello.neko</code> file into a <code>hello.n</code> file using the neko commandline compiler <code>neko</code> by calling <code>neko hello.neko</code>. If you didn't make any syntax error this will produce a <code>.n</code> file containing the compiled bytecode of your sources.
+</p>
+
+<p>
+	 You can now run this bytecode "module" by calling <code>nekovm hello</code> (without <code>.n</code>). This should print some funny string.
+</p>
+
+<h2>From here...</h2>
+
+<p>
+	From here you're no longer a beginner so you can start reading the <a href="/?doc=doc">other documents</a>.
+</p>
+
+<p>
+	Congratulations !
+</p>
+
+<br/><br/><br/><br/>
+<br/><br/><br/><br/>
