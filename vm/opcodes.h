@@ -63,6 +63,7 @@ enum OPCODE {
 	TypeOf,
 	Compare,
 	Hash,
+	New,
 
 	Last,
 
@@ -128,6 +129,7 @@ static int parameter_table[] = {
 	0, // TypeOf
 	0, // Compare
 	0, // Hash
+	0, // New
 };
 #endif
 

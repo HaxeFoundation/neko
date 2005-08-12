@@ -400,9 +400,9 @@ static int interp_loop( neko_vm *vm, int _acc, int *_pc, value env ) {
 		Next;
 	Instr(SetField)
 		Error( sp == vm->spmax , UNDERFLOW );
-		if( val_is_object(acc) ) {
+		if( val_is_object(*sp) ) {
 			ACC_BACKUP;
-			otable_replace(((vobject*)acc)->table,(field)*pc,(value)*sp);
+			otable_replace(((vobject*)*sp)->table,(field)*pc,(value)acc);
 			ACC_RESTORE;
 		}
 		*sp++ = NULL;
@@ -410,14 +410,14 @@ static int interp_loop( neko_vm *vm, int _acc, int *_pc, value env ) {
 		Next;
 	Instr(SetArray)
 		Error( sp >= vm->spmax - 1 , UNDERFLOW);
-		if( val_is_int(acc) && val_is_array(*sp) ) {
-			int k = val_int(acc);
+		if( val_is_array(*sp) && val_is_int(sp[1]) ) {
+			int k = val_int(sp[1]);
 			if( k >= 0 && k < val_array_size(*sp) )
-				val_array_ptr(*sp)[k] = (value)sp[1];
+				val_array_ptr(*sp)[k] = (value)acc;
 		} else if( val_is_object(*sp) ) {
 			ACC_BACKUP;
 			BeginCall();
-			val_ocall2((value)*sp,id_set,(value)acc,(value)sp[1]);
+			val_ocall2((value)*sp,id_set,(value)sp[1],(value)acc);
 			EndCall();
 			ACC_RESTORE;
 		}
@@ -426,13 +426,13 @@ static int interp_loop( neko_vm *vm, int _acc, int *_pc, value env ) {
 		Next;
 	Instr(SetIndex)
 		Error( sp >= vm->spmax , UNDERFLOW);
-		if( val_is_array(acc) ) {
-			if( *pc >= 0 && *pc < val_array_size(acc) )
-				val_array_ptr(acc)[*pc] = (value)*sp;
-		} else if( val_is_object(acc) ) {
+		if( val_is_array(*sp) ) {
+			if( *pc >= 0 && *pc < val_array_size(*sp) )
+				val_array_ptr(*sp)[*pc] = (value)acc;
+		} else if( val_is_object(*sp) ) {
 			ACC_BACKUP;
 			BeginCall();
-			val_ocall2((value)acc,id_set,(value)alloc_int(*pc),(value)*sp);
+			val_ocall2((value)*sp,id_set,(value)alloc_int(*pc),(value)acc);
 			EndCall();
 			ACC_RESTORE;
 		}
@@ -668,6 +668,9 @@ static int interp_loop( neko_vm *vm, int _acc, int *_pc, value env ) {
 			acc = (int)alloc_int( (int)val_id(val_string(acc)));
 		else
 			acc = (int)val_null;
+		Next;
+	Instr(New)
+		acc = (int)alloc_object((value)acc);
 		Next;
 	Instr(Last)
 		goto end;
