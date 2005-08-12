@@ -223,17 +223,13 @@ let rec compile_binop ctx op e1 e2 p =
 			error (Custom "Invalid assign") p)
 	| "&&" ->
 		compile ctx e1;
-		write ctx Bool;
 		let jnext = jmp ~cond:false ctx in
 		compile ctx e2;
-		write ctx Bool;
 		jnext()
 	| "||" ->
 		compile ctx e1;
-		write ctx Bool;
 		let jnext = jmp ~cond:true ctx in
 		compile ctx e2;
-		write ctx Bool;
 		jnext()
 	| _ ->
 		match op , e1 , e2 with
