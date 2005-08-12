@@ -38,7 +38,7 @@ static value regexp_new( value s ) {
 			val_buffer(b,s);
 			val_throw(buffer_to_string(b));
 		}
-		v = alloc_abstract(k_regexp,alloc_private(sizeof(pcredata)));
+		v = alloc_abstract(k_regexp,alloc(sizeof(pcredata)));
 		pdata = PCRE(v);
 		pdata->r = p;
 		pdata->str = val_null;
