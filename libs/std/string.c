@@ -74,7 +74,13 @@ static value sys_command( value cmd ) {
 	return alloc_int( system(val_string(cmd)) );
 }
 
+static value test() {
+	val_print(alloc_string("Calling a function inside std library..."));
+	return val_null;
+}
+
 DEFINE_PRIM(string_split,2);
 DEFINE_PRIM(set_locale,1);
 DEFINE_PRIM(get_cwd,0);
 DEFINE_PRIM(sys_command,1);
+DEFINE_PRIM(test,0);
