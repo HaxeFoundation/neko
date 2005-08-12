@@ -91,6 +91,7 @@ The syntax is parsed using a left-to-right LL(1) parser. That means that after r
 	    <i>expr</i> :=
 		| <i>value</i>
 		| <b>{</b> <i>program</i> <b>}</b>
+		| <b>{</b> <i>ident1</i> <b>=></b> <i>expr1</i> <b>,</b> <i>ident2</i> <b>=></b> <i>expr2</i> <b>...</b> <b>}</b>
 		| <i>expr</i> <b>DOT</b> <i>ident</i>
 		| <i>expr</i> <b>(</b> <i>parameters</i> <b>)</b>
 		| <i>expr</i> <b>[</b> <i>expr</i> <b>]</b>
@@ -119,11 +120,6 @@ The syntax is parsed using a left-to-right LL(1) parser. That means that after r
 	    <i>parameters-names</i> :=
 		| <i>ident</i> <i>parameters-names</i>
 		| <b>COMMA</b> <i>parameters-names</i>
-		| &epsilon;
-
-	    <i>cases</i> :=
-		| <i>expr</i> <b>=></b> <i>expr</i> <i>cases</i>
-		| <b>default</b> <b>=></b> <i>expr</i> <i>cases</i>
 		| &epsilon;
 
 </pre>
@@ -199,12 +195,13 @@ Before evaluating any expression, all sub-expressions are evaluated in an unspec
 </p>
 
 <ul>
-<li><code><b>{</b> <i>v1, v2, .... vk</i> <b>}</b></code> : the evaluation order is specified here, it follows the expressions declarations. The last value <code>vk</code> is returned, or <code>null</code> if <code>program</code> does not contain any expression.</li>
+<li><code><b>{</b> <i>v1; v2; .... vk</i> <b>}</b></code> : the evaluation order is specified here, it follows the expressions declarations. The last value <code>vk</code> is returned, or <code>null</code> if <code>program</code> does not contain any expression.</li>
+<li><code><b>{</b> <i>i1</i> <b>=></b> <i>v1</i> <b>,</b> <i>i2</i> <b>=></b> <i>v2</i> <b>...</b> <b>}</b></code> : this will create an object with fields <i>i1...ik</i> set to values <i>v1...vk</i>. It might be more optimized than setting the fields one-by-one on an empty object.</li>
 <li><code><i>v</i> <b>DOT</b> <i>ident</i></code> : <code>v</code> is accessed as an object using <code>ident</code> as key (see Objects).</li>
 <li><code><i>v</i> <b>(</b> <i>v1, v2, ... vk</i> <b>)</b></code> : the function <code>v</code> is called with the parameters <code>v1, v2... vk</code> (see Function Calls)</li>
 <li><code><i>v1</i> <b>[</b> <i>v2</i> <b>]</b></code> : <code>v1</code> is accessed as an array using <code>v2</code> as key (see Arrays)</li>
 <li><code><i>v1</i> <i>binop</i> <i>v2</i></code> : calculate v1 op v2 (see Operations).</li>
-<li><code><i>expr</i> <i>assign-binop</i> <i>v</i></code> : this is a special case, when operation is an assignation (see Operations).</li>
+<li><code><i>expr</i> <b>=</b> <i>v</i></code> : this is a special case, when operation is an assignation (see Operations).</li>
 <li><code><b>(</b> <i>v</i> <b>)</b></code> : evaluate to <code>v</code>.</li>
 <li><code><b>var</b> <i>i1 = v1, i2 = v2, .... ik = vk</i></code> : each variable <code>i</code> is set to the corresponding value <code>v</code> or to <code>null</code> if no initialization expression is provided.</li>
 <li><code><b>while</b> ....  | <b>do</b> ... <b>while</b> ...</code> : classic while-loop, the value returned is either the value returned by a <code>break</code> inside the while or unspecified if the loop ends without break.</li>
@@ -957,7 +954,7 @@ The primitive <code>$typeof</code> returns an integer specifying the type of a v
 <pre>
 	$typeof(3); // 1
 	$typeof($array(1,2)); // 6
-	$typeof(null == $tnull); // true
+	$typeof(null) == $tnull; // true
 </pre>
 
 <p>
@@ -1077,6 +1074,18 @@ Defining new functions is easy, since functions are values, you can simply assig
 
 <pre>
 	$objremove(o,$hash("field")); // remove "field" from o
+</pre>
+
+<p>
+	One other way to declare objects is to use the following notation, which is more efficient when you want initialize several fields at the same time :
+</p>
+
+<pre>
+	var o = {
+		x => 0,
+		y => -1,
+		msg => "hello"
+	}
 </pre>
 
 <h3>Methods</h3>
