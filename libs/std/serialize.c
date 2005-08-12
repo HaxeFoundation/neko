@@ -5,7 +5,7 @@
 #define BUF_SIZE	4096
 
 typedef struct strlist {
-	char *str;
+	unsigned char *str;
 	int slen;
 	struct strlist *next;
 } strlist;
@@ -37,7 +37,7 @@ static void buffer_alloc( sbuffer *b, int size ) {
 	b->totlen += b->pos;
 	b->pos = 0;
 	b->size = size;
-	b->cur = alloc_private(size);
+	b->cur = (unsigned char*)alloc_private(size);
 }
 
 static void write_char( sbuffer *b, char c ) {
@@ -197,7 +197,7 @@ static value serialize( value o ) {
 	strlist *l;
 	b.olds = NULL;
 	b.refs = NULL; 
-	b.cur = alloc_private(BUF_SIZE);
+	b.cur = (unsigned char*)alloc_private(BUF_SIZE);
 	b.size = BUF_SIZE;
 	b.pos = 0;
 	b.totlen = 0;
@@ -358,7 +358,7 @@ static value unserialize( value s, value loader ) {
 	sbuffer b;
 	if( !val_is_string(s) )
 		return val_null;
-	b.cur = (char*)val_string(s);
+	b.cur = (unsigned char*)val_string(s);
 	b.pos = 0;
 	b.error = false;
 	b.olds = NULL;
