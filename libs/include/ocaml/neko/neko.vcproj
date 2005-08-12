@@ -17,9 +17,9 @@
 			ConfigurationType="0">
 			<Tool
 				Name="VCNMakeTool"
-				BuildCommandLine="ocamake -o ../bin/neko.exe -pp camlp4o neko.vcproj extLib.cma"
-				ReBuildCommandLine="ocamake -o ../bin/neko.exe -pp camlp4o -all neko.vcproj extLib.cma"
-				CleanCommandLine="ocamake -o ../bin/neko.exe -pp camlp4o -clean neko.vcproj extLib.cma"
+				BuildCommandLine="ocamake -g -o ../bin/neko.exe -pp camlp4o neko.vcproj extLib.cma"
+				ReBuildCommandLine="ocamake -g -o ../bin/neko.exe -pp camlp4o -all neko.vcproj extLib.cma"
+				CleanCommandLine="ocamake -g -o ../bin/neko.exe -pp camlp4o -clean neko.vcproj extLib.cma"
 				Output="../bin/neko.exe"/>
 		</Configuration>
 		<Configuration
