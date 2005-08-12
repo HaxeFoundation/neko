@@ -69,6 +69,7 @@ type expr_decl =
 	| EBreak of expr option
 	| EContinue
 	| ENext of expr * expr
+	| EObject of (string * expr) list
 
 and expr = expr_decl * pos
 
@@ -103,6 +104,7 @@ let map f (e,p) =
 	| EReturn (Some e) -> EReturn (Some (f e))
 	| EBreak (Some e) -> EBreak (Some (f e))
 	| ENext (e1,e2) -> ENext (f e1,f e2)
+	| EObject fl -> EObject (List.map (fun (s,e) -> s , f e) fl)
 	| EReturn None
 	| EBreak None
 	| EContinue	
@@ -124,6 +126,7 @@ let iter f (e,p) =
 	| EReturn (Some e) -> f e
 	| EBreak (Some e) -> f e
 	| ENext (e1,e2) -> f e1; f e2
+	| EObject fl -> List.iter (fun (_,e) -> f e) fl
 	| EReturn None
 	| EBreak None
 	| EContinue

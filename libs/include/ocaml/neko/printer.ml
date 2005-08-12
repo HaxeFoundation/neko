@@ -130,6 +130,27 @@ let rec print_ast ?(binop=false) ctx (e,p) =
 		print ctx ";";
 		newline ctx;
 		print_ast ctx e2
+	| EObject [] ->
+		print ctx "$new(null)"
+	| EObject fl ->
+		print ctx "{";
+		level ctx true;
+		let rec loop = function
+			| [] -> assert false
+			| [f,e] ->
+				print ctx "%s => " f;
+				print_ast ctx e;
+				newline ctx;
+			| (f,e) :: l ->
+				print ctx "%s => " f;
+				print_ast ctx e;
+				print ctx ", ";
+				newline ctx;
+				loop l
+		in
+		loop fl;
+		level ctx false;
+		print ctx "}"
 
 and level_expr ctx (e,p) =
 	match e with

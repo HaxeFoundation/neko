@@ -44,9 +44,9 @@ let rec program = parser
 and expr = parser	
 	| [< '(Const c,p); s >] ->
 		expr_next (EConst c,p) s
-	| [< '(BraceOpen,p1); p = block; s >] ->
+	| [< '(BraceOpen,p1); e = block1; s >] ->
 		(match s with parser
-		| [< '(BraceClose,p2); s >] -> expr_next (EBlock p,punion p1 p2) s
+		| [< '(BraceClose,p2); s >] -> expr_next (e,punion p1 p2) s
 		| [< >] -> error (Unclosed "{") p1)
 	| [< '(ParentOpen,p1); e = expr; s >] ->
 		(match s with parser
@@ -99,9 +99,22 @@ and expr_next e = parser
 	| [< >] -> 
 		e
 
+and block1 = parser
+	| [< '(Const (Ident name),p); s >] ->
+		(match s with parser
+		| [< '(Arrow,_); e = expr; l = object_fields >] -> EObject ((name,e) :: l)
+		| [< e = expr_next (EConst (Ident name),p); b = block >] -> EBlock (e :: b))
+	| [< b = block >] ->
+		EBlock b
+
 and block = parser
 	| [< e = expr; b = block >] -> e :: b
 	| [< '(Semicolon,_); b = block >] -> b
+	| [< >] -> []
+
+and object_fields = parser
+	| [< '(Const (Ident name),_); '(Arrow,_); e = expr; l = object_fields >] -> (name,e) :: l
+	| [< '(Comma,_); l = object_fields >] -> l
 	| [< >] -> []
 
 and parameter_names = parser
