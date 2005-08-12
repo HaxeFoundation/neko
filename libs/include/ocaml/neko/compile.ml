@@ -5,6 +5,7 @@ type context = {
 	mutable ops : opcode DynArray.t;
 	mutable locals : (string,int) PMap.t;
 	globals : (global,int) Hashtbl.t;
+	gobjects : (string list,int) Hashtbl.t;
 	mutable env : (string,int) PMap.t;
 	mutable nenv : int;
 	mutable stack : int;
@@ -54,6 +55,7 @@ let stack_delta = function
 	| Not
 	| Hash
 	| TypeOf
+	| New
 		-> 0
 	| Add
 	| Sub
@@ -177,10 +179,10 @@ let compile_constant ctx c p =
 
 let rec compile_binop ctx op e1 e2 p =
 	match op with
-	| "=" ->
-		compile ctx e2;
+	| "=" ->		
 		(match fst e1 with
 		| EConst (Ident s) ->
+			compile ctx e2;
 			(try
 				let e = PMap.find s ctx.env in
 				write ctx (SetEnv e);
@@ -198,20 +200,24 @@ let rec compile_binop ctx op e1 e2 p =
 					let g = global ctx (GlobalVar s) in
 					write ctx (SetGlobal g))
 		| EField (e,f) ->
-			write ctx Push;
 			compile ctx e;
+			write ctx Push;
+			compile ctx e2;
 			write ctx (SetField f)
 		| EArray (e1,(EConst (Int n),_)) ->
-			write ctx Push;
 			compile ctx e1;
+			write ctx Push;
+			compile ctx e2;
 			write ctx (SetIndex n)
-		| EArray (e1,e2) ->
+		| EArray (ea,ei) ->
+			compile ctx ei;
 			write ctx Push;
-			compile ctx e1;
+			compile ctx ea;
 			write ctx Push;
 			compile ctx e2;
 			write ctx SetArray
 		| EConst This ->
+			compile ctx e2;
 			write ctx SetThis
 		| _ ->
 			error (Custom "Invalid assign") p)
@@ -485,6 +491,28 @@ and compile ctx (e,p) =
 	| ENext (e1,e2) ->
 		compile ctx e1;
 		compile ctx e2
+	| EObject [] ->
+		write ctx AccNull;
+		write ctx New
+	| EObject fl ->
+		let fields = List.sort compare (List.map fst fl) in
+		let id = (try
+			Hashtbl.find ctx.gobjects fields
+		with Not_found ->
+			let id = global ctx (GlobalVar ("o:" ^ string_of_int (Hashtbl.length ctx.gobjects))) in
+			Hashtbl.add ctx.gobjects fields id;
+			id
+		) in
+		write ctx (AccGlobal id);
+		write ctx New;
+		write ctx Push;
+		List.iter (fun (f,e) ->
+			write ctx Push;
+			compile ctx e;
+			write ctx (SetField f);
+			write ctx (AccStack 0);
+		) fl;
+		write ctx (Pop 1)
 
 let compile file ast =
 	let ctx = {
@@ -492,6 +520,7 @@ let compile file ast =
 		loop_limit = 0;
 		limit = -1;
 		globals = Hashtbl.create 0;
+		gobjects = Hashtbl.create 0;
 		gtable = DynArray.create();
 		locals = PMap.empty;
 		ops = DynArray.create();
@@ -504,16 +533,27 @@ let compile file ast =
 	} in
 	compile ctx ast;
 	check_breaks ctx;
-	if ctx.functions <> [] then begin
+	if ctx.functions <> [] || Hashtbl.length ctx.gobjects <> 0 then begin
+		let ctxops = ctx.ops in
 		let ops = DynArray.create() in
-		DynArray.add ops (Jump 0);
+		ctx.ops <- ops;
+		write ctx (Jump 0);
 		List.iter (fun (fops,gid,nargs) ->
 			DynArray.set ctx.gtable gid (GlobalFunction (DynArray.length ops,nargs));
 			DynArray.append fops ops;
 		) (List.rev ctx.functions);
 		DynArray.set ops 0 (Jump (DynArray.length ops));
-		DynArray.append ctx.ops ops;
-		ctx.ops <- ops;
+		Hashtbl.iter (fun fl g ->
+			write ctx AccNull;
+			write ctx New;
+			write ctx (SetGlobal g);
+			List.iter (fun f ->
+				write ctx (AccGlobal g);
+				write ctx Push;		
+				write ctx (SetField f);
+			) fl
+		) ctx.gobjects;
+		DynArray.append ctxops ops;
 	end;
 	DynArray.to_array ctx.gtable, DynArray.to_array ctx.ops
 
