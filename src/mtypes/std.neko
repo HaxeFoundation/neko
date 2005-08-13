@@ -558,6 +558,12 @@ Date.now = function() {
 	return o;
 }
 
+Date.new1 = function(d) {
+	var o = $new(@Date);
+	o.@d = d;
+	return o;
+}
+
 @Date = $new(null);
 @Date.@d = null;
 
@@ -582,11 +588,11 @@ Date.now = function() {
 }
 
 @Date.sub = function(d) {
-	return Date.new(date_sub(this.@d,d.@d));
+	return Date.new1(date_sub(this.@d,d.@d));
 }
 
 @Date.add = function(d) {
-	return Date.new(date_add(this.@d,d.@d));
+	return Date.new1(date_add(this.@d,d.@d));
 }
 
 @Date.delta = function(d) {
