@@ -117,6 +117,9 @@
 	</References>
 	<Files>
 		<File
+			RelativePath=".\buffer.c">
+		</File>
+		<File
 			RelativePath=".\date.c">
 		</File>
 		<File

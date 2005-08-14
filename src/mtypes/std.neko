@@ -431,21 +431,32 @@ $exports.Hash = Hash;
 // ----------------------------------------------------------------------
 // StringBuf
 
+buffer_alloc = $loader.loadprim("std@buffer_alloc",0);
+buffer_add = $loader.loadprim("std@buffer_add",2);
+buffer_add_sub = $loader.loadprim("std@buffer_add_sub",4);
+buffer_string = $loader.loadprim("std@buffer_string",1);
+
 StringBuf = $new(null);
 
 StringBuf.new = function() {
-	return $new(@StringBuf);
+	var b = $new(@StringBuf);
+	b.@b = buffer_alloc();
+	return b;
 }
 
 @StringBuf = $new(null);
-@StringBuf.s = "";
+@StringBuf.@b = null;
 
 @StringBuf.add = function(s) {
-	this.s = this.s + s;
+	buffer_add(this.@b,s);
+}
+
+@StringBuf.addSub = function(s,p,l) {
+	buffer_add_sub(this.@b,s,p,l);
 }
 
 @StringBuf.__string = function() {
-	return this.s;
+	return buffer_string(this.@b);
 }
 
 @StringBuf.toString = function() {
