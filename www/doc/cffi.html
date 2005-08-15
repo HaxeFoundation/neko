@@ -1,17 +1,52 @@
-
-
 <h1>Neko C FFI</h1>
+
+<p>
+	Today's Menu :
+</p>
+
+<ul>
+	<li><a href="#prims">Writing Primitives</a></li>
+	<li><a href="#sample">A small sample</a></li>
+	<li><a href="#values">Manipulating values</a>
+		<ul>
+			<li><a href="#consts">Constant values</a></li>
+			<li><a href="#typechk">Typecheck functions</a></li>
+			<li><a href="#access">Access functions</a></li>
+			<li><a href="#alloc">Alloc functions</a></li>
+		</ul>
+	</li>
+	<li><a href="#print">Printing a value</a></li>
+	<li><a href="#buffers">Buffers</a></li>
+	<li><a href="#objects">Objects</a>
+		<ul>
+			<li><a href="#ooapi">API</a></li>
+			<li><a href="#oomethods">Methods</a></li>
+			<li><a href="#oomisc">Misc</a></li>
+		</ul>
+	</li>
+	<li><a href="#callb">Function Callbacks</a></li>
+	<li><a href="#abstracts">Abstracts and Kinds</a></li>
+	<li><a href="#memory">Managing Memory</a></li>
+	<li><a href="#misc">Misc API Functions</a></li>
+</ul>
+
 
 <!-- ****************************************************************************** -->
 
+<a name="prims"></a>
 <h2>Writing Primitives</h2>
 
 <p>
 	The NekoVM itself have enough operations to compute any value. However it cannot do everything, like accessing files, connecting to server, or display and manage a window with menus and buttons. All theses features and much more are however accessible from C code that will use operating system libraries. Since the NekoVM cannot call directly C functions, it is needed to write some glue C code that will wrap the OS libraries in order to make them accessible. Theses glue functions are called "primitives".
 </p>
 
+<p>
+	When you're writing primitives, you need to use the Neko C FFI (also called Neko API). To use it, you only need to include the <code>neko.h</code> file which is part of the Neko distribution, and to link with the Neko library (<code>libneko.so</code> on Unix and <code>neko.lib</code> on Windows).
+</p>
+
 <!-- ****************************************************************************** -->
 
+<a name="sample"></a>
 <h2>A small sample</h2>
 
 <p>
@@ -43,7 +78,23 @@
 
 <!-- ****************************************************************************** -->
 
+<a name="values"></a>
 <h2>Manipulating Values</h2>
+
+<p>
+	As we saw in the Language Specification, there is the following types of values available :
+</p>
+
+<ul>
+	<li>null</li>
+	<li>integer</li>
+	<li>float</li>
+	<li>boolean</li>
+	<li>string</li>
+	<li>array</li>
+	<li>object</li>
+	<li>abstract</li>
+</ul>
 
 <p>
 	Every value given as argument to a primitive or returned by a primitive must be of the C type <code>value</code>. The Neko API is defined in one single include file <code>neko.h</code>. There is several kind of API functions :
@@ -59,6 +110,7 @@
 	Please note that most (almost all) of theses functions are actually C macros, so there is no call done. You can have a look at <code>neko.h</code> if you're performance-oriented and want to differentiate between macros and real API functions.
 </p>
 
+<a name="consts"></a>
 <h3>Constant Values</h3>
 
 <ul>
@@ -67,6 +119,7 @@
 	<li><code>val_false</code> : the Neko false value.</li>
 </ul>
 
+<a name="typechk"></a>
 <h3>Typecheck Functions</h3>
 
 <ul>
@@ -83,6 +136,7 @@
 	<li><code>val_is_number(v)</code> : check if a value is either an integer or a float.</li>
 </ul>
 
+<a name="access"></a>
 <h3>Access Functions</h3>
 
 <p>
@@ -103,6 +157,7 @@
 	<li><code>val_kind(v)</code> : retrieve the kind of an abstract value.</li>
 </ul>
 
+<a name="alloc"></a>
 <h3>Allocation Functions</h3>
 
 <p>
@@ -121,6 +176,7 @@
 
 <!-- ****************************************************************************** -->
 
+<a name="print"></a>
 <h2>Printing a value</h2>
 
 <p>
@@ -211,6 +267,7 @@
 
 <!-- ****************************************************************************** -->
 
+<a name="buffers"></a>
 <h2>Buffers</h2>
 
 <p>
@@ -251,11 +308,15 @@
 
 <!-- ****************************************************************************** -->
 
+<a name="objects"></a>
 <h2>Working with Objects</h2>
 
 <p>
-	Objects in Neko are also values, and there is several functions in the Neko API to access and modify object fields :
+	Objects in Neko are also values, and there is several functions in the Neko API to access and modify object fields.
 </p>
+
+<a name="ooapi"></a>
+<h3>Objects API</h3>
 
 <ul>
 	<li><code>alloc_object(o)</code> returns a copy of the object o, or an empty object if o is <code>NULL</code> or <code>val_null</code>.</li>
@@ -285,7 +346,8 @@
     DEFINE_PRIM(make_point,2);
 </pre>
 
-<h3>Methods</h3>
+<a name="oomethods"></a>
+<h3>Objects Methods</h3>
 
 <p>
 	If we want to add an method <code>__string</code> to the object in order to display its content when printed we can do the following :
@@ -329,6 +391,7 @@
 	In <code>point_to_string</code> we are first retreiving <code>val_this()</code> which is the current <code>this</code> value. Since it might not be an object, we test it first before accessing its fields <code>x</code> and <code>y</code>. Then we want to construct the string <code>Point : x , y</code> with values of <code>x</code> and <code>y</code>, we're using for this a <code>buffer</code> (see Buffers).
 </p>
 
+<a name="oomisc"></a>
 <h3>Objects Misc</h3>
 
 <p>
@@ -345,6 +408,7 @@
 
 <!-- ****************************************************************************** -->
 
+<a name="callb"></a>
 <h2>Function Callbacks</h2>
 
 <p>
@@ -356,7 +420,7 @@
 </pre>
 
 <p>
-	The API function <code>val_callEx</code> is the most general callback function. All other callback functions are just some shorten way of making calls. Here's a description of each of the arguments with their types :
+	The API function <code>val_callEx</code> is the most general callback function. All other callback functions are only some easier ways of making calls. Here's a description of each of the arguments with their types :
 </p>
 
 <ul>
@@ -400,15 +464,114 @@
 
 <!-- ****************************************************************************** -->
 
+<a name="abstracts"></a>
 <h2>Abstracts and Kinds</h2>
 
-alloc_abstract()
-val_is_kind()
-val_data
-void val_gc( value v, finalizer f );
+<p>
+	Most of the time, when you have to write an interface from Neko to a C library, you get some pointer to some mallocated memory. You can't safely return this value to the Neko program for the following reasons :
+</p>
+
+<ul>
+	<li>it is not a <code>value</code> so it does not match the NekoVM memory model.</li>
+	<li>it might then crash the program when accessed inappropriately.</li>
+	<li>even it if was a value, it would have to be free explicitly.</li>
+	<li>you cannot distinguish the types between two C pointers.</li>
+</ul>
+
+<p>
+	For all of theses reasons, you need to be able to store a C pointer into an abstract Neko <code>value</code> and mark it with some type information called <em>kind</em>. The <em>kind</em> of an abstract value is its type, and the <em>data</em> of an abstract value is the corresponding C pointer.
+</p>
+
+<p>
+	Please note that the VM itself cannot access either the kind or the data of an abstract value. For the VM, an abstract is an opaque value without any structure. It's up to your C primitives to manipulate the abstract. This ensure also that if you don't make any mistake in your C primitives, the whole program will be kept memory-safe.
+</p>
+
+<p>
+	First, you need to define a <em>kind</em> somewhere in your C file, using the macro <code>DEFINE_KIND</code> from the Neko API. By convention, we often prefix the kind with <code>k_</code> but it's not mandatory :
+</p>
+
+<pre>
+    #include &lt;neko.h&gt;
+    DEFINE_KIND(k_mykind);
+</pre>
+
+<p>
+	Now that you have a <em>kind</em>, you can create an abstract value of this kind using the <code>alloc_abstract</code> Neko API function :
+</p>
+
+<pre>
+    value create() {
+        void *ptr = ....
+        return alloc_abstract(k_mykind,ptr);
+    }
+</pre>
+
+<p>
+	It is possible to store another <code>value</code> in the <code>data</code> part of an abstract, since it will still be checked by the garbage collector.
+</p>
+
+<p>
+	When you get back a value into one of your primitives, you can check if it's an abstract value using <code>val_is_abstract</code> then check its kind using the <code>val_is_kind</code> API function and then access its data using the <code>val_data</code> API function :
+</p>
+
+<pre>
+    value dosomething( value v ) {
+        if( !val_is_abstract(v) || !val_is_kind(v,k_mykind) )
+        	return val_null;
+        do_something_in_C( val_data(v) );
+        return val_true;
+    }
+</pre>
+
+<p>
+	Instead of all the time writing theses checks you can use the <code>val_check_kind</code> macro that is more convenient :
+</p>
+
+<pre>
+    value dosomething( value v ) {
+        val_check_kind(v,k_mykind);
+        do_something_in_C( val_data(v) );
+        return val_true;
+    }
+</pre>
+
+<p>
+	In some cases, you might want the user to free the pointer stored into an abstract explicitly. At this time, you can set its kind to <code>NULL</code> so it is not accessible anymore :
+</p>
+
+<pre>
+    value destroy( value v ) {
+        val_check_kind(v,k_mykind);
+        free_data( val_data(v) );
+        val_kind(v) = NULL;
+        return val_true;
+    }
+</pre>
+
+<p>
+	In other cases, you might want the pointer data to be free when the abstract value becomes garbage-collected. In that case you have to bind a <em>finalizer</em> function on it. Please note that it might take some time between the value becomes unreachable and the finalizer is called.
+</p>
+
+<pre>
+    void finalize( value v ) {
+        free_data( val_data(v) );
+    }
+
+    value create() {
+        void *ptr = ....
+        value v = alloc_abstract(k_mykind,ptr);
+        val_gc(v,finalize);
+        return v;
+    }
+</pre>
+
+<p>
+	You can remove the finalizer function from an abstract value by calling <code>val_gc(v,NULL)</code>.
+</p>
 
 <!-- ****************************************************************************** -->
 
+<a name="memory"></a>
 <h2>Managing Memory</h2>
 
 alloc
@@ -418,7 +581,8 @@ free_root
 
 <!-- ****************************************************************************** -->
 
-<h2>Misc Functions</h2>
+<a name="misc"></a>
+<h2>Misc API Functions</h2>
 
 int val_compare( value a, value b );
 void val_print( value s );
