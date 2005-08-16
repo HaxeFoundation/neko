@@ -33,6 +33,8 @@ static value builtin_print( value *args, int nargs ) {
 }
 
 static value builtin_new( value o ) {
+	if( !val_is_null(o) && !val_is_object(o) )
+		type_error();
 	return alloc_object(o);
 }
 
@@ -251,19 +253,23 @@ static value builtin_istrue( value f ) {
 }
 
 static value builtin_objget( value o, value f ) {
-	val_check(o,object);
+	if( !val_is_object(o) )
+		return val_null; // keep dot-access semantics
 	val_check(f,int);
 	return val_field(o,(field)val_int(f));
 }
 
 static value builtin_objset( value o, value f, value v ) {
-	val_check(o,object);
+	if( !val_is_object(o) )
+		return val_null; // keep dot-access semantics
 	val_check(f,int);
 	alloc_field(o,(field)val_int(f),v);
 	return v;
 }
 
 static value builtin_objcall( value o, value f, value args ) {
+	if( !val_is_object(o) )
+		return val_null; // keep dot-access semantics
 	val_check(f,int);
 	val_check(args,array);
 	return val_ocallN(o,(field)val_int(f),val_array_ptr(args),val_array_size(args));
