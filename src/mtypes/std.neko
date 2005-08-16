@@ -897,13 +897,7 @@ Std.fields = function(o) {
 }
 
 Std.setField = $objset;
-Std.field = function(o,f) {
-	try {
-		return $objget(o,f);
-	} catch e {
-		return null;
-	}
-}
+Std.field = $objget;
 
 std_rnd = random_new();
 
