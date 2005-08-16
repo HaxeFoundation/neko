@@ -277,7 +277,7 @@ Since contexts are resolved at purely syntactic level, local variables does not 
 	}
 	...
 	var x = 3;
-	f(); // null or error !
+	f(); // will print "null"
 </pre>
 
 <h3>Function Environment</h3>
@@ -931,7 +931,7 @@ Defining new functions is easy, since functions are values, you can simply assig
 <pre>
 	$print($nargs(function(a,b) { return a + b; }); // prints 2
 	$print($nargs($print)); // prints -1
-	$print($nargs(0)); // prints null
+	$print($nargs(0)); // exception
 </pre>
 
 <p>
@@ -974,7 +974,7 @@ Defining new functions is easy, since functions are values, you can simply assig
 <pre>
 	o = $new(null); // new empty object
 	o2 = $new(o); // makes a copy of o
-	o2 = $new(33); // if parameter is not an object, returns null
+	o2 = $new(33); // if parameter is not an object, throw an exception
 </pre>
 
 <p>
@@ -1009,7 +1009,7 @@ Defining new functions is easy, since functions are values, you can simply assig
 
 <pre>
 	$objfield(o,$hash("field")); // true if o have "field"
-	$objfield(null,33); // false
+	$objfield(null,33); // exception
 </pre>
 
 <p>
