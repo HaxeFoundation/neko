@@ -15,7 +15,10 @@ static value buffer_add( value b, value v ) {
 
 static value buffer_add_sub( value b, value v, value p, value l ) {
 	val_check_kind(b,k_buffer);
-	if( !val_is_string(v) || !val_is_int(p) || !val_is_int(l) || val_int(p) < 0 || val_int(l) < 0 )
+	val_check(v,string);
+	val_check(p,int);
+	val_check(l,int);	
+	if( val_int(p) < 0 || val_int(l) < 0 )
 		return val_null;
 	if( val_strlen(v) < val_int(p) || val_strlen(v) < val_int(p) + val_int(l) )
 		return val_null;

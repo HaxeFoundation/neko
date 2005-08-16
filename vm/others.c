@@ -249,7 +249,7 @@ EXTERN field val_id( const char *name ) {
 			val_buffer(b,*fdata);
 			buffer_append(b," and ");
 			buffer_append(b,oname);
-			val_throw(buffer_to_string(b));
+			bfailure(b);
 		}
 	} else
 		otable_replace(*data,f,copy_string(oname,name - oname));
@@ -276,8 +276,6 @@ EXTERN void val_clean_thread() {
 
 EXTERN value val_field( value o, field id ) {
 	value *f;
-	if( !val_is_object(o) )
-		return val_null;
 	f = otable_find(((vobject*)o)->table,id);
 	if( f == NULL )
 		return val_null;
@@ -301,6 +299,31 @@ EXTERN void val_throw( value v ) {
 	neko_vm *vm = NEKO_VM();
 	vm->this = v;
 	longjmp(vm->start,1);
+}
+
+static value failure_to_string() {
+	value o = val_this();
+	buffer b = alloc_buffer(NULL);
+	val_check(o,object);
+	val_buffer(b,val_field(o,val_id("file")));
+	buffer_append(b,"(");
+	val_buffer(b,val_field(o,val_id("line")));
+	buffer_append(b,") : ");
+	val_buffer(b,val_field(o,val_id("msg")));
+	return buffer_to_string(b);
+}
+
+EXTERN void _neko_failure( value msg, const char *file, int line ) {
+	char *fname = strrchr(file,'/');
+	char *fname2 = strrchr(file,'\\');
+	value o = alloc_object(NULL);
+	if( fname2 > fname )
+		fname = fname2;
+	alloc_field(o,val_id("msg"),msg);
+	alloc_field(o,val_id("file"),alloc_string(fname?fname:file));
+	alloc_field(o,val_id("line"),alloc_int(line));
+	alloc_field(o,id_string,alloc_function(failure_to_string,0,"failure_to_string"));
+	val_throw(o);
 }
 
 /* ************************************************************************ */

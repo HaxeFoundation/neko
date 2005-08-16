@@ -8,23 +8,22 @@
 
 #define MATH_PRIM(f) \
 	value math_##f( value n ) { \
-		if( !val_is_number(n) ) \
-			return val_null; \
+		val_check(n,number); \
 		return alloc_float( f( val_number(n) ) ); \
 	} \
 	DEFINE_PRIM(math_##f,1)
 
 static value math_atan2( value a, value b ) {
-	if( !val_is_number(a) || !val_is_number(b) )
-		return val_null;
+	val_check(a,number);
+	val_check(b,number);
 	return alloc_float( atan2(val_number(a),val_number(b)) );
 }
 
 static value math_pow( value a, value b ) {
 	if( val_is_int(a) && val_is_int(b) )
 		return alloc_int( (int)pow(val_int(a),val_int(b)) );
-	if( !val_is_number(a) || !val_is_number(b) )
-		return val_null;	
+	val_check(a,number);
+	val_check(b,number);
 	return alloc_float( pow(val_number(a),val_number(b)) );
 }
 
@@ -35,7 +34,7 @@ static value math_abs( value n ) {
 	case VAL_FLOAT:
 		return alloc_float( fabs(val_float(n)) ); 
 	default:
-		return val_null;
+		type_error();
 	}
 }
 
@@ -46,7 +45,7 @@ static value math_ceil( value n ) {
 	case VAL_FLOAT:
 		return alloc_int( (int)ceil(val_float(n)) );
 	default:
-		return val_null;
+		type_error();
 	}
 }
 
@@ -57,7 +56,7 @@ static value math_floor( value n ) {
 	case VAL_FLOAT:
 		return alloc_int( (int)floor(val_float(n)) );
 	default:
-		return val_null;
+		type_error();
 	}
 }
 
@@ -74,7 +73,7 @@ static value math_round( value n ) {
 		}
 		break;
 	default:
-		return val_null;
+		type_error();
 	}
 }
 

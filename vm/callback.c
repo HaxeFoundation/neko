@@ -28,7 +28,7 @@ EXTERN value val_callEx( value this, value f, value *args, int nargs, value *exc
 	value ret = val_null;
 	jmp_buf oldjmp;
 	if( nargs > CALL_MAX_ARGS )
-		val_throw(alloc_string("Too many arguments for a call"));
+		failure("Too many arguments for a call");
 	if( this != NULL )
 		vm->this = this;
 	if( exc ) {
@@ -69,7 +69,7 @@ EXTERN value val_callEx( value this, value f, value *args, int nargs, value *exc
 		} else if( ((vfunction*)f)->nargs == -1 )
 			ret = (value)((c_primN)((vfunction*)f)->addr)(args,nargs);
 		if( ret == NULL )
-			ret = val_null;
+			val_throw( (value)((vfunction*)f)->module );
 		vm->env = old_env;		
 	} else if( val_tag(f) == VAL_FUNCTION ) {
 		if( nargs == ((vfunction*)f)->nargs )  {
@@ -80,7 +80,7 @@ EXTERN value val_callEx( value this, value f, value *args, int nargs, value *exc
 					memcpy(&vm->start,&oldjmp,sizeof(jmp_buf));	
 				}
 				vm->this = old_this;
-				val_throw(alloc_string("OVERFLOW"));
+				failure("OVERFLOW");
 			} else {
 				for(n=0;n<nargs;n++)
 					*--vm->sp = (unsigned int)args[n];

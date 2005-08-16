@@ -92,16 +92,14 @@ static value random_new() {
 
 static value random_set_seed( value o, value v ) {
 	val_check_kind(o,k_random);
-	if( !val_is_int(v) )
-		return val_null;
+	val_check(v,int);
 	rnd_set_seed(val_rnd(o),val_int(v));
 	return val_true;
 }
 
 static value random_int( value o, value max ) {
 	val_check_kind(o,k_random);
-	if( !val_is_int(max) )
-		return val_null;
+	val_check(max,int);
 	if( val_int(max) <= 0 )
 		return alloc_int(0);
 	return alloc_int( (rnd_int(val_rnd(o)) & 0x3FFFFFFF) % val_int(max) );

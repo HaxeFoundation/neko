@@ -71,7 +71,7 @@ EXTERN value alloc_empty_string( unsigned int size ) {
 	if( size == 0 )
 		return (value)&empty_string;
 	if( size > max_string_size )
-		val_throw(alloc_string("max_string_size reached"));
+		failure("max_string_size reached");
 	s = (vstring*)GC_MALLOC_ATOMIC((size+1)+sizeof(val_type));
 	s->t = VAL_STRING | (size << 3);
 	(&s->c)[size] = 0;
@@ -96,7 +96,7 @@ EXTERN value alloc_array( unsigned int n ) {
 	if( n == 0 )
 		return empty_array;
 	if( n > max_array_size )
-		val_throw(alloc_string("max_array_size reached"));
+		failure("max_array_size reached");
 	v = (value)GC_MALLOC(n*sizeof(value)+sizeof(val_type));
 	v->t = VAL_ARRAY | (n << 3);
 	return v;
@@ -110,23 +110,23 @@ EXTERN value alloc_abstract( vkind k, void *data ) {
 	return (value)v;
 }
 
-EXTERN value alloc_function( void *c_prim, unsigned int nargs ) {
+EXTERN value alloc_function( void *c_prim, unsigned int nargs, const char *name ) {
 	vfunction *v;
 	if( c_prim == NULL || (nargs < 0 && nargs != VAR_ARGS) )
-		return val_null;
+		failure("alloc_function");
 	v = (vfunction*)GC_MALLOC(sizeof(vfunction));
 	v->t = VAL_PRIMITIVE;
 	v->addr = c_prim;
 	v->nargs = nargs;
 	v->env = alloc_array(0);
-	v->module = NULL;
+	v->module = alloc_string(name);
 	return (value)v;
 }
 
 value alloc_module_function( void *m, int pos, int nargs ) {
 	vfunction *v;
 	if( nargs < 0 && nargs != VAR_ARGS )
-		return val_null;
+		failure("alloc_module_function");
 	v = (vfunction*)GC_MALLOC(sizeof(vfunction));
 	v->t = VAL_FUNCTION;
 	v->addr = (void*)pos;
@@ -139,7 +139,7 @@ value alloc_module_function( void *m, int pos, int nargs ) {
 EXTERN value alloc_object( value cpy ) {
 	vobject *v;
 	if( cpy != NULL && !val_is_null(cpy) && !val_is_object(cpy) )
-		return val_null;
+		failure("alloc_object");
 	v = (vobject*)GC_MALLOC(sizeof(vobject));
 	v->t = VAL_OBJECT;
 	if( cpy == NULL || val_is_null(cpy) )
@@ -166,7 +166,7 @@ static void __on_finalize(value v, void *f ) {
 
 EXTERN void val_gc(value v, finalizer f ) {
 	if( !val_is_abstract(v) )
-		return;
+		failure("val_gc");
 	if( f )
 		GC_register_finalizer(v,(GC_finalization_proc)__on_finalize,f,0,0);
 	else

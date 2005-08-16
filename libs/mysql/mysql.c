@@ -12,7 +12,7 @@ DEFINE_KIND(k_result);
 static void error( MYSQL *m, const char *msg ) {
 	buffer b = alloc_buffer(msg);
 	buffer_append(b,mysql_error(m));
-	val_throw( buffer_to_string(b) );
+	bfailure(b);
 }
 
 // ---------------------------------------------------------------
@@ -91,9 +91,10 @@ static value result_get( value o, value n ) {
 	result *r;
 	const char *s;
 	val_check_kind(o,k_result);
+	val_check(n,int);
 	r = RESULT(o);
-	if( !val_is_int(n) || val_int(n) < 0  || val_int(n) >= r->nfields )
-		return NULL;
+	if( val_int(n) < 0 || val_int(n) >= r->nfields )
+		return val_null;
 	if( !r->current ) {
 		result_next(o);
 		if( !r->current )
@@ -104,19 +105,18 @@ static value result_get( value o, value n ) {
 }
 
 static value result_get_int( value o, value n ) {
-	value cur;
 	result *r;
 	const char *s;
 	val_check_kind(o,k_result);
+	val_check(n,int);
 	r = RESULT(o);
-	if( !val_is_int(n) || val_int(n) < 0  || val_int(n) >= r->nfields )
-		return NULL;
+	if( val_int(n) < 0 || val_int(n) >= r->nfields )
+		return val_null;
 	if( !r->current ) {
 		result_next(o);
 		if( !r->current )
 			return val_null;
 	}
-	cur = val_field(o,current_id);
 	s = r->current[val_int(n)];
 	return alloc_int( s?atoi(s):0 );
 }
@@ -125,9 +125,10 @@ static value result_get_float( value o, value n ) {
 	result *r;
 	const char *s;
 	val_check_kind(o,k_result);
+	val_check(n,int);
 	r = RESULT(o);
-	if( !val_is_int(n) || val_int(n) < 0  || val_int(n) >= r->nfields )
-		return NULL;
+	if( val_int(n) < 0 || val_int(n) >= r->nfields )
+		return val_null;
 	if( !r->current ) {
 		result_next(o);
 		if( !r->current )
@@ -176,7 +177,7 @@ static value alloc_result( MYSQL_RES *r ) {
 				buffer_append(b,":");
 				val_buffer(b,alloc_int(j));
 				buffer_append(b,"</b>.<br/>");
-				val_throw(buffer_to_string(b));
+				bfailure(b);
 			}
 		res->fields_ids[i] = id;
 		res->fields_convs[i] = convert_type(fields[i].type); 
@@ -199,8 +200,7 @@ static value close( value o ) {
 
 static value selectDB( value o, value db ) {
 	val_check_kind(o,k_connection);
-	if( !val_is_string(db) )
-		return val_null;
+	val_check(db,string);
 	if( mysql_select_db(MYSQLDATA(o),val_string(db)) != 0 ) {
 		error(MYSQLDATA(o),"Failed to select database :");
 		return val_false;
@@ -211,20 +211,15 @@ static value selectDB( value o, value db ) {
 static value request( value o, value r )  {
 	MYSQL_RES *res;
 	val_check_kind(o,k_connection);
-	if( !val_is_string(r) )
-		return val_null;
-	if( mysql_real_query(MYSQLDATA(o),val_string(r),val_strlen(r)) != 0 ) {
+	val_check(r,string);
+	if( mysql_real_query(MYSQLDATA(o),val_string(r),val_strlen(r)) != 0 )
 		error(MYSQLDATA(o),val_string(r));
-		return val_null;
-	}
 	res = mysql_store_result(MYSQLDATA(o));
 	if( res == NULL ) {
 		if( mysql_field_count(MYSQLDATA(o)) == 0 )
 			return alloc_int( (int)mysql_affected_rows(MYSQLDATA(o)) );
-		else {
+		else
 			error(MYSQLDATA(o),val_string(r));
-			return val_null;
-		}
 	}	
 	return alloc_result(res);
 }
@@ -239,28 +234,26 @@ static void free_connection( value o ) {
 
 static value connect( value params  ) {
 	value host, port, user, pass, socket;
-	if( !val_is_object(params) )
-		return val_null;
+	val_check(params,object);
 	host = val_field(params,val_id("host"));
 	port = val_field(params,val_id("port"));
 	user = val_field(params,val_id("user"));
 	pass = val_field(params,val_id("pass"));
 	socket = val_field(params,val_id("socket"));
-	if( !(
-		val_is_string(host) &&
-		val_is_int(port) &&
-		val_is_string(user) &&
-		val_is_string(pass) &&
-		(val_is_string(socket) || val_is_null(socket))
-	) )
-		return val_null;
+	val_check(host,string);
+	val_check(port,int);
+	val_check(user,string);
+	val_check(pass,string);	
+	if( !val_is_string(socket) && !val_is_null(socket) )
+		type_error();
 	{
 		MYSQL *m = mysql_init(NULL);
 		value v;
 		if( mysql_real_connect(m,val_string(host),val_string(user),val_string(pass),NULL,val_int(port),val_is_null(socket)?NULL:val_string(socket),0) == NULL ) {
-			error(m,"Failed to connect to mysql server :");
+			buffer b = alloc_buffer("Failed to connect to mysql server : ");
+			buffer_append(b,mysql_error(m));			
 			mysql_close(m);
-			return val_null;
+			bfailure(b);
 		}
 		v = alloc_abstract(k_connection,m);
 		val_gc(v,free_connection);

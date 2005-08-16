@@ -26,8 +26,7 @@ static value date_new( value s ) {
 	else {
 		struct tm t;
 		bool recal = true;
-		if( !val_is_string(s) )
-			return val_null;
+		val_check(s,string);
 		memset(&t,0,sizeof(struct tm));
 		switch( val_strlen(s) ) {
 		case 19:
@@ -46,7 +45,7 @@ static value date_new( value s ) {
 			{
 				buffer b = alloc_buffer("Invalid date format : ");
 				val_buffer(b,s);
-				val_throw(buffer_to_string(b));
+				bfailure(b);
 			}
 		}
 		if( recal ) {
@@ -64,8 +63,7 @@ static value date_format( value o, value fmt ) {
 	val_check_kind(o,k_date);
 	if( val_is_null(fmt) )
 		fmt = alloc_string("%Y-%m-%d %H:%M:%S");
-	if( !val_is_string(fmt) )
-		return val_null;	
+	val_check(fmt,string);	
 	t = localtime(val_date(o));
 	if( t == NULL )
 		return alloc_string("(date before 1970)");
@@ -76,8 +74,9 @@ static value date_format( value o, value fmt ) {
 static value date_set_hour( value o, value h, value m, value s ) {
 	struct tm *t;
 	val_check_kind(o,k_date);
-	if( !val_is_int(h) || !val_is_int(m) || !val_is_int(s) )
-		return val_null;
+	val_check(h,int);
+	val_check(m,int);
+	val_check(s,int);
 	t = localtime(val_date(o));
 	t->tm_hour = val_int(h);
 	t->tm_min = val_int(m);
@@ -89,8 +88,9 @@ static value date_set_hour( value o, value h, value m, value s ) {
 static value date_set_day( value o, value y, value m, value d ) {
 	struct tm *t;
 	val_check_kind(o,k_date);
-	if( !val_is_int(y) || !val_is_int(m) || !val_is_int(d) )
-		return val_null;
+	val_check(y,int);
+	val_check(m,int);
+	val_check(d,int);
 	t = localtime(val_date(o));
 	t->tm_year = val_int(y) - 1900;
 	t->tm_mon = val_int(m) - 1;
@@ -155,8 +155,7 @@ static value date_add( value o, value d ) {
 
 static value date_delta( value o, value d ) {
 	val_check_kind(o,k_date);
-	if( !val_is_int(d) )
-		return val_null;	
+	val_check(d,int);
 	*val_date(o) = *val_date(o) + val_int(d);
 	return val_true;
 }
@@ -168,8 +167,7 @@ static value date_get_time( value o ) {
 
 static value date_set_time( value o, value v ) {
 	val_check_kind(o,k_date);
-	if( !val_is_int(v) )
-		return val_null;
+	val_check(v,int);
 	*val_date(o) = (time_t)val_int(v);
 	return v;
 }

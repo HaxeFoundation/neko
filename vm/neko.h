@@ -88,7 +88,9 @@ typedef struct {
 #define val_is_array(v)		(!val_is_int(v) && (val_tag(v)&7) == VAL_ARRAY)
 #define val_is_abstract(v)  (!val_is_int(v) && val_tag(v) == VAL_ABSTRACT)
 #define val_is_kind(v,t)	(val_is_abstract(v) && val_kind(v) == (t))
-#define val_check_kind(v,t)	if( !val_is_kind(v,t) ) return val_null;
+#define val_check_kind(v,t)	if( !val_is_kind(v,t) ) type_error();
+#define val_check_function(f,n) if( !val_is_function(f) || (val_fun_nargs(f) != n && val_fun_nargs(f) != VAR_ARGS) ) type_error();
+#define val_check(v,t)		if( !val_is_##t(v) ) type_error();
 #define val_data(v)			((vabstract*)v)->data
 #define val_kind(v)			((vabstract*)v)->kind
 
@@ -143,6 +145,10 @@ typedef struct {
 		typedef int bool;
 #	endif
 #endif
+
+#define type_error()		return NULL
+#define failure(msg)		_neko_failure(alloc_string(msg),__FILE__,__LINE__)
+#define bfailure(buf)		_neko_failure(buffer_to_string(b),__FILE__,__LINE__)
 
 #ifndef CONV_FLOAT
 #	define CONV_FLOAT
@@ -241,7 +247,7 @@ C_FUNCTION_BEGIN
 	EXTERN void free_root( value *r );
 	EXTERN char *alloc( unsigned int nbytes );
 	EXTERN char *alloc_private( unsigned int nbytes );
-	EXTERN value alloc_function( void *c_prim, unsigned int nargs );
+	EXTERN value alloc_function( void *c_prim, unsigned int nargs, const char *name );
 
 	EXTERN buffer alloc_buffer( const char *init );
 	EXTERN void buffer_append( buffer b, const char *s );
@@ -254,6 +260,8 @@ C_FUNCTION_BEGIN
 	EXTERN void val_gc( value v, finalizer f );
 	EXTERN void val_throw( value v );
 	EXTERN void val_clean_thread();
+
+	EXTERN void _neko_failure( value msg, const char *file, int line );
 
 C_FUNCTION_END
 

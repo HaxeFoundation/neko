@@ -105,7 +105,7 @@ typedef int (*c_prim4)(int,int,int,int);
 typedef int (*c_prim5)(int,int,int,int,int);
 typedef int (*c_primN)(value*,int);
 
-#define DynError(cond,err)		if( cond ) { val_throw(alloc_string(#err)); }
+#define DynError(cond,err)		if( cond ) { failure(#err); }
 #ifdef NEKO_OPTIMIZE
 #	define Error(cond,err)
 #else
@@ -133,12 +133,13 @@ typedef int (*c_primN)(value*,int);
 #define SetupBeforeCall(this_arg) \
 		value old_this = vm->this; \
 		value old_env = vm->env; \
+		vfunction *f = (vfunction*)acc; \
 		vm->this = this_arg; \
 		vm->env = ((vfunction*)acc)->env; \
 		BeginCall(); \
 
 #define RestoreAfterCall() \
-		if( acc == NULL ) acc = (int)val_null; \
+		if( acc == NULL ) val_throw( (value)f->module ); \
 		vm->env = old_env; \
 		vm->this = old_this; \
 		EndCall();

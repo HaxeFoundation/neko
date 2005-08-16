@@ -52,7 +52,7 @@ static int builtin_id( neko_module *m, field id ) {
 			if( val_id(val_string(m->fields[i])) == id ) {
 				buffer b = alloc_buffer("Builtin not found : ");
 				val_buffer(b,m->fields[i]);
-				val_throw(buffer_to_string(b));
+				bfailure(b);
 			}
 		return 0;
 	}
@@ -217,15 +217,15 @@ static neko_module *neko_module_read( reader r, readp p, value loader ) {
 		case Call:
 		case ObjCall:
 			if( itmp > CALL_MAX_ARGS )
-				val_throw(alloc_string("Too many arguments for a call"));
+				failure("Too many arguments for a call");
 			break;
 		case MakeEnv:
 			if( itmp > 0xFF )
-				val_throw(alloc_string("Too much big environment"));
+				failure("Too much big environment");
 			break;
 		case MakeArray:
 			if( itmp > 0x10000 )
-				val_throw(alloc_string("Too much big array"));
+				failure("Too much big array");
 			break;
 		}
 		if( !tmp[i+1] )
@@ -237,11 +237,12 @@ static neko_module *neko_module_read( reader r, readp p, value loader ) {
 static value default_loadprim( value prim, value nargs ) {
 	value o = val_this();
 	value data;
-	if( !val_is_object(o) )
-		return val_null;
+	val_check(o,object);
 	data = val_field(o,id_data);
 	val_check_kind(data,k_loader);
-	if( !val_is_string(prim) || !val_is_int(nargs) || val_int(nargs) > 10 || val_int(nargs) < -1 )
+	val_check(prim,string);
+	val_check(nargs,int);
+	if( val_int(nargs) > 10 || val_int(nargs) < -1 )
 		return val_null;
 	{
 		loader *l = (loader*)val_data(data);
@@ -249,21 +250,20 @@ static value default_loadprim( value prim, value nargs ) {
 		if( ptr == NULL ) {
 			buffer b = alloc_buffer("Primitive not found : ");
 			val_buffer(b,prim);
-			val_throw(buffer_to_string(b));
+			bfailure(b);
 		}
-		return alloc_function(ptr,val_int(nargs));
+		return alloc_function(ptr,val_int(nargs),val_string(copy_string(val_string(prim),val_strlen(prim))));
 	}
 }
 
 static value default_loadmodule( value mname, value this ) {
 	value o = val_this();
 	value data;
-	if( !val_is_object(o) )
-		return val_null;
+	val_check(o,object);
 	data = val_field(o,id_data);
 	val_check_kind(data,k_loader);
-	if( !val_is_string(mname) || !val_is_object(this) )
-		return val_null;
+	val_check(mname,string);
+	val_check(this,object);
 	{
 		loader *l = (loader*)val_data(data);
 		reader r;
@@ -277,14 +277,14 @@ static value default_loadmodule( value mname, value this ) {
 		if( !l->l(val_string(mname),&r,&p) ) {
 			buffer b = alloc_buffer("Module not found : ");
 			val_buffer(b,mname);
-			val_throw(buffer_to_string(b));
+			bfailure(b);
 		}
 		m = neko_module_read(r,p,this);
 		l->d(p);
 		if( m == NULL )  {
 			buffer b = alloc_buffer("Invalid module : ");
 			val_buffer(b,mname);
-			val_throw(buffer_to_string(b));
+			bfailure(b);
 		}
 		m->name = alloc_string(val_string(mname));
 		vm = neko_vm_current();
@@ -358,8 +358,15 @@ EXTERN void *neko_default_load_primitive( const char *prim, int nargs, void **cu
 		pname = neko_select_file(prim,neko_vm_current()->env,".ndll");
 		h = dlopen(val_string(pname),RTLD_LAZY);
 		if( h == NULL ) {
+			buffer b = alloc_buffer("Library not found : ");
+			val_buffer(b,pname);
+#ifdef __linux__
+			buffer_append(b," (");
+			buffer_append(b,dlerror());
+			buffer_append(b,")");
+#endif
 			*pos = '@';
-			return NULL;
+			bfailure(b);
 		}
 		l = (liblist*)alloc(sizeof(liblist));
 		l->handle = h;
@@ -449,10 +456,10 @@ EXTERN value neko_default_loader( loader *l ) {
 		l->cache = alloc_object(NULL);
 	}
 	alloc_field(o,id_data,alloc_abstract(k_loader,l));
-	tmp = alloc_function(default_loadprim,2);
+	tmp = alloc_function(default_loadprim,2,"loadprim");
 	((vfunction*)tmp)->env = l->paths;
 	alloc_field(o,val_id("loadprim"),tmp);
-	tmp = alloc_function(default_loadmodule,2);
+	tmp = alloc_function(default_loadmodule,2,"loadmodule");
 	((vfunction*)tmp)->env = l->paths;
 	alloc_field(o,val_id("loadmodule"),tmp);
 	return o;

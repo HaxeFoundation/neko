@@ -21,8 +21,7 @@ DEFINE_KIND(k_socket);
 static value socket_set_timeout( value o, value t ) {
 	int time;
 	val_check_kind(o,k_socket);
-	if( !val_is_int(t) )
-		return val_null;
+	val_check(t,int);
 	time = val_int(t);
 	setsockopt(val_sock(o),SOL_SOCKET,SO_SNDTIMEO,(char*)&time,sizeof(int));
 	setsockopt(val_sock(o),SOL_SOCKET,SO_RCVTIMEO,(char*)&time,sizeof(int));
@@ -47,8 +46,8 @@ static value socket_connect( value o, value host, value port ) {
 	unsigned int ip;
 	struct sockaddr_in peer;
 	val_check_kind(o,k_socket);
-	if( !val_is_string(host) || !val_is_int(port) )
-		return val_null;
+	val_check(host,string);
+	val_check(port,int);
 	ip = inet_addr(val_string(host));
 	if( ip == INADDR_NONE ) {
 		struct hostent* pHE = gethostbyname(val_string(host));
@@ -66,8 +65,7 @@ static value socket_send( value o, value data ) {
 	const char *cdata;
 	int datalen, slen;
 	val_check_kind(o,k_socket);
-	if( !val_is_string(data) )
-		return val_null;	
+	val_check(data,string);	
 	cdata = val_string(data);
 	datalen = val_strlen(data);
 	while( datalen > 0 && (slen = send(val_sock(o),cdata,datalen,0)) != SOCKET_ERROR ) {

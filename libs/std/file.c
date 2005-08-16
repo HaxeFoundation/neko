@@ -21,8 +21,8 @@ static value file_new( value cwd, value fname ) {
 	value f;
 	fio *io;
 	buffer b;
-	if( !val_is_string(cwd) || !val_is_string(fname) )
-		return val_null;
+	val_check(cwd,string);
+	val_check(fname,string);
 	f = alloc_abstract(k_file, alloc(sizeof(fio)) );
 	io = val_data(f);
 	b = alloc_buffer(NULL);
@@ -103,8 +103,7 @@ static value file_write( value o, value s ) {
 	int p = 0;
 	int len;
 	val_check_kind(o,k_file);
-	if( !val_is_string(s) )
-		return val_null;
+	val_check(s,string);
 	f = val_file(o);
 	if( f->io == NULL )
 		return val_false;
@@ -125,8 +124,7 @@ static value file_read( value o, value n ) {
 	int len;
 	value s;
 	val_check_kind(o,k_file);
-	if( !val_is_int(n) )
-		return val_null;
+	val_check(n,int);
 	f = val_file(o);
 	len = val_int(n);
 	if( f->io == NULL )

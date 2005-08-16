@@ -15,9 +15,9 @@ static value string_split( value o, value s ) {
 	int ilen;
 	int slen;
 	int start = 0;
-	int pos;	
-	if( !val_is_string(s) || !val_is_string(o) )
-		return val_null;
+	int pos;
+	val_check(s,string);
+	val_check(o,string);
 	ilen = val_strlen(o);
 	slen = val_strlen(s);
 	l = NULL;
@@ -46,12 +46,11 @@ static value string_split( value o, value s ) {
 		else
 			val_array_ptr(l)[1] = l2;
 	}
-	return first;
+	return (first == NULL)?val_null:first;
 }
 
 static value set_locale(l) {
-	if( !val_is_string(l) )
-		return val_null;
+	val_check(l,string);
 	return alloc_bool(setlocale(LC_TIME,val_string(l)) != NULL);
 }
 
@@ -69,7 +68,8 @@ static value get_cwd() {
 }
 
 static value sys_command( value cmd ) {
-	if( !val_is_string(cmd) || val_strlen(cmd) == 0 )
+	val_check(cmd,string);
+	if( val_strlen(cmd) == 0 )
 		return val_null;
 	return alloc_int( system(val_string(cmd)) );
 }

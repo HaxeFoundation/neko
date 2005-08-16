@@ -23,8 +23,7 @@ static void free_regexp( value p ) {
 }
 
 static value regexp_new( value s ) {
-	if( !val_is_string(s) )
-		return val_null;
+	val_check(s,string);
 	{
 		value v;
 		const char *error;
@@ -36,7 +35,7 @@ static value regexp_new( value s ) {
 			buffer_append(b,error);
 			buffer_append(b," in ");
 			val_buffer(b,s);
-			val_throw(buffer_to_string(b));
+			bfailure(b);
 		}
 		v = alloc_abstract(k_regexp,alloc(sizeof(pcredata)));
 		pdata = PCRE(v);
@@ -52,8 +51,7 @@ static value regexp_new( value s ) {
 static value regexp_match( value o, value s ) {
 	pcredata *d;
 	val_check_kind(o,k_regexp);
-	if( !val_is_string(s) )
-		return val_null;
+	val_check(s,string);
 	d = PCRE(o);
 	if( pcre_exec(d->r,NULL,val_string(s),val_strlen(s),0,0,d->matchs,NMATCHS) >= 0 ) {
 		d->str = s;
@@ -79,8 +77,8 @@ static value regexp_exact_match( value o, value s ) {
 
 static value do_replace( value o, value s, value s2, bool all ) {	
 	val_check_kind(o,k_regexp);	
-	if( !val_is_string(s) || !val_is_string(s2) )
-		return val_null;	
+	val_check(s,string);
+	val_check(s2,string);	
 	{
 		pcredata *d = PCRE(o);
 		buffer b = alloc_buffer(NULL);
@@ -115,8 +113,7 @@ static value regexp_matched( value o, value n ) {
 	int m;
 	val_check_kind(o,k_regexp);	
 	d = PCRE(o);
-	if( !val_is_int(n) )
-		return val_null;
+	val_check(n,int);
 	m = val_int(n);
 	if( m < 0 || m > d->nmatchs || d->str == NULL )
 		return val_null;
@@ -134,8 +131,7 @@ static value regexp_matched_pos( value o, value n ) {
 	int m;
 	val_check_kind(o,k_regexp);	
 	d = PCRE(o);
-	if( !val_is_int(n) )
-		return val_null;
+	val_check(n,int);
 	m = val_int(n);
 	if( m < 0 || m > d->nmatchs || val_is_null(d->str) )
 		return val_null;

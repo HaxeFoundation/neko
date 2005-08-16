@@ -170,7 +170,7 @@ void serialize_rec( sbuffer *b, value o ) {
 		if( !write_ref(b,o) ) {
 			neko_module *m;
 			if( val_tag(o) == VAL_PRIMITIVE )
-				val_throw(alloc_string("Cannot Serialize Primitive"));			
+				failure("Cannot Serialize Primitive");
 			write_char(b,'L');
 			m = (neko_module*)((vfunction*)o)->module;
 			serialize_rec(b,m->name);
@@ -180,7 +180,7 @@ void serialize_rec( sbuffer *b, value o ) {
 		}
 		break;
 	default:
-		val_throw(alloc_string("Cannot Serialize Abstract"));
+		failure("Cannot Serialize Abstract");
 		break;
 	}
 }
@@ -292,7 +292,7 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 		}
 	case 'L':
 		{
-			vfunction *f = (vfunction*)alloc_function((void*)1,0);
+			vfunction *f = (vfunction*)alloc_function((void*)1,0,NULL);
 			value mname; 
 			int pos;
 			int nargs;
@@ -316,14 +316,14 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 					buffer b = alloc_buffer("module ");
 					val_buffer(b,mname);
 					buffer_append(b," is not an object");
-					val_throw(buffer_to_string(b));
+					bfailure(b);
 				}
 				mval = val_field(exp,id_module);
 				if( !val_is_kind(mval,k_module) ) {
 					buffer b = alloc_buffer("module ");
 					val_buffer(b,mname);
 					buffer_append(b," have invalid type");
-					val_throw(buffer_to_string(b));
+					bfailure(b);
 				}
 				m = (neko_module*)val_data(mval);
 				mpos = m->code + pos;
@@ -342,7 +342,7 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 					buffer b = alloc_buffer("module ");
 					val_buffer(b,mname);
 					buffer_append(b," have been modified");
-					val_throw(buffer_to_string(b));
+					bfailure(b);
 				}
 			}
 			return val_null;
@@ -356,8 +356,7 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 static value unserialize( value s, value loader ) {
 	value v;
 	sbuffer b;
-	if( !val_is_string(s) )
-		return val_null;
+	val_check(s,string);
 	b.cur = (unsigned char*)val_string(s);
 	b.pos = 0;
 	b.error = false;
@@ -367,7 +366,7 @@ static value unserialize( value s, value loader ) {
 	b.totlen = 0;
 	v = unserialize_rec(&b,loader);
 	if( b.error )
-		val_throw(alloc_string("Invalid serialized data"));
+		failure("Invalid serialized data");
 	return v;
 }
 
