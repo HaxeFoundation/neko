@@ -876,8 +876,8 @@ Std.fieldId = function(s) {
 	return $hash(s.@s);
 }
 
-Std.fieldInv = function(id) {
-	return $field(id);
+Std.fieldName = function(id) {
+	return String.new($field(id));
 }
 
 Std.fieldCall = function(o,id,params) {
@@ -897,7 +897,13 @@ Std.fields = function(o) {
 }
 
 Std.setField = $objset;
-Std.field = $objget;
+Std.field = function(o,f) {
+	try {
+		return $objget(o,f);
+	} catch e {
+		return null;
+	}
+}
 
 std_rnd = random_new();
 
