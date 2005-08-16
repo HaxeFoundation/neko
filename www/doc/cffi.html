@@ -24,6 +24,7 @@
 			<li><a href="#oomisc">Misc</a></li>
 		</ul>
 	</li>
+	<li><a href="#typecheck">Type checks</a></li>
 	<li><a href="#callb">Function Callbacks</a></li>
 	<li><a href="#abstracts">Abstracts and Kinds</a></li>
 	<li><a href="#memory">Managing Memory</a></li>
@@ -335,8 +336,8 @@
 
     value make_point( value x, value y ) {
         value o;
-        if( !val_is_number(x) || !val_is_number(y) )
-            return val_null;
+        val_check(x,number);
+        val_check(y,number);
         o = alloc_object(NULL);
         alloc_field(o,val_id("x"),x);
         alloc_field(o,val_id("y"),y);
@@ -360,8 +361,7 @@
         value o = val_this();
         value x , y;
         buffer b;
-        if( !val_is_object(o) )
-            return val_null;
+        val_check(o,object);
         x = val_field(o,val_id("x"));
         y = val_field(o,val_id("y"))
         b = alloc_buffer("Point : ");
@@ -372,7 +372,7 @@
     }
 
     value make_point( value x, value y ) {
-        value f = alloc_function(point_to_string,0);
+        value f = alloc_function(point_to_string,0,"point_to_string");
         ....
         alloc_field(o,val_id("__string"),f);
         return o;
@@ -384,7 +384,7 @@
 </p>
 
 <p>
-	In <code>make_point</code> we are setting the field <code>__string</code> of the object <code>o</code> to a value function allocated with <code>alloc_function</code>, which takes two parameters : the address of the C function and the number of parameters.
+	In <code>make_point</code> we are setting the field <code>__string</code> of the object <code>o</code> to a value function allocated with <code>alloc_function</code>, which takes three parameters : the address of the C function, the number of parameters, and a name for the function that will help for debugging and errors location.
 </p>
 
 <p>
@@ -405,6 +405,23 @@
 <p>
 	You can reverse a hashed object field value by calling <code>val_field_name(f)</code>. This will return a string value if the field is found or <code>val_null</code> either.
 </p>
+
+<!-- ****************************************************************************** -->
+
+<a name="typecheck"></a>
+<h2>Type checks</h2>
+
+<p>
+	As we saw in previous samples, we have several functions used for type checking :
+</p>
+
+<ul>
+	<li><code>val_is_<em>type</em>(v)</code> functions can test if a single value is of the given type.</li>
+	<li><code>val_check(v,<em>type</em>)</code> will check <code>val_is_<em>type</em></code> and call <code>type_error()</code> if it fails.</li>
+	<li><code>val_check_kind(v,<em>kind</em>)</code> will check that the value is an abstract of the given kind and call <code>type_error()</code> if not.</li>
+	<li><code>val_check_function(v,<em>nargs</em>)</code> will check that the value is a function that can be called with the specified number of arguments and call <code>type_error()</code> if not.</li>
+	<li><code>type_error()</code> will simply return the C <code>NULL</code> value. This special value will be catched  by the virtual machine that will raise an exception using the function name. Please use the macro instead of <code>return NULL</code> so your library will stay compatible if the implementation change.</li>
+</ul>
 
 <!-- ****************************************************************************** -->
 
@@ -517,7 +534,7 @@
 <pre>
     value dosomething( value v ) {
         if( !val_is_abstract(v) || !val_is_kind(v,k_mykind) )
-        	return val_null;
+            type_error();
         do_something_in_C( val_data(v) );
         return val_true;
     }
