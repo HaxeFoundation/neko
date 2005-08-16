@@ -20,9 +20,8 @@
 		return val_null; \
 	}
 
-static value url_decode( value v ) {	
-	if( !val_is_string(v) )
-		return val_null;
+static value url_decode( value v ) {
+	val_check(v,string);
 	{
 		int pin = 0;
 		int pout = 0;
@@ -68,8 +67,7 @@ static value url_decode( value v ) {
 }
 
 static value url_encode( value v ) {
-	if( !val_is_string(v) )
-		return val_null;
+	val_check(v,string);
 	{
 		int pin = 0;
 		int pout = 0;
@@ -122,8 +120,8 @@ static value set_cookie( value name, value v ) {
 	mcontext *c = CONTEXT();
 	buffer b;
 	value str;
-	if( !val_is_string(name) || !val_is_string(v) )
-		return val_null;
+	val_check(name,string);
+	val_check(v,string);
 	HEADERS_NOT_SENT("Cookie");
 	b = alloc_buffer(NULL);
 	val_buffer(b,name);
@@ -141,8 +139,7 @@ static value get_content_type() {
 
 static value set_content_type( value s ) {
 	mcontext *c = CONTEXT();
-	if( !val_is_string(s) )
-		return val_null;
+	val_check(s,string);
 	HEADERS_NOT_SENT("Content Type");
 	c->r->content_type = val_string(s);
 	return val_true;
@@ -167,8 +164,7 @@ static value get_uri() {
 
 static value redirect( value s ) {
 	mcontext *c = CONTEXT();
-	if( !val_is_string(s) )
-		return val_null;
+	val_check(s,string);
 	HEADERS_NOT_SENT("Redirection");
 	ap_table_set(c->r->headers_out,"Location",val_string(s));
 	c->r->status = REDIRECT;
@@ -177,8 +173,8 @@ static value redirect( value s ) {
 
 static value set_header( value s, value k ) {
 	mcontext *c = CONTEXT();
-	if( !val_is_string(s) || !val_is_string(k) ) 
-		return val_null;
+	val_check(s,string);
+	val_check(k,string);
 	HEADERS_NOT_SENT("Header");
 	ap_table_set(c->r->headers_out,val_string(s),val_string(k));
 	return val_true;
@@ -186,8 +182,7 @@ static value set_header( value s, value k ) {
 
 static value get_client_header( value s ) {
 	mcontext *c = CONTEXT();
-	if( !val_is_string(s) ) 
-		return val_null;
+	val_check(s,string);
 	return alloc_string( ap_table_get(c->r->headers_in,val_string(s)) );
 }
 
@@ -340,8 +335,7 @@ static value cgi_get_cwd() {
 }
 
 static value cgi_set_main( value f ) {
-	if( !val_is_function(f) || (val_fun_nargs(f) != 0 && val_fun_nargs(f) != VAR_ARGS) )
-		return val_null;
+	val_check_function(f,0);
 	CONTEXT()->main = f;
 	return val_true;
 }
