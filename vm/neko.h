@@ -160,10 +160,6 @@ typedef struct {
 #define DEFINE_KIND(name) int __kind_##name = 0; vkind name = (vkind)&__kind_##name;
 #define DEFINE_ENTRY_POINT(name) C_FUNCTION_BEGIN void name(); EXPORT void *__neko_entry_point() { return &name; } C_FUNCTION_END
 
-#define Constr(o,t,nargs) { field __f = val_id("new"); alloc_field(o,__f,alloc_function(t##_new##nargs,nargs) ); }
-#define Method(o,t,name,nargs) { field __f = val_id(#name); alloc_field(o,__f,alloc_function(t##_##name,nargs) ); }
-#define Property(o,t,name)	Method(o,t,get_##name,0); Method(o,t,set_##name,1)
-
 #ifdef HEADER_IMPORTS
 #	define DECLARE_PRIM(func,nargs) C_FUNCTION_BEGIN IMPORT void *func##__##nargs(); C_FUNCTION_END
 #	define DECLARE_KIND(name) C_FUNCTION_BEGIN IMPORT extern vkind name; C_FUNCTION_END
