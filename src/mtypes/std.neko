@@ -890,7 +890,7 @@ Std.fields = function(o) {
 	var i = 0;
 	var li = List.new();
 	while( i < l ) {
-		l.add(a[i]);
+		li.add(a[i]);
 		i = i + 1;
 	}
 	return li;
