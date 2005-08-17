@@ -933,6 +933,10 @@ Std.unserialize = function(s) {
 	}
 }
 
+Std.throw = function(e) {
+	$throw(e);
+}
+
 $exports.Std = Std;
 
 // ----------------------------------------------------------------------
