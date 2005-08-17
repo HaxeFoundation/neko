@@ -4,22 +4,71 @@
 	Before reading this part of the documentation, it is recommend to have already read the <a href="/?doc=doc/cffi">C FFI</a> Documentation or to have a good knowledge of it.
 </p>
 
+<h2>Commandline Tools</h2>
+
+<p>
+	There is two commandline tools available with the Neko distribution :
+</p>
+
+<ul class="large">
+	<li><code>neko</code> which is the compiler : it will compile a <code>.neko</code> file source into a <code>.n</code> bytecode module.
+	<pre>    neko hello.neko</pre>
+	</li>
+	<li><code>nekovm</code> which is the virtual machine : it will run a compiled bytecode module.
+	<pre>    nekovm hello</pre>
+	</li>
+</ul>
+
 <h2>Modules</h2>
 
 <p>
-...
+	Each <code>.n</code> file is a module. When started, the virtual machine will look for the module specified from the commandline (module name doesn't include the <code>.n</code> extension). The lookup is done first into the current directory and then among all paths specified into the <code>NEKOPATH</code> environment variable, which are separated by <code>;</code>.
 </p>
 
 <h2>Libraries</h2>
 
 <p>
-...
+	Each <code>.ndll</code> file is neko library. It is a shared library (<code>.so</code> or <code>.dll</code>) linked with the Neko Library (<code>libneko.so</code> or <code>neko.lib</code>). Each Neko Library can contain several primitives that can be used from a Neko program. Neko libraries are also searched the same way as Modules, using <code>NEKOPATH</code>.
 </p>
 
-<h2>Custom Loaders</h2>
+<h2>Exports</h2>
 
 <p>
-...
+	Each Neko module have a global object named <code>$exports</code>. The module can set fields into this object in order to export some values that will be usable from other modules :
+</p>
+
+<pre>
+    $exports.log = function() { $print("log test") };
+</pre>
+
+<h2>Loaders</h2>
+
+<p>
+	Each Neko module have a <em>loader</em> which is an object that can be used to load other Neko modules and C primitives. The loader is accessible using the <code>$loader</code> builtin.
+</p>
+
+<p>
+	In order to load a Module, you can simply call the <code>loadmodule</code> method, which takes two parameters. The first parameter is the name of the module and the second parameter is the loader that this module will used. If found, the module is loaded, executed, and then a copy of its <code>$exports</code> table is returned. If not found, an exception is thrown.
+</p>
+
+<pre>
+    var m = $loader.loadmodule("log",$loader);
+    m.log();
+</pre>
+
+<p>
+	You can also load C <em>primitives</em> using the loader. See the <a href="/?doc=doc/cffi">C FFI</a> API for help on how to write such primitives. A primitive is loaded using the <code>loadprim</code> method, using the name of the library and the name of the primitive separated by an arrowbase, as well as the number of arguments. If success, a Neko function is returned that is used to call the primitive. If not found, an exception is thrown.
+</p>
+
+<pre>
+    var p = $loader.loadprim("std@test",0);
+    p();
+</pre>
+
+<h2>Custom loaders</h2>
+
+<p>
+	It is possible to define your custom loader that will filter or secure the modules and primitive loaded. The only thing needed is to implement the two methods <code>loadmodule</code> and <code>loadprim</code> and use your loader as the second parameter of the <code>loadmodule</code> method when loading another module.
 </p>
 
 <h2>Embedding the VM</h2>
@@ -34,47 +83,47 @@
 
 <pre>
 
-#include &lt;stdio.h&gt;
-#include &lt;load.h&gt;
-#include &lt;interp.h&gt;
+    #include &lt;stdio.h&gt;
+    #include &lt;load.h&gt;
+    #include &lt;interp.h&gt;
 
-value execute( char *module ) {
-	neko_vm *vm;
-	value loader;
-	value args[2];
-	value exc = NULL;
-	value ret;
+    value execute( char *module ) {
+        neko_vm *vm;
+        value loader;
+        value args[2];
+        value exc = NULL;
+        value ret;
 
-	neko_global_init();
-	vm = neko_vm_alloc(NULL);
+        neko_global_init();
+        vm = neko_vm_alloc(NULL);
 
-	loader = neko_default_loader(NULL);
-	args[0] = alloc_string(file);
-	args[1] = loader;
-	neko_vm_select(vm);
-	ret = val_callEx(loader,val_field(loader,val_id("loadmodule")),args,2,&exc);
+        loader = neko_default_loader(NULL);
+        args[0] = alloc_string(file);
+        args[1] = loader;
+        neko_vm_select(vm);
+        ret = val_callEx(loader,val_field(loader,val_id("loadmodule")),args,2,&exc);
 
-	if( exc != NULL ) {
-		buffer b = alloc_buffer(NULL);
-		val_buffer(b,exc);
-		printf("Uncaught exception - %s\n",val_string(buffer_to_string(b)));
-		ret = val_null;
-	}
+        if( exc != NULL ) {
+            buffer b = alloc_buffer(NULL);
+            val_buffer(b,exc);
+            printf("Uncaught exception - %s\n",val_string(buffer_to_string(b)));
+            ret = val_null;
+        }
 
-	neko_global_free();
-	return ret;
-}
+        neko_global_free();
+        return ret;
+    }
 
 </pre>
 
 <h3>NekoVM API</h3>
 
 <p>
-...
+	The Neko VM API is declared into the <code>load.h</code> and <code>interp.h</code> files. It will be fully documented later.
 </p>
 
 <h3>Multithreading</h3>
 
 <p>
-...
+	Each thread can run several Neko virtual machine, however the same VM should not run at the same time in different threads. When changing virtual machine or after allocating one, you must call the <code>neko_vm_select</code> API function that will select this virtual machine for the current thread.
 </p>
