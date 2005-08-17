@@ -55,13 +55,13 @@
 </p>
 
 <pre>
-	#include &lt;neko.h&gt;
+    #include &lt;neko.h&gt;
 
-	value test() {
-		return alloc_string("Hello world");
-	}
+    value test() {
+        return alloc_string("Hello world");
+    }
 
-	DEFINE_PRIM(test,0); // function test with 0 arguments
+    DEFINE_PRIM(test,0); // function test with 0 arguments
 </pre>
 
 <p>
@@ -69,8 +69,8 @@
 </p>
 
 <pre>
-	var p = $loader.loadprim("hello@test",0);
-	$print( p() );
+    var p = $loader.loadprim("hello@test",0);
+    $print( p() );
 </pre>
 
 <p>
@@ -136,6 +136,10 @@
 	<li><code>val_is_kind(v,k)</code> : check if a value is an abstract of the kind <code>k</code>.</li>
 	<li><code>val_is_number(v)</code> : check if a value is either an integer or a float.</li>
 </ul>
+
+<p>
+	For more informations, see the <a href="#typecheck">Type checks</a> section.
+</p>
 
 <a name="access"></a>
 <h3>Access Functions</h3>
@@ -399,7 +403,7 @@
 </p>
 
 <pre>
-	val_iter_fields( value obj, void f( value v, field f, void * ), void *p );
+   val_iter_fields( value obj, void f( value v, field f, void * ), void *p );
 </pre>
 
 <p>
@@ -412,7 +416,7 @@
 <h2>Type checks</h2>
 
 <p>
-	As we saw in previous samples, we have several functions used for type checking :
+	Often when you're writing primitives, you're expecting the value arguments to be of one given type. So the first thing done in primitives is to check that the types are correct and have an exception raised if not. The Neko API provides several functions for that :
 </p>
 
 <ul>
@@ -420,8 +424,20 @@
 	<li><code>val_check(v,<em>type</em>)</code> will check <code>val_is_<em>type</em></code> and call <code>type_error()</code> if it fails.</li>
 	<li><code>val_check_kind(v,<em>kind</em>)</code> will check that the value is an abstract of the given kind and call <code>type_error()</code> if not.</li>
 	<li><code>val_check_function(v,<em>nargs</em>)</code> will check that the value is a function that can be called with the specified number of arguments and call <code>type_error()</code> if not.</li>
-	<li><code>type_error()</code> will simply return the C <code>NULL</code> value. This special value will be catched  by the virtual machine that will raise an exception using the function name. Please use the macro instead of <code>return NULL</code> so your library will stay compatible if the implementation change.</li>
+	<li><code>type_error()</code> will simply return the C <code>NULL</code> value. This special value will be catched  by the virtual machine that will raise an exception. Please use the macro instead of <code>return NULL</code> so your library will stay compatible if the implementation change.</li>
 </ul>
+
+<p>
+	Type checking is actualy very easy to use, simple add the <code>val_check*</code> statements at the beginning of your primitive :
+</p>
+
+<pre>
+    value myprim( value s, value n ) {
+        val_check(s,string);
+        val_check(n,int);
+        ...
+    }
+</pre>
 
 <!-- ****************************************************************************** -->
 
@@ -433,7 +449,7 @@
 </p>
 
 <pre>
-	value ret = val_callEx(vthis,f,args,nargs,&exc);
+    value ret = val_callEx(vthis,f,args,nargs,&exc);
 </pre>
 
 <p>
@@ -591,20 +607,46 @@
 <a name="memory"></a>
 <h2>Managing Memory</h2>
 
-alloc
-alloc_private
-alloc_root
-free_root
+<p>
+	When you're working with abstracts, you might want to allocate garbage-collected memory so you don't have to add finalizers for your datas (finalizers are more expensive than garbage-collected memory). The Neko VM API is providing several allocation functions :
+</p>
+
+<p>
+	Calling <code>alloc(<em>n</em>)</code> will return a pointer capable of storing up to <code>n</code> <em>bytes</em>. So it's equivalent of <code>malloc(n)</code> but the memory will be automaticaly collected when unreachable from the VM. Please note that C <em>static</em> values are not reachable by the VM.
+</p>
+
+<p>
+	The memory allocated with <code>alloc</code> will be scanned by the garbage collector so you can store values and other <code>alloc</code>'ated pointers into it. As long as your pointer is reachable theses values will also be reachable so they will not be collected.
+</p>
+
+<p>
+	If you want to allocate big chuncks of memory and you're sure they will not contain any value (strings for example) you can use <code>alloc_private(<em>n</em>)</code> that will return also <code>n</code> <em>bytes</em> of memory but that will not be scanned by the garbage collector. Please remember not to store any value in it.
+</p>
+
+<p>
+	In some cases, you might need to store some value into a <em>static</em> variable. First, you have to be sure of what you're doing, since the Neko VM can run in several threads, you need to protect the accesses to this value to ensure that your library will work when used simultaneously by multiple threads. Second, since the statics are not reachable by the garbage collector, you have to allocate a <em>root</em> value.
+</p>
+
+<p>
+	A <em>root</em> value is a pointer that can store several values and that will always be scanned by the GC. Since it will never be garbage-collected you can store it anywhere. However you'll have to free it explicitly. To allocate a root you can use the <code>alloc_root(<em>v</em>)</code> function that will return you a value pointer capable of storing up to <code>v</code> values. Once you don't need it anymore you have to free the root using the <code>free_root</code> function. Try to avoid the use of roots and static values as much as possible. Always store your datas into abstract values if you can.
+</p>
 
 <!-- ****************************************************************************** -->
 
 <a name="misc"></a>
 <h2>Misc API Functions</h2>
 
-int val_compare( value a, value b );
-void val_print( value s );
-void val_throw( value v );
-void val_clean_thread();
+<p>
+	Before ending this document here are several functions that does not belong to any particular place. Feel free to use them when you need it :
+</p>
+
+<ul class="large">
+	<li><code>val_compare(a,b)</code> : compare two values according to Neko specification. Returns an integer that will be 0 if <code>a = b</code>, -1 if <code>a &lt; b</code>, 1 if <code>a &gt; b</code> or <code>invalid_comparison</code> if <code>a</code> and <code>b</code> can't be compared.</li>
+	<li><code>val_print(v)</code> : print the value to the defined output of the virtual machine.</li>
+	<li><code>val_throw(v)</code> : throw the value v as an exception.</li>
+	<li><code>failure(msg)</code> : throw a <em>failure</em> exception using a constant C string as error message. This is a convenient way of handling errors in your primitives, since the exception will contain your error message as well as the C filename and the line where the error occured.</li>
+	<li><code>bfailure(buf)</code> : same as <code>failure</code> but use a <em>buffer</em> instead of a constant string.</li>
+</ul>
 
 <!-- ****************************************************************************** -->
 
