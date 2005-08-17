@@ -1,0 +1,15 @@
+<h1>Regexp</h1>
+
+<p>
+	Regular expressions (PCRE format).
+</p>
+
+<pre>
+	'regexp regexp_new( string r );
+	bool regexp_match( 'regexp r, string s );
+	bool regexp_exact_match( 'regexp r, string s );
+	string regexp_replace( 'regexp r, string s, string s2 );
+	string regexp_replace_all( 'regexp r, string s, string s2 );
+	string? regexp_matched( 'regexp r, int n );
+	{ pos => int, len => int }? regexp_matched_pos( 'regexp r, int n );
+</pre>

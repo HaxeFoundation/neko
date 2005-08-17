@@ -1,0 +1,39 @@
+<h1>Mysql</h1>
+
+<p>
+	Library for accessing Mysql database
+</p>
+
+<h2>Connection</h2>
+
+<p>
+	Establish a connection to the database
+</p>
+
+<pre>
+	'connection connect( {
+			host => string,
+			port => int,
+			user => string,
+			pass => string,
+			socket => string?
+	} );
+	void close( 'connection c );
+	void selectDB( 'connection c, string db );
+	'result request( 'connection c, string sql );
+</pre>
+
+<h2>Result</h2>
+
+<p>
+	A request result
+</p>
+
+<pre>
+	int result_get_length( 'result r );
+	int result_get_nfields( 'result r );
+	object result_next( 'result r );
+	string? result_get( 'result r, int n );
+	int? result_get_int( 'result r, int n );
+	float? result_get_float( 'resulr r, int n );
+</pre>
