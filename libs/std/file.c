@@ -128,7 +128,7 @@ static value file_read( value o, value n ) {
 	f = val_file(o);
 	len = val_int(n);
 	if( f->io == NULL )
-		return val_false;
+		return val_null;
 	s = alloc_empty_string(len);
 	while( len > 0 ) {
 		int d = fread((char*)val_string(s)+p,1,len,f->io);
