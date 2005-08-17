@@ -203,8 +203,6 @@ static value serialize( value o ) {
 	b.totlen = 0;
 	b.error = false;
 	serialize_rec(&b,o);
-	if( b.error )
-		return val_null;
 	v = alloc_empty_string(b.pos + b.totlen);
 	s = (char*)val_string(v);
 	s += b.totlen;
