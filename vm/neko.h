@@ -203,7 +203,6 @@ typedef struct {
 #define val_throw			neko_val_throw
 #define val_iter_fields		neko_val_iter_fields
 #define val_field_name		neko_val_field_name
-#define val_clean_thread	neko_val_clean_thread
 
 C_FUNCTION_BEGIN
 
@@ -255,7 +254,6 @@ C_FUNCTION_BEGIN
 	EXTERN void val_print( value s );
 	EXTERN void val_gc( value v, finalizer f );
 	EXTERN void val_throw( value v );
-	EXTERN void val_clean_thread();
 
 	EXTERN void _neko_failure( value msg, const char *file, int line );
 

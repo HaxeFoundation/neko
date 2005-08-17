@@ -267,7 +267,7 @@ EXTERN value val_field_name( field id ) {
 	return *fdata;
 }
 
-EXTERN void val_clean_thread() {
+EXTERN void neko_clean_thread() {
 	void *f = context_get(neko_fields_context);
 	if( f )
 		free_root(f);

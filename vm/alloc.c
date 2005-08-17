@@ -8,6 +8,7 @@
 #include "neko.h"
 #include "objtable.h"
 #include "load.h"
+#include "interp.h"
 #include "opcodes.h"
 #include "vmcontext.h"
 #ifdef _WIN32
@@ -254,7 +255,7 @@ EXTERN void neko_global_init() {
 }
 
 EXTERN void neko_global_free() {
-	val_clean_thread();
+	neko_clean_thread();
 	free_root(neko_builtins);
 #ifdef _DEBUG
 	if( roots != NULL ) {
