@@ -18,6 +18,10 @@
 	Decompress the archive and copy the files into a folder you want, for example <code>/usr/lib/neko/</code>. Setup your system so it will look for executable in this path, and shared libraries too (using <code>export LD_LIBRARY_PATH=/usr/lib/neko</code> for example). Set also the <code>NEKOPATH</code> environment variable to the same path.
 </p>
 
+<p>
+	You also need to install the garbage collector which is in a separate library (<code>libgc-dev</code> or <code>libgc1</code>).
+</p>
+
 <div class="plink">
 	<a href="#next">Continue...</a>
 </div>
@@ -41,7 +45,11 @@
 <h2>From Sources</h2>
 
 <p>
-	Compiling Neko directly from sources is a little more difficult. You need first to install the following packages: <code>libgc</code> and <code>ocaml</code>. Then try edit <code>Makefile</code> with your paths to include headers for <code>APACHE</code>, <code>MYSQL</code> and <code>REGEXP</code> (pcre3). Once done, you can run <code>make extlib</code> to compile an ocaml library needed. Then <code>make</code> to compile the sources. All the compiled files should be compiled inside the <code>bin</code> subdirectory.
+	Compiling Neko directly from sources is a little more difficult. You need first to install the following packages: <code>libgc-dev</code> and <code>ocaml-dev</code>. Then try edit <code>Makefile</code> with your paths to include headers for <code>APACHE</code>, <code>MYSQL</code> and <code>REGEXP</code> (pcre3). Once done, you can run <code>make extlib</code> to compile an ocaml library needed. Then <code>make</code> to compile the sources. All the compiled files should be compiled inside the <code>bin</code> subdirectory.
+</p>
+
+<p>
+	Please note that right now <code>mod_neko</code> will only compile using Apache 1.3 API. If you have Apache 2 installed, remove mod_neko from the Makefile so its compilation does not fail.
 </p>
 
 <p>
