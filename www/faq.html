@@ -1,0 +1,42 @@
+<h1>FAQ</h1>
+
+<p>
+
+</p>
+
+<ul>
+	<li><a href="#1">How is Neko different from DotNet / JVM ?</a></li>
+	<li><a href="#2">How is Neko different from LLVM / Parrot / C-- ?</a></li>
+	<li><a href="#3">How is Neko different from PHP / Perl / Python / Ruby / Lua ?</a></li>
+	<li><a href="#4">What garbage collector is Neko using ?</a></li>
+	<li><a href="#more">More questions ?</a></li>
+</ul>
+
+<a name="1"></a>
+<h2>How is Neko different from DotNet / JVM ?</h2>
+
+<p>
+	DotNet and the Java Virtual Machine are both defined by a <em>bytecode</em> language with a <em>static type system</em> based on <em>classes</em>. As a result, you can easily run languages that have a type system compatible with Java or C# on theses virtual machines. But if you have a dynamicly typed language or no class system, you'll have to trick the virtual machine and find a <em>mapping</em> from your type system to the JVM or DotNet one.
+</p>
+
+<p>
+	Neko is a lot more simple. First it is not a <em>bytecode</em> language but a high-level <em>programming</em> language. You don't have then to write a <em>compiler</em> for it, a simple <em>generator</em> that translate your program into the corresponding Neko program is enough. You still have to find a mapping from your type system to Neko <em>data structures</em> but Neko gives you a dynamicly typed language with no fixed class system. You have then to find a <em>runtime mapping</em> so that your program <em>executes</em> correctly on Neko, and not a <em>type mapping</em> so that your program <em>types</em> correcty like with DotNet / JVM.
+</p>
+
+<a name="2"></a>
+<h2>How is Neko different from LLVM / Parrot / C-- ?</h2>
+
+<a name="3"></a>
+<h2>How is Neko different from PHP / Perl / Python / Ruby / Lua ?</h2>
+
+
+<a name="4"></a>
+<h2>What garbage collector is Neko using ?</h2>
+
+
+<a name="more"></a>
+<h2>More questions ?</h2>
+
+<p>
+	You can ask on the <a href="/?doc=doc">mailing list</a>.
+</p>
