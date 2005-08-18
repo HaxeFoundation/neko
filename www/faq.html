@@ -9,6 +9,7 @@
 	<li><a href="#2">How is Neko different from LLVM / Parrot / C-- ?</a></li>
 	<li><a href="#3">How is Neko different from PHP / Perl / Python / Ruby / Lua ?</a></li>
 	<li><a href="#4">What garbage collector is Neko using ?</a></li>
+	<li><a href="#5">Is Neko available for 64bit processor ?</a></li>
 	<li><a href="#more">More questions ?</a></li>
 </ul>
 
@@ -29,10 +30,23 @@
 <a name="3"></a>
 <h2>How is Neko different from PHP / Perl / Python / Ruby / Lua ?</h2>
 
+<p>
+	Theses languages are meant to be programmed
+</p>
 
 <a name="4"></a>
 <h2>What garbage collector is Neko using ?</h2>
 
+<p>
+	Neko is using the <a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/">Boehm GC</a> which is a conservative multithreaded mark and sweep collector. However since all calls to the GC are wrapper by the Neko API in <code>vm/alloc.c</code> it might be possible in the future to switch easily to another garbage collector.
+</p>
+
+<a name="5"></a>
+<h2>Is Neko available for 64bit processor ?</h2>
+
+<p>
+	Neko can run on 64bit processors using 32bit compatibility mode but cannot yet compile and run correctly in 64bit mode. This might be fixed in future releases.
+</p>
 
 <a name="more"></a>
 <h2>More questions ?</h2>
