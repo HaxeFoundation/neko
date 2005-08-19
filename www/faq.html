@@ -1,7 +1,7 @@
 <h1>FAQ</h1>
 
 <p>
-
+	Frequently Asked Questions about Neko :
 </p>
 
 <ul>
@@ -17,21 +17,33 @@
 <h2>How is Neko different from DotNet / JVM ?</h2>
 
 <p>
-	DotNet and the Java Virtual Machine are both defined by a <em>bytecode</em> language with a <em>static type system</em> based on <em>classes</em>. As a result, you can easily run languages that have a type system compatible with Java or C# on theses virtual machines. But if you have a dynamicly typed language or no class system, you'll have to trick the virtual machine and find a <em>mapping</em> from your type system to the JVM or DotNet one.
+	DotNet and the Java Virtual Machine are both defined by a <em>bytecode</em> language with a <em>static type system</em> based on <em>classes</em>. As a result, you can easily run languages that have a type system compatible with Java or C# on theses virtual machines. But if you have a dynamicly typed language or no class system, you'll have to trick the virtual machine and find a <em>type mapping</em> from your type system to the JVM or DotNet one.
 </p>
 
 <p>
-	Neko is a lot more simple. First it is not a <em>bytecode</em> language but a high-level <em>programming</em> language. You don't have then to write a <em>compiler</em> for it, a simple <em>generator</em> that translate your program into the corresponding Neko program is enough. You still have to find a mapping from your type system to Neko <em>data structures</em> but Neko gives you a dynamicly typed language with no fixed class system. You have then to find a <em>runtime mapping</em> so that your program <em>executes</em> correctly on Neko, and not a <em>type mapping</em> so that your program <em>types</em> correcty like with DotNet / JVM.
+	Neko is a lot more simple. First it is not a <em>bytecode</em> language but a high-level <em>programming</em> language. You don't have then to write a <em>compiler</em> for it, a simple <em>generator</em> that translates your program into the corresponding Neko program is enough. You still have to find a mapping from your values to Neko <em>data structures</em> but Neko gives you a dynamicly typed language with no fixed class system. You have then to find a <em>runtime mapping</em> so that your program <em>executes</em> correctly on Neko, and not a <em>type mapping</em> so that your program <em>types</em> correcty like with DotNet / JVM.
 </p>
 
 <a name="2"></a>
 <h2>How is Neko different from LLVM / Parrot / C-- ?</h2>
 
+<p>
+	Theses are compiler frameworks with very low level <em>abstract processor instructions</em> and a  static type system with low level <em>memory manipulation functions</em>. It would be possible for example to uses theses frameworks to compile Neko, which stands as an higher level language, although Neko is powered by its own runtime.
+</p>
+
+<p>
+	As a result, Neko is maybe less optimizable than theses <em>abstract processors</em> but is a lot more easy to target for language designers that want to reuse a runtime. Since Neko is not a <em>framework</em> either, it is very lightweight. For example you only need <code>libneko.so</code> which is a few KB in order to embed an run Neko programs in your application.
+</p>
+
 <a name="3"></a>
 <h2>How is Neko different from PHP / Perl / Python / Ruby / Lua ?</h2>
 
 <p>
-	Theses languages are meant to be programmed
+	Theses languages are meant to be programmed. They contain sometimes complex but powerful features. But often, their runtimes are entirely written in C, difficult to maintain, and their interpreters are quite slow. Neko runtime could be used to run theses languages more efficiently, and help them interact together and share the same libraries.
+</p>
+
+<p>
+	It is actually one of the goals of Neko to be able to run these languages on the same runtime. Since they're currently either interpreted or running in a not-so-fast virtual machine, using an intermediate compilable representation such as Neko should be a pretty good improvment, especialy when JIT will be added.
 </p>
 
 <a name="4"></a>
