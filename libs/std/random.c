@@ -21,7 +21,7 @@
 #include <neko.h>
 #include <time.h>
 #include <string.h>
-#ifdef __linux__
+#ifndef _WIN32
 #include <sys/time.h>
 #endif
 

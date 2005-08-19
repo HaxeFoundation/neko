@@ -27,6 +27,7 @@
 #else
 #	include <sys/socket.h>
 #	include <arpa/inet.h>
+#	include <netinet/in.h>
 #	include <netdb.h>
 	typedef int SOCKET;
 #	define closesocket close

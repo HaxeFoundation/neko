@@ -21,7 +21,7 @@
 #include <neko.h>
 #include <string.h>
 
-#ifdef __linux__
+#ifndef _WIN32
 #  include <strings.h>
 #  undef strcmpi
 #  define strcmpi(a,b) strcasecmp(a,b)

@@ -22,7 +22,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h> 
-#ifdef __linux__
+#ifndef _WIN32
 #	include <dlfcn.h>
 #endif
 #include "vmcontext.h"
