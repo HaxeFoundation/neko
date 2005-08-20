@@ -46,7 +46,7 @@ void *context_get( _context *ctx ) {
 #else
 /* ************************************************************************ */
 #include "objtable.h"
-#include <malloc.h>
+#include <stdlib.h>
 
 struct _context {
 	void *data;
