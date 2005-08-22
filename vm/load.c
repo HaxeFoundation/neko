@@ -104,14 +104,12 @@ static int builtin_id( neko_module *m, field id ) {
 
 #define UNKNOWN  ((unsigned char)-1)
 
-static int neko_check_stack( neko_module *m, unsigned char *tmp, unsigned int i, unsigned int start, unsigned int exit, int stack, int istack ) {
+static int neko_check_stack( neko_module *m, unsigned char *tmp, unsigned int i, int stack, int istack ) {
 	unsigned int itmp;
 	int k = 0;
-	while( i < exit ) {
+	while( true ) {
 		int c = m->code[i];
 		int s = stack_table[c];
-		if( c == Trap )
-			stack += 0;
 		if( tmp[i] == UNKNOWN )
 			tmp[i] = stack;
 		else if( tmp[i] != stack )
@@ -135,7 +133,7 @@ static int neko_check_stack( neko_module *m, unsigned char *tmp, unsigned int i,
 			if( tmp[itmp] == UNKNOWN ) {
 				if( c == Trap )
 					stack -= s;
-				if( !neko_check_stack(m,tmp,itmp,start,exit,stack,istack) )
+				if( !neko_check_stack(m,tmp,itmp,stack,istack) )
 					return 0;
 				if( c == Trap )
 					stack += s;
@@ -332,27 +330,20 @@ static neko_module *neko_module_read( reader r, readp p, value loader ) {
 	}
 	// Check stack preservation
 	{
-		int start = 2;
-		int stack = 0;		
 		char *stmp = alloc_private(m->codesize+1);
 		memset(stmp,UNKNOWN,m->codesize+1);
-		stmp[0] = 0;
+		if( !neko_check_stack(m,stmp,0,0,0) )
+			ERROR();
 		for(i=0;i<m->nglobals;i++) {
 			vfunction *f = (vfunction*)m->globals[i];
 			if( val_type(f) == VAL_FUNCTION ) {
 				if( (unsigned int)f->addr >= m->codesize || !tmp[(unsigned int)f->addr]  )
 					ERROR();
-				if( !neko_check_stack(m,stmp,start,start,(int)f->addr,stack,stack) )
+				if( !neko_check_stack(m,stmp,(int)f->addr,f->nargs,f->nargs) )
 					ERROR();
-				start = (int)f->addr;
-				stack = f->nargs;
 				f->addr = m->code + (int)f->addr;
 			}
 		}
-		if( !neko_check_stack(m,stmp,start,start,entry,stack,stack) )
-			ERROR();
-		if( !neko_check_stack(m,stmp,entry,entry,m->codesize,0,0) )
-			ERROR();
 	}
 	return m;
 }
