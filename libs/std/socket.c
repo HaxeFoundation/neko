@@ -25,10 +25,10 @@
 	static bool init_done = false;
 	static WSADATA init_data;
 #else
-#	include <sys/socket.h>
 #	include <sys/types.h>
-#	include <arpa/inet.h>
+#	include <sys/socket.h>
 #	include <netinet/in.h>
+#	include <arpa/inet.h>
 #	include <netdb.h>
 	typedef int SOCKET;
 #	define closesocket close
