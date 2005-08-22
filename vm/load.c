@@ -21,6 +21,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/types.h>
 #include <sys/stat.h> 
 #ifndef _WIN32
 #	include <dlfcn.h>
@@ -31,12 +32,40 @@
 #define PARAMETER_TABLE
 #include "opcodes.h"
 
+/* Endianness macros. */
+#ifndef LITTLE_ENDIAN
+#	define LITTLE_ENDIAN 1
+#endif
+#ifndef BIG_ENDIAN
+#	define BIG_ENDIAN 2
+#endif
+#ifdef _WIN32
+#	define BYTE_ORDER LITTLE_ENDIAN
+#endif
+#ifndef BYTE_ORDER
+#	warning BYTE_ORDER unknown, assuming BIG_ENDIAN
+#	define BYTE_ORDER BIG_ENDIAN
+#endif
+
+/* *_TO_LE(X) converts (X) to little endian. */
+#if BYTE_ORDER == LITTLE_ENDIAN
+#	define LONG_TO_LE(X) (X)
+#	define SHORT_TO_LE(X) (X)
+#else
+#	define LONG_TO_LE(X) ((((X) >> 24) & 0xff) | \
+		(((X) >> 8) & 0xff00) | (((X) & 0xff00) << 8) | \
+	       	(((X) & 0xff) << 24))
+#	define SHORT_TO_LE(X) ((((X) >> 8) & 0xff) | (((X) & 0xff) << 8))
+#endif
+
 DEFINE_KIND(k_loader);
 DEFINE_KIND(k_module);
 
 #define MAXSIZE 0x100
 #define ERROR() { return NULL; }
 #define READ(buf,len) if( r(p,buf,len) == -1 ) ERROR()
+#define READ_LONG(var) READ(&(var), 4); var = LONG_TO_LE(var)
+#define READ_SHORT(var) READ(&(var), 2); var = SHORT_TO_LE(var)
 
 extern field id_loader;
 extern field id_exports;
@@ -146,12 +175,12 @@ static neko_module *neko_module_read( reader r, readp p, value loader ) {
 	char *tmp = NULL;
 	int entry;
 	neko_module *m = (neko_module*)alloc(sizeof(neko_module));
-	READ(&itmp,4);
+	READ_LONG(itmp);
 	if( itmp != 0x4F4B454E )
 		ERROR();
-	READ(&m->nglobals,4);
-	READ(&m->nfields,4);
-	READ(&m->codesize,4);
+	READ_LONG(m->nglobals);
+	READ_LONG(m->nfields);
+	READ_LONG(m->codesize);
 	if( m->nglobals < 0 || m->nglobals > 0xFFFF || m->nfields < 0 || m->nfields > 0xFFFF || m->codesize < 0 || m->codesize > 0xFFFFF )
 		ERROR();
 	tmp = alloc_private(sizeof(char)*(((m->codesize+1)>MAXSIZE)?(m->codesize+1):MAXSIZE));
@@ -171,13 +200,13 @@ static neko_module *neko_module_read( reader r, readp p, value loader ) {
 			m->globals[i] = alloc_string(tmp);
 			break;
 		case 2:
-			READ(&itmp,4);
+			READ_LONG(itmp);
 			if( (itmp & 0xFFFFFF) >= m->codesize )
 				ERROR();
 			m->globals[i] = alloc_module_function(m,(itmp&0xFFFFFF),(itmp >> 24));
 			break;
 		case 3:
-			READ(&stmp,2);
+			READ_SHORT(stmp);
 			if( stmp > MAXSIZE ) {
 				char *ttmp;
 				ttmp = alloc_private(stmp);
@@ -225,7 +254,7 @@ static neko_module *neko_module_read( reader r, readp p, value loader ) {
 			break;
 		case 3:
 			m->code[i++] = (t >> 2);
-			READ(&itmp,4);
+			READ_LONG(itmp);
 			tmp[i] = 0;
 			m->code[i++] = itmp;
 			break;
