@@ -19,6 +19,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
+				AdditionalIncludeDirectories="../libs/include"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;NEKOVM_DLL_EXPORTS;NEKO_SOURCES"
 				MinimalRebuild="TRUE"
 				BasicRuntimeChecks="3"
@@ -31,7 +32,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="gc/gc.lib"
+				AdditionalDependencies="../libs/include/gc/gc.lib"
 				OutputFile="../bin/neko.dll"
 				LinkIncremental="2"
 				GenerateDebugInformation="TRUE"
@@ -68,6 +69,7 @@
 			CharacterSet="2">
 			<Tool
 				Name="VCCLCompilerTool"
+				AdditionalIncludeDirectories="../libs/include"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;NEKOVM_DLL_EXPORTS;NEKO_SOURCES"
 				RuntimeLibrary="2"
 				BufferSecurityCheck="FALSE"
@@ -79,7 +81,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="gc/gc.lib msvcrt60.lib"
+				AdditionalDependencies="../libs/include/gc/gc.lib msvcrt60.lib"
 				OutputFile="../bin/neko.dll"
 				LinkIncremental="1"
 				IgnoreDefaultLibraryNames="MSVCRT"
