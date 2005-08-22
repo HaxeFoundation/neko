@@ -76,15 +76,12 @@ static void default_printer( const char *s, int len ) {
 }
 
 EXTERN neko_vm *neko_vm_alloc( neko_params *p ) {
-	int i;
 	neko_vm *vm = (neko_vm*)alloc(sizeof(neko_vm));	
 	vm->spmin = (int*)alloc(INIT_STACK_SIZE*sizeof(int));
 	vm->print = (p && p->printer)?p->printer:default_printer;
 	vm->custom = p?p->custom:NULL;
 	vm->spmax = vm->spmin + INIT_STACK_SIZE;
 	vm->sp = vm->spmax;
-	for(i=0;i<STACK_DELTA;i++)
-		*--vm->sp = (int)val_null;
 	vm->csp = vm->spmin - 1;
 	vm->this = val_null;
 	vm->env = alloc_array(0);
@@ -119,19 +116,12 @@ typedef int (*c_prim4)(int,int,int,int);
 typedef int (*c_prim5)(int,int,int,int,int);
 typedef int (*c_primN)(value*,int);
 
-#define DynError(cond,err)		if( cond ) { failure(#err); }
-#ifdef NEKO_OPTIMIZE
-#	define Error(cond,err)
-#else
-#	define Error(cond,err)			DynError(cond,err)
-#endif
-
+#define Error(cond,err)		if( cond ) { failure(err); }
 #define Instr(x)	case x:
 #define Next		break;
 
 #define PopMacro(n) { \
 		int tmp = n; \
-		Error(sp + tmp > vm->spmax, UNDERFLOW); \
 		while( tmp-- > 0 ) \
 			*sp++ = NULL; \
 	}
@@ -175,7 +165,6 @@ typedef int (*c_primN)(value*,int);
 			vm->this = this_arg; \
 			env = ((vfunction*)acc)->env; \
 		} else if( val_tag(acc) == VAL_PRIMITIVE ) { \
-			Error( sp + *pc > vm->spmax , UNDERFLOW ); \
 			if( *pc == ((vfunction*)acc)->nargs ) { \
 				SetupBeforeCall(this_arg); \
 				switch( *pc ) { \
@@ -218,7 +207,6 @@ typedef int (*c_primN)(value*,int);
 		}
 
 #define IntOp(op) \
-		Error( sp == vm->spmax , UNDERFLOW ); \
 		if( (acc & 1) && (*sp & 1) ) \
 			acc = (int)alloc_int(val_int(*sp) op val_int(acc)); \
 		else \
@@ -227,7 +215,6 @@ typedef int (*c_primN)(value*,int);
 		Next
 
 #define Test(test) \
-		Error( sp == vm->spmax , UNDERFLOW ); \
 		BeginCall(); \
 		acc = (int)val_compare((value)*sp,(value)acc); \
 		EndCall(); \
@@ -240,7 +227,6 @@ typedef int (*c_primN)(value*,int);
 #define DIV(x,y) ((x) / (y))
 
 #define NumberOp(op,fop,id_op,id_rop) \
-		Error( sp == vm->spmax , UNDERFLOW ); \
 		if( (acc & 1) && (*sp & 1) ) \
 			acc = (int)alloc_int(val_int(*sp) op val_int(acc)); \
 		else if( acc & 1 ) { \
@@ -278,14 +264,17 @@ extern int neko_stack_expand( int *sp, int *csp, neko_vm *vm );
 extern value append_int( neko_vm *vm, value str, int x, bool way );
 extern value append_strings( value s1, value s2 );
 
+#undef OVERFLOW
+#define OVERFLOW	"Stack Overflow"
+
 #ifdef ACC_SAVE
 #	define STACK_EXPAND { \
 		int _acc = acc; \
-		DynError( !neko_stack_expand(sp,csp,vm) , OVERFLOW ); \
+		Error( !neko_stack_expand(sp,csp,vm) , OVERFLOW ); \
 		acc = _acc; \
 	}
 #else
-#	define STACK_EXPAND DynError( !neko_stack_expand(sp,csp,vm) , OVERFLOW );
+#	define STACK_EXPAND Error( !neko_stack_expand(sp,csp,vm) , OVERFLOW );
 #endif
 
 void neko_setup_trap( neko_vm *vm, int where ) {
@@ -348,18 +337,14 @@ static int interp_loop( neko_vm *vm, int _acc, int *_pc, value env ) {
 	Instr(AccInt)
 		acc = *pc++;
 		Next;
-	Instr(AccStackFast)
-		acc = sp[*pc++];
-		Next;
 	Instr(AccStack)
-		Error( sp + *pc >= vm->spmax , OUT_STACK );
 		acc = sp[*pc++];
 		Next;
 	Instr(AccGlobal)
 		acc = *(int*)(*pc++);
 		Next;
 	Instr(AccEnv)
-		Error( *pc >= val_array_size(env) , OUT_ENV );
+		Error( *pc >= val_array_size(env) , "Reading Outside Env" );
 		acc = (int)val_array_ptr(env)[*pc++];
 		Next;
 	Instr(AccField)
@@ -371,7 +356,6 @@ static int interp_loop( neko_vm *vm, int _acc, int *_pc, value env ) {
 		pc++;
 		Next;
 	Instr(AccArray)
-		Error( sp == vm->spmax , UNDERFLOW );
 		if( val_is_int(acc) && val_is_array(*sp) ) {
 			int k = val_int(acc);
 			if( k < 0 || k >= val_array_size(*sp) )
@@ -399,22 +383,17 @@ static int interp_loop( neko_vm *vm, int _acc, int *_pc, value env ) {
 	Instr(AccBuiltin)
 		acc = *pc++;
 		Next;
-	Instr(SetStackFast)
-		sp[*pc++] = acc;
-		Next;
 	Instr(SetStack)
-		Error( sp + *pc >= vm->spmax , OUT_STACK );
 		sp[*pc++] = acc;
 		Next;
 	Instr(SetGlobal)
 		*(int*)(*pc++) = acc;
 		Next;
 	Instr(SetEnv)
-		Error( *pc >= val_array_size(env) , OUT_ENV );
+		Error( *pc >= val_array_size(env) , "Writing Outside Env" );
 		val_array_ptr(env)[*pc++] = (value)acc;
 		Next;
 	Instr(SetField)
-		Error( sp == vm->spmax , UNDERFLOW );
 		if( val_is_object(*sp) ) {
 			ACC_BACKUP;
 			otable_replace(((vobject*)*sp)->table,(field)*pc,(value)acc);
@@ -424,7 +403,6 @@ static int interp_loop( neko_vm *vm, int _acc, int *_pc, value env ) {
 		pc++;
 		Next;
 	Instr(SetArray)
-		Error( sp >= vm->spmax - 1 , UNDERFLOW);
 		if( val_is_array(*sp) && val_is_int(sp[1]) ) {
 			int k = val_int(sp[1]);
 			if( k >= 0 && k < val_array_size(*sp) )
@@ -440,7 +418,6 @@ static int interp_loop( neko_vm *vm, int _acc, int *_pc, value env ) {
 		*sp++ = NULL;
 		Next;
 	Instr(SetIndex)
-		Error( sp >= vm->spmax , UNDERFLOW);
 		if( val_is_array(*sp) ) {
 			if( *pc >= 0 && *pc < val_array_size(*sp) )
 				val_array_ptr(*sp)[*pc] = (value)acc;
@@ -473,7 +450,6 @@ static int interp_loop( neko_vm *vm, int _acc, int *_pc, value env ) {
 		DoCall(vm->this);
 		Next;
 	Instr(ObjCall)
-		Error( sp == vm->spmax , UNDERFLOW );
 		{
 			value vtmp = (value)*sp; 
 			*sp++ = NULL;
@@ -511,12 +487,11 @@ static int interp_loop( neko_vm *vm, int _acc, int *_pc, value env ) {
 		pc++;
 		Next;
 	Instr(EndTrap)
-		Error( vm->spmax - (int)vm->trap != sp , END_TRAP );
+		Error( vm->spmax - (int)vm->trap != sp , "Invalid End Trap" );
 		vm->trap = (int*)val_int(sp[4]);
 		PopMacro(5);
 		Next;
 	Instr(Ret)
-		Error( csp - 2 < vm->spmin , UNDERFLOW );
 		PopMacro( *pc++ );
 		vm->this = (value)*csp;
 		*csp-- = NULL;
@@ -531,7 +506,6 @@ static int interp_loop( neko_vm *vm, int _acc, int *_pc, value env ) {
 			ACC_BACKUP
 			int tmp = (int)alloc_array(n);
 			ACC_RESTORE;
-			Error( sp + n > vm->spmax , UNDERFLOW);
 			while( n-- ) {
 				val_array_ptr(tmp)[n] = (value)*sp;
 				*sp++ = NULL;
@@ -547,7 +521,6 @@ static int interp_loop( neko_vm *vm, int _acc, int *_pc, value env ) {
 		{
 			int n = *pc++;
 			acc = (int)alloc_array(n);
-			Error( sp + n > vm->spmax , UNDERFLOW);
 			while( n-- ) {
 				val_array_ptr(acc)[n] = (value)*sp;
 				*sp++ = NULL;
@@ -567,7 +540,6 @@ static int interp_loop( neko_vm *vm, int _acc, int *_pc, value env ) {
 		acc = (int)((acc == (int)val_null)?val_false:val_true);
 		Next;
 	Instr(Add)
-		Error( sp == vm->spmax , UNDERFLOW );
 		if( (acc & 1) && (*sp & 1) )
 			acc = (int)alloc_int(val_int(*sp) + val_int(acc));
 		else if( acc & 1 ) {
@@ -626,7 +598,6 @@ static int interp_loop( neko_vm *vm, int _acc, int *_pc, value env ) {
 		Next;
 	Instr(Mod)
 		if( acc == 1 ) {
-			Error( sp == vm->spmax , UNDERFLOW );
 			acc	= (int)val_null;
 			*sp++ = NULL;
 			Next;
@@ -637,7 +608,6 @@ static int interp_loop( neko_vm *vm, int _acc, int *_pc, value env ) {
 	Instr(Shr)
 		IntOp(>>);
 	Instr(UShr)
-		Error( sp == vm->spmax , UNDERFLOW);
 		if( (acc & 1) && (*sp & 1) )
 			acc = (int)alloc_int(((unsigned int)val_int(*sp)) >> val_int(acc));
 		else
@@ -653,7 +623,6 @@ static int interp_loop( neko_vm *vm, int _acc, int *_pc, value env ) {
 	Instr(Eq)
 		Test(==)
 	Instr(Neq)
-		Error( sp == vm->spmax , UNDERFLOW );
 		BeginCall();
 		acc = (int)((val_compare((value)*sp,(value)acc) == 0)?val_false:val_true);
 		EndCall();
@@ -671,7 +640,6 @@ static int interp_loop( neko_vm *vm, int _acc, int *_pc, value env ) {
 		acc = (int)(val_is_int(acc) ? alloc_int(1) : TYPEOF[val_tag(acc)&7]);
 		Next;
 	Instr(Compare)
-		Error( sp == vm->spmax , UNDERFLOW );
 		BeginCall();
 		acc = (int)val_compare((value)*sp,(value)acc);
 		EndCall();
@@ -717,7 +685,7 @@ value neko_interp( neko_vm *vm, int acc, int *pc, value env ) {
 		if( vm->trap < vm->sp ) {
 			// trap outside stack
 			vm->trap = 0;
-			Error( 1 , INVALID_TRAP )
+			Error( 1 , "Invalid Trap" )
 		}
 
 		// pop csp
