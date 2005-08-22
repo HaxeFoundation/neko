@@ -334,7 +334,7 @@ EXTERN void _neko_failure( value msg, const char *file, int line ) {
 	if( fname2 > fname )
 		fname = fname2;
 	alloc_field(o,val_id("msg"),msg);
-	alloc_field(o,val_id("file"),alloc_string(fname?fname:file));
+	alloc_field(o,val_id("file"),alloc_string(fname?(fname+1):file));
 	alloc_field(o,val_id("line"),alloc_int(line));
 	alloc_field(o,id_string,alloc_function(failure_to_string,0,"failure_to_string"));
 	val_throw(o);
