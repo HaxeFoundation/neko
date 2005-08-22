@@ -1,0 +1,12 @@
+#### Specific definitions for linux
+
+APACHE_CFLAGS = -I/usr/local/apache/include
+MYSQL_CFLAGS = -I/usr/local/include/mysql
+
+CFLAGS = -O3 -fomit-frame-pointer -fno-defer-pop -I/usr/local/include
+LDFLAGS = -L/usr/local/lib
+LIBDL = -ldl
+LIBGC = -lgc
+LIBM = -lm
+LIBNEKO = -lneko
+MAKESO = ld -shared
