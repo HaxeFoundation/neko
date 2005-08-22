@@ -1,0 +1,4 @@
+The files in this directories are not part of Neko.
+They are here to ease the build of the Neko libraries under Windows.
+Please refer to the individual license of each of the library
+for more information.
