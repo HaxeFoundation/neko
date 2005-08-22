@@ -80,11 +80,8 @@ enum OPCODE {
 	New,
 
 	Last,
-
-	FastOps = 128,
-	AccStackFast,
-	SetStackFast,
 };
+
 
 #ifdef PARAMETER_TABLE
 static int parameter_table[] = {
@@ -144,6 +141,69 @@ static int parameter_table[] = {
 	0, // Compare
 	0, // Hash
 	0, // New
+};
+
+#define P	0xFF
+
+static int stack_table[] = {
+	0, // AccNull
+	0, // AccTrue
+	0, // AccFalse
+	0, // AccThis
+	0, // AccInt
+	0, // AccStack
+	0, // AccGlobal
+	0, // AccEnv
+	0, // AccField
+	-1, // AccArray
+	0, // AccIndex
+	0, // AccBuiltin
+	0, // SetStack
+	0, // SetGlobal
+	0, // SetEnv
+	-1, // SetField
+	-2, // SetArray
+	-1, // SetIndex
+	0, // SetThis
+	1, // Push
+	-P, // Pop
+	-P, // Call
+	-P, // ObjCall
+	0, // Jump
+	0, // JumpIf
+	0, // JumpIfNot
+	5, // Trap
+	-5, // EndTrap
+	0, // Ret
+	-P, // MakeEnv
+	-P, // MakeArray
+	0, // Bool
+	0, // IsNull
+	0, // IsNotNull
+	-1, // Add
+	-1, // Sub
+	-1, // Mult
+	-1, // Div
+	-1, // Mod
+	-1, // Shl
+	-1, // Shr
+	-1, // UShr
+	-1, // Or
+	-1, // And
+	-1, // Xor
+	-1, // Eq
+	-1, // Neq
+	-1, // Gt
+	-1, // Gte
+	-1, // Lt
+	-1, // Lte
+	0, // Not
+	0, // TypeOf
+	-1, // Compare
+	0, // Hash
+	0, // New
+
+	0, // Last
 };
 #endif
 
