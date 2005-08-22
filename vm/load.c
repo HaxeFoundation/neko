@@ -73,12 +73,78 @@ static int builtin_id( neko_module *m, field id ) {
 	return val_int(f);
 }
 
+#define UNKNOWN  ((unsigned char)-1)
+
+static int neko_check_stack( neko_module *m, unsigned char *tmp, unsigned int i, unsigned int start, unsigned int exit, int stack, int istack ) {
+	unsigned int itmp;
+	int k = 0;
+	while( i < exit ) {
+		int c = m->code[i];
+		int s = stack_table[c];
+		if( c == Trap )
+			stack += 0;
+		if( tmp[i] == UNKNOWN )
+			tmp[i] = stack;
+		else if( tmp[i] != stack )
+			return 0;
+		else
+			return 1;
+		if( s == P )
+			stack += m->code[i+1];
+		else if( s == -P )
+			stack -= m->code[i+1];
+		else
+			stack += s;
+		if( stack < istack || stack >= UNKNOWN )
+			return 0;
+		switch( c ) {
+		case Jump:
+		case JumpIf:
+		case JumpIfNot:
+		case Trap:
+			itmp = ((int*)m->code[i+1]) - m->code;
+			if( tmp[itmp] == UNKNOWN ) {
+				if( c == Trap )
+					stack -= s;
+				if( !neko_check_stack(m,tmp,itmp,start,exit,stack,istack) )
+					return 0;
+				if( c == Trap )
+					stack += s;
+			}
+			else if( tmp[itmp] != stack )
+				return 0;
+			if( c == Jump )
+				return 1;
+			break;
+		case AccStack:
+		case SetStack:
+			if( m->code[i+1] >= stack )
+				return 0;
+			break;
+		case Last:
+			if( stack != 0 )
+				return 0;
+			return 1;
+		case Ret:
+			if( m->code[i+1] != stack )
+				return 0;
+			return 1;
+		case ObjCall:
+			stack--;
+			break;
+		}
+		i += parameter_table[c]?2:1;
+	}
+	return 1;
+}
+
 static neko_module *neko_module_read( reader r, readp p, value loader ) {
 	unsigned int i;
 	unsigned int itmp;
 	unsigned char t;
 	unsigned short stmp;
 	char *tmp = NULL;
+	int entry;
 	neko_module *m = (neko_module*)alloc(sizeof(neko_module));
 	READ(&itmp,4);
 	if( itmp != 0x4F4B454E )
@@ -167,15 +233,7 @@ static neko_module *neko_module_read( reader r, readp p, value loader ) {
 	}
 	tmp[i] = 1;
 	m->code[i] = Last;
-	// Check globals
-	for(i=0;i<m->nglobals;i++) {
-		vfunction *f = (vfunction*)m->globals[i];
-		if( val_type(f) == VAL_FUNCTION ) {
-			if( (unsigned int)f->addr >= m->codesize || !tmp[(unsigned int)f->addr]  )
-				ERROR();
-			f->addr = m->code + (int)f->addr;
-		}
-	}
+	entry = m->code[1];
 	// Check bytecode
 	for(i=0;i<m->codesize;i++) {
 		int c = m->code[i];
@@ -206,8 +264,6 @@ static neko_module *neko_module_read( reader r, readp p, value loader ) {
 		case SetStack:
 			if( ((int)itmp) < 0 )
 				ERROR();
-			if( itmp < STACK_DELTA )
-				m->code[i] = (m->code[i] == AccStack)?AccStackFast:SetStackFast;
 			break;
 		case Ret:
 		case Pop:
@@ -244,6 +300,30 @@ static neko_module *neko_module_read( reader r, readp p, value loader ) {
 		}
 		if( !tmp[i+1] )
 			i++;
+	}
+	// Check stack preservation
+	{
+		int start = 2;
+		int stack = 0;		
+		char *stmp = alloc_private(m->codesize+1);
+		memset(stmp,UNKNOWN,m->codesize+1);
+		stmp[0] = 0;
+		for(i=0;i<m->nglobals;i++) {
+			vfunction *f = (vfunction*)m->globals[i];
+			if( val_type(f) == VAL_FUNCTION ) {
+				if( (unsigned int)f->addr >= m->codesize || !tmp[(unsigned int)f->addr]  )
+					ERROR();
+				if( !neko_check_stack(m,stmp,start,start,(int)f->addr,stack,stack) )
+					ERROR();
+				start = (int)f->addr;
+				stack = f->nargs;
+				f->addr = m->code + (int)f->addr;
+			}
+		}
+		if( !neko_check_stack(m,stmp,start,start,entry,stack,stack) )
+			ERROR();
+		if( !neko_check_stack(m,stmp,entry,entry,m->codesize,0,0) )
+			ERROR();
 	}
 	return m;
 }
