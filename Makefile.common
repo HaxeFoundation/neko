@@ -10,7 +10,7 @@ LIBDIR ?= ${PREFIX}/lib
 
 EXTLIB = -I ../extlib-dev -I +extLib -I +site-lib/extlib
 INSTALL = install
-OCAMLEX = ocamlex
+OCAMLEX = ocamllex
 OCAMLOPT = ocamlopt
 
 ### Generated files
