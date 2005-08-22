@@ -1,0 +1,81 @@
+Instructions for Building and Installation
+==========================================
+
+This file contains instructions for building and installing neko.
+
+Requirements
+------------
+
+You need to have the following installed to build neko:
+
+ - C compiler
+ - OCaml compiler (OCaml version 3.08, earlier versions won't work!)
+ - libgc
+ - Apache (for the mod_neko library)
+ - MySQL (for the mysql library)
+ - libprce (for the regexp library)
+ - make (both GNU make and BSD make should work)
+
+Note that for libgc, Apache, MySQL, and libpcre, you need both the 
+binaries and the header files. Header files are usually included in a 
+-dev or -devel package.
+
+The OCaml extension library extlib is required to build the compiler. If 
+you don't have extlib installed, you can say "make extlib" to download 
+and compile the latest version locally. This requires that you have CVS 
+installed.
+
+Editing the Makefiles
+---------------------
+
+Depending on your system, you may need to edit the Makefiles. The 
+Makefile as shipped is configured for a typical GNU/Linux system. If 
+you're on such a system, you probably don't have to edit anything and 
+you can skip this section. If things go wrong during the build, you can 
+always come back here.
+
+The top-level Makefile simply includes two files from the mk directory. 
+The first one is a file with platform-specific definitions, the second 
+one is common to all platforms. If you are on one of the supported 
+platforms (at the time of this writing: Linux, FreeBSD, NetBSD and 
+OpenBSD), you can simply remove the hash marks before the lines that 
+pertain to your platform, as per the instructions in the Makefile. You 
+can also run the configure script; on supported platforms, this will set 
+the right values in the Makefile for you.
+
+If Neko fails to build on your machine with any of the shipped 
+Makefiles, you will need to edit things by hand. Take a look at the 
+platform-specific makefiles in the directory mk to get an idea of how 
+this is done. Basically, it requires setting the right compiler and 
+linker flags for your system. These may vary depending on where certain 
+programs are installed, and which compiler is used. If you can't figure 
+it out, you can always ask on the mailing list.
+
+Building Neko
+-------------
+
+Once all the required software has been installed, you can build neko by 
+typing "make". This compiles the neko compiler, the libraries, and the 
+virtual machine. If all goes well, you can then type "make test" to 
+compile and run a test program.
+
+Installing Neko
+---------------
+
+After Neko has been compiled, you can install in with "make install". By 
+default, this installs to /usr/local. You can override this by setting 
+the PREFIX variable, e.g. "make install PREFIX=$HOME/neko" would install 
+to "$HOME/neko" instead.
+
+Makefile Targets
+----------------
+
+The following targets are available:
+
+all		Build the whole system; equivalent to "compiler libs vm"
+compiler	Build only the compiler
+extlib		Download and build extlib (required for the compiler)
+install		Install neko
+libs		Build the extension libraries
+test		Compile and run a test program
+vm		Build the virtual machine
