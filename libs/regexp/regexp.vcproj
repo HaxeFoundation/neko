@@ -19,7 +19,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="pcre;../../vm"
+				AdditionalIncludeDirectories="../include/pcre;../../vm"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;REGEXP_EXPORTS"
 				MinimalRebuild="TRUE"
 				BasicRuntimeChecks="3"
@@ -69,7 +69,7 @@
 			CharacterSet="2">
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="pcre;../../vm"
+				AdditionalIncludeDirectories="../include/pcre;../../vm"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;REGEXP_EXPORTS"
 				RuntimeLibrary="2"
 				BufferSecurityCheck="FALSE"
@@ -121,31 +121,31 @@
 			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx"
 			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}">
 			<File
-				RelativePath=".\pcre\chartables.c">
+				RelativePath="..\include\pcre\chartables.c">
 			</File>
 			<File
-				RelativePath=".\pcre\config.h">
+				RelativePath="..\include\pcre\config.h">
 			</File>
 			<File
-				RelativePath=".\pcre\get.c">
+				RelativePath="..\include\pcre\get.c">
 			</File>
 			<File
-				RelativePath=".\pcre\internal.h">
+				RelativePath="..\include\pcre\internal.h">
 			</File>
 			<File
-				RelativePath=".\pcre\maketables.c">
+				RelativePath="..\include\pcre\maketables.c">
 			</File>
 			<File
-				RelativePath=".\pcre\pcre.c">
+				RelativePath="..\include\pcre\pcre.c">
 			</File>
 			<File
-				RelativePath=".\pcre\pcre.h">
+				RelativePath="..\include\pcre\pcre.h">
 			</File>
 			<File
-				RelativePath=".\pcre\pcreposix.h">
+				RelativePath="..\include\pcre\pcreposix.h">
 			</File>
 			<File
-				RelativePath=".\pcre\study.c">
+				RelativePath="..\include\pcre\study.c">
 			</File>
 		</Filter>
 		<File

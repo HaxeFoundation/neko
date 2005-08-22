@@ -19,7 +19,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\vm;mysql"
+				AdditionalIncludeDirectories="..\..\vm;..\include\mysql"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;MYSQL_EXPORTS"
 				MinimalRebuild="TRUE"
 				BasicRuntimeChecks="3"
@@ -32,7 +32,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="mysql\mysqlclient.lib ws2_32.lib ..\..\bin\neko.lib"
+				AdditionalDependencies="..\include\mysql\mysqlclient.lib ws2_32.lib ..\..\bin\neko.lib"
 				OutputFile="../../bin/mysql.ndll"
 				LinkIncremental="2"
 				IgnoreDefaultLibraryNames="LIBCMT"
@@ -70,7 +70,7 @@
 			CharacterSet="2">
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="..\..\vm;mysql"
+				AdditionalIncludeDirectories="..\..\vm;..\include\mysql"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;MYSQL_EXPORTS"
 				RuntimeLibrary="2"
 				BufferSecurityCheck="FALSE"
@@ -82,7 +82,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="mysql\mysqlclient.lib ..\..\bin\neko.lib ws2_32.lib msvcrt60.lib"
+				AdditionalDependencies="..\include\mysql\mysqlclient.lib ..\..\bin\neko.lib ws2_32.lib msvcrt60.lib"
 				OutputFile="../../bin/mysql.ndll"
 				LinkIncremental="1"
 				IgnoreDefaultLibraryNames="MSVCRT;LIBCMT"
