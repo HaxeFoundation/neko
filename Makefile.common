@@ -18,19 +18,19 @@ OCAMLOPT = ocamlopt
 COMPILER_OBJECTS = ast.cmx lexer.cmx parser.cmx printer.cmx bytecode.cmx \
 	compile.cmx plugin.cmx main.cmx
 COMPILER_TARGETS = bin/neko
-LIBS_OBJECTS =
-LIBS_TARGETS = \
-	bin/regexp.ndll bin/std.ndll 
+LIBS_TARGETS = bin/regexp.ndll bin/mod_mts.ndll bin/mysql.ndll
 LIBNEKO_OBJECTS = alloc.o builtins.o callback.o context.o interp.o \
 	load.o objtable.o others.o
-TEST_TARGETS = libs/test.n
+TEST_TARGETS = bin/test.n
 VM_OBJECTS = ${LIBNEKO_OBJECTS} main.o
 VM_TARGETS = bin/nekovm bin/libneko.so
 TARGETS = ${COMPILER_TARGETS} ${LIBS_TARGETS} ${VM_TARGETS} ${TEST_TARGETS}
 
 ### Main Targets
 
-all : compiler libs vm
+all : extlib compiler vm libs
+
+mt : extlib compiler vm libs morelibs mtypes
 
 compiler : bin/neko
 
@@ -51,30 +51,43 @@ install : all
 	[ -d "${BINDIR}" ] || mkdir -p "${BINDIR}"
 	${INSTALL} -m 555 bin/neko bin/nekovm "${BINDIR}/"
 
-libs : ${LIBS_TARGETS}
+libs : bin/test.n bin/std.ndll
+
+morelibs : ${LIBS_TARGETS}
+
+mtypes : bin/cgi.n bin/mysql.n bin/regexp.n bin/std.n
 
 test : all
-	bin/neko libs/test.neko
 	LD_LIBRARY_PATH=bin bin/nekovm libs/test
 
 vm : bin/nekovm
 
 ### Subtargets
 
+bin/test.n : compiler
+	bin/neko libs/test.neko
+	mv libs/test.n bin
+
+bin/cgi.n : compiler
+	bin/neko libs/mtypes/cgi.neko
+	mv libs/mtypes/cgi.n bin
+
+bin/mysql.n : compiler
+	bin/neko libs/mtypes/mysql.neko
+	mv libs/mtypes/mysql.n bin
+
+bin/std.n : compiler
+	bin/neko libs/mtypes/std.neko
+	mv libs/mtypes/std.n bin
+
+bin/regexp.n : compiler
+	bin/neko libs/mtypes/regexp.neko
+	mv libs/mtypes/regexp.n bin
+
 bin/libneko.so :
 	(cd vm && \
 		${MAKE} -f ../Makefile libneko.so && \
 		cp -p libneko.so ../bin/)
-
-bin/mod_neko.ndll : libs/mod_neko/*.c
-	(cd libs/mod_neko && \
-		${CC} ${CFLAGS} -I../../vm ${APACHE_CFLAGS} -c *.c && \
-		${MAKESO} *.o -o ../../bin/mod_neko.ndll)
-
-bin/mysql.ndll : libs/mysql/*.c
-	(cd libs/mysql && \
-		${CC} ${CFLAGS} ${MYSQL_CFLAGS} -I../../vm -c *.c && \
-		${MAKESO} *.o -o ../../bin/mysql.ndll)
 
 bin/neko : neko/neko
 	cp -p neko/neko bin/neko
@@ -91,6 +104,16 @@ bin/std.ndll : libs/std/*.c
 	(cd libs/std && \
 		${CC} ${CFLAGS} -I../../vm -c *.c && \
 		${MAKESO} *.o -o ../../bin/std.ndll)
+
+bin/mod_neko.ndll : libs/mod_neko/*.c
+	(cd libs/mod_neko && \
+		${CC} ${CFLAGS} -I../../vm ${APACHE_CFLAGS} -c *.c && \
+		${MAKESO} *.o -o ../../bin/mod_neko.ndll)
+
+bin/mysql.ndll : libs/mysql/*.c
+	(cd libs/mysql && \
+		${CC} ${CFLAGS} ${MYSQL_CFLAGS} -I../../vm -c *.c && \
+		${MAKESO} *.o ${LIBMYSQL} -o ../../bin/mysql.ndll)
 
 extlib-dev :
 	cvs -z3 -d:pserver:anonymous@cvs.sourceforge.net:/cvsroot/ocaml-lib co extlib-dev
@@ -124,4 +147,4 @@ vm/main.o : vm/main.c
 .ml.cmx :
 	${OCAMLOPT} -pp camlp4o ${EXTLIB} -c $<
 
-.PHONY : all clean compiler distclean extlib libs test vm
+.PHONY : all clean compiler distclean extlib libs test vm morelibs mt mtypes
