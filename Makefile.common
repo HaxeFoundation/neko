@@ -18,7 +18,7 @@ OCAMLOPT = ocamlopt
 COMPILER_OBJECTS = ast.cmx lexer.cmx parser.cmx printer.cmx bytecode.cmx \
 	compile.cmx plugin.cmx main.cmx
 COMPILER_TARGETS = bin/neko
-LIBS_TARGETS = bin/regexp.ndll bin/mod_mts.ndll bin/mysql.ndll
+LIBS_TARGETS = bin/regexp.ndll bin/mod_neko.ndll bin/mysql.ndll
 LIBNEKO_OBJECTS = alloc.o builtins.o callback.o context.o interp.o \
 	load.o objtable.o others.o
 TEST_TARGETS = bin/test.n
