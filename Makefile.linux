@@ -10,6 +10,7 @@ LIBGC = -lgc
 LIBM = -lm
 LIBZ = -lz
 LIBNEKO = -lneko
+LIBPCRE = -lpcre
 MAKESO = ld -shared
 
 LIBMYSQL_STATIC = /usr/local/lib/mysql/libmysqlclient.a

@@ -100,7 +100,7 @@ bin/nekovm : vm/main.o bin/libneko.so
 bin/regexp.ndll : libs/regexp/*.c
 	(cd libs/regexp && \
 		${CC} ${CFLAGS} -I../../vm -c *.c && \
-		${MAKESO} *.o -o ../../bin/regexp.ndll)
+		${MAKESO} *.o ${LIBPCRE} -o ../../bin/regexp.ndll)
 
 bin/std.ndll : libs/std/*.c
 	(cd libs/std && \
