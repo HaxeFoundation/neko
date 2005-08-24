@@ -12,6 +12,6 @@ LIBZ = -lz
 LIBNEKO = -lneko
 MAKESO = ld -shared
 
-LIBMYSQL_STATIC = -lz /usr/local/lib/mysql/libmysqlclient.a
-LIBMYSQL_DYNAMIC = ${LIBZ} -lmysql
-LIBMYSQL = ${LIBZ} ${MYSQL_STATIC_LIB}
+LIBMYSQL_STATIC = /usr/local/lib/mysql/libmysqlclient.a
+LIBMYSQL_DYNAMIC = -lmysql
+LIBMYSQL = ${LIBZ} ${LIBMYSQL_STATIC}
