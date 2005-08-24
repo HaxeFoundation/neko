@@ -22,9 +22,11 @@ LIBS_TARGETS = bin/regexp.ndll bin/mod_neko.ndll bin/mysql.ndll
 LIBNEKO_OBJECTS = alloc.o builtins.o callback.o context.o interp.o \
 	load.o objtable.o others.o
 TEST_TARGETS = bin/test.n
+MTYPES_TARGET = bin/cgi.n bin/mysql.n bin/regexp.n bin/std.n
 VM_OBJECTS = ${LIBNEKO_OBJECTS} main.o
 VM_TARGETS = bin/nekovm bin/libneko.so
-TARGETS = ${COMPILER_TARGETS} ${LIBS_TARGETS} ${VM_TARGETS} ${TEST_TARGETS}
+TARGETS = bin/std.ndll ${COMPILER_TARGETS} ${LIBS_TARGETS} ${VM_TARGETS} \
+	${TEST_TARGETS} ${MTYPES_TARGETS}
 
 ### Main Targets
 
@@ -55,7 +57,7 @@ libs : bin/test.n bin/std.ndll
 
 morelibs : ${LIBS_TARGETS}
 
-mtypes : bin/cgi.n bin/mysql.n bin/regexp.n bin/std.n
+mtypes : ${MTYPES_TARGETS}
 
 test : all
 	LD_LIBRARY_PATH=bin bin/nekovm libs/test
