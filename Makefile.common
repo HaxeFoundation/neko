@@ -35,10 +35,10 @@ mt : extlib compiler vm libs morelibs mtypes
 compiler : bin/neko
 
 clean :
-	-(cd neko && rm ${COMPILER_OBJECTS} *.o *.obj *.cm* neko)
-	-(cd vm && rm ${VM_OBJECTS} libneko.so)
-	-rm -r extlib-dev
-	-rm libs/*/*.o
+	(cd neko && rm -rf ${COMPILER_OBJECTS} *.o *.obj *.cm* neko)
+	(cd vm && rm -rf ${VM_OBJECTS} libneko.so)
+	rm -rf extlib-dev
+	rm -rf libs/*/*.o
 
 distclean : clean
 	-rm ${TARGETS}
