@@ -48,20 +48,6 @@ type tconstant =
 	| TConstr of string
 	| TModule of string list * tconstant
 
-type match_id = int
-
-type match_tree = 
-	| TMFull
-	| TMAlways of match_id
-	| TMWhen of texpr * match_id * match_tree
-	| TMConstants of tconstant list * texpr option * match_id * match_tree
-
-and match_entry =
-	| TMTree of match_tree
-	| TMExec of texpr
-
-and match_table = match_entry array
-
 and texpr_decl =
 	| TConst of tconstant
 	| TBlock of texpr list
@@ -79,7 +65,6 @@ and texpr_decl =
 	| TRecordDecl of (string * texpr) list
 	| TListDecl of texpr list
 	| TUnop of string * texpr
-	| TMatch of texpr * match_table 
 
 and texpr = {
 	edecl : texpr_decl;
@@ -285,4 +270,4 @@ let rec polymorphize g t =
 	| TTuple tl -> List.iter (polymorphize g) tl
 	| TLink t -> polymorphize g t
 	| TFun (tl,t) -> List.iter (polymorphize g) tl; polymorphize g t
-	| TNamed (_,tl,t) -> List.iter (polymorphize g) tl; polymorphize g t
+	| TNamed (_,tl,t) -> List.iter (polymorphize g) tl

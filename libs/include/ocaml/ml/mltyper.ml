@@ -19,7 +19,6 @@
  
 open Mlast
 open Mltype
-open Mlmatch
 
 type module_context = {
 	path : string list;
@@ -80,7 +79,7 @@ let get_type ctx path name p =
 		Hashtbl.find m.types name
 	with
 		Not_found -> 
-			if m.expr = None then error (Module_not_loaded m) p;
+			if m != ctx.current && m.expr = None then error (Module_not_loaded m) p;
 			error (Custom ("Unknown type " ^ s_path path name)) p
 
 let get_constr ctx path name p =
@@ -90,7 +89,7 @@ let get_constr ctx path name p =
 		m.path , ut , t
 	with
 		Not_found -> 
-			if m.expr = None then error (Module_not_loaded m) p;		
+			if m != ctx.current && m.expr = None then error (Module_not_loaded m) p;		
 			error (Custom ("Unknown constructor " ^ s_path path name)) p
 
 let get_ident ctx path name p =
@@ -99,7 +98,7 @@ let get_ident ctx path name p =
 		PMap.find name (if path = [] then ctx.idents else m.midents)
 	with
 		Not_found -> 
-			if m.expr = None then error (Module_not_loaded m) p;
+			if m != ctx.current && m.expr = None then error (Module_not_loaded m) p;
 			error (Custom ("Unknown variable " ^ s_path path name)) p
 
 let link ctx t1 t2 p =
@@ -118,6 +117,8 @@ let record_field ctx f p =
 let unify_stack t1 t2 = function
 	| Error (Cannot_unify _ as e , p) -> error (Stack (e , Cannot_unify (t1,t2))) p
 	| e -> raise e
+
+let patpos (_,p,_) = p
 
 let is_alias = function
 	| TAbstract 
@@ -222,6 +223,7 @@ let rec type_constant ctx ?(path=[]) c p =
 		let path , ut , t = get_constr ctx path s p in
 		let t = duplicate ctx.gen (match t.texpr with
 			| TAbstract -> ut
+			| TTuple tl -> mk_fun ctx.gen tl ut
 			| _ -> mk_fun ctx.gen [t] ut) in
 		mk (TConst (TModule (path,TConstr s))) t p
 	| Module (path,c) ->
@@ -607,75 +609,68 @@ and type_pattern (ctx:context) h ?(h2 = Hashtbl.create 0) set (pat,p,t) =
 				Hashtbl.add h s t;
 				t
 	in
-	let pat , pt = (match pat with
+	let pt = (match pat with
 		| PConst c ->
-			let c , t = (match c with
-				| Int n -> TInt n , t_int
-				| Float s -> TFloat s , t_float
-				| String s -> TString s , t_string
-				| Ident s -> 
-					TIdent s , (if s = "_" then t_mono() else pvar s)
-				| Constr _ | Module _ ->
-					assert false
-			) in
-			TPConst c , t
+			(match c with
+			| Int n -> t_int
+			| Float s -> t_float
+			| String s -> t_string
+			| Ident s -> 
+				(if s = "_" then t_mono() else pvar s)
+			| Constr _ | Module _ ->
+				assert false)
 		| PTuple pl -> 
 			let pl = List.map (type_pattern ctx h ~h2 set) pl in
-			TPTuple pl , mk_tup ctx.gen (List.map (fun (_,_,t) -> t) pl)
+			mk_tup ctx.gen pl
 		| PRecord fl ->
 			let s = (try fst (List.hd fl) with _ -> assert false) in
 			let r , _ , _ = record_field ctx s p in
-			let fl = (match tlinks false r with
-				| TRecord rl ->
-					List.map (fun (f,pat) ->
-						let pat , pp , pt = type_pattern ctx h ~h2 set pat in
-						let t = (try 
-							let _ , _ , t = List.find (fun (f2,_,_) -> f = f2 ) rl in t 
-						with Not_found ->
-							error (Have_no_field (r,f)) p
-						) in
-						unify ctx pt t pp;
-						f , (pat , pp, pt)
-					) fl 
-				| _ ->
-					assert false
-			) in
-			TPRecord fl , r
-		| PConstr (path,s,param) ->
-			let param = (match param with None -> None | Some param -> Some (type_pattern ctx h ~h2 set param)) in
+			(match tlinks false r with
+			| TRecord rl ->
+				List.iter (fun (f,pat) ->
+					let pt = type_pattern ctx h ~h2 set pat in
+					let t = (try 
+						let _ , _ , t = List.find (fun (f2,_,_) -> f = f2 ) rl in t 
+					with Not_found ->
+						error (Have_no_field (r,f)) p
+					) in
+					unify ctx pt t (patpos pat);
+				) fl 
+			| _ ->
+				assert false);
+			r
+		| PConstr (path,s,param) ->			
+			let param = (match param with None -> None | Some ((_,p,_) as param) -> Some (p,type_pattern ctx h ~h2 set param)) in
 			let path , ut , t = get_constr ctx path s p in
-			let t = (match t.texpr , param with
-				| TAbstract , None -> duplicate ctx.gen ut
-				| TAbstract , Some _ -> error (Custom "Constructor does not take parameters") p
-				| _ , None -> error (Custom "Constructor require parameters") p
-				| _ , Some (pat , pp, pt) -> 
-					match pt with
-					| { texpr = TTuple [t2] } | t2 -> 
-						let h = Hashtbl.create 0 in
-						let ut = duplicate ctx.gen ~h ut in
-						let t = duplicate ctx.gen ~h t in
-						unify ctx t t2 pp;
-						ut
-			) in
-			TPConstr (path,s,param) , t
+			(match t.texpr , param with
+			| TAbstract , None -> duplicate ctx.gen ut
+			| TAbstract , Some _ -> error (Custom "Constructor does not take parameters") p
+			| _ , None -> error (Custom "Constructor require parameters") p
+			| _ , Some (p,pt) -> 
+				match pt with
+				| { texpr = TTuple [t2] } | t2 -> 
+					let h = Hashtbl.create 0 in
+					let ut = duplicate ctx.gen ~h ut in
+					let t = duplicate ctx.gen ~h t in
+					unify ctx t t2 p;
+					ut);
 		| PAlias (s,pat) ->
-			let pat , pp , pt = type_pattern ctx h ~h2 set pat in
+			let pt = type_pattern ctx h ~h2 set pat in
 			let t = pvar s in
-			unify ctx pt t pp;
-			TPAlias (s,(pat,pp,pt)) , t
+			unify ctx pt t (patpos pat);
+			t
 		| PList pl ->
 			let tl , t = t_poly ctx.gen "list" in
-			let pl = List.map (fun p ->
-				let pat , pp , pt = type_pattern ctx h ~h2 set p in
-				unify ctx pt t pp;
-				pat , pp , pt
-			) pl in
-			TPList pl , tl
+			List.iter (fun p ->
+				let pt = type_pattern ctx h ~h2 set p in
+				unify ctx pt t (patpos p);				
+			) pl;
+			tl
 	) in
 	(match t with 
 	| None -> ()
 	| Some t -> unify ctx pt (type_type ~h:h2 ctx t p) p);
-	pat , p , pt
+	pt
 	
 and type_match ctx e cl p =
 	let ret = t_mono() in
@@ -685,7 +680,7 @@ and type_match ctx e cl p =
 		let mainset = ref SSet.empty in
 		let pl = List.map (fun pat ->
 			let set = ref SSet.empty in
-			let pat , p , pt = type_pattern ctx h set pat in
+			let pt = type_pattern ctx h set pat in
 			if !first then begin
 				first := false;
 				mainset := !set;
@@ -707,8 +702,7 @@ and type_match ctx e cl p =
 		ctx.idents <- idents;
 		pl , wh , pe
 	) cl in
-	let tree = Mlmatch.make cl e.etype p in
-	mk (TMatch (e,tree)) ret p
+	Mlmatch.make cl e.etype p
 
 let context cpath = 
 	let ctx = {

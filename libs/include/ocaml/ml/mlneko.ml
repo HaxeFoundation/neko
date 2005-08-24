@@ -40,6 +40,11 @@ let pos (p : Mlast.pos) =
 		pfile = p.Mlast.pfile;
 	}
 
+let block e =
+	match e with
+	| EBlock _ , _ -> e 
+	| _ -> EBlock [e] , snd e
+
 let rec gen_constant ctx ?(path=[]) c =
 	match c with
 	| TVoid -> EConst Null
@@ -67,7 +72,8 @@ let rec gen_expr ctx e =
 		ctx.refvars <- PMap.remove s ctx.refvars;
 		EVars [s , Some (gen_expr ctx e)] , p
 	| TIf (e,e1,e2) -> EIf (gen_expr ctx e, gen_expr ctx e1, match e2 with None -> None | Some e2 -> Some (gen_expr ctx e2)) , p
-	| TFunction _ -> gen_functions ctx [e] p
+	| TFunction ("_",params,e) -> EFunction (List.map fst params,block (gen_expr ctx e)) , p
+	| TFunction _ -> EBlock [gen_functions ctx [e] p] , p
 	| TBinop (op,e1,e2) -> EBinop (op,gen_expr ctx e1,gen_expr ctx e2) , p
 	| TTupleDecl tl -> ECall (builtin "array",List.map (gen_expr ctx) tl) , p
 	| TTypeDecl t -> EBlock [] , p
@@ -92,12 +98,12 @@ let rec gen_expr ctx e =
 		| "!" -> ECall (builtin "not",[gen_expr ctx e]) , p
 		| "&" -> ECall (builtin "array",[gen_expr ctx e]) , p
 		| _ -> assert false)
-	| TMatch (e,pl) -> 
-		assert false
 
-and gen_functions ctx fl p =	
+and gen_functions ctx fl p =
 	let ell = ref (EVars (List.map (fun e ->
 		match e.edecl with
+		| TFunction ("_",params,e) ->
+			"_" , Some (EFunction (List.map fst params,block (gen_expr ctx e)),p)
 		| TFunction (name,_,_) ->
 			ctx.refvars <- PMap.add name () ctx.refvars;
 			name , Some (ECall (builtin "array",[EConst Null,null_pos]),null_pos)
@@ -107,18 +113,14 @@ and gen_functions ctx fl p =
 		let p = pos e.epos in
 		match e.edecl with
 		| TFunction (name,params,e) ->
-			let f() = 
+			if name <> "_" then begin
 				let e = gen_expr ctx e in
-				EFunction (List.map fst params,match e with EBlock _ , _ -> e | _ -> EBlock [e] , p) , p 
-			in
-			if name = "_" then 
-				ell := ENext (!ell,f()) , pos e.epos
-			else begin
-				let e = EBinop ("=",(EArray (ident name,int 0),p),f()) , p in
+				let e = EFunction (List.map fst params,block e) , p in
+				let e = EBinop ("=",(EArray (ident name,int 0),p),e) , p in
 				let e = EBlock [e; EBinop ("=",ident name,(EArray (ident name,int 0),p)) , p] , p in		
 				ell := ENext (!ell, e) , p;
+				ctx.refvars <- PMap.remove name ctx.refvars;
 			end;
-			ctx.refvars <- PMap.remove name ctx.refvars;
 		| _ ->
 			assert false
 	) fl;
