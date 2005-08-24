@@ -44,7 +44,7 @@ let error e pos =
 let keywords =
 	let h = Hashtbl.create 3 in
 	List.iter (fun k -> Hashtbl.add h (s_keyword k) k)
-	[Var;If;Else;Fun;Try;Catch;Type;Match]
+	[Var;If;Else;Function;Try;Catch;Type;Match]
 	; h
 
 let init file =

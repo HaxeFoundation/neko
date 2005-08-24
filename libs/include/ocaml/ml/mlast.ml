@@ -35,7 +35,7 @@ type keyword =
 	| Var
 	| If
 	| Else
-	| Fun
+	| Function
 	| Try
 	| Catch
 	| Type
@@ -142,7 +142,7 @@ let s_keyword = function
 	| Var -> "var"
 	| If -> "if"
 	| Else -> "else"
-	| Fun -> "fun"
+	| Function -> "function"
 	| Try -> "try"
 	| Catch -> "catch"
 	| Type -> "type"

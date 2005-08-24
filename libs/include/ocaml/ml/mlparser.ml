@@ -97,12 +97,12 @@ and expr = parser
 		(match s with parser
 		| [< '(Keyword Else,_); e2 = expr; s >] -> expr_next (EIf (cond,e,Some e2),punion p1 (pos e2)) s
 		| [< >] -> expr_next (EIf (cond,e,None),punion p1 (pos e)) s)
-	| [< '(Keyword Fun,p1); n = ident_opt; '(ParentOpen,po); p = parameter_names; s >] ->
+	| [< '(Keyword Function,p1); n = ident_opt; '(ParentOpen,po); p = parameter_names; s >] ->
 		(match s with parser
 		| [< '(ParentClose,_); t = type_opt; e = expr; s >] -> expr_next (EFunction (n,p,e,t),punion p1 (pos e)) s
 		| [< 'x >] -> unclosed "(" x)
 	| [< '(Keyword Type,p1); pl = type_decl_parameters; '(Const (Ident tname),p2); d , p2 = type_declaration p2; s >] ->
-		expr_next (ETypeDecl (pl,tname,d) , punion p1 p2) s
+		ETypeDecl (pl,tname,d) , punion p1 p2
 	| [< '(BracketOpen,p1); b = block; '(BracketClose,p2); s >] ->
 		expr_next (EListDecl b , punion p1 p2) s
 	| [< '(Keyword Match,p1); e = expr; '(BraceOpen,po); pl = patterns; s >] ->
