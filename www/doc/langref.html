@@ -950,8 +950,18 @@ Defining new functions is easy, since functions are values, you can simply assig
 
 <pre>
 	var add = function(x,y) { return x + y };
-	var plus5 = $closure(add,5);
+	var plus5 = $closure(add,null,5); // null context and 5 as first argument
 	$print( plus5(2) ); // 7
+</pre>
+
+<p>
+	The builtin <code>$closure</code> can also be used to fix the <code>this</code> context of a function :
+</p>
+
+<pre>
+	var f = function() { $print(this) };
+	f = $closure(f,55);
+	f(); // prints 55
 </pre>
 
 <p>
