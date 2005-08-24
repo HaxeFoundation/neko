@@ -35,7 +35,7 @@ mt : extlib compiler vm libs morelibs mtypes
 compiler : bin/neko
 
 clean :
-	-(cd neko && rm ${COMPILER_OBJECTS} *.o neko)
+	-(cd neko && rm ${COMPILER_OBJECTS} *.o *.obj *.cm* neko)
 	-(cd vm && rm ${VM_OBJECTS} libneko.so)
 	-rm -r extlib-dev
 	-rm libs/*/*.o
@@ -119,7 +119,7 @@ extlib-dev :
 	cvs -z3 -d:pserver:anonymous@cvs.sourceforge.net:/cvsroot/ocaml-lib co extlib-dev
 
 extlib-dev/extLib.cmxa : extlib-dev
-	(cd extlib-dev; ocaml install.ml -d "" -n -nodoc)
+	(cd extlib-dev; ocaml install.ml -d "" -n -nodoc; touch extLib.cmxa)
 
 libneko.so : ${LIBNEKO_OBJECTS}
 	${MAKESO} ${LIBNEKO_OBJECTS} -o libneko.so ${LDFLAGS} \
