@@ -178,6 +178,20 @@ static value file_path( value o ) {
 	return val_file(o)->name;
 }
 
+#define MAKE_STDIO(name) \
+	static value file_##name() { \
+		value ret; \
+		fio *f; \
+		ret = file_new(alloc_string(""), alloc_string(#name)); \
+		f = val_file(ret); \
+		f->io = name; \
+		return ret; \
+	}
+
+MAKE_STDIO(stdin);
+MAKE_STDIO(stdout);
+MAKE_STDIO(stderr);
+
 DEFINE_PRIM(file_new,2);
 DEFINE_PRIM(file_open,2);
 DEFINE_PRIM(file_close,1);
