@@ -20,6 +20,14 @@
 open Ast
 open Bytecode
 
+type label = {
+	lname : string;
+	ltraps : int;
+	lstack : int;
+	mutable lpos : int option;
+	mutable lwait : (unit -> unit) list;
+}
+
 type context = {
 	mutable ops : opcode DynArray.t;
 	mutable locals : (string,int) PMap.t;
@@ -35,6 +43,7 @@ type context = {
 	mutable continues : ((unit -> unit) * pos) list;
 	mutable functions : (opcode DynArray.t * int * int) list;
 	mutable gtable : global DynArray.t;
+	labels : (string,label) Hashtbl.t;
 }
 
 type error_msg = 
@@ -156,6 +165,66 @@ let process_breaks (ctx,_,oldb,oldl) =
 let check_breaks ctx =
 	List.iter (fun (_,p) -> error (Custom "Break outside a loop") p) ctx.breaks;
 	List.iter (fun (_,p) -> error (Custom "Continue outside a loop") p) ctx.continues
+
+let rec scan_labels ctx supported e =
+	match fst e with
+	| EFunction (args,e) -> 
+		let nargs = List.length args in
+		ctx.stack <- ctx.stack + nargs;
+		scan_labels ctx supported e;
+		ctx.stack <- ctx.stack - nargs;
+	| EBlock _ -> 
+		let old = ctx.stack in
+		Ast.iter (scan_labels ctx supported) e;
+		ctx.stack <- old
+	| EVars l ->
+		List.iter (fun (_,e) ->
+			(match e with
+			| None -> ()
+			| Some e -> scan_labels ctx supported e);
+			ctx.stack <- ctx.stack + 1
+		) l
+	| ELabel l when not supported ->
+		error (Custom "Label is not supported in this part of the program") (snd e);
+	| ELabel l when Hashtbl.mem ctx.labels l ->
+		error (Custom ("Duplicate label " ^ l)) (snd e)
+	| ELabel l ->
+		Hashtbl.add ctx.labels l {
+			lname = l;
+			ltraps = ctx.ntraps;
+			lstack = ctx.stack;
+			lpos = None;
+			lwait = [];
+		}
+	| ETry (e,_,e2) ->
+		ctx.stack <- ctx.stack + trap_stack_delta;
+		ctx.ntraps <- ctx.ntraps + 1;
+		scan_labels ctx supported e;
+		ctx.stack <- ctx.stack - trap_stack_delta;
+		ctx.ntraps <- ctx.ntraps - 1;
+		ctx.stack <- ctx.stack + 1;
+		scan_labels ctx supported e2;
+		ctx.stack <- ctx.stack - 1;
+	| EBinop ("=",e1,e2) ->
+		scan_labels ctx supported e2;
+		ctx.stack <- ctx.stack + 1;
+		scan_labels ctx supported e1;
+		ctx.stack <- ctx.stack - 1;
+	| EConst _
+	| EContinue 
+	| EBreak _
+	| EReturn _ 
+	| EIf _
+	| EWhile _ 
+	| EParenthesis _
+	| ENext _ ->
+		Ast.iter (scan_labels ctx supported) e
+	| EBinop _
+	| EObject _
+	| EArray _
+	| ECall _
+	| EField _ ->
+		Ast.iter (scan_labels ctx false) e
 
 let compile_constant ctx c p =
 	match c with
@@ -304,14 +373,13 @@ and compile_function ctx params e =
 	ctx.nenv <- 0;
 	ctx.ntraps <- 0;
 	ctx.limit <- ctx.stack;
-	ctx.stack <- ctx.stack + 1;
 	List.iter (fun v ->
 		ctx.stack <- ctx.stack + 1;
 		ctx.locals <- PMap.add v ctx.stack ctx.locals;
 	) params;
 	let s = ctx.stack in
 	compile ctx e;
-	write ctx (Ret (ctx.stack - ctx.limit - 1));
+	write ctx (Ret (ctx.stack - ctx.limit));
 	assert( ctx.stack = s );
 	check_breaks ctx;
 	ctx.stack <- ctx.limit;
@@ -358,6 +426,39 @@ and compile_builtin ctx b el p =
 		write ctx Push;
 		compile ctx e2;
 		write ctx Compare
+	| "goto" , [ EConst (Ident l) , _ ] ->
+		let l = (try Hashtbl.find ctx.labels l with Not_found -> error (Custom ("Unknown label " ^ l)) p) in
+		let os = ctx.stack in
+		let ntraps = ref ctx.ntraps in
+		let etraps = ref [] in
+		while !ntraps > l.ltraps do
+			write ctx EndTrap;
+			ctx.stack <- ctx.stack - trap_stack_delta;
+			ntraps := !ntraps - 1;
+		done;
+		while !ntraps < l.ltraps do
+			etraps := (pos ctx) :: !etraps;
+			write ctx (Trap 0);
+			ntraps := !ntraps + 1;
+		done;
+		if ctx.stack > l.lstack then write ctx (Pop (ctx.stack - l.lstack));
+		while ctx.stack < l.lstack do
+			write ctx Push;
+		done;
+		ctx.stack <- os;
+		(match l.lpos with
+		| None -> l.lwait <- jmp ctx :: l.lwait
+		| Some p -> write ctx (Jump p));
+		if !etraps <> [] then begin
+			List.iter (fun p ->
+				DynArray.set ctx.ops p (Trap (pos ctx - p));
+			) !etraps;
+			write ctx Push;
+			compile_constant ctx (Builtin "throw") p;
+			write ctx (Call 1);
+		end;
+	| "goto" , _ ->
+		error (Custom "Invalid $goto statement") p
 	| _ ->
 		List.iter (fun e ->
 			compile ctx e;
@@ -483,13 +584,13 @@ and compile ctx (e,p) =
 		for i = 1 to ctx.ntraps do
 			write ctx EndTrap;
 		done;
-		write ctx (Ret (ctx.stack - ctx.limit - 1));
+		write ctx (Ret (ctx.stack - ctx.limit));
 	| EReturn (Some e) ->
 		compile ctx e;
 		for i = 1 to ctx.ntraps do
 			write ctx EndTrap;
 		done;
-		write ctx (Ret (ctx.stack - ctx.limit - 1 - ctx.ntraps * trap_stack_delta));
+		write ctx (Ret (ctx.stack - ctx.limit - ctx.ntraps * trap_stack_delta));
 	| EBreak e ->
 		assert (ctx.ntraps = 0);
 		(match e with
@@ -528,6 +629,13 @@ and compile ctx (e,p) =
 			write ctx (AccStack 0);
 		) fl;
 		write ctx (Pop 1)
+	| ELabel l ->
+		let l = (try Hashtbl.find ctx.labels l with Not_found -> assert false) in
+		if ctx.stack <> l.lstack then assert false;
+		if ctx.ntraps <> l.ltraps then assert false;
+		List.iter (fun f -> f()) l.lwait;
+		l.lwait <- [];
+		l.lpos <- Some (pos ctx)
 
 let compile file ast =
 	let ctx = {
@@ -545,7 +653,9 @@ let compile file ast =
 		env = PMap.empty;
 		nenv = 0;
 		ntraps = 0;
+		labels = Hashtbl.create 0;
 	} in
+	scan_labels ctx true ast;
 	compile ctx ast;
 	check_breaks ctx;
 	if ctx.functions <> [] || Hashtbl.length ctx.gobjects <> 0 then begin

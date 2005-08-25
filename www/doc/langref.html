@@ -27,6 +27,7 @@
 	<li><a href="#arrays">Arrays</a></li>
 	<li><a href="#strings">Strings</a></li>
 	<li><a href="#exceptions">Exceptions</a></li>
+	<li><a href="#labels">Labels and Gotos</a></li>
 </ul>
 
 <!-- ****************************************************************************** -->
@@ -53,7 +54,7 @@ The syntax is parsed using a left-to-right LL(1) parser. That means that after r
 		| &epsilon;
 
 	    <i>ident</i> :=
-		| [a-zA-Z_@] [a-zA-Z0-9_@:]*
+		| [a-zA-Z_@] [a-zA-Z0-9_@]*
 
 	    <i>binop</i> :=
 		| [!=*/&lt;&gt;&amp;|^%+:-]+
@@ -90,6 +91,7 @@ The syntax is parsed using a left-to-right LL(1) parser. That means that after r
 		| <b>return</b> [<i>expr</i> | <b>SEMICOLON</b>]
 		| <b>break</b> [<i>expr</i> | <b>SEMICOLON</b>]
 		| <b>continue</b>
+		| <i>ident</i> <b>:</b>
 
 	    <i>variables</i> :=
 		| <i>ident</i> [<b>=</b> <i>expr</i>] <i>variables</i>
@@ -198,6 +200,7 @@ Before evaluating any expression, all sub-expressions are evaluated in an unspec
 <li><code><b>break</b>;</code> : exit current while loop with unspecified return value.</li>
 <li><code><b>break</b> v</code> : exit current while loop and return value <code>v</code>.</li>
 <li><code><b>continue</b></code> : continue execution to next while loop step.</li>
+<li><code><i>ident</i>:</code> : a label, see the corresponding section.</li>
 </ul>
 
 <p>
@@ -1272,10 +1275,89 @@ Exceptions are often referred as "non local jumps". It's a very good way for han
 	}
 </pre>
 
+<!-- ****************************************************************************** -->
+
+<a name="labels"></a>
+<h2>Labels and Gotos</h2>
+
+<p>
+	It is sometimes useful to be able to jump directly at some code location. Labels are providing a way to <em>mark</em> a location in the code and the builtin <code>$goto</code> can jump to a label :
+</p>
+
+<pre>
+    $print("enter");
+    $goto(next);
+    $print("skipping");
+    next:
+    $print("done");
+</pre>
+
+<p>
+	Please note that labels identifiers are globals to the file, but cannot be defined in all expressions. The reason is to simplify the compiler since labels normaly require multiple passes for stack preservation (see below). In the case a label cannot be declared an error is printed at compilation-time. The builtin <code>$goto</code> can only be used with a valid label identifier, in that case only, the identifier is treated as a label and not as a variable.
+</p>
+
+<h3>Gotos and Stack Preservation</h3>
+
+<p>
+	In all cases, gotos to labels are preserving the stack. For example in the following case, the variable "x" is popped out of the stack when the goto occurs :
+</p>
+
+<pre>
+    {
+        var x = 0;
+        $goto(next);
+    }
+    next:
+</pre>
+
+<p>
+	If the goto is done <em>inside</em> a block having defined local variables, theses variables are also accessible but their values are unspecified :
+</p>
+
+<pre>
+	$goto(next);
+    {
+        var x = 0;
+        next:
+        $print(x);
+    }
+</pre>
+
+
+<h3>Gotos and Exceptions</h3>
+
+<p>
+	In the same way gotos are preserving the stack size, they are also preserving the exception handlers, such as the following program is correctly compiled :
+</p>
+
+<pre>
+    try {
+        $goto(next);
+    } catch e {
+        ...
+    }
+    next:
+</pre>
+
+<p>
+	In the case a goto is done inside a <code>try...catch</code> block, a temporary exception handler will be set that will only reraise the exception. The exception is not handled by the <code>catch</code> block since the <code>try</code> setup have been skipped :
+</p>
+
+<pre>
+    $goto(next);
+    try {
+        next:
+        $throw("error");
+    } catch e {
+        ...
+    }
+</pre>
+
+
+<!-- ****************************************************************************** -->
 
 <h1>End</h1>
 
 <p>
 	Hope you didn't fell asleep while reading this long document. <em>Questions ?</em> Use the <a href="/?doc=doc">Mailing List</a>.
 </p>
-
