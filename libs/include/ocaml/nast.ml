@@ -88,6 +88,7 @@ type expr_decl =
 	| EContinue
 	| ENext of expr * expr
 	| EObject of (string * expr) list
+	| ELabel of string
 
 and expr = expr_decl * pos
 
@@ -126,6 +127,7 @@ let map f (e,p) =
 	| EReturn None
 	| EBreak None
 	| EContinue	
+	| ELabel _
 	| EConst _ as x -> x) , p
 
 let iter f (e,p) =
@@ -148,6 +150,7 @@ let iter f (e,p) =
 	| EReturn None
 	| EBreak None
 	| EContinue
+	| ELabel _
 	| EConst _ -> ()
 
 let is_printable c = c >= '\032' && c <= '\126'

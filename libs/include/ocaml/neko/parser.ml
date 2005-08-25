@@ -60,7 +60,11 @@ let rec program = parser
 	| [< '(Semicolon,_); p = program >] -> p
 	| [< '(Eof,_) >] -> []
 
-and expr = parser	
+and expr = parser
+	| [< '(Const ((Ident k) as i),p); s >] ->
+		(match s with parser
+		| [< '(Binop ":",p2); >] -> ELabel k , punion p p2
+		| [< s >] -> expr_next (EConst i,p) s)
 	| [< '(Const c,p); s >] ->
 		expr_next (EConst c,p) s
 	| [< '(BraceOpen,p1); e = block1; s >] ->

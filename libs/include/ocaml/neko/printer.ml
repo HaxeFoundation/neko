@@ -170,6 +170,8 @@ let rec print_ast ?(binop=false) ctx (e,p) =
 		loop fl;
 		level ctx false;
 		print ctx "}"
+	| ELabel s ->
+		print ctx "%s:" s
 
 and level_expr ctx (e,p) =
 	match e with
