@@ -126,6 +126,7 @@ and block1 = parser
 	| [< '(Const (Ident name),p); s >] ->
 		(match s with parser
 		| [< '(Arrow,_); e = expr; l = object_fields >] -> EObject ((name,e) :: l)
+		| [< '(Binop ":",p2); b = block >] -> EBlock ( (ELabel name, punion p p2) :: b )
 		| [< e = expr_next (EConst (Ident name),p); b = block >] -> EBlock (e :: b))
 	| [< b = block >] ->
 		EBlock b
