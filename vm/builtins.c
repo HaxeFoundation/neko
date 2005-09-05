@@ -326,8 +326,26 @@ static value builtin_field( value f ) {
 }
 
 static value builtin_int( value f ) {
-	if( val_is_string(f) )
+	if( val_is_string(f) ) {
+		char *c = val_string(f);
+		if( val_strlen(f) >= 2 && c[0] == '0' && c[1] == 'x' ) {
+			int h = 0;
+			c += 2;
+			while( *c ) {
+				char k = *c++;
+				if( k >= '0' && k <= '9' )
+					h = (h << 4) | (k - '0');
+				else if( k >= 'A' && k <= 'F' )
+					h = (h << 4) | ((k - 'A') + 10);
+				else if( k >= 'a' && k <= 'f' )
+					h = (h << 4) | ((k - 'a') + 10);
+				else
+					return alloc_int(0);
+			}
+			return alloc_int(h);
+		}
 		return alloc_int( atoi(val_string(f)) );
+	}
 	if( val_is_number(f) )
 		return alloc_int( (int)val_number(f) );
 	return val_null;
