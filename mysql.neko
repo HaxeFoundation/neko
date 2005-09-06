@@ -8,6 +8,7 @@ sql_connect = $loader.loadprim("mysql@connect",1);
 sql_select_db = $loader.loadprim("mysql@selectDB",2);
 sql_request = $loader.loadprim("mysql@request",2);
 sql_close = $loader.loadprim("mysql@close",1);
+sql_escape = $loader.loadprim("mysql@escape",2);
 
 result_get_length = $loader.loadprim("mysql@result_get_length",1);
 result_get_nfields = $loader.loadprim("mysql@result_get_nfields",1);
@@ -51,6 +52,10 @@ Sql.connect = function(params) {
 
 @Connection.close = function() {
 	sql_close(this.@c);
+}
+
+@Connection.escape = function(s) {
+	return String.new(sql_escape(this.@c,s.@s));
 }
 
 @Result = $new(null);
