@@ -11,7 +11,7 @@ LIBM = -lm
 LIBZ = -lz
 LIBNEKO = -lneko
 LIBPCRE = -lpcre
-MAKESO = ld -shared
+MAKESO = gcc -shared -WBsymbolic -fPIC
 
 LIBMYSQL_STATIC = /usr/local/lib/mysql/libmysqlclient.a
 LIBMYSQL_DYNAMIC = -lmysql
