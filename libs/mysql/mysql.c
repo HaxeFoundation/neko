@@ -42,7 +42,8 @@ static void error( MYSQL *m, const char *msg ) {
 typedef enum {
 	CONV_INT,
 	CONV_STRING,
-	CONV_FLOAT
+	CONV_FLOAT,
+	CONV_BINARY
 } CONV;
 
 typedef struct {
@@ -74,6 +75,7 @@ static value result_get_nfields( value o ) {
 
 static value result_next( value o ) {
 	result *r;
+	unsigned long *lengths = NULL;
 	MYSQL_ROW row;
 	val_check_kind(o,k_result);
 	r = RESULT(o);
@@ -96,6 +98,14 @@ static value result_next( value o ) {
 					break;
 				case CONV_FLOAT:
 					v = alloc_float(atof(row[i]));
+					break;
+				case CONV_BINARY:
+					if( lengths == NULL ) {
+						lengths = mysql_fetch_lengths(r->r);
+						if( lengths == NULL )
+							val_throw(alloc_string("mysql_fetch_lengths"));
+					}
+					v = copy_string(row[i],lengths[i]);
 					break;
 				default:
 					v = val_null;
@@ -168,6 +178,8 @@ static CONV convert_type( enum enum_field_types t ) {
 	case FIELD_TYPE_FLOAT:
 	case FIELD_TYPE_DOUBLE:
 		return CONV_FLOAT;
+	case FIELD_TYPE_BLOB:
+		return CONV_BINARY;
 	default:
 		return CONV_STRING;
 	}
@@ -244,6 +256,18 @@ static value request( value o, value r )  {
 	return alloc_result(res);
 }
 
+static value escape( value o, value s ) {
+	int len;
+	value sout;
+	val_check_kind(o,k_connection);
+	val_check(s,string);
+	len = val_strlen(s) * 2;
+	sout = alloc_empty_string(len);
+	len = mysql_real_escape_string(MYSQLDATA(o),val_string(sout),val_string(s),val_strlen(s));
+	val_set_length(sout,len);
+	return sout;
+}
+
 // ---------------------------------------------------------------
 // Sql
 
@@ -294,6 +318,7 @@ DEFINE_PRIM(connect,1);
 DEFINE_PRIM(close,1);
 DEFINE_PRIM(request,2);
 DEFINE_PRIM(selectDB,2);
+DEFINE_PRIM(escape,2);
 
 DEFINE_PRIM(result_get_length,1);
 DEFINE_PRIM(result_get_nfields,1);
