@@ -391,21 +391,22 @@ and compile_function ctx params e =
 	ctx.functions <- (ctx.ops,gid,List.length params) :: ctx.functions;
 	DynArray.add ctx.gtable (GlobalFunction (gid,-1));
 	ctx.ops <- ops;
-	if ctx.nenv > 0 then begin
-		let a = Array.create ctx.nenv "" in
-		PMap.iter (fun v i -> a.(i) <- v) ctx.env;
+	let local_env = ctx.env in
+	let local_nenv = ctx.nenv in
+	ctx.env <- env;
+	ctx.ntraps <- ntraps;
+	ctx.nenv <- nenv;
+	if local_nenv > 0 then begin
+		let a = Array.create local_nenv "" in
+		PMap.iter (fun v i -> a.(i) <- v) local_env;
 		Array.iter (fun v ->
-			let l = (try PMap.find v ctx.locals with Not_found -> assert false) in
-			write ctx (AccStack (ctx.stack - l));
+			compile_constant ctx (Ident v) null_pos;
 			write ctx Push;
 		) a;
 		write ctx (AccGlobal gid);
-		write ctx (MakeEnv ctx.nenv);
+		write ctx (MakeEnv local_nenv);
 	end else
 		write ctx (AccGlobal gid);
-	ctx.env <- env;
-	ctx.ntraps <- ntraps;
-	ctx.nenv <- nenv
 
 and compile_builtin ctx b el p =
 	match b , el with
