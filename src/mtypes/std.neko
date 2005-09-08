@@ -35,37 +35,35 @@ List.new = function() {
 	this.l = this.l + 1;
 };
 
-list_remove = function(l,cur,prev,x) {
-	if( $not(cur) )
-		return;
-	if( cur[0] == x ) {
-		if( prev != null )
-			prev[1] = cur[1];
-		else {
-			if( l.q == l.h )
-				l.q = null;
-			l.h = cur[1];
-		}
-		l.l = l.l - 1;
-		return true;
-	}
-	return list_remove(l,cur[1],cur,x);
-}
-
 @List.remove = function(x) {
-	return list_remove(this,this.h,null,x);
-}
-
-list_at = function(cur,p) {
-	if( cur == null )
-		return null;
-	if( $not(p) )
-		return cur[0];
-	return list_at(cur[1],p-1);
+	var cur = this.h;
+	var prev = null;
+	while( cur != null ) {
+		if( cur[0] == x ) {
+			if( prev == null ) {
+				if( this.q == this.h )
+					this.q = null;
+				this.h = cur[1];
+			} else
+				prev[1] = cur[1];
+			this.l = this.l - 1;
+			return true;
+		}
+		prev = cur;
+		cur = cur[1];
+	}
+	return false;
 }
 
 @List.at = function(p) {
-	return list_at(this.h,p);
+	var cur = this.h;
+	while( cur != null ) {
+		if( $not(p) )
+			return cur[0];
+		p = p - 1;
+		cur = cur[1];
+	}
+	return null;
 }
 
 @List.pop = function() {
@@ -160,23 +158,24 @@ list_at = function(cur,p) {
 	return b.__string();
 }
 
-list_copy = function(cur,f,q) {
-	var n = cur[1];
-	if( n != null )
-		return $array(f(cur[0]),list_copy(n,f,q));
-	else {
-		var last = $array(f(cur[0]),null);
-		q[0] = last;
-		return last;
-	}
-}
-
 @List.map = function(f) {
 	var l = List.new();
 	if( this.h != null ) {
-		var q = $array(null);
-		l.h = list_copy(this.h,f,q);
-		l.q = q[0];
+		var cur = this.h;
+		var last = null;
+		l.h = null;
+		while( cur != null ) {
+			if( last == null ) {
+				last = $array(f(cur[0]),null);
+				l.h = last;
+			} else {
+				var tmp = $array(f(cur[0]),null);
+				last[1] = tmp;
+				last = tmp;
+			}
+			cur = cur[1];
+		}
+		l.q = last;
 		l.l = this.l;
 	}
 	return l;
