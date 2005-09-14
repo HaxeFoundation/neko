@@ -241,6 +241,9 @@ static value parse_xml( value str, value fxml, value fpcdata ) {
 	val_check_function(fxml,3);
 	val_check_function(fpcdata,2);
 	p = val_string(str);
+	// skip BOM
+	if( p[0] == (char)0xEF && p[1] == (char)0xBB && p[2] == (char)0xBF )
+		p += 3;
 	v = do_parse_xml(&p,fxml,fpcdata,val_null,NULL);
 	if( v == NULL )
 		return val_null;
