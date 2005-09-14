@@ -44,7 +44,7 @@ void request_print( const char *data, int size ) {
 	mcontext *c = CONTEXT();
 	send_headers(c);
 	if( c->allow_write )
-		ap_rputs(data,c->r);
+		ap_rwrite(data,size,c->r);
 }
 
 static value cache_find( request_rec *r ) {
