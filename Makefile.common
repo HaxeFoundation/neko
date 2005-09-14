@@ -110,7 +110,7 @@ bin/std.ndll : libs/std/*.c
 bin/mod_neko.ndll : libs/mod_neko/*.c
 	(cd libs/mod_neko && \
 		${CC} ${CFLAGS} -I../../vm ${APACHE_CFLAGS} -c *.c && \
-		${MAKESO} *.o -o ../../bin/mod_neko.ndll)
+		${MAKESO} *.o -L../../bin ${LIBNEKO} -o ../../bin/mod_neko.ndll)
 
 bin/mysql.ndll : libs/mysql/*.c
 	(cd libs/mysql && \
