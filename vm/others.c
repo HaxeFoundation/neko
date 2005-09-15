@@ -30,20 +30,20 @@ extern _context *neko_fields_context;
 extern field id_compare;
 extern field id_string;
 
-static INLINE int icmp( int a, int b ) {
+static INLINE int_val icmp( int_val a, int_val b ) {
 	return (a == b)?0:((a < b)?-1:1);
 }
 
-static INLINE int fcmp( tfloat a, tfloat b ) {
+static INLINE int_val fcmp( tfloat a, tfloat b ) {
 	return (a == b)?0:((a < b)?-1:1);
 }
 
-static INLINE int scmp( const char *s1, int l1, const char *s2, int l2 ) {
-	int r = memcmp(s1,s2,(l1 < l2)?l1:l2); 
+static INLINE int_val scmp( const char *s1, int_val l1, const char *s2, int_val l2 ) {
+	int_val r = memcmp(s1,s2,(l1 < l2)?l1:l2); 
 	return r?r:icmp(l1,l2);
 }
 
-EXTERN int val_compare( value a, value b ) {
+EXTERN int_val val_compare( value a, value b ) {
 	char tmp_buf[32];
 	switch( C(val_type(a),val_type(b)) ) {
 	case C(VAL_INT,VAL_INT):
@@ -84,12 +84,12 @@ EXTERN int val_compare( value a, value b ) {
 
 typedef struct _stringitem {
 	char *str;
-	int len;
+	int_val len;
 	struct _stringitem *next;
 } * stringitem;
 
 struct _buffer {
-	int totlen;
+	int_val totlen;
 	stringitem data;
 };
 
@@ -102,7 +102,7 @@ EXTERN buffer alloc_buffer( const char *init ) {
 	return b;
 }
 
-EXTERN void buffer_append_sub( buffer b, const char *s, int len ) {	
+EXTERN void buffer_append_sub( buffer b, const char *s, int_val len ) {	
 	stringitem it;
 	if( s == NULL || len <= 0 )
 		return;
@@ -138,7 +138,7 @@ EXTERN value buffer_to_string( buffer b ) {
 
 EXTERN void val_buffer( buffer b, value v ) {
 	char buf[32];
-	int i, l;
+	int_val i, l;
 	switch( val_type(v) ) {
 	case VAL_INT:
 		buffer_append_sub(b,buf,sprintf(buf,"%d",val_int(v)));
@@ -192,8 +192,8 @@ EXTERN void val_buffer( buffer b, value v ) {
 // them to be inlined in interp.c by GCC since this will break 
 // register allocation
 
-value append_int( neko_vm *vm, value str, int x, bool way ) {
-	int len, len2;
+value append_int( neko_vm *vm, value str, int_val x, bool way ) {
+	int_val len, len2;
 	value v;
 	len = val_strlen(str);
 	len2 = sprintf(vm->tmp,"%d",x);
@@ -209,30 +209,30 @@ value append_int( neko_vm *vm, value str, int x, bool way ) {
 }
 
 value append_strings( value s1, value s2 ) {
-	int len1 = val_strlen(s1);
-	int len2 = val_strlen(s2);
+	int_val len1 = val_strlen(s1);
+	int_val len2 = val_strlen(s2);
 	value v = alloc_empty_string(len1+len2);
 	memcpy((char*)val_string(v),val_string(s1),len1);
 	memcpy((char*)val_string(v)+len1,val_string(s2),len2+1);
 	return v;
 }
 
-int neko_stack_expand( int *sp, int *csp, neko_vm *vm ) {
-	int i;
-	int size = (((int)vm->spmax - (int)vm->spmin) / sizeof(int)) << 1;
-	int *nsp;
+int_val neko_stack_expand( int_val *sp, int_val *csp, neko_vm *vm ) {
+	int_val i;
+	int_val size = (((int_val)vm->spmax - (int_val)vm->spmin) / sizeof(int_val)) << 1;
+	int_val *nsp;
 	if( size > MAX_STACK_SIZE )
 		return 0;
-	nsp = (int*)alloc(size * sizeof(int));
+	nsp = (int_val*)alloc(size * sizeof(int_val));
 	
 	// csp size
-	i = ((int)(csp + 1) - (int)vm->spmin) / sizeof(int);
-	memcpy(nsp,vm->spmin,sizeof(int) * i);
+	i = ((int_val)(csp + 1) - (int_val)vm->spmin) / sizeof(int_val);
+	memcpy(nsp,vm->spmin,sizeof(int_val) * i);
 	vm->csp = nsp + i - 1;
 	
 	// sp size
-	i = ((int)vm->spmax - (int)sp) / sizeof(int);
-	memcpy(nsp+size-i,sp,sizeof(int) * i);
+	i = ((int_val)vm->spmax - (int_val)sp) / sizeof(int_val);
+	memcpy(nsp+size-i,sp,sizeof(int_val) * i);
 	vm->sp = nsp + size - i;
 	vm->spmin = nsp;
 	vm->spmax = nsp + size;
@@ -249,7 +249,7 @@ EXTERN field val_id( const char *name ) {
 		acc = alloc_int(223 * val_int(acc) + *((unsigned char*)name));
 		name++;
 	}
-	f = (field)val_int(acc);
+	f = val_to_field(acc);
 	data = (objtable*)context_get(neko_fields_context);
 	if( data == NULL ) {
 		data = (objtable*)alloc_root(1);
@@ -327,7 +327,7 @@ static value failure_to_string() {
 	return buffer_to_string(b);
 }
 
-EXTERN void _neko_failure( value msg, const char *file, int line ) {
+EXTERN void _neko_failure( value msg, const char *file, int_val line ) {
 	char *fname = strrchr(file,'/');
 	char *fname2 = strrchr(file,'\\');
 	value o = alloc_object(NULL);
