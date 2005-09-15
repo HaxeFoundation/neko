@@ -93,8 +93,8 @@ static value file_contents( value o ) {
 	value s;
 	fio *f;
 	FILE *io;
-	int len;
-	int p;
+	size_t len;
+	size_t p;
 	val_check_kind(o,k_file);
 	f = val_file(o);
 	io = fopen(val_string(f->name),"rb");
@@ -106,7 +106,7 @@ static value file_contents( value o ) {
 	s = alloc_empty_string(len);
 	p = 0;
 	while( len > 0 ) {
-		int d = fread((char*)val_string(s)+p,1,len,io);
+		size_t d = fread((char*)val_string(s)+p,1,len,io);
 		if( d <= 0 ) {
 			fclose(io);
 			return val_null;
@@ -120,8 +120,8 @@ static value file_contents( value o ) {
 
 static value file_write( value o, value s ) {
 	fio *f;
-	int p = 0;
-	int len;
+	size_t p = 0;
+	size_t len;
 	val_check_kind(o,k_file);
 	val_check(s,string);
 	f = val_file(o);
@@ -129,7 +129,7 @@ static value file_write( value o, value s ) {
 		return val_false;
 	len = val_strlen(s);
 	while( len > 0 ) {
-		int d = fwrite(val_string(s)+p,1,len,f->io);
+		size_t d = fwrite(val_string(s)+p,1,len,f->io);
 		if( d <= 0 )			
 			return val_false;		
 		p += d;
@@ -140,8 +140,8 @@ static value file_write( value o, value s ) {
 
 static value file_read( value o, value n ) {
 	fio *f;
-	int p = 0;
-	int len;
+	size_t p = 0;
+	size_t len;
 	value s;
 	val_check_kind(o,k_file);
 	val_check(n,int);
@@ -151,7 +151,7 @@ static value file_read( value o, value n ) {
 		return val_null;
 	s = alloc_empty_string(len);
 	while( len > 0 ) {
-		int d = fread((char*)val_string(s)+p,1,len,f->io);
+		size_t d = fread((char*)val_string(s)+p,1,len,f->io);
 		if( d <= 0 ) {
 			val_set_length(s,p);
 			break;

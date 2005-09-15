@@ -29,7 +29,7 @@ struct _objtable {
 	value data;
 	struct _objtable *left;
 	struct _objtable *right;
-	int skew;
+	int_val skew;
 };
 
 value *otable_find(objtable t,field id);
@@ -39,9 +39,9 @@ value *otable_find(objtable t,field id);
 #define otable_remove(t,id) _otable_remove(&(t),id)
 #define otable_optimize(t) _otable_optimize(&(t))
 
-int otable_count(objtable t);
-unsigned int _otable_replace(objtable *t, field id, value data);
-unsigned int _otable_remove(objtable *t, field id);
+int_val otable_count(objtable t);
+uint_val _otable_replace(objtable *t, field id, value data);
+uint_val _otable_remove(objtable *t, field id);
 void _otable_optimize(objtable *t);
 
 
@@ -54,14 +54,14 @@ typedef struct {
 
 struct _objtable
 {
-	int count;
+	int_val count;
 	cell *cells;
 };
 
 static INLINE value *otable_find(objtable t,field id) {
-	int min;
-	int max;
-	int mid;
+	int_val min;
+	int_val max;
+	int_val mid;
 	field cid;
 	if( !t->count )
 		return NULL;
