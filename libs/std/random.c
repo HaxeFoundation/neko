@@ -58,7 +58,7 @@ struct timeval {
 };
 
 static int gettimeofday( struct timeval *t, struct timezone *tz ) {
-	t->tv_sec = time(NULL);
+	t->tv_sec = (long)time(NULL);
 	t->tv_usec = 0;
 	return 0;
 }
