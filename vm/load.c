@@ -72,10 +72,10 @@ extern field id_exports;
 extern field id_data;
 extern field id_module;
 extern value *neko_builtins;
-extern value alloc_module_function( void *m, int pos, int nargs );
+extern value alloc_module_function( void *m, int_val pos, int_val nargs );
 
-static int read_string( reader r, readp p, char *buf ) {
-	int i = 0;
+static int_val read_string( reader r, readp p, char *buf ) {
+	int_val i = 0;
 	char c;
 	while( i < MAXSIZE ) {
 		if( r(p,&c,1) == -1 )
@@ -87,10 +87,10 @@ static int read_string( reader r, readp p, char *buf ) {
 	return -1;
 }
 
-static int builtin_id( neko_module *m, field id ) {
+static int_val builtin_id( neko_module *m, field id ) {
 	value f = val_field(neko_builtins[NBUILTINS],id);
 	if( val_is_null(f) ) {
-		unsigned int i;
+		uint_val i;
 		for(i=0;i<m->nfields;i++)
 			if( val_id(val_string(m->fields[i])) == id ) {
 				buffer b = alloc_buffer("Builtin not found : ");
@@ -104,14 +104,14 @@ static int builtin_id( neko_module *m, field id ) {
 
 #define UNKNOWN  ((unsigned char)-1)
 
-static int neko_check_stack( neko_module *m, unsigned char *tmp, unsigned int i, int stack, int istack ) {
-	unsigned int itmp;
-	int k = 0;
+static int_val neko_check_stack( neko_module *m, unsigned char *tmp, uint_val i, int_val stack, int_val istack ) {
+	uint_val itmp;
+	int_val k = 0;
 	while( true ) {
-		int c = m->code[i];
-		int s = stack_table[c];
+		int_val c = m->code[i];
+		int_val s = stack_table[c];
 		if( tmp[i] == UNKNOWN )
-			tmp[i] = stack;
+			tmp[i] = (unsigned char)stack;
 		else if( tmp[i] != stack )
 			return 0;
 		else
@@ -129,7 +129,7 @@ static int neko_check_stack( neko_module *m, unsigned char *tmp, unsigned int i,
 		case JumpIf:
 		case JumpIfNot:
 		case Trap:
-			itmp = ((int*)m->code[i+1]) - m->code;
+			itmp = ((int_val*)m->code[i+1]) - m->code;
 			if( tmp[itmp] == UNKNOWN ) {
 				if( c == Trap )
 					stack -= s;
@@ -166,12 +166,12 @@ static int neko_check_stack( neko_module *m, unsigned char *tmp, unsigned int i,
 }
 
 static neko_module *neko_module_read( reader r, readp p, value loader ) {
-	unsigned int i;
-	unsigned int itmp;
+	uint_val i;
+	uint_val itmp;
 	unsigned char t;
 	unsigned short stmp;
 	char *tmp = NULL;
-	int entry;
+	int_val entry;
 	neko_module *m = (neko_module*)alloc(sizeof(neko_module));
 	READ_LONG(itmp);
 	if( itmp != 0x4F4B454E )
@@ -184,7 +184,7 @@ static neko_module *neko_module_read( reader r, readp p, value loader ) {
 	tmp = alloc_private(sizeof(char)*(((m->codesize+1)>MAXSIZE)?(m->codesize+1):MAXSIZE));
 	m->globals = (value*)alloc(m->nglobals * sizeof(value));
 	m->fields = (value*)alloc(sizeof(value*)*m->nfields);
-	m->code = (int*)alloc_private(sizeof(int)*(m->codesize+1));
+	m->code = (int_val*)alloc_private(sizeof(int_val)*(m->codesize+1));
 	m->loader = loader;
 	m->exports = alloc_object(NULL);
 	alloc_field(m->exports,id_module,alloc_abstract(k_module,m));
@@ -263,7 +263,7 @@ static neko_module *neko_module_read( reader r, readp p, value loader ) {
 	entry = m->code[1];
 	// Check bytecode
 	for(i=0;i<m->codesize;i++) {
-		int c = m->code[i];
+		int_val c = m->code[i];
 		itmp = m->code[i+1];
 		if( c >= Last || tmp[i+1] == parameter_table[c] )
 			ERROR();
@@ -273,7 +273,7 @@ static neko_module *neko_module_read( reader r, readp p, value loader ) {
 		case SetGlobal:
 			if( itmp >= m->nglobals )
 				ERROR();
-			m->code[i+1] = (int)(m->globals + itmp);
+			m->code[i+1] = (int_val)(m->globals + itmp);
 			break;
 		case Jump:
 		case JumpIf:
@@ -282,33 +282,33 @@ static neko_module *neko_module_read( reader r, readp p, value loader ) {
 			itmp += i;
 			if( itmp > m->codesize || !tmp[itmp] )
 				ERROR();
-			m->code[i+1] = (int)(m->code + itmp);
+			m->code[i+1] = (int_val)(m->code + itmp);
 			break;
 		case AccInt:
-			m->code[i+1] = (int)alloc_int((int)itmp);
+			m->code[i+1] = (int_val)alloc_int((int_val)itmp);
 			break;
 		case AccStack:
 		case SetStack:
-			if( ((int)itmp) < 0 )
+			if( ((int_val)itmp) < 0 )
 				ERROR();
 			break;
 		case Ret:
 		case Pop:
 		case AccEnv:
 		case SetEnv:
-			if( ((int)itmp) < 0 )
+			if( ((int_val)itmp) < 0 )
 				ERROR();
 			break;
 		case AccBuiltin:
 			if( (field)itmp == id_loader )
-				m->code[i+1] = (int)loader;
+				m->code[i+1] = (int_val)loader;
 			else if( (field)itmp == id_exports )
-				m->code[i+1] = (int)m->exports;
+				m->code[i+1] = (int_val)m->exports;
 			else {
 				itmp = builtin_id(m,(field)itmp);
 				if(	itmp >= NBUILTINS )
 					ERROR();
-				m->code[i+1] = (int)neko_builtins[itmp];
+				m->code[i+1] = (int_val)neko_builtins[itmp];
 			}
 			break;
 		case Call:
@@ -337,11 +337,11 @@ static neko_module *neko_module_read( reader r, readp p, value loader ) {
 		for(i=0;i<m->nglobals;i++) {
 			vfunction *f = (vfunction*)m->globals[i];
 			if( val_type(f) == VAL_FUNCTION ) {
-				if( (unsigned int)f->addr >= m->codesize || !tmp[(unsigned int)f->addr]  )
+				if( (uint_val)f->addr >= m->codesize || !tmp[(uint_val)f->addr]  )
 					ERROR();
-				if( !neko_check_stack(m,stmp,(int)f->addr,f->nargs,f->nargs) )
+				if( !neko_check_stack(m,stmp,(int_val)f->addr,f->nargs,f->nargs) )
 					ERROR();
-				f->addr = m->code + (int)f->addr;
+				f->addr = m->code + (int_val)f->addr;
 			}
 		}
 	}
@@ -415,10 +415,10 @@ static value default_loadmodule( value mname, value this ) {
 #	define dlsym(h,n)		GetProcAddress((HANDLE)h,n)
 #endif
 
-static int file_reader( readp p, void *buf, int size ) {
-	int len = 0;
+static int_val file_reader( readp p, void *buf, int_val size ) {
+	int_val len = 0;
 	while( size > 0 ) {
-		int l = fread(buf,1,size,(FILE*)p);
+		int_val l = fread(buf,1,size,(FILE*)p);
 		if( l <= 0 )
 			return len;
 		size -= l;
@@ -428,7 +428,7 @@ static int file_reader( readp p, void *buf, int size ) {
 	return len;
 }
 
-EXTERN int neko_default_load_module( const char *mname, reader *r, readp *p ) {
+EXTERN int_val neko_default_load_module( const char *mname, reader *r, readp *p ) {
 	FILE *f;
 	value fname = neko_select_file(mname,neko_vm_current()->env,".n");
 	f = fopen(val_string(fname),"rb");
@@ -451,9 +451,9 @@ typedef struct _liblist {
 
 typedef value (*PRIM0)();
 
-EXTERN void *neko_default_load_primitive( const char *prim, int nargs, void **custom ) {
+EXTERN void *neko_default_load_primitive( const char *prim, int_val nargs, void **custom ) {
 	char *pos = strchr(prim,'@');
-	int len;	
+	int_val len;	
 	liblist *l;
 	PRIM0 ptr;
 	if( pos == NULL )
