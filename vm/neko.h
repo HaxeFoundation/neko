@@ -25,6 +25,15 @@
 #	define NULL			0
 #endif
 
+#ifdef _WIN32
+#include <basetsd.h>
+typedef INT_PTR		int_val;
+typedef UINT_PTR	uint_val;
+#else
+typedef intptr_t	int_val;
+typedef uintptr_t	uint_val;
+#endif
+
 typedef enum {
 	VAL_INT			= 0xFF,
 	VAL_NULL		= 0,
@@ -68,7 +77,7 @@ typedef struct {
 
 typedef struct {
 	val_type t;
-	int nargs;
+	int_val nargs;
 	void *addr;
 	value env;
 	void *module;
@@ -92,7 +101,7 @@ typedef struct {
 
 #define val_tag(v)			(*(val_type*)v)
 #define val_is_null(v)		(v == val_null)
-#define val_is_int(v)		((((int)(v)) & 1) != 0)
+#define val_is_int(v)		((((int_val)(v)) & 1) != 0)
 #define val_is_bool(v)		(v == val_true || v == val_false)
 #define val_is_number(v)	(val_is_int(v) || val_tag(v) == VAL_FLOAT)
 #define val_is_float(v)		(!val_is_int(v) && val_tag(v) == VAL_FLOAT)
@@ -109,19 +118,20 @@ typedef struct {
 #define val_kind(v)			((vabstract*)v)->kind
 
 #define val_type(v)			(val_is_int(v) ? VAL_INT : (val_tag(v)&7))
-#define val_int(v)			(((int)(v)) >> 1)
+#define val_int(v)			(((int)(int_val)(v)) >> 1)
 #define val_float(v)		(CONV_FLOAT ((vfloat*)(v))->f)
 #define val_bool(v)			(v == val_true)
 #define val_number(v)		(val_is_int(v)?val_int(v):val_float(v))
 #define val_string(v)		(&((vstring*)(v))->c)
+#define val_to_field(v)		(field)(((int_val)(v)) >> 1)
 #define val_strlen(v)		(val_tag(v) >> 3)
 #define val_set_length(v,l) val_tag(v) = (val_tag(v)&7) | ((l) << 3)
 #define val_set_size		val_set_length
 
-#define val_array_size(v)	(val_tag(v) >> 3)
+#define val_array_size(v)	((int)(val_tag(v) >> 3))
 #define val_array_ptr(v)	(&((varray*)(v))->ptr)
-#define val_fun_nargs(v)	((vfunction*)(v))->nargs
-#define alloc_int(v)		((value)(((v) << 1) | 1))
+#define val_fun_nargs(v)	((int)((vfunction*)(v))->nargs)
+#define alloc_int(v)		((value)(int_val)(((v) << 1) | 1))
 #define alloc_bool(b)		((b)?val_true:val_false)
 
 #define max_array_size		((1 << 29) - 1)
@@ -156,7 +166,7 @@ typedef struct {
 #	ifndef true
 #		define true 1
 #		define false 0
-		typedef int bool;
+		typedef int_val bool;
 #	endif
 #endif
 
@@ -171,7 +181,7 @@ typedef struct {
 #define VAR_ARGS (-1)
 #define DEFINE_PRIM_MULT(func) C_FUNCTION_BEGIN EXPORT void *func##__MULT() { return &func; } C_FUNCTION_END
 #define DEFINE_PRIM(func,nargs) C_FUNCTION_BEGIN EXPORT void *func##__##nargs() { return &func; } C_FUNCTION_END
-#define DEFINE_KIND(name) int __kind_##name = 0; vkind name = (vkind)&__kind_##name;
+#define DEFINE_KIND(name) int_val __kind_##name = 0; vkind name = (vkind)&__kind_##name;
 #define DEFINE_ENTRY_POINT(name) C_FUNCTION_BEGIN void name(); EXPORT void *__neko_entry_point() { return &name; } C_FUNCTION_END
 
 #ifdef HEADER_IMPORTS
@@ -227,8 +237,8 @@ C_FUNCTION_BEGIN
 	EXTERN value alloc_float( tfloat t );
 
 	EXTERN value alloc_string( const char *str );
-	EXTERN value alloc_empty_string( unsigned int size );
-	EXTERN value copy_string( const char *str, unsigned int size );
+	EXTERN value alloc_empty_string( uint_val size );
+	EXTERN value copy_string( const char *str, uint_val size );
 
 	EXTERN value val_this();
 	EXTERN field val_id( const char *str );
@@ -238,38 +248,38 @@ C_FUNCTION_BEGIN
 	EXTERN void val_iter_fields( value obj, void f( value v, field f, void * ), void *p );
 	EXTERN value val_field_name( field f );
 
-	EXTERN value alloc_array( unsigned int n );
+	EXTERN value alloc_array( uint_val n );
 	EXTERN value alloc_abstract( vkind k, void *data );
 
 	EXTERN value val_call0( value f );
 	EXTERN value val_call1( value f, value arg );
 	EXTERN value val_call2( value f, value arg1, value arg2 );
 	EXTERN value val_call3( value f, value arg1, value arg2, value arg3 );
-	EXTERN value val_callN( value f, value *args, int nargs );
+	EXTERN value val_callN( value f, value *args, int_val nargs );
 	EXTERN value val_ocall0( value o, field f );
 	EXTERN value val_ocall1( value o, field f, value arg );
 	EXTERN value val_ocall2( value o, field f, value arg1, value arg2 );
-	EXTERN value val_ocallN( value o, field f, value *args, int nargs );
-	EXTERN value val_callEx( value this, value f, value *args, int nargs, value *exc );
+	EXTERN value val_ocallN( value o, field f, value *args, int_val nargs );
+	EXTERN value val_callEx( value this, value f, value *args, int_val nargs, value *exc );
 
-	EXTERN value *alloc_root( unsigned int nvals );
+	EXTERN value *alloc_root( uint_val nvals );
 	EXTERN void free_root( value *r );
-	EXTERN char *alloc( unsigned int nbytes );
-	EXTERN char *alloc_private( unsigned int nbytes );
-	EXTERN value alloc_function( void *c_prim, unsigned int nargs, const char *name );
+	EXTERN char *alloc( uint_val nbytes );
+	EXTERN char *alloc_private( uint_val nbytes );
+	EXTERN value alloc_function( void *c_prim, uint_val nargs, const char *name );
 
 	EXTERN buffer alloc_buffer( const char *init );
 	EXTERN void buffer_append( buffer b, const char *s );
-	EXTERN void buffer_append_sub( buffer b, const char *s, int len );
+	EXTERN void buffer_append_sub( buffer b, const char *s, int_val len );
 	EXTERN value buffer_to_string( buffer b );
 	EXTERN void val_buffer( buffer b, value v );
 
-	EXTERN int val_compare( value a, value b );
+	EXTERN int_val val_compare( value a, value b );
 	EXTERN void val_print( value s );
 	EXTERN void val_gc( value v, finalizer f );
 	EXTERN void val_throw( value v );
 
-	EXTERN void _neko_failure( value msg, const char *file, int line );
+	EXTERN void _neko_failure( value msg, const char *file, int_val line );
 
 C_FUNCTION_END
 
