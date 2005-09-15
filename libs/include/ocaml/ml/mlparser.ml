@@ -21,7 +21,7 @@ open Mlast
 
 type error_msg =
 	| Unexpected of token
-	| Unclosed of string * token
+	| Unclosed of string
 	| Duplicate_default
 	| Unknown_macro of string
 	| Invalid_macro_parameters of string * int
@@ -30,7 +30,7 @@ exception Error of error_msg * pos
 
 let error_msg = function
 	| Unexpected t -> "Unexpected " ^ s_token t
-	| Unclosed (s,t) -> "Unexpected " ^ s_token t ^ ", maybe unclosed " ^ s
+	| Unclosed s -> "Unclosed " ^ s
 	| Duplicate_default -> "Duplicate default declaration"
 	| Unknown_macro m -> "Unknown macro " ^ m
 	| Invalid_macro_parameters (m,n) -> "Invalid number of parameters for macro " ^ m ^ " : " ^ string_of_int n ^ " required"
@@ -71,11 +71,18 @@ let rec make_unop op ((v,p2) as e) p1 =
 	| _ ->
 		EUnop (op,e), punion p1 p2
 
+let rec make_list p = function
+	| [] -> PConstr ([],"[]",None) , p
+	| x :: l ->
+		let p = snd x in
+		let params = PTuple [x;make_list p l] , p in
+		PConstr ([],"::",Some params) , p
+
 let is_unop = function
 	| "-" | "*" | "!" | "&" -> true
 	| _ -> false
 
-let unclosed s (x,p) = error (Unclosed (s,x)) p
+let unclosed s p = error (Unclosed s) p
 
 let rec program = parser
 	| [< e = expr; p = program >] -> e :: p
@@ -86,11 +93,11 @@ and expr = parser
 	| [< '(BraceOpen,p1); e = block1; s >] ->
 		(match s with parser
 		| [< '(BraceClose,p2); s >] -> expr_next (e,punion p1 p2) s
-		| [< 'x >] -> unclosed "{" x)
+		| [< '(Eof,_) >] -> unclosed "{" p1)
 	| [< '(ParentOpen,p1); pl = parameters; s >] ->
 		(match s with parser
 		| [< '(ParentClose,p2); s >] -> expr_next (ETupleDecl pl,punion p1 p2) s
-		| [< 'x >] -> unclosed "(" x)
+		| [< '(Eof,_) >] -> unclosed "(" p1)
 	| [< '(Keyword Var,p1); '(Const (Ident name),_); t = type_opt; '(Binop "=",_); e = expr; s >] ->
 		expr_next (EVar (name,t,e),punion p1 (pos e)) s
 	| [< '(Keyword If,p1); cond = expr; e = expr; s >] ->
@@ -100,7 +107,7 @@ and expr = parser
 	| [< '(Keyword Function,p1); n = ident_opt; '(ParentOpen,po); p = parameter_names; s >] ->
 		(match s with parser
 		| [< '(ParentClose,_); t = type_opt; e = expr; s >] -> expr_next (EFunction (n,p,e,t),punion p1 (pos e)) s
-		| [< 'x >] -> unclosed "(" x)
+		| [< '(Eof,_) >] -> unclosed "(" po)
 	| [< '(Keyword Type,p1); pl = type_decl_parameters; '(Const (Ident tname),p2); d , p2 = type_declaration p2; s >] ->
 		ETypeDecl (pl,tname,d) , punion p1 p2
 	| [< '(BracketOpen,p1); b = block; '(BracketClose,p2); s >] ->
@@ -108,7 +115,7 @@ and expr = parser
 	| [< '(Keyword Match,p1); e = expr; '(BraceOpen,po); pl = patterns; s >] ->
 		(match s with parser
 		| [< '(BraceClose,_); s >] -> expr_next (EMatch (e,pl),punion p1 (pos e)) s
-		| [< 'x >] -> unclosed "{" x)
+		| [< '(Eof,_) >] -> unclosed "{" po)
 	| [< '(Binop op,p) when is_unop op; e = expr; s >] ->
 		expr_next (make_unop op e p) s
 	| [< '(Const (Constr n),p); e = expr_constr n p; s >] ->
@@ -122,14 +129,14 @@ and expr_next e = parser
 	| [< '(ParentOpen,po); pl = parameters; s >] ->
 		(match s with parser
 		| [< '(ParentClose,p); s >] -> expr_next (ECall (e,pl),punion (pos e) p) s
-		| [< 'x >] -> unclosed "(" x)
+		| [< '(Eof,_) >] -> unclosed "(" po)
 	| [< '(Dot,_); s >] ->
 		(match s with parser
 		| [< '(Const (Ident name),p); s >] -> expr_next (EField (e,name),punion (pos e) p) s
 		| [< '(BracketOpen,po); e2 = expr; s >] ->
 			(match s with parser
 			| [< '(BracketClose,p); s >] -> expr_next (EArray (e,e2),punion (pos e) p) s
-			| [< 'x >] -> unclosed "[" x))
+			| [< '(Eof,_) >] -> unclosed "[" po))
 	| [< '(Binop op,_); e2 = expr; s >] ->
 		make_binop op e e2
 	| [< >] ->
@@ -255,18 +262,22 @@ and pattern_next = parser
 	| [< >] -> []
 
 and pattern = parser
-	| [< d , p = pattern_decl; s >] -> 
+	| [< d , p = pattern_decl; s >] -> 		
 		match s with parser
-		| [< '(Const (Ident "as"),_); '(Const (Ident v),p2); t = type_opt >] -> (PAlias (v, (d , p, t))) , punion p p2 , None
-		| [< '(Binop "::",_); d2 , p2 , t2 = pattern >] -> PConstr ([],"::",Some (PTuple [(d,p,None);(d2,p2,t2)] , punion p p2 , None)) , punion p p2 , None
-		| [< t = type_opt >] -> d , p, t
+		| [< '(Const (Ident "as"),_); '(Const (Ident v),p2); s >] -> PAlias (v, (d,p)) , punion p p2
+		| [< '(Binop "::",_); d2 , p2 = pattern >] -> PConstr ([],"::",Some (PTuple [(d,p);(d2,p2)] , punion p p2)) , punion p p2
+		| [< t = type_opt >] -> 
+			match t with
+			| None -> d , p
+			| Some t -> PTyped ((d , p), t) , p 
 
 and pattern_decl = parser
 	| [< '(ParentOpen,p1); pl = pattern_tuple; '(ParentClose,p2) >] -> PTuple pl , punion p1 p2
 	| [< '(BraceOpen,p1); '(Const (Ident name),_); '(Binop "=",_); p = pattern; pl = pattern_record; '(BraceClose,p2) >] -> PRecord ((name,p) :: pl) , punion p1 p2
 	| [< '(Const (Constr name),p1); l, name, p2 = pattern_mod_path name p1; p , p2 = pattern_opt p2 >] -> PConstr (l,name,p) , punion p1 p2
+	| [< '(Const (Ident i),p); >] -> PIdent i , p
 	| [< '(Const c,p); >] -> PConst c , p
-	| [< '(BracketOpen,p1); l = pattern_list; '(BracketClose,p2) >] -> PList l , punion p1 p2
+	| [< '(BracketOpen,p1); l = pattern_list; '(BracketClose,p2) >] -> make_list (punion p1 p2) l
 
 and pattern_mod_path name p = parser
 	| [< '(Dot,_); '(Const (Constr n),p); l, n, p = pattern_mod_path n p >] -> name :: l , n , p
@@ -294,7 +305,7 @@ and pattern_record = parser
 	| [< >] -> []
 
 and pattern_opt p = parser
-	| [< ( _ , pos , _ as p) = pattern >] -> Some p , pos
+	| [< ( _ , pos as p) = pattern >] -> Some p , pos
 	| [< >] -> None , p 
 
 and when_clause = parser

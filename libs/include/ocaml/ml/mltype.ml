@@ -28,7 +28,7 @@ type type_expr =
 	| TMono
 	| TPoly
 	| TRecord of (string * mutflag * t) list
-	| TUnion of (string * t) list
+	| TUnion of int * (string * t) list
 	| TTuple of t list
 	| TLink of t
 	| TFun of t list * t
@@ -48,6 +48,14 @@ type tconstant =
 	| TConstr of string
 	| TModule of string list * tconstant
 
+and match_op =
+	| MFailure
+	| MHandle of match_op * match_op
+	| MExecute of texpr
+	| MConstants of match_op * (tconstant * match_op) list
+	| MField of match_op * int
+	| MSwitch of match_op * (tconstant * match_op) list
+
 and texpr_decl =
 	| TConst of tconstant
 	| TBlock of texpr list
@@ -65,6 +73,7 @@ and texpr_decl =
 	| TRecordDecl of (string * texpr) list
 	| TListDecl of texpr list
 	| TUnop of string * texpr
+	| TMatch of match_op
 
 and texpr = {
 	edecl : texpr_decl;
@@ -107,10 +116,10 @@ let t_bool = {
 	tid = -1;
 	texpr = TNamed ("bool",[], {
 		tid = -1; 
-		texpr = TUnion [
+		texpr = TUnion (2,[
 			("true",{ tid = -1; texpr = TAbstract });
 			("false",{ tid = -1; texpr = TAbstract })
-		];
+		]);
 	});
 }
 
@@ -150,7 +159,7 @@ let mk_record g fl = {
 
 let mk_union g fl = {
 	tid = if List.exists (fun (_,t) -> t.tid <> -1) fl then genid g else -1;
-	texpr = TUnion fl;
+	texpr = TUnion (List.length fl,fl);
 }
 
 type print_infos = {
@@ -197,7 +206,7 @@ let rec s_type ?(ext=false) ?(h=s_context()) t =
 			Hashtbl.add h.pi_ph t.tid k;
 			k))
 	| TRecord fl -> Printf.sprintf "{ %s }" (String.concat "; " (List.map (fun (f,m,t) -> s_mutable m ^ f ^ " : " ^ s_type ~h t) fl))
-	| TUnion fl -> Printf.sprintf "{ %s }" (String.concat "; " (List.map (fun (f,t) -> f ^ " : " ^ s_type ~h t) fl))
+	| TUnion (_,fl) -> Printf.sprintf "{ %s }" (String.concat "; " (List.map (fun (f,t) -> f ^ " : " ^ s_type ~h t) fl))
 	| TTuple l -> Printf.sprintf "(%s)" (String.concat ", " (List.map (s_type ~h) l))
 	| TLink t  -> s_type ~ext ~h t
 	| TFun (tl,r) -> 
@@ -220,21 +229,6 @@ and s_fun ~ext ~h t =
 	| TFun _ -> "(" ^ s_type ~ext ~h t ^ ")"
 	| _ -> s_type ~ext ~h t
 
-let rec is_recursive t1 t2 = 
-	if t1 == t2 then
-		true
-	else match t2.texpr with
-	| TAbstract
-	| TMono
-	| TPoly ->
-		false
-	| TRecord tl -> List.exists (fun (_,_,t) -> is_recursive t1 t) tl
-	| TUnion tl -> List.exists (fun (_,t) -> is_recursive t1 t) tl
-	| TTuple tl -> List.exists (is_recursive t1) tl
-	| TLink t -> is_recursive t1 t
-	| TFun (tl,t) -> List.exists (is_recursive t1) tl || is_recursive t1 t
-	| TNamed (_,p,t) -> List.exists (is_recursive t1) p || is_recursive t1 t
-
 let rec duplicate g ?(h=Hashtbl.create 0) t =
 	if t.tid < 0 then
 		t
@@ -251,7 +245,7 @@ let rec duplicate g ?(h=Hashtbl.create 0) t =
 			| TMono -> assert false
 			| TPoly -> t2.tid <- -2; TMono
 			| TRecord tl -> TRecord (List.map (fun (n,m,t) -> n , m, duplicate g ~h t) tl)
-			| TUnion tl -> TUnion (List.map (fun (n,t) -> n , duplicate g ~h t) tl)
+			| TUnion (n,tl) -> TUnion (n,List.map (fun (n,t) -> n , duplicate g ~h t) tl)
 			| TTuple tl -> TTuple (List.map (duplicate g ~h) tl)
 			| TLink t -> TLink (duplicate g ~h t)
 			| TFun (tl,t) -> TFun (List.map (duplicate g ~h) tl, duplicate g ~h t)
@@ -266,7 +260,7 @@ let rec polymorphize g t =
 	| TMono -> t.texpr <- TPoly; t.tid <- genid g
 	| TPoly -> ()
 	| TRecord fl -> List.iter (fun (_,_,t) -> polymorphize g t) fl
-	| TUnion fl -> List.iter (fun (_,t) -> polymorphize g t) fl
+	| TUnion (_,fl) -> List.iter (fun (_,t) -> polymorphize g t) fl
 	| TTuple tl -> List.iter (polymorphize g) tl
 	| TLink t -> polymorphize g t
 	| TFun (tl,t) -> List.iter (polymorphize g) tl; polymorphize g t

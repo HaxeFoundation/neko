@@ -98,6 +98,8 @@ let rec gen_expr ctx e =
 		| "!" -> ECall (builtin "not",[gen_expr ctx e]) , p
 		| "&" -> ECall (builtin "array",[gen_expr ctx e]) , p
 		| _ -> assert false)
+	| TMatch m ->
+		failwith "nogen"
 
 and gen_functions ctx fl p =
 	let ell = ref (EVars (List.map (fun e ->

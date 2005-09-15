@@ -74,14 +74,15 @@ type type_decl =
 	| EUnion of (string * type_path option) list
 
 type pattern_decl =
+	| PIdent of string
 	| PConst of constant
 	| PTuple of pattern list
 	| PRecord of (string * pattern) list
 	| PConstr of string list * string * pattern option
 	| PAlias of string * pattern
-	| PList of pattern list
+	| PTyped of pattern * type_path
 
-and pattern = pattern_decl * pos * type_path option
+and pattern = pattern_decl * pos
 
 type expr_decl =
 	| EConst of constant

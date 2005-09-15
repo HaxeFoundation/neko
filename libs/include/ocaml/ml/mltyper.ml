@@ -101,6 +101,22 @@ let get_ident ctx path name p =
 			if m != ctx.current && m.expr = None then error (Module_not_loaded m) p;
 			error (Custom ("Unknown variable " ^ s_path path name)) p
 
+let rec is_recursive t1 t2 = 
+	if t1 == t2 then
+		true
+	else match t2.texpr with
+	| TAbstract
+	| TMono
+	| TPoly ->
+		false
+	| TRecord _
+	| TUnion _ ->
+		assert false
+	| TTuple tl -> List.exists (is_recursive t1) tl
+	| TLink t -> is_recursive t1 t
+	| TFun (tl,t) -> List.exists (is_recursive t1) tl || is_recursive t1 t
+	| TNamed (_,p,t) -> List.exists (is_recursive t1) p
+
 let link ctx t1 t2 p =
 	if is_recursive t1 t2 then error (Cannot_unify (t1,t2)) p;
 	t1.texpr <- TLink t2;
@@ -117,8 +133,6 @@ let record_field ctx f p =
 let unify_stack t1 t2 = function
 	| Error (Cannot_unify _ as e , p) -> error (Stack (e , Cannot_unify (t1,t2))) p
 	| e -> raise e
-
-let patpos (_,p,_) = p
 
 let is_alias = function
 	| TAbstract 
@@ -597,7 +611,7 @@ and type_block ctx ((e,p) as x)  =
 		type_functions ctx;
 		type_expr ctx x
 
-and type_pattern (ctx:context) h ?(h2 = Hashtbl.create 0) set (pat,p,t) =
+and type_pattern (ctx:context) h ?(h2 = Hashtbl.create 0) set (pat,p) =
 	let pvar s =
 		if SSet.mem s !set then error (Custom "This variable is several time in the pattern") p;
 		set := SSet.add s !set;
@@ -615,9 +629,7 @@ and type_pattern (ctx:context) h ?(h2 = Hashtbl.create 0) set (pat,p,t) =
 			| Int n -> t_int
 			| Float s -> t_float
 			| String s -> t_string
-			| Ident s -> 
-				(if s = "_" then t_mono() else pvar s)
-			| Constr _ | Module _ ->
+			| Ident _ | Constr _ | Module _ ->
 				assert false)
 		| PTuple pl -> 
 			let pl = List.map (type_pattern ctx h ~h2 set) pl in
@@ -634,42 +646,38 @@ and type_pattern (ctx:context) h ?(h2 = Hashtbl.create 0) set (pat,p,t) =
 					with Not_found ->
 						error (Have_no_field (r,f)) p
 					) in
-					unify ctx pt t (patpos pat);
+					unify ctx pt t (snd pat);
 				) fl 
 			| _ ->
 				assert false);
 			r
+		| PIdent s ->
+			if s = "_" then t_mono() else pvar s
 		| PConstr (path,s,param) ->			
-			let param = (match param with None -> None | Some ((_,p,_) as param) -> Some (p,type_pattern ctx h ~h2 set param)) in
+			let param = (match param with None -> None | Some ((_,p) as param) -> Some (p,type_pattern ctx h ~h2 set param)) in
 			let path , ut , t = get_constr ctx path s p in
 			(match t.texpr , param with
 			| TAbstract , None -> duplicate ctx.gen ut
 			| TAbstract , Some _ -> error (Custom "Constructor does not take parameters") p
 			| _ , None -> error (Custom "Constructor require parameters") p
-			| _ , Some (p,pt) -> 
+			| _ , Some (p,pt) ->
 				match pt with
 				| { texpr = TTuple [t2] } | t2 -> 
 					let h = Hashtbl.create 0 in
 					let ut = duplicate ctx.gen ~h ut in
 					let t = duplicate ctx.gen ~h t in
-					unify ctx t t2 p;
+					unify ctx t t2 p;					
 					ut);
 		| PAlias (s,pat) ->
 			let pt = type_pattern ctx h ~h2 set pat in
 			let t = pvar s in
-			unify ctx pt t (patpos pat);
+			unify ctx pt t (snd pat);
 			t
-		| PList pl ->
-			let tl , t = t_poly ctx.gen "list" in
-			List.iter (fun p ->
-				let pt = type_pattern ctx h ~h2 set p in
-				unify ctx pt t (patpos p);				
-			) pl;
-			tl
-	) in
-	(match t with 
-	| None -> ()
-	| Some t -> unify ctx pt (type_type ~h:h2 ctx t p) p);
+		| PTyped (pat,t) ->
+			let pt = type_pattern ctx h ~h2 set pat in
+			unify ctx pt (type_type ~h:h2 ctx t p) p;
+			pt
+	) in	
 	pt
 	
 and type_match ctx e cl p =
@@ -678,7 +686,7 @@ and type_match ctx e cl p =
 		let first = ref true in
 		let h = Hashtbl.create 0 in
 		let mainset = ref SSet.empty in
-		let pl = List.map (fun pat ->
+		List.iter (fun pat ->
 			let set = ref SSet.empty in
 			let pt = type_pattern ctx h set pat in
 			if !first then begin
@@ -690,8 +698,7 @@ and type_match ctx e cl p =
 				SSet.iter (fun s -> error (Custom ("Variable " ^ s ^ " must occur in all patterns")) p) (SSet.union s1 s2);
 			end;
 			unify ctx pt e.etype p;
-			pat , p , pt
-		) pl in
+		) pl;
 		let idents = ctx.idents in
 		Hashtbl.iter (fun v t ->
 			ctx.idents <- PMap.add v t ctx.idents
@@ -702,7 +709,21 @@ and type_match ctx e cl p =
 		ctx.idents <- idents;
 		pl , wh , pe
 	) cl in
-	Mlmatch.make cl e.etype p
+	Mlmatch.fully_matched_ref := (fun cl ->
+		match cl with
+		| TModule(path,TConstr c) :: l ->			
+			let path , ut , t = get_constr ctx path c null_pos in
+			(match tlinks false ut with
+			| TUnion (n,_) ->
+				n = List.length cl
+			| _ ->
+				assert false)
+		| TVoid :: _ ->
+			true
+		| _ ->
+			false
+	);	
+	mk (Mlmatch.make e cl p) ret p
 
 let context cpath = 
 	let ctx = {
@@ -733,13 +754,30 @@ let context cpath =
 	Hashtbl.add ctx.current.types "string" t_string;
 	Hashtbl.add ctx.current.types "ref" (poly "ref");
 	Hashtbl.add ctx.current.types "array" (poly "array");
-	let list , l = t_poly ctx.gen "list" in
+	let list_p = t_mono() in
+	let rec list = {
+		tid = genid ctx.gen;
+		texpr = TNamed("list",[list_p], {
+			tid = genid ctx.gen;
+			texpr = TUnion(2,[
+				("[]", t_abstract);
+				("::", {
+					tid = genid ctx.gen;
+					texpr = TTuple [
+						list_p;
+						list;
+					]
+				})
+			]);
+		});
+	} in
 	polymorphize ctx.gen list;
 	Hashtbl.add ctx.current.types "list" list;
-	Hashtbl.add ctx.current.constr "::" (list,mk_tup ctx.gen [l;list]);
+	Hashtbl.add ctx.current.constr "::" (list,mk_tup ctx.gen [list_p;list]);
+	Hashtbl.add ctx.current.constr "[]" (list,t_abstract);
 	Hashtbl.add ctx.current.constr "true" (t_bool,t_abstract);
 	Hashtbl.add ctx.current.constr "false" (t_bool,t_abstract);
-	Hashtbl.add ctx.modules [] ctx.current;
+	Hashtbl.add ctx.modules [] ctx.current;	
 	ctx
 
 let modules ctx =
@@ -802,5 +840,5 @@ let load_module ctx m p =
 			ctx.current
 
 ;;
-Mlmatch.error_fun := (fun msg p -> error (Custom msg) p);
+Mlmatch.error_ref := (fun msg p -> error (Custom msg) p);
 load_module_ref := load_module
