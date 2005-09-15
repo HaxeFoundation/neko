@@ -194,8 +194,8 @@ void serialize_rec( sbuffer *b, value o ) {
 			write_char(b,'L');
 			m = (neko_module*)((vfunction*)o)->module;
 			serialize_rec(b,m->name);
-			write_int(b,(int*)((vfunction*)o)->addr - m->code);
-			write_int(b,((vfunction*)o)->nargs);
+			write_int(b,(int)((int_val*)((vfunction*)o)->addr - m->code));
+			write_int(b,val_fun_nargs(o));
 			serialize_rec(b,((vfunction*)o)->env);
 		}
 		break;
@@ -206,7 +206,7 @@ void serialize_rec( sbuffer *b, value o ) {
 }
 
 static void serialize_fields_rec( value data, field id, void *b ) {
-	write_int(b,(int)id);
+	write_int(b,(int)(int_val)id);
 	serialize_rec(b,data);
 }
 
@@ -272,7 +272,7 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 			add_ref(b,o);
 			while( (f = read_int(b)) != 0 ) {
 				value fval = unserialize_rec(b,loader);
-				alloc_field(o,(field)f,fval);
+				alloc_field(o,(field)(int_val)f,fval);
 			}
 			return o;
 		}
