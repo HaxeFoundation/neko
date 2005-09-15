@@ -27,7 +27,7 @@
 #define BAL_LEFT	1
 #define BAL_RIGHT	2
 
-#define ERROR		((unsigned int)-1)
+#define ERROR		((uint_val)-1)
 #define DONE		0
 #define OK			1
 #define BALANCE		2
@@ -46,7 +46,7 @@ INLINE void avlrotright(objtable *n) {
 	(*n)->right = tmp;
 }
 
-INLINE unsigned int avlleftgrown(objtable *n) {
+INLINE uint_val avlleftgrown(objtable *n) {
 	switch( (*n)->skew ) {
 	case BAL_LEFT:
 		if( (*n)->left->skew == BAL_LEFT ) {
@@ -82,7 +82,7 @@ INLINE unsigned int avlleftgrown(objtable *n) {
 	}
 }
 
-INLINE unsigned int avlrightgrown(objtable *n) {
+INLINE uint_val avlrightgrown(objtable *n) {
 	switch( (*n)->skew ) {
 	case BAL_LEFT:					
 		(*n)->skew = BAL_NONE;
@@ -119,8 +119,8 @@ INLINE unsigned int avlrightgrown(objtable *n) {
 }
 
 
-unsigned int _otable_replace(objtable *n, field id, value data) {
-	unsigned int tmp;
+uint_val _otable_replace(objtable *n, field id, value data) {
+	uint_val tmp;
 	if( !(*n) ) {
 		*n = (objtable)alloc(sizeof(struct _objtable));
 		(*n)->left = NULL;
@@ -145,7 +145,7 @@ unsigned int _otable_replace(objtable *n, field id, value data) {
 }
 
 
-INLINE unsigned int avlleftshrunk(objtable *n) {
+INLINE uint_val avlleftshrunk(objtable *n) {
 	switch( (*n)->skew ) {
 	case BAL_LEFT:
 		(*n)->skew = BAL_NONE;
@@ -189,7 +189,7 @@ INLINE unsigned int avlleftshrunk(objtable *n) {
 
 }
 
-INLINE unsigned int avlrightshrunk(objtable *n) {
+INLINE uint_val avlrightshrunk(objtable *n) {
 	switch( (*n)->skew ) {
 	case BAL_RIGHT:
 		(*n)->skew = BAL_NONE;
@@ -232,7 +232,7 @@ INLINE unsigned int avlrightshrunk(objtable *n) {
 	}
 }
 
-INLINE int avlfindhighest(objtable target, objtable *n, unsigned int *res)  {
+INLINE int_val avlfindhighest(objtable target, objtable *n, uint_val *res)  {
 	objtable tmp;
 	*res = BALANCE;
 	if( !(*n) )
@@ -252,7 +252,7 @@ INLINE int avlfindhighest(objtable target, objtable *n, unsigned int *res)  {
 	return 1;
 }
 
-INLINE int avlfindlowest(objtable target, objtable *n, unsigned int *res) {
+INLINE int_val avlfindlowest(objtable target, objtable *n, uint_val *res) {
 	objtable tmp;
 	*res = BALANCE;
 	if( !(*n) )
@@ -271,8 +271,8 @@ INLINE int avlfindlowest(objtable target, objtable *n, unsigned int *res) {
 	return 1;
 }
 
-unsigned int _otable_remove(objtable *n, field key) {
-	unsigned int tmp = BALANCE;
+uint_val _otable_remove(objtable *n, field key) {
+	uint_val tmp = BALANCE;
 	if( !(*n) )
 		return ERROR;
 	if( key < (*n)->id ) {
@@ -349,7 +349,7 @@ void _otable_optimize( objtable *t ) {
 	*t = t2;
 }
 
-int otable_count( objtable t ) {
+int_val otable_count( objtable t ) {
 	if( t == NULL )
 		return 0;
 	return 1 + otable_count(t->left) + otable_count(t->right);
@@ -365,9 +365,9 @@ objtable otable_empty() {
 }
 
 void otable_remove( objtable t, field id ) {
-	int min = 0;
-	int max = t->count;
-	int mid;
+	int_val min = 0;
+	int_val max = t->count;
+	int_val mid;
 	field cid;
 	cell *c = t->cells;
 	if( !max )
@@ -393,9 +393,9 @@ void otable_remove( objtable t, field id ) {
 }
 
 void otable_optimize( objtable t ) {
-	int max = t->count;
-	int i;
-	int cur = 0;
+	int_val max = t->count;
+	int_val i;
+	int_val cur = 0;
 	cell *c = t->cells;
 	for(i=0;i<max;i++) {
 		value v = c[i].v;
@@ -408,9 +408,9 @@ void otable_optimize( objtable t ) {
 }
 
 void otable_replace( objtable t, field id, value data ) {
-	int min = 0;
-	int max = t->count;
-	int mid;
+	int_val min = 0;
+	int_val max = t->count;
+	int_val mid;
 	field cid;
 	cell *c = t->cells;
 	while( min < max ) {
@@ -451,7 +451,7 @@ objtable otable_copy( objtable t ) {
 }
 
 void otable_iter(objtable t, void f( value data, field id, void *), void *p ) {
-	int i;
+	int_val i;
 	cell *c = t->cells;
 	for(i=0;i<t->count;i++)
 		f(c[i].v,c[i].id,p);

@@ -30,13 +30,13 @@ typedef value (*c_prim2)(value,value);
 typedef value (*c_prim3)(value,value,value);
 typedef value (*c_prim4)(value,value,value,value);
 typedef value (*c_prim5)(value,value,value,value,value);
-typedef value (*c_primN)(value*,int);
+typedef value (*c_primN)(value*,int_val);
 
-extern void neko_setup_trap( neko_vm *vm, int where );
+extern void neko_setup_trap( neko_vm *vm, int_val where );
 extern void neko_process_trap( neko_vm *vm );
-extern int neko_stack_expand( int *sp, int *csp, neko_vm *vm );
+extern int_val neko_stack_expand( int_val *sp, int_val *csp, neko_vm *vm );
 
-EXTERN value val_callEx( value this, value f, value *args, int nargs, value *exc ) {
+EXTERN value val_callEx( value this, value f, value *args, int_val nargs, value *exc ) {
 	neko_vm *vm = NEKO_VM();
 	value old_this = vm->this;
 	value ret = val_null;
@@ -87,7 +87,7 @@ EXTERN value val_callEx( value this, value f, value *args, int nargs, value *exc
 		vm->env = old_env;		
 	} else if( val_tag(f) == VAL_FUNCTION ) {
 		if( nargs == ((vfunction*)f)->nargs )  {
-			int n;
+			int_val n;
 			if( vm->csp + 3 >= vm->sp - nargs && !neko_stack_expand(vm->sp,vm->csp,vm) ) {
 				if( exc ) {
 					neko_process_trap(vm);
@@ -97,11 +97,11 @@ EXTERN value val_callEx( value this, value f, value *args, int nargs, value *exc
 				failure("OVERFLOW");
 			} else {
 				for(n=0;n<nargs;n++)
-					*--vm->sp = (unsigned int)args[n];
-				*++vm->csp = (int)callback_return;
+					*--vm->sp = (uint_val)args[n];
+				*++vm->csp = (int_val)callback_return;
 				*++vm->csp = 0;
-				*++vm->csp = (int)vm->this;
-				ret = neko_interp(vm,(int)val_null,(int*)((vfunction*)f)->addr,((vfunction*)f)->env);
+				*++vm->csp = (int_val)vm->this;
+				ret = neko_interp(vm,(int_val)val_null,(int_val*)((vfunction*)f)->addr,((vfunction*)f)->env);
 			}
 		}
 	}
@@ -113,11 +113,11 @@ EXTERN value val_callEx( value this, value f, value *args, int nargs, value *exc
 	return ret;
 }
 
-EXTERN value val_callN( value f, value *args, int nargs ) {
+EXTERN value val_callN( value f, value *args, int_val nargs ) {
 	return val_callEx(NULL,f,args,nargs,NULL);
 }
 
-EXTERN value val_ocallN( value o, field f, value *args, int nargs ) {
+EXTERN value val_ocallN( value o, field f, value *args, int_val nargs ) {
 	value *meth;
 	meth = otable_find(((vobject*)o)->table,f);
 	if( meth == NULL )
