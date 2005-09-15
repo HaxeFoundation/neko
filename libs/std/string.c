@@ -69,14 +69,14 @@ static value string_split( value o, value s ) {
 	return (first == NULL)?val_null:first;
 }
 
-static value set_locale(l) {
+static value set_locale(value l) {
 	val_check(l,string);
 	return alloc_bool(setlocale(LC_TIME,val_string(l)) != NULL);
 }
 
 static value get_cwd() {
 	char buf[256];
-	int l;
+	size_t l;
 	if( getcwd(buf,256) == NULL )
 		return val_null;
 	l = strlen(buf);
