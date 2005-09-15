@@ -32,8 +32,8 @@
 #endif
 #include "gc/gc.h"
 
-static int op_last = Last;
-int *callback_return = &op_last;
+static int_val op_last = Last;
+int_val *callback_return = &op_last;
 value *neko_builtins = NULL;
 _context *neko_fields_context = NULL;
 _context *neko_vm_context = NULL;
@@ -55,7 +55,7 @@ field id_module;
 field id_get, id_set;
 field id_add, id_radd, id_sub, id_rsub, id_mult, id_rmult, id_div, id_rdiv, id_mod, id_rmod;
 
-static void null_warn_proc( char *msg, int arg ) {
+static void null_warn_proc( char *msg, int_val arg ) {
 }
 
 void neko_gc_init() {
@@ -73,15 +73,15 @@ EXTERN void neko_gc_major() {
 	GC_gcollect();
 }
 
-EXTERN char *alloc( unsigned int nbytes ) {
+EXTERN char *alloc( uint_val nbytes ) {
 	return GC_MALLOC(nbytes);
 }
 
-EXTERN char *alloc_private( unsigned int nbytes ) {
+EXTERN char *alloc_private( uint_val nbytes ) {
 	return GC_MALLOC_ATOMIC(nbytes);
 }
 
-EXTERN value alloc_empty_string( unsigned int size ) {
+EXTERN value alloc_empty_string( uint_val size ) {
 	vstring *s;
 	if( size == 0 )
 		return (value)&empty_string;
@@ -106,7 +106,7 @@ EXTERN value alloc_float( tfloat f ) {
 	return (value)v;
 }
 
-EXTERN value alloc_array( unsigned int n ) {
+EXTERN value alloc_array( uint_val n ) {
 	value v;
 	if( n == 0 )
 		return empty_array;
@@ -125,7 +125,7 @@ EXTERN value alloc_abstract( vkind k, void *data ) {
 	return (value)v;
 }
 
-EXTERN value alloc_function( void *c_prim, unsigned int nargs, const char *name ) {
+EXTERN value alloc_function( void *c_prim, uint_val nargs, const char *name ) {
 	vfunction *v;
 	if( c_prim == NULL || (nargs < 0 && nargs != VAR_ARGS) )
 		failure("alloc_function");
@@ -138,7 +138,7 @@ EXTERN value alloc_function( void *c_prim, unsigned int nargs, const char *name 
 	return (value)v;
 }
 
-value alloc_module_function( void *m, int pos, int nargs ) {
+value alloc_module_function( void *m, int_val pos, int_val nargs ) {
 	vfunction *v;
 	if( nargs < 0 && nargs != VAR_ARGS )
 		failure("alloc_module_function");
@@ -164,7 +164,7 @@ EXTERN value alloc_object( value cpy ) {
 	return (value)v;
 }
 
-EXTERN value copy_string( const char *str, unsigned int strlen ) {
+EXTERN value copy_string( const char *str, uint_val strlen ) {
 	value v = alloc_empty_string(strlen);
 	char *c = (char*)val_string(v);
 	memcpy(c,str,strlen);
@@ -193,16 +193,16 @@ EXTERN void val_gc(value v, finalizer f ) {
 
 typedef struct root_list {
 	value *v;
-	int size;
-	int thread;
+	int_val size;
+	int_val thread;
 	struct root_list *next;
 } root_list;
 static _context *roots_context = NULL;
 static root_list *roots = NULL;
-static int thread_count = 0;
+static int_val thread_count = 0;
 #endif
 
-EXTERN value *alloc_root( unsigned int size ) {
+EXTERN value *alloc_root( uint_val size ) {
 	value *v = (value*)GC_MALLOC_UNCOLLECTABLE(size*sizeof(value));
 #ifdef _DEBUG
 	root_list *r = malloc(sizeof(root_list));
@@ -213,7 +213,7 @@ EXTERN value *alloc_root( unsigned int size ) {
 	r->v = v;
 	r->size = size;
 	r->next = roots;
-	r->thread = (int)context_get(roots_context);
+	r->thread = (int_val)context_get(roots_context);
 	roots = r;
 #endif
 	return v;
