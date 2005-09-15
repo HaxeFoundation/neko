@@ -148,7 +148,7 @@ static value date_get_hour( value o ) {
 }
 
 static value date_compare( value o, value d ) {
-	int r;
+	int_val r;
 	val_check_kind(o,k_date);
 	val_check_kind(d,k_date);
 	r = *val_date(o) - *val_date(d);
