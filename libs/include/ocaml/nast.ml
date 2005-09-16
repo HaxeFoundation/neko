@@ -106,6 +106,13 @@ let punion p p2 =
 	}
 
 let mk_call v args p = ECall (v,args) , p
+let mk_call0 v p = ECall (v,[]) , p
+let mk_call1 v a p = ECall (v,[a]) , p
+let mk_ident i p = EConst (Ident i) , p
+let mk_builtin b p = EConst (Builtin b) , p
+let mk_int i p = EConst (Int i) , p
+let mk_string s p = EConst (String s) , p
+let mk_binop op e1 e2 p = EBinop (op,e1,e2) , p
 
 let map f (e,p) =
 	(match e with
