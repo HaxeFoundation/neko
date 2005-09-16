@@ -60,7 +60,7 @@ morelibs : ${LIBS_TARGETS}
 mtypes : ${MTYPES_TARGETS}
 
 test : all
-	LD_LIBRARY_PATH=bin bin/nekovm libs/test
+	LD_LIBRARY_PATH=bin bin/nekovm bin/test
 
 vm : bin/nekovm
 
