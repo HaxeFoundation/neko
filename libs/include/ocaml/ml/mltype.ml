@@ -44,6 +44,7 @@ type tconstant =
 	| TInt of int
 	| TFloat of string
 	| TString of string
+	| TChar of char
 	| TIdent of string
 	| TConstr of string
 	| TModule of string list * tconstant
@@ -75,6 +76,7 @@ and texpr_decl =
 	| TListDecl of texpr list
 	| TUnop of string * texpr
 	| TMatch of match_op
+	| TTupleGet of texpr * int
 
 and texpr = {
 	edecl : texpr_decl;
@@ -113,6 +115,7 @@ let abstract s = {
 let t_void = abstract "void"
 let t_int = abstract "int"
 let t_float = abstract "float"
+let t_char = abstract "char"
 let t_bool = {
 	tid = -1;
 	texpr = TNamed ("bool",[], {

@@ -24,6 +24,7 @@ type error_msg =
 	| Invalid_character of char
 	| Unterminated_string
 	| Unclosed_comment
+	| Invalid_char_num of int
 
 exception Error of error_msg * pos
 
@@ -32,6 +33,7 @@ let error_msg = function
 	| Invalid_character c -> Printf.sprintf "Invalid character 0x%.2X" (int_of_char c)
 	| Unterminated_string -> "Unterminated string"
 	| Unclosed_comment -> "Unclosed comment"
+	| Invalid_char_num n -> Printf.sprintf "Invalid character number %d" n
 
 let cur_file = ref ""
 let all_lines = Hashtbl.create 0
@@ -44,7 +46,7 @@ let error e pos =
 let keywords =
 	let h = Hashtbl.create 3 in
 	List.iter (fun k -> Hashtbl.add h (s_keyword k) k)
-	[Var;If;Else;Function;Try;Catch;Type;Match]
+	[Var;If;Else;Function;Try;Catch;Type;Match;Then]
 	; h
 
 let init file =
@@ -113,6 +115,7 @@ let ident = ['a'-'z' '_'] ['a'-'z' 'A'-'Z' '0'-'9' '_']*
 let modident = ['A'-'Z'] ['a'-'z' 'A'-'Z' '0'-'9' '_']*
 let binop = ['!' '=' '*' '/' '<' '>' '&' '|' '^' '%' '+' ':' '-']
 let number = ['0'-'9']
+let space = [' ' '\r' '\t']
 
 rule token = parse
 	| eof { mk lexbuf Eof }
@@ -121,13 +124,14 @@ rule token = parse
 	| ',' { mk lexbuf Comma }
 	| '{' { mk lexbuf BraceOpen }
 	| '}' { mk lexbuf BraceClose }
-	| '(' { mk lexbuf ParentOpen }
+	| space+ '(' { mk lexbuf (ParentOpen true) }
+	| '(' { mk lexbuf (ParentOpen false) }
 	| ')' { mk lexbuf ParentClose }
 	| '[' { mk lexbuf BracketOpen }
 	| ']' { mk lexbuf BracketClose }
 	| '\'' { mk lexbuf Quote }
 	| '|' { mk lexbuf Vertical }
-	| [' ' '\r' '\t']+ { token lexbuf } 
+	| space+ { token lexbuf } 
 	| '\n' { newline lexbuf; token lexbuf }
 	| "0x" ['0'-'9' 'a'-'f' 'A'-'F']+	
 	| number+ { mk lexbuf (Const (Int (int_of_string (lexeme lexbuf)))) }
@@ -148,6 +152,19 @@ rule token = parse
 			let pmin = lexeme_start lexbuf in
 			let pmax = (try comment lexbuf with Exit -> error Unclosed_comment pmin) in
 			mk_tok (Comment (contents())) pmin pmax;
+		}
+	| "'\\n'" { mk lexbuf (Const (Char '\n')) }
+	| "'\\t'" { mk lexbuf (Const (Char '\t')) }
+	| "'\\r'" { mk lexbuf (Const (Char '\r')) }
+	| "'\\''" { mk lexbuf (Const (Char '\'')) }
+	| "'\\\\'" { mk lexbuf (Const (Char '\\')) }
+	| "'\\\"'" | "'\\t'" { mk lexbuf (Const (Char '"')) }
+	| '\'' [^'\\'] '\'' { mk lexbuf (Const (Char (lexeme lexbuf).[1])) }
+	| "\'\\" ['0'-'9'] ['0'-'9'] ['0'-'9'] '\'' { 
+			let s = String.sub (lexeme lexbuf) 2 3 in
+			let n = int_of_string s in
+			let c = (try char_of_int n with _ -> error (Invalid_char_num n) (lexeme_start lexbuf)) in
+			mk lexbuf (Const (Char c))
 		}	
 	| "//" [^'\n']*  {
 			let s = lexeme lexbuf in

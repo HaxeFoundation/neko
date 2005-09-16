@@ -55,6 +55,7 @@ let rec s_tconstant = function
 	| TVoid -> "void"
 	| TInt n -> string_of_int n
 	| TFloat s -> s
+	| TChar c -> "'" ^ escape_char c ^ "'"
 	| TString s -> "\"" ^ s ^ "\""
 	| TIdent s -> s
 	| TConstr s -> s

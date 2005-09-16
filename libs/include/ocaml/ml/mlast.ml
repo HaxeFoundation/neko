@@ -25,6 +25,7 @@ type pos = {
 
 type constant =
 	| Int of int
+	| Char of char
 	| Float of string
 	| String of string
 	| Ident of string
@@ -40,6 +41,7 @@ type keyword =
 	| Catch
 	| Type
 	| Match
+	| Then
 
 type token =
 	| Eof
@@ -49,7 +51,7 @@ type token =
 	| Quote
 	| BraceOpen
 	| BraceClose
-	| ParentOpen
+	| ParentOpen of bool
 	| ParentClose
 	| BracketOpen
 	| BracketClose
@@ -84,6 +86,11 @@ type pattern_decl =
 
 and pattern = pattern_decl * pos
 
+type arg =
+	| ATyped of arg * type_path
+	| ANamed of string
+	| ATuple of arg list
+
 type expr_decl =
 	| EConst of constant
 	| EBlock of expr list
@@ -92,7 +99,7 @@ type expr_decl =
 	| EArray of expr * expr	
 	| EVar of string * type_path option * expr 
 	| EIf of expr * expr * expr option
-	| EFunction of string option * (string * type_path option) list * expr * type_path option
+	| EFunction of string option * arg list * expr * type_path option
 	| EBinop of string * expr * expr
 	| EUnop of string * expr
 	| ETypeAnnot of expr * type_path
@@ -101,6 +108,8 @@ type expr_decl =
 	| ERecordDecl of (string * expr) list
 	| EListDecl of expr list
 	| EMatch of expr * (pattern list * expr option * expr) list
+	| ETupleGet of expr * int
+	| EApply of expr * expr list
 
 and expr = expr_decl * pos
 
@@ -115,20 +124,28 @@ let punion p p2 =
 		pmax = max p.pmax p2.pmax;
 	}
 
+let escape_char = function
+	| '\n' -> "\\n"
+	| '\t' -> "\\t"
+	| '\r' -> "\\r"
+	| '\\' -> "\\\\"
+	| c ->
+		if c >= '\032' && c <= '\126' then
+			String.make 1 c
+		else
+			Printf.sprintf "\\%.3d" (int_of_char c)
+
 let escape s =
 	let b = Buffer.create (String.length s) in
 	for i = 0 to (String.length s) - 1 do
-		match s.[i] with
-		| '\n' -> Buffer.add_string b "\\n"
-		| '\t' -> Buffer.add_string b "\\t"
-		| '\r' -> Buffer.add_string b "\\r"
-		| c -> Buffer.add_char b c
+		Buffer.add_string b (escape_char s.[i])
 	done;
 	Buffer.contents b
 
 let rec s_constant = function
 	| Int i -> string_of_int i
 	| Float s -> s
+	| Char c -> "'" ^ escape_char c ^ "\""
 	| String s -> "\"" ^ escape s ^ "\""
 	| Ident s -> s
 	| Constr s -> s
@@ -148,6 +165,7 @@ let s_keyword = function
 	| Catch -> "catch"
 	| Type -> "type"
 	| Match -> "match"
+	| Then -> "then"
 
 let s_token = function
 	| Eof -> "<eof>"
@@ -157,7 +175,7 @@ let s_token = function
 	| Quote -> "'"
 	| BraceOpen -> "{"
 	| BraceClose -> "}"
-	| ParentOpen -> "("
+	| ParentOpen _ -> "("
 	| ParentClose -> ")"
 	| BracketOpen -> "["
 	| BracketClose -> "]"

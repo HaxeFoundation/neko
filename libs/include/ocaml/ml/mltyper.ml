@@ -230,6 +230,7 @@ let rec type_constant ctx ?(path=[]) c p =
 	| Int i -> mk (TConst (TInt i)) t_int p
 	| Float s -> mk (TConst (TFloat s)) t_float p
 	| String s -> mk (TConst (TString s)) t_string p
+	| Char c -> mk (TConst (TChar c)) t_char p
 	| Ident s ->
 		let t = get_ident ctx path s p in
 		mk (TConst (TIdent s)) (duplicate ctx.gen t) p
@@ -359,23 +360,42 @@ let type_unop ctx op e p =
 	| _ ->
 		assert false
 
+let rec type_arg ctx h binds p = function
+	| ATyped (a,t) -> 
+		let n , ta = type_arg ctx h binds p a in
+		unify ctx ta (type_type ~h ctx t p) p;
+		n , ta
+	| ANamed s ->
+		s , t_mono()
+	| ATuple al ->
+		let aname = "@t" ^ string_of_int (genid ctx.gen) in
+		let nl , tl = List.split (List.map (type_arg ctx h binds p) al) in
+		let k = ref 0 in
+		List.iter (fun n ->
+			if n <> "_" then binds := (aname,!k,n) :: !binds;
+			incr k;
+		) nl;
+		aname , mk_tup ctx.gen tl
+
 let register_function ctx name pl e rt p =
-	let pl = (match pl with [] -> ["_",Some (EType (None,[],"void"))] | _ -> pl) in
+	let pl = (match pl with [] -> [ATyped (ANamed "_",EType (None,[],"void"))] | _ -> pl) in
 	let expr = ref (mk (TConst TVoid) t_void p) in
 	let h = Hashtbl.create 0 in
-	let el = List.map (fun (pn,pt) ->
-		let t = (match pt with
-			| None -> t_mono()
-			| Some pt -> type_type ~h ctx pt p
-		) in
-		pn , t
-	) pl in
+	let binds = ref [] in
+	let el = List.map (type_arg ctx h binds p) pl in
+	let name = (match name with None -> "_" | Some n -> n) in
+	let e = (match List.rev !binds with 
+		| [] -> e
+		| l -> 
+			EBlock (List.fold_left (fun acc (v,n,v2) ->
+				(EVar (v2,None, (ETupleGet ((EConst (Ident v),p),n),p)) , p) :: acc
+			) [e] l) , p
+	) in
 	let rt = (match rt with 
 		| None -> t_mono() 
 		| Some rt -> type_type ~h ctx rt p
 	) in
-	let ft = mk_fun ctx.gen (List.map snd el) rt in
-	let name = (match name with None -> "_" | Some n -> n) in
+	let ft = mk_fun ctx.gen (List.map snd el) rt in	
 	ctx.functions <- (name,expr,ft,el,e,rt,p) :: ctx.functions;
 	if name <> "_" then ctx.idents <- PMap.add name ft ctx.idents;
 	mk (TMut expr) ft p
@@ -417,6 +437,7 @@ and type_expr ctx (e,p) =
 		let e = type_expr ctx e in
 		prerr_endline ("type : " ^ s_type e.etype);
 		e
+	| EApply (e,el)
 	| ECall (e,el) ->
 		let e = type_expr ctx e in
 		let el = (match el with [] -> [ETupleDecl [],p] | _ -> el) in
@@ -592,6 +613,20 @@ and type_expr ctx (e,p) =
 		type_unop ctx op (type_expr ctx e) p
 	| EMatch (e,cl) ->
 		type_match ctx (type_expr ctx e) cl p
+	| ETupleGet (e,n) ->
+		let e = type_expr ctx e in
+		let try_unify et =
+			let t = Array.init (n + 1) (fun _ -> t_mono()) in
+			unify ctx et (mk_tup ctx.gen (Array.to_list t)) p;
+			t.(n)
+		in
+		let rec loop et =
+			match et.texpr with
+			| TLink et -> loop et
+			| TTuple l -> (try List.nth l n with _ -> try_unify et)
+			| _ -> try_unify et
+		in
+		mk (TTupleGet (e,n)) (loop e.etype) p
 
 and type_block ctx ((e,p) as x)  = 
 	match e with
@@ -629,6 +664,7 @@ and type_pattern (ctx:context) h ?(h2 = Hashtbl.create 0) set (pat,p) =
 			| Int n -> t_int
 			| Float s -> t_float
 			| String s -> t_string
+			| Char c -> t_char
 			| Ident _ | Constr _ | Module _ ->
 				assert false) , pat
 		| PTuple pl -> 
@@ -733,64 +769,10 @@ and type_match ctx e cl p =
 	);	
 	mk (Mlmatch.make e cl p) ret p
 
-let context cpath = 
-	let ctx = {
-		idents = PMap.empty;
-		gen = generator();
-		records = Hashtbl.create 0;
-		tmptypes = Hashtbl.create 0;
-		modules = Hashtbl.create 0;
-		functions = [];
-		cpath = cpath;
-		current = {
-			midents = PMap.empty;
-			path = [];
-			constr = Hashtbl.create 0;
-			types = Hashtbl.create 0;
-			expr = None;
-		};
-	} in
-	let poly name =
-		let t , _ = t_poly ctx.gen name in
-		polymorphize ctx.gen t;
-		t
-	in
-	Hashtbl.add ctx.current.types "void" t_void;
-	Hashtbl.add ctx.current.types "int" t_int;
-	Hashtbl.add ctx.current.types "float" t_float;
-	Hashtbl.add ctx.current.types "bool" t_bool;
-	Hashtbl.add ctx.current.types "string" t_string;
-	Hashtbl.add ctx.current.types "ref" (poly "ref");
-	Hashtbl.add ctx.current.types "array" (poly "array");
-	let list_p = t_mono() in
-	let rec list = {
-		tid = genid ctx.gen;
-		texpr = TNamed("list",[list_p], {
-			tid = genid ctx.gen;
-			texpr = TUnion(2,[
-				("[]", t_abstract);
-				("::", {
-					tid = genid ctx.gen;
-					texpr = TTuple [
-						list_p;
-						list;
-					]
-				})
-			]);
-		});
-	} in
-	polymorphize ctx.gen list;
-	Hashtbl.add ctx.current.types "list" list;
-	Hashtbl.add ctx.current.constr "::" (list,mk_tup ctx.gen [list_p;list]);
-	Hashtbl.add ctx.current.constr "[]" (list,t_abstract);
-	Hashtbl.add ctx.current.constr "true" (t_bool,t_abstract);
-	Hashtbl.add ctx.current.constr "false" (t_bool,t_abstract);
-	Hashtbl.add ctx.modules [] ctx.current;	
-	ctx
-
 let modules ctx =
 	let h = Hashtbl.create 0 in
 	Hashtbl.iter (fun p m -> 
+		if m.path <> [] then
 		match m.expr with 
 		| None -> ()
 		| Some e -> Hashtbl.add h p e
@@ -815,14 +797,14 @@ let load_module ctx m p =
 	with
 		Not_found ->			
 			let file , ch = open_file ctx (String.concat "/" m ^ ".nml") p in
-			let base = Hashtbl.find ctx.modules [] in
+			let base = (try Hashtbl.find ctx.modules [] with Not_found when m = ["core"] -> ctx.current) in
 			let ctx = {	ctx with
-				idents = PMap.empty;
+				idents = base.midents;
 				records = Hashtbl.create 0;
 				tmptypes = Hashtbl.create 0;
 				functions = [];
 				current = {
-					path = m;
+					path = (if m = ["core"] then [] else m);
 					constr = Hashtbl.copy base.constr;
 					types = Hashtbl.copy base.types;
 					expr = None;
@@ -846,6 +828,39 @@ let load_module ctx m p =
 			ctx.current.expr <- Some e;
 			ctx.current.midents <- ctx.idents;
 			ctx.current
+
+let context cpath = 
+	let ctx = {
+		idents = PMap.empty;
+		gen = generator();
+		records = Hashtbl.create 0;
+		tmptypes = Hashtbl.create 0;
+		modules = Hashtbl.create 0;
+		functions = [];
+		cpath = cpath;
+		current = {
+			midents = PMap.empty;
+			path = [];
+			constr = Hashtbl.create 0;
+			types = Hashtbl.create 0;
+			expr = None;
+		};
+	} in
+	let add_type args name t = 
+		ignore(type_expr ctx (ETypeDecl (args,name,t) , null_pos));
+	in
+	let add_variable name t = 
+		ctx.current.midents <- PMap.add name t ctx.current.midents
+	in
+	add_type [] "bool" (EUnion ["true",None;"false",None]);
+	add_type ["a"] "list" (EUnion ["[]",None;"::",Some (ETuple [
+		EPoly "a";
+		EType (Some (EPoly "a"),[],"list");
+	])]);
+	add_variable "magic" (mk_fun ctx.gen [t_polymorph ctx.gen] (t_polymorph ctx.gen));
+	let core = load_module ctx ["core"] null_pos in
+	Hashtbl.add ctx.modules [] core;
+	ctx
 
 ;;
 Mlmatch.error_ref := (fun msg p -> error (Custom msg) p);

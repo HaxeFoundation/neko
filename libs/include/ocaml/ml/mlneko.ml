@@ -65,6 +65,7 @@ let rec gen_constant ctx c =
 	| TVoid -> EConst Null
 	| TInt n -> EConst (Int n)
 	| TFloat s -> EConst (Float s)
+	| TChar c -> EConst (String (String.make 1 c))
 	| TString s -> EConst (String s)
 	| TIdent s -> 		
 		if PMap.mem s ctx.refvars then EArray ((EConst (Ident s),null_pos),int 0) else EConst (Ident s)
@@ -150,16 +151,19 @@ and gen_type ctx t p =
 			let val_fun n =
 				let args = Array.to_list (Array.init n (fun n -> "p" ^ string_of_int n)) in
 				let build = ECall (builtin "array",field :: List.map (fun a -> EConst (Ident a) , p) args) , p in
-				EFunction (args, (EBlock [EReturn (Some build),p] , p)) , p
+				let func = EFunction (args, (EBlock [EReturn (Some build),p] , p)) , p in
+				EBinop ("=" , field , func ) , p
 			in
 			let rec val_type t =
 				match t.texpr with
-				| TAbstract -> val_fun 0
+				| TAbstract ->
+					let make = ECall (builtin "array",[null]) , p in
+					ENext ((EBinop ("=" , field, make) ,p) , (EBinop("=" , (EArray (field,int 0),p) , field) , p)) , p
 				| TTuple tl -> val_fun (List.length tl)
 				| TLink t -> val_type t
 				| _ -> val_fun 1
 			in
-			EBinop ("=" , field , val_type t ) , p
+			val_type t
 		) constrs) , p
 
 and gen_expr ctx e =
@@ -203,6 +207,8 @@ and gen_expr ctx e =
 		| _ -> assert false)
 	| TMatch m ->
 		gen_matching ctx (Hashtbl.create 0) "<assert>" m p
+	| TTupleGet (e,n) ->
+		EArray (gen_expr ctx e,int (n+1)) , p
 
 and gen_functions ctx fl p =
 	let ell = ref (EVars (List.map (fun e ->
