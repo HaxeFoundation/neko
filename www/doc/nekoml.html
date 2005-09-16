@@ -1,0 +1,171 @@
+<h1>A Quick Guide to NekoML</h1>
+
+<p>
+	NekoML is an high order functional language with type inference. It can be seen as Neko with a powerful static type system. It is very suitable for complex data structures manipulation such as compilers. NekoML is inspired by OCaml but make different choices at some point.
+</p>
+
+<h2>Types</h2>
+
+<p>
+	NekoML comes with several builtin types, and you can define your own types quite easily :
+</p>
+
+<p>
+	Core types :
+</p>
+
+<pre>
+    1234 : int
+    1.234 : float
+    "hello" : string
+    true : bool
+    () : void
+</pre>
+
+<p>
+	Tuples :
+</p>
+
+<pre>
+    (1,true) : (int, bool)
+    ("a",(),1.23) : (string, void, float)
+</pre>
+
+<p>
+	Union types :
+</p>
+
+<pre>
+    type t {
+        A;
+        B;
+        C : int;
+        D : (int , string);
+    }
+
+    A : t ;
+    B : t ;
+    C(0) : t ;
+    D(1,"") : t ;
+</pre>
+
+<p>
+	Records :
+</p>
+
+<pre>
+    type t {
+        x : int;
+        y : int;
+    }
+
+    { x = 1; y = 2 } : t
+</pre>
+
+<p>
+	Mutable record fields :
+</p>
+
+<pre>
+    type t {
+        mutable counter : int;
+    }
+
+    var x = { counter = 0 };
+    x.counter := 1;
+</pre>
+
+<p>
+	Abstract types :
+</p>
+
+<pre>
+    type t
+</pre>
+
+<p>
+	Recursive types :
+</p>
+
+<pre>
+    type t1 // declare as abstract
+
+    type t2 {
+        A : t1;
+        B : t2;
+    }
+
+    type t1 { // declare
+        C : t1;
+        D : t2;
+    }
+</pre>
+
+<p>
+	Function Types :
+</p>
+
+<pre>
+	function() { } : void -> void;
+	function(x,y) { x + y } : int -> int -> int
+</pre>
+
+<p>
+	Lists :
+</p>
+
+<pre>
+	[1; 2; 3] : int list
+</pre>
+
+<h2>Syntax</h2>
+
+<p>
+	The syntax of NekoML is similar to the syntax of Neko, but with some additional contructs.
+</p>
+
+<p>
+	Blocks :
+</p>
+
+<pre>
+    { f(); g(); h() }
+</pre>
+
+<p>
+	Variables declaration :
+</p>
+
+<pre>
+	var x = <em>value</em>;
+</pre>
+
+<p>
+	Conditions :
+</p>
+
+<pre>
+	if <em>value</em> <em>value</em> [else <em>value</em>]
+</pre>
+
+<p>
+	Calls :
+</p>
+
+<pre>
+	f(1,2,3);
+	g();
+	h((1,2)); // call with a tuple
+</pre>
+
+
+<p>
+	Function déclarations : you can declare a function anonymously or with a name to add it to the local scope. If several functions are declared successively in the same block, they can be mutualy recursive :
+</p>
+
+<pre>
+	var f = function() { };
+	// equivalent to
+	function f() {
+	}
+</pre>
