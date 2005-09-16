@@ -623,41 +623,48 @@ and type_pattern (ctx:context) h ?(h2 = Hashtbl.create 0) set (pat,p) =
 				Hashtbl.add h s t;
 				t
 	in
-	let pt = (match pat with
+	let pt , pat = (match pat with
 		| PConst c ->
 			(match c with
 			| Int n -> t_int
 			| Float s -> t_float
 			| String s -> t_string
 			| Ident _ | Constr _ | Module _ ->
-				assert false)
+				assert false) , pat
 		| PTuple pl -> 
-			let pl = List.map (type_pattern ctx h ~h2 set) pl in
-			mk_tup ctx.gen pl
+			let pl , patl = List.split (List.map (type_pattern ctx h ~h2 set) pl) in
+			mk_tup ctx.gen pl , PTuple patl
 		| PRecord fl ->
 			let s = (try fst (List.hd fl) with _ -> assert false) in
 			let r , _ , _ = record_field ctx s p in
-			(match tlinks false r with
+			let fl = (match tlinks false r with
 			| TRecord rl ->
-				List.iter (fun (f,pat) ->
-					let pt = type_pattern ctx h ~h2 set pat in
+				List.map (fun (f,pat) ->
+					let pt , pat = type_pattern ctx h ~h2 set pat in
 					let t = (try 
 						let _ , _ , t = List.find (fun (f2,_,_) -> f = f2 ) rl in t 
 					with Not_found ->
 						error (Have_no_field (r,f)) p
 					) in
 					unify ctx pt t (snd pat);
+					f , pat
 				) fl 
 			| _ ->
-				assert false);
-			r
+				assert false
+			) in
+			r , PRecord fl
 		| PIdent s ->
-			if s = "_" then t_mono() else pvar s
+			(if s = "_" then t_mono() else pvar s) , pat
 		| PConstr (path,s,param) ->			
-			let param = (match param with None -> None | Some ((_,p) as param) -> Some (p,type_pattern ctx h ~h2 set param)) in
+			let tparam , param = (match param with
+				| None -> None , None 
+				| Some ((_,p) as param) -> 
+					let t , pat = type_pattern ctx h ~h2 set param in
+					Some (p,t) , Some pat
+			) in
 			let path , ut , t = get_constr ctx path s p in
-			(match t.texpr , param with
-			| TAbstract , None -> duplicate ctx.gen ut
+			(match t.texpr , tparam with
+			| TAbstract , None -> duplicate ctx.gen ut , PConstr (path,s,param)
 			| TAbstract , Some _ -> error (Custom "Constructor does not take parameters") p
 			| _ , None -> error (Custom "Constructor require parameters") p
 			| _ , Some (p,pt) ->
@@ -667,18 +674,18 @@ and type_pattern (ctx:context) h ?(h2 = Hashtbl.create 0) set (pat,p) =
 					let ut = duplicate ctx.gen ~h ut in
 					let t = duplicate ctx.gen ~h t in
 					unify ctx t t2 p;					
-					ut);
+					ut , PConstr (path,s,param));
 		| PAlias (s,pat) ->
-			let pt = type_pattern ctx h ~h2 set pat in
+			let pt , pat = type_pattern ctx h ~h2 set pat in
 			let t = pvar s in
 			unify ctx pt t (snd pat);
-			t
+			t , PAlias (s,pat)
 		| PTyped (pat,t) ->
-			let pt = type_pattern ctx h ~h2 set pat in
+			let pt , pat = type_pattern ctx h ~h2 set pat in
 			unify ctx pt (type_type ~h:h2 ctx t p) p;
-			pt
+			pt , PTyped (pat,t)
 	) in	
-	pt
+	pt , (pat,p)
 	
 and type_match ctx e cl p =
 	let ret = t_mono() in
@@ -686,9 +693,9 @@ and type_match ctx e cl p =
 		let first = ref true in
 		let h = Hashtbl.create 0 in
 		let mainset = ref SSet.empty in
-		List.iter (fun pat ->
+		let pl = List.map (fun pat ->
 			let set = ref SSet.empty in
-			let pt = type_pattern ctx h set pat in
+			let pt , pat = type_pattern ctx h set pat in
 			if !first then begin
 				first := false;
 				mainset := !set;
@@ -698,7 +705,8 @@ and type_match ctx e cl p =
 				SSet.iter (fun s -> error (Custom ("Variable " ^ s ^ " must occur in all patterns")) p) (SSet.union s1 s2);
 			end;
 			unify ctx pt e.etype p;
-		) pl;
+			pat 
+		) pl in
 		let idents = ctx.idents in
 		Hashtbl.iter (fun v t ->
 			ctx.idents <- PMap.add v t ctx.idents

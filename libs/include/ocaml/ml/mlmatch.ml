@@ -51,6 +51,36 @@ let exec e = MExecute e
 let cond path lambdas = MConstants (path,lambdas)
 let switch path lambdas = MSwitch (path,lambdas)
 
+let rec s_tconstant = function
+	| TVoid -> "void"
+	| TInt n -> string_of_int n
+	| TFloat s -> s
+	| TString s -> "\"" ^ s ^ "\""
+	| TIdent s -> s
+	| TConstr s -> s
+	| TModule ([],c) -> s_tconstant c
+	| TModule (sl,c) -> String.concat "." sl ^ "." ^ s_tconstant c
+
+let delta tab = tab ^ "  "
+
+let rec match_to_string ?(tab="") = function
+	| MFailure ->
+		Printf.sprintf "%sFailure" tab
+	| MHandle (op1,op2) ->
+		Printf.sprintf "%sHandle\n%s\n%s" tab (match_to_string ~tab:(delta tab) op1) (match_to_string ~tab:(delta tab) op2)
+	| MExecute e -> 
+		Printf.sprintf "%sExecute(%d,%d)" tab e.epos.pmin e.epos.pmax 
+	| MSwitch (op,cl)
+	| MConstants (op,cl) as m ->
+		Printf.sprintf "%s%s\n%s [\n%s\n%s]" tab (match m with MSwitch _ -> "Switch" | _ -> "Consts") 
+			(match_to_string ~tab:(delta tab) op) 
+			(String.concat "\n" (List.map (fun (c,o) -> match_to_string ~tab:(delta tab) o ^ " <= " ^ s_tconstant c) cl))
+			tab
+	| MField (op,n) ->
+		Printf.sprintf "%sField %d\n%s" tab n (match_to_string ~tab:(delta tab) op)
+	| MBind (v,e,n) ->
+		Printf.sprintf "%sBind %s\n%s\n%s" tab v (match_to_string ~tab:(delta tab) e) (match_to_string ~tab:(delta tab) n)
+
 let t_const = function
 	| Int i -> TInt i
 	| String s -> TString s
@@ -115,13 +145,15 @@ let split_matching (m:matching) =
 	match m with
 	| _ , [] ->
 		assert false
-	| casel, (_ :: endpathl as pathl) ->
+	| casel, (curpath :: endpathl as pathl) ->
 		let rec split_rec = function
-			| ((PAlias (_,p),_) :: l , act) :: rest ->
+			| ((PTyped (p,_),_) :: l , act) :: rest ->
 				split_rec ((p :: l, act) :: rest)
-			| ((PIdent _,_) :: l , act) :: rest ->
+			| ((PAlias (var,p),_) :: l , act) :: rest ->
+				split_rec ((p :: l, MBind (var,curpath,act)) :: rest)
+			| ((PIdent var,_) :: l , act) :: rest ->
 				let vars , others = split_rec rest in
-				add_to_match vars (l, act) , others
+				add_to_match vars (l, (if var = "_" then act else MBind (var,curpath,act))) , others
 			| casel ->
 				([] , endpathl) , (casel , pathl)
 		in
@@ -131,14 +163,16 @@ let divide_matching (m:matching) =
 	match m with
 	| _ , [] ->
 		assert false
-	| casel , (_ :: tailpathl as pathl) ->
+	| casel , (curpath :: tailpathl as pathl) ->
 		let rec divide_rec = function
 			| [] ->
 				[] , [] , ([] , pathl)
 			| ([],_) :: _ ->
 				assert false
-			| ((PAlias (_,p),_) :: l, act) :: rest ->
+			| ((PTyped (p,_),_) :: l , act) :: rest ->
 				divide_rec ((p :: l , act) :: rest)
+			| ((PAlias (var,p),_) :: l, act) :: rest ->
+				divide_rec ((p :: l , MBind (var,curpath,act)) :: rest)
 			| ((PConst c,_) :: l, act) :: rest ->
 				let constant , constrs, others = divide_rec rest in
 				add_to_division (make_constant_match pathl) constant (t_const c) (l, act), constrs , others

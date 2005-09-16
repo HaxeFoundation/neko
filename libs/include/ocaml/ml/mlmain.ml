@@ -23,7 +23,7 @@ let nekoml file ch out =
 	let ctx = Mltyper.context ["";Filename.dirname file ^ "/"] in
 	ignore(Mltyper.load_module ctx modname Mlast.null_pos);
 	Hashtbl.iter (fun m e ->
-		let e = Mlneko.generate e in
+		let e = Mlneko.generate e m in
 		let file = String.concat "/" m ^ ".neko" in
 		let ch = (if m = modname then out else IO.output_channel (open_out file)) in
 		let ctx = Printer.create ch in
