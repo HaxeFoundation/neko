@@ -3,7 +3,7 @@
 APACHE_CFLAGS = -I/usr/local/apache/include
 MYSQL_CFLAGS = -I/usr/local/include/mysql
 
-CFLAGS = -O3 -fomit-frame-pointer -fno-defer-pop -I/usr/local/include
+CFLAGS = -O3 -fomit-frame-pointer -fno-defer-pop -I/usr/local/include -fPIC
 LDFLAGS = -L/usr/local/lib
 LIBDL = -ldl
 LIBGC = -lgc
