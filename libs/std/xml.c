@@ -49,11 +49,18 @@ typedef enum {
 	COMMENT
 } STATE;
 
+typedef struct {
+	value fxml;
+	value fpcdata;
+	value fcomment;
+	value fdone;
+} functions;
+
 static bool is_valid_char( int c ) {
 	return ( c >= 'a' && c <= 'z' ) || ( c >= 'A' && c <= 'Z' ) || ( c >= '0' && c <= '9' ) || c == ':' || c == '.' || c == '_' || c == '-';
 }
 
-static value do_parse_xml( const char **lp, value fxml, value fpcdata, value parent, const char *parentname ) {
+static value do_parse_xml( const char **lp, functions *f, value parent, const char *parentname ) {
 	STATE state = IGNORE_SPACES;
 	STATE next = BEGIN;	
 	field aname;
@@ -93,7 +100,7 @@ static value do_parse_xml( const char **lp, value fxml, value fpcdata, value par
 			if( c == '<' ) {
 				if( val_is_null(parent) )
 					return NULL;
-				val_call2(fpcdata,parent,copy_string(start,p-start));
+				val_call2(f->fpcdata,parent,copy_string(start,p-start));
 				state = IGNORE_SPACES;
 				next = BEGIN_NODE;
 			}
@@ -102,6 +109,7 @@ static value do_parse_xml( const char **lp, value fxml, value fpcdata, value par
 			switch( c ) {
 			case '!':
 				state = COMMENT;
+				start = p + 1;
 				break;
 			case '/':
 				if( parent == NULL )
@@ -131,12 +139,12 @@ static value do_parse_xml( const char **lp, value fxml, value fpcdata, value par
 			switch( c ) {
 			case '/':
 				state = WAIT_END;
-				cur = val_call3(fxml,parent,nodename,attribs);
+				cur = val_call3(f->fxml,parent,nodename,attribs);
 				break;
 			case '>':
 				state = IGNORE_SPACES;
 				next = CHILDS;
-				cur = val_call3(fxml,parent,nodename,attribs);
+				cur = val_call3(f->fxml,parent,nodename,attribs);
 				break;
 			default:
 				state = ATTRIB_NAME;
@@ -188,17 +196,20 @@ static value do_parse_xml( const char **lp, value fxml, value fpcdata, value par
 		case CHILDS:
 			*lp = p;
 			while( true ) {
-				value x = do_parse_xml(lp,fxml,fpcdata,cur,val_string(nodename));
+				value x = do_parse_xml(lp,f,cur,val_string(nodename));
 				if( x == NULL )
 					return NULL;
-				if( x == cur )
+				if( x == cur ) {
+					val_call1(f->fdone,cur);
 					return cur;
+				}
 			}
 			break;
 		case WAIT_END:
 			switch( c ) {
 			case '>': 
 				*lp = p+1;
+				val_call1(f->fdone,cur);
 				return cur;
 			default :
 				return NULL;
@@ -221,6 +232,7 @@ static value do_parse_xml( const char **lp, value fxml, value fpcdata, value par
 			break;
 		case COMMENT:
 			if( c == '>' ) {
+				val_call2(f->fcomment,parent,copy_string(start,p-start));
 				state = IGNORE_SPACES;
 				next = BEGIN;
 			}
@@ -234,17 +246,24 @@ static value do_parse_xml( const char **lp, value fxml, value fpcdata, value par
 
 // ----------------------------------------------
 
-static value parse_xml( value str, value fxml, value fpcdata ) {
+static value parse_xml( value str, value fxml, value fpcdata, value fcomment, value fdone ) {
 	const char *p;
+	functions f;
 	value v;
 	val_check(str,string);
 	val_check_function(fxml,3);
 	val_check_function(fpcdata,2);
+	val_check_function(fcomment,2);
+	val_check_function(fdone,1);
+	f.fxml = fxml;
+	f.fpcdata = fpcdata;
+	f.fcomment = fcomment;
+	f.fdone = fdone;
 	p = val_string(str);
 	// skip BOM
 	if( p[0] == (char)0xEF && p[1] == (char)0xBB && p[2] == (char)0xBF )
 		p += 3;
-	v = do_parse_xml(&p,fxml,fpcdata,val_null,NULL);
+	v = do_parse_xml(&p,&f,val_null,NULL);
 	if( v == NULL )
 		return val_null;
 	return v;
