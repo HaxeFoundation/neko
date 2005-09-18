@@ -265,7 +265,7 @@ static value parse_xml( value str, value fxml, value fpcdata, value fcomment, va
 		p += 3;
 	v = do_parse_xml(&p,&f,val_null,NULL);
 	if( v == NULL )
-		return val_null;
+		type_error();
 	return v;
 }
 
