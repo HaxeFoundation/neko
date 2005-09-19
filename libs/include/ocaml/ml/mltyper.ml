@@ -747,7 +747,13 @@ and type_match ctx e cl p =
 		Hashtbl.iter (fun v t ->
 			ctx.idents <- PMap.add v t ctx.idents
 		) h;
-		let wh = (match wh with None -> None | Some e -> Some (type_expr ctx e)) in
+		let wh = (match wh with 
+			| None -> None
+			| Some e -> 
+				let e = type_expr ctx e in
+				unify ctx e.etype t_bool e.epos;
+				Some e
+		) in
 		let pe = type_expr ctx pe in
 		unify ctx pe.etype ret (pos pe);
 		ctx.idents <- idents;
