@@ -206,10 +206,21 @@ let rec scan_labels ctx supported e =
 		scan_labels ctx supported e2;
 		ctx.stack <- ctx.stack - 1;
 	| EBinop ("=",e1,e2) ->
+		let rec is_extended (e,_) =
+			match e with
+			| EParenthesis e -> is_extended e
+			| EArray _
+			| EField _ ->
+				true
+			| _ ->
+				false
+		in
+		let ext = is_extended e1 in
+		if ext then ctx.stack <- ctx.stack + 1;
 		scan_labels ctx supported e2;
 		ctx.stack <- ctx.stack + 1;
 		scan_labels ctx supported e1;
-		ctx.stack <- ctx.stack - 1;
+		ctx.stack <- ctx.stack - (if ext then 2 else 1);
 	| EConst _
 	| EContinue 
 	| EBreak _
