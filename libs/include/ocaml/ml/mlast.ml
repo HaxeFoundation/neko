@@ -42,6 +42,7 @@ type keyword =
 	| Type
 	| Match
 	| Then
+	| When
 
 type token =
 	| Eof
@@ -166,6 +167,7 @@ let s_keyword = function
 	| Type -> "type"
 	| Match -> "match"
 	| Then -> "then"
+	| When -> "when"
 
 let s_token = function
 	| Eof -> "<eof>"

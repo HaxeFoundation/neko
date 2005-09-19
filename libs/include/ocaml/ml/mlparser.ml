@@ -325,7 +325,7 @@ and pattern_opt p = parser
 	| [< >] -> None , p 
 
 and when_clause = parser
-	| [< '(Const (Ident "when"),_); e = expr >] -> Some e
+	| [< '(Keyword When,_); e = expr >] -> Some e
 	| [< >] -> None
 
 let parse code file =
