@@ -34,6 +34,7 @@ exception Error of exn_infos
 
 let paths = ref [""]
 let plugins = ref []
+let verbose = ref false
 
 let register source dest trans exc =
 	plugins := {

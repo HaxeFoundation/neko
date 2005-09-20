@@ -71,6 +71,7 @@ let main() =
 			("-msvc",Arg.Unit (fun () -> print_style := StyleMSVC),": use MSVC style errors");
 			("-p", Arg.String (fun p -> Plugin.add_path p),"<path> : add the file to path");
 			("-o", Arg.String (fun ext -> output := String.lowercase ext),"<file> : specify output extension");
+			("-v", Arg.Unit (fun () -> Plugin.verbose := true),": verbose mode");
 		] in
 		Arg.parse args_spec (fun file -> 
 			Plugin.generate file !output
