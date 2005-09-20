@@ -1,0 +1,7 @@
+
+type buffer;
+
+var create : void -> buffer = magic();
+var contents : buffer -> string = magic();
+var add_string : buffer -> string -> void = magic();
+var add_char : buffer -> char -> void = magic();

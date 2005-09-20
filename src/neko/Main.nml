@@ -1,0 +1,1 @@
+print (Ast.s_token Ast.Comment("xxx"));

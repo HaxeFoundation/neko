@@ -1,0 +1,47 @@
+type void;
+
+type int;
+
+type float;
+
+type char;
+
+type string;
+
+type 'a array;
+
+type 'a ref;
+
+type 'a option {
+	None;
+	Some : 'a;
+}
+
+/*
+
+type bool {
+	true;
+	false;
+}
+
+type 'a list {
+	"[]";
+	"::" : ('a  , 'a list);
+}
+
+*/
+
+function magic(x) {
+	neko("x");
+}
+
+function string(x) : string {
+	neko("$string(x)");
+}
+
+function print(x) : void {
+	neko("$print(x)");
+}
+
+var min : 'a -> 'a -> 'a = magic();
+var max : 'a -> 'a -> 'a = magic();

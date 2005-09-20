@@ -1,0 +1,14 @@
+
+function map(f,l) {
+	match l {
+	| [] -> []
+	| x :: l -> f(x) :: map f l
+	}
+}
+
+function iter(f,l) {
+	match l {
+	| [] -> ()
+	| x :: l -> f x; iter f l
+	}
+}

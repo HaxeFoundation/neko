@@ -1,0 +1,279 @@
+/*
+ *  Neko Compiler
+ *  Copyright (c)2005 Nicolas Cannasse
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+
+type pos {
+	pmin : int;
+	pmax : int;
+	pfile : string;
+}
+
+type constant {
+	True;
+	False;
+	Null;
+	This;
+	Int : int;
+	Float : string;
+	String : string;
+	Builtin : string;
+	Ident : string;
+}
+
+type keyword {
+	Var;
+	While;
+	Do;
+	If;
+	Else;
+	Function;
+	Return;
+	Break;
+	Continue;
+	Default;
+	Try;
+	Catch;
+}
+
+type token {
+	Eof;
+	Semicolon;
+	Dot;
+	Comma;
+	Arrow;
+	BraceOpen;
+	BraceClose;
+	ParentOpen;
+	ParentClose;
+	BracketOpen;
+	BracketClose;
+	Const : constant;
+	Keyword : keyword;
+	Binop : string;
+	Comment : string;
+	CommentLine : string;
+}
+
+type while_flag {
+	NormalWhile;
+	DoWhile;
+}
+
+type expr;
+
+type expr_decl {
+	EConst : constant;
+	EBlock : expr list;
+	EParenthesis : expr;
+	EField : (expr , string);
+	ECall : (expr , expr list);
+	EArray : (expr , expr);
+	EVars : (string , expr option) list;
+	EWhile : (expr , expr , while_flag);
+	EIf : (expr , expr , expr option);
+	ETry : (expr , string , expr);
+	EFunction : (string list , expr);
+	EBinop : (string , expr , expr);
+	EReturn : expr option;
+	EBreak : expr option;
+	EContinue;
+	ENext : (expr , expr);
+	EObject : (string , expr) list;
+	ELabel : string;
+}
+
+type expr = (expr_decl , pos)
+
+function pos(_,x) { x }
+
+var var_args = -1;
+
+var null_pos = { pmin = -1; pmax = -1; pfile = "<null pos>" };
+
+function punion(p,p2) {
+	{
+		pfile = p.pfile;
+		pmin = min p.pmin p2.pmin;
+		pmax = max p.pmax p2.pmax;
+	}
+}
+
+function mk_call(v,args,p) {
+	(ECall v args , p)
+}
+
+function mk_call0(v,p) {
+	(ECall v [], p)
+}
+
+function mk_call1(v,a,p) {
+	(ECall v [a], p)
+}
+
+function mk_ident(i,p) {
+	(EConst (Ident i), p)
+}
+
+function mk_builtin(b,p) {
+	(EConst (Builtin b), p)
+}
+
+function mk_int(i,p) {
+	(EConst (Int i), p)
+}
+
+function mk_string(s,p) {
+	(EConst (String s), p)
+}
+
+function mk_binop(op,e1,e2,p) {
+	(EBinop op e1 e2, p)
+}
+
+function map(f,(e,p)) {
+	(match e {
+	| EBlock el -> EBlock (List.map f el)
+	| EParenthesis e -> EParenthesis f(e)
+	| EField (e,s) -> EField f(e) s
+	| ECall (e,el) -> ECall f(e) (List.map f el)
+	| EArray (e1,e2) -> EArray f(e1) f(e2)
+	| EVars vl ->
+		EVars(List.map(function((v,e)) {
+			(v , match e {
+				| None -> None
+				| Some e -> Some (f e)
+			})
+		},vl))
+	| EWhile (e1,e2,flag) -> EWhile f(e1) f(e2) flag
+	| EIf (e,e1,e2) -> EIf f(e) f(e1) (match e2 { None -> None | Some e -> Some f(e)})
+	| ETry (e,ident,e2) -> ETry f(e) ident f(e2)
+	| EFunction (params,e) -> EFunction params f(e)
+	| EBinop (op,e1,e2) -> EBinop op f(e1) f(e2)
+	| EReturn (Some e) -> EReturn Some(f e)
+	| EBreak (Some e) -> EBreak Some(f e)
+	| ENext (e1,e2) -> ENext f(e1) f(e2)
+	| EObject fl -> EObject (List.map (function((s,e)) { (s , f e) }) fl)
+	| EReturn None
+	| EBreak None
+	| EContinue
+	| ELabel _
+	| EConst _ -> e }, p)
+}
+
+function iter(f,(e,p)) {
+	match e {
+	| EBlock el -> List.iter f el
+	| EParenthesis e -> f e
+	| EField (e,s) -> f e
+	| ECall (e,el) -> f e; List.iter f el
+	| EArray (e1,e2) -> f e1; f e2
+	| EVars vl -> List.iter (function((_,e)) { match e { None -> () | Some e -> f e } }) vl
+	| EWhile (e1,e2,_) -> f e1; f e2
+	| EIf (e,e1,e2) -> f e; f e1; (match e2 { None -> () | Some e -> f e })
+	| ETry (e1,_,e2) -> f e1; f e2
+	| EFunction (_,e) -> f e
+	| EBinop (_,e1,e2) -> f e1; f e2
+	| EReturn (Some e) -> f e
+	| EBreak (Some e) -> f e
+	| ENext (e1,e2) -> f e1; f e2
+	| EObject fl -> List.iter (function((_,e)) { f e }) fl
+	| EReturn None
+	| EBreak None
+	| EContinue
+	| ELabel _
+	| EConst _ -> ()
+	}
+}
+
+function is_printable(c) {
+	c >= '\032' && c <= '\126'
+}
+
+function escape(s) {
+	var b = Buffer.create();
+	function loop(i) {
+		if i = String.length s then
+			Buffer.contents b
+		else {
+			match String.get s i {
+			| '\n' -> Buffer.add_string b "\\n"
+			| '\t' -> Buffer.add_string b "\\t"
+			| '\r' -> Buffer.add_string b "\\r"
+			| '\\' -> Buffer.add_string b "\\\\"
+			| '"' -> Buffer.add_string b "\\\""
+			| c when !is_printable c -> Buffer.add_string b "???" //(Printf.sprintf "\\%.3d" (int_of_char c))
+			| c -> Buffer.add_char b c
+			};
+			loop (i+1)
+		}
+	};
+	loop(0);
+}
+
+
+function s_constant(x) {
+	match x {
+	| True -> "true"
+	| False -> "false"
+	| Null -> "null"
+	| This -> "this"
+	| Int i -> string i
+	| Float s -> s
+	| String s -> "\"" + escape s + "\""
+	| Builtin s -> "$" + s
+	| Ident s -> s
+	}
+}
+
+function s_keyword(x) {
+	match x {
+	| Var -> "var"
+	| While -> "while"
+	| Do -> "do"
+	| If -> "if"
+	| Else -> "else"
+	| Function -> "function"
+	| Return -> "return"
+	| Break -> "break"
+	| Continue -> "continue"
+	| Default -> "default"
+	| Try -> "try"
+	| Catch -> "catch"
+	}
+}
+
+function s_token(x) {
+	match x {
+	| Eof -> "<eof>"
+	| Semicolon -> ";"
+	| Dot -> "."
+	| Comma -> ","
+	| Arrow -> "=>"
+	| BraceOpen -> "{"
+	| BraceClose -> "}"
+	| ParentOpen -> "("
+	| ParentClose -> ")"
+	| BracketOpen -> "["
+	| BracketClose -> "]"
+	| Const c -> s_constant c
+	| Keyword k -> s_keyword k
+	| Binop s -> s
+	| Comment s -> "/*" + s + "*/"
+	| CommentLine s -> "//" + s
+	}
+}

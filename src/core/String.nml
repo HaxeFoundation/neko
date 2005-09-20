@@ -1,0 +1,3 @@
+
+var length : string -> int = magic();
+var get : string -> int -> char = magic();
