@@ -19,12 +19,14 @@
 
 let nekoml file ch out =
 	IO.close_in ch;
+	Mltyper.verbose := !Plugin.verbose;
+	Mlneko.verbose := !Plugin.verbose;
 	let modname = [String.capitalize (Filename.chop_extension (Filename.basename file))] in
 	let ctx = Mltyper.context ["";Filename.dirname file ^ "/"] in
 	ignore(Mltyper.load_module ctx modname Mlast.null_pos);
-	Hashtbl.iter (fun m e ->
-		let e = Mlneko.generate e m in
-		let file = String.concat "/" m ^ ".neko" in
+	Hashtbl.iter (fun m (e,deps,idents) ->
+		let e = Mlneko.generate e deps idents m in
+		let file = String.concat "/" m ^ ".neko" in		
 		let ch = (if m = modname then out else IO.output_channel (open_out file)) in
 		let ctx = Printer.create ch in
 		Printer.print ctx e;
@@ -35,6 +37,8 @@ let nekoml_exn = function
 	| Mllexer.Error (m,p) -> Plugin.exn_infos "syntax error" (Mllexer.error_msg m) (fun f -> Mllexer.get_error_pos f p)
 	| Mlparser.Error (m,p) -> Plugin.exn_infos "parse error" (Mlparser.error_msg m) (fun f -> Mllexer.get_error_pos f p)
 	| Mltyper.Error (m,p) -> Plugin.exn_infos "type error" (Mltyper.error_msg m) (fun f -> Mllexer.get_error_pos f p)
+	| Lexer.Error (m,p) -> Plugin.exn_infos "syntax error" (Lexer.error_msg m) (fun f -> Lexer.get_error_pos f p)
+	| Parser.Error (m,p) -> Plugin.exn_infos "parse error" (Parser.error_msg m) (fun f -> Lexer.get_error_pos f p)
 	| e -> raise e
 
 ;;
