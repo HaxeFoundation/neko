@@ -1,7 +1,27 @@
 
 type buffer;
 
-var create : void -> buffer = magic();
-var contents : buffer -> string = magic();
-var add_string : buffer -> string -> void = magic();
-var add_char : buffer -> char -> void = magic();
+neko("
+
+	buffer_alloc = $loader.loadprim(\"std@buffer_alloc\",0);
+	buffer_add = $loader.loadprim(\"std@buffer_add\",2);
+	buffer_add_sub = $loader.loadprim(\"std@buffer_add_sub\",4);
+	//buffer_add_char = $loader.loadprim(\"std@buffer_add_char\",2);
+	buffer_string = $loader.loadprim(\"std@buffer_string\",1);
+
+");
+
+var create : void -> buffer = neko("buffer_alloc");
+var contents : buffer -> string = neko("buffer_string");
+function add(b:buffer,x) : void {
+	neko("buffer_add")(b,x);
+}
+var add_sub : buffer -> string -> int -> int -> void = neko("buffer_add_sub");
+
+function add_char(b:buffer,c:char) : void {
+	neko("
+		var s = $smake(1);
+		$sset(s,0,c);
+		buffer_add(b,s);
+	");
+}
