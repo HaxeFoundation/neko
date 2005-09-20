@@ -24,7 +24,8 @@ type error_msg =
 	| Invalid_character of char
 	| Unterminated_string
 	| Unclosed_comment
-	| Invalid_char_num of int
+	| Invalid_escaped_character of int
+	| Invalid_escape
 
 exception Error of error_msg * pos
 
@@ -33,7 +34,8 @@ let error_msg = function
 	| Invalid_character c -> Printf.sprintf "Invalid character 0x%.2X" (int_of_char c)
 	| Unterminated_string -> "Unterminated string"
 	| Unclosed_comment -> "Unclosed comment"
-	| Invalid_char_num n -> Printf.sprintf "Invalid character number %d" n
+	| Invalid_escaped_character n -> Printf.sprintf "Invalid escaped character %d" n
+	| Invalid_escape -> "Invalid escape sequence"
 
 let cur_file = ref ""
 let all_lines = Hashtbl.create 0
@@ -163,7 +165,7 @@ rule token = parse
 	| "\'\\" ['0'-'9'] ['0'-'9'] ['0'-'9'] '\'' { 
 			let s = String.sub (lexeme lexbuf) 2 3 in
 			let n = int_of_string s in
-			let c = (try char_of_int n with _ -> error (Invalid_char_num n) (lexeme_start lexbuf)) in
+			let c = (try char_of_int n with _ -> error (Invalid_escaped_character n) (lexeme_start lexbuf)) in
 			mk lexbuf (Const (Char c))
 		}	
 	| "//" [^'\n']*  {
@@ -187,14 +189,19 @@ and comment = parse
 
 and string = parse
 	| eof { raise Exit }
-	| '\r' { string lexbuf }
 	| '\n' { newline lexbuf; store lexbuf; string lexbuf }
-	| "\\\"" { store lexbuf; string lexbuf }
-	| "\\\\" { store lexbuf; string lexbuf }
+	| "\\\"" { add "\""; string lexbuf }
+	| "\\\\" { add "\\"; string lexbuf }
 	| "\\n" { add "\n"; string lexbuf }
 	| "\\t" { add "\t"; string lexbuf }
 	| "\\r" { add "\r"; string lexbuf }
-	| '\\' { store lexbuf; string lexbuf }
+	| '\\' ['0'-'9'] ['0'-'9'] ['0'-'9'] { 
+			let i = int_of_string (String.sub (lexeme lexbuf) 1 3) in
+			if i >= 256 then error (Invalid_escaped_character i) (lexeme_start lexbuf);
+			add (String.make 1 (char_of_int i));
+			string lexbuf
+		}
+	| '\\' { error Invalid_escape (lexeme_start lexbuf) }
 	| '"' { lexeme_end lexbuf }
-	| [^'"' '\\' '\r' '\n']+ { store lexbuf; string lexbuf }
+	| [^'"' '\\' '\n']+ { store lexbuf; string lexbuf }
  
