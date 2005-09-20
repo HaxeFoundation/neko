@@ -50,6 +50,13 @@ let handle l1 l2 = MHandle (l1,l2)
 let exec e = MExecute e
 let cond path lambdas = MConstants (path,lambdas)
 let switch path lambdas = MSwitch (path,lambdas)
+let ewhen e e2 = MWhen (e,e2)
+let eval e = MEval e
+
+let rec have_when = function
+	| MWhen _ -> true
+	| MBind (_,_,e) -> have_when e
+	| _ -> false
 
 let rec s_tconstant = function
 	| TVoid -> "void"
@@ -71,6 +78,8 @@ let rec match_to_string ?(tab="") = function
 		Printf.sprintf "%sHandle\n%s\n%s" tab (match_to_string ~tab:(delta tab) op1) (match_to_string ~tab:(delta tab) op2)
 	| MExecute e -> 
 		Printf.sprintf "%sExecute(%d,%d)" tab e.epos.pmin e.epos.pmax 
+	| MEval e ->
+		Printf.sprintf "%sEval(%d,%d)" tab e.epos.pmin e.epos.pmax 
 	| MSwitch (op,cl)
 	| MConstants (op,cl) as m ->
 		Printf.sprintf "%s%s\n%s [\n%s\n%s]" tab (match m with MSwitch _ -> "Switch" | _ -> "Consts") 
@@ -81,11 +90,14 @@ let rec match_to_string ?(tab="") = function
 		Printf.sprintf "%sField %d\n%s" tab n (match_to_string ~tab:(delta tab) op)
 	| MBind (v,e,n) ->
 		Printf.sprintf "%sBind %s\n%s\n%s" tab v (match_to_string ~tab:(delta tab) e) (match_to_string ~tab:(delta tab) n)
+	| MWhen (e,p) ->
+		Printf.sprintf "%sWhen (%d,%d)\n%s" tab e.epos.pmin e.epos.pmax (match_to_string ~tab:(delta tab) p)
 
 let t_const = function
 	| Int i -> TInt i
 	| String s -> TString s
 	| Float f -> TFloat f
+	| Char c -> TChar c
 	| _ -> assert false
 
 let total p1 p2 =
@@ -204,8 +216,12 @@ and conquer_matching (m:matching) =
 	match m with
 	| [] , _ ->
 		failure , Partial , []
-	| ([],action) :: rest , _ ->
-		action , Total, rest
+	| ([],action) :: rest , k ->
+		if have_when action then
+			let a , p , r = conquer_matching (rest,k) in
+			MHandle (action,a) , p , r
+		else
+			action , Total, rest
 	| _ , [] -> 
 		assert false
 	| (p :: _,_) :: _ , _ :: _ when start_by_a_variable p ->
@@ -235,12 +251,12 @@ and conquer_matching (m:matching) =
 			assert false
 
 let make (e : texpr) (cases : (pattern list * texpr option * texpr) list) p =
-	let cases = List.concat (List.map (fun (pl,wcond,e) ->
-		if wcond <> None then assert false;
-		let e = exec e in
+	let cases = List.concat (List.map (fun (pl,wcond,e) ->		
+		let e = exec e in 
+		let e = (match wcond with None -> e | Some e2 -> ewhen e2 e) in
 		List.map (fun p -> [p] , e) pl
 	) cases) in
-	let m = cases , [exec e] in
+	let m = cases , [eval e] in
 	let lambda, partial, unused = conquer_matching m in
 	(match unused with
 	| [] -> ()
