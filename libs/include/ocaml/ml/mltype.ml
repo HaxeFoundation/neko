@@ -52,11 +52,13 @@ type tconstant =
 and match_op =
 	| MFailure
 	| MHandle of match_op * match_op
+	| MEval of texpr
 	| MExecute of texpr
 	| MConstants of match_op * (tconstant * match_op) list
 	| MField of match_op * int
 	| MSwitch of match_op * (tconstant * match_op) list
 	| MBind of string * match_op * match_op
+	| MWhen of texpr * match_op
 
 and texpr_decl =
 	| TConst of tconstant
