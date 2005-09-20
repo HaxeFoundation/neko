@@ -26,6 +26,8 @@ type context = {
 	mutable refvars : (string,unit) PMap.t;
 }
 
+let verbose = ref false
+
 let gen_label ctx =
 	let c = ctx.counter in
 	ctx.counter <- ctx.counter + 1;
@@ -60,8 +62,8 @@ let block e =
 	| EBlock _ , _ -> e 
 	| _ -> EBlock [e] , snd e
 
-let rec gen_constant ctx c =
-	match c with
+let rec gen_constant ctx c p =
+	(match c with
 	| TVoid -> EConst Null
 	| TInt n -> EConst (Int n)
 	| TFloat s -> EConst (Float s)
@@ -71,33 +73,41 @@ let rec gen_constant ctx c =
 		if PMap.mem s ctx.refvars then EArray ((EConst (Ident s),null_pos),int 0) else EConst (Ident s)
 	| TConstr "true" -> EConst True
 	| TConstr "false" -> EConst False
+	| TConstr "[]" | TConstr "::" -> fst (gen_constant ctx (TModule (["List"],c)) p)
 	| TConstr s -> EConst (Ident s)
 	| TModule (path,c) ->
 		let rec loop = function
 			| [] -> assert false
+			| ["[]" ; "List"] -> EConst (Ident "@empty")
+			| ["::" ; "List"] -> EConst (Ident "@cons")
 			| [x] -> EConst (Ident x)
 			| x :: l -> EField ((loop l,Ast.null_pos) , x)
 		in
 		loop ((match c with TConstr x -> x | TIdent s -> s | _ -> assert false) :: List.rev path)
+	) , p
 
-let rec gen_matching ctx h fail m p =
+let rec gen_matching ctx h p out fail m =
 	try
 		ident (Hashtbl.find h m)
 	with Not_found ->
+	let gen_rec = gen_matching ctx h p out in
 	match m with
 	| MFailure ->
 		ECall (builtin "goto",[ident fail]) , p
 	| MHandle (m1,m2) -> 
 		let label = gen_label ctx in
-		EBlock [gen_matching ctx h label m1 p; ELabel label, p; gen_matching ctx h fail m2 p] , p
-	| MExecute e ->
+		EBlock [gen_rec label m1; ELabel label, p; gen_rec fail m2] , p
+	| MEval e ->
 		gen_expr ctx e
+	| MExecute e ->
+		let out = ECall (builtin "goto",[ident out]) , p in
+		EBlock [gen_expr ctx e;out] , p
 	| MConstants (m,cl) ->
-		let e = gen_matching ctx h fail m p in
+		let e = gen_rec fail m in
 		let v = gen_variable ctx in
 		let exec = List.fold_right (fun (c,m) acc ->
-			let test = EBinop ("==", ident v , (gen_constant ctx c,p)) , p in
-			let exec = gen_matching ctx h fail m p in
+			let test = EBinop ("==", ident v, gen_constant ctx c p) , p in
+			let exec = gen_rec fail m in
 			Some (EIf (test, exec, acc) , p)
 		) cl None in
 		(match exec with
@@ -108,15 +118,15 @@ let rec gen_matching ctx h fail m p =
 				exec
 			] , p)
 	| MField (m,n) ->
-		EArray (gen_matching ctx h fail m p, int (n + 1)) , p
+		EArray (gen_rec fail m, int (n + 1)) , p
 	| MSwitch (m,[TVoid,m1]) ->
-		gen_matching ctx h fail m1 p
+		gen_rec fail m1
 	| MSwitch (m,cl) ->
-		let e = gen_matching ctx h fail m p in
+		let e = gen_rec fail m in
 		let v = gen_variable ctx in
 		let exec = List.fold_right (fun (c,m) acc ->
-			let test = EBinop ("==", ident v , (gen_constant ctx c,p)) , p in
-			let exec = gen_matching ctx h fail m p in
+			let test = EBinop ("==", ident v, gen_constant ctx c p) , p in
+			let exec = gen_rec fail m in
 			Some (EIf (test, exec, acc) , p)
 		) cl None in
 		(match exec with
@@ -127,11 +137,15 @@ let rec gen_matching ctx h fail m p =
 				exec;
 			] , p)
 	| MBind (v,m1,m2) ->
-		let e1 = gen_matching ctx h fail m1 p in
+		let e1 = gen_rec fail m1 in
 		Hashtbl.add h m1 v;
-		let e2 = gen_matching ctx h fail m2 p in
+		let e2 = gen_rec fail m2 in
 		Hashtbl.remove h m1;
 		EBlock [(EVars [v, Some e1] , p); e2] , p
+	| MWhen (e,m) ->
+		let m = gen_rec fail m in
+		let fail = gen_rec fail MFailure in
+		EIf (gen_expr ctx e,m,Some fail) , p
 
 and gen_type ctx t p =
 	match t.texpr with
@@ -169,9 +183,15 @@ and gen_type ctx t p =
 and gen_expr ctx e =
 	let p = pos e.epos in
 	match e.edecl with
-	| TConst c -> gen_constant ctx c , p
+	| TConst c -> gen_constant ctx c p
 	| TBlock el -> EBlock (gen_block ctx el p) , p
 	| TParenthesis e -> EParenthesis (gen_expr ctx e) , p
+	| TCall ({ edecl = TConst (TIdent "neko") },[{ edecl = TConst (TString s) }])
+	| TCall ({ edecl = TConst (TModule ([],TIdent "neko")) },[{ edecl = TConst (TString s) }])
+	| TCall ({ edecl = TConst (TModule (["Core"],TIdent "neko")) },[{ edecl = TConst (TString s) }]) ->
+		let ch = IO.input_string s in
+		let file = "neko@" ^ p.pfile in
+		Parser.parse (Lexing.from_function (fun s p -> try IO.input ch s 0 p with IO.No_more_input -> 0)) file
 	| TCall (e,el) -> ECall (gen_expr ctx e, List.map (gen_expr ctx) el) , p
 	| TField (e,s) -> EField (gen_expr ctx e, s) , p
 	| TArray (e1,e2) -> EArray (gen_expr ctx e1,gen_expr ctx e2) , p
@@ -186,13 +206,7 @@ and gen_expr ctx e =
 	| TTypeDecl t -> gen_type ctx t p
 	| TMut e -> gen_expr ctx (!e)
 	| TRecordDecl fl -> 
-		EBlock (
-			(EVars ["@o" , Some (ECall (builtin "object",[]),p) ] , p) ::
-			List.map (fun (s,e) ->
-				EBinop ("=",(EField (ident "@o",s),p),gen_expr ctx e) , pos e.epos
-			) fl
-			@ [ident "@o"]
-		) , p
+		EObject (List.map (fun (s,e) -> s , gen_expr ctx e) fl) , p
 	| TListDecl el ->
 		(match el with
 		| [] -> ECall (builtin "array",[]) , p
@@ -206,7 +220,8 @@ and gen_expr ctx e =
 		| "&" -> ECall (builtin "array",[gen_expr ctx e]) , p
 		| _ -> assert false)
 	| TMatch m ->
-		gen_matching ctx (Hashtbl.create 0) "<assert>" m p
+		let out = gen_label ctx in 
+		EBlock [gen_matching ctx (Hashtbl.create 0) p out "<assert>" m ; ELabel out , p] , p
 	| TTupleGet (e,n) ->
 		EArray (gen_expr ctx e,int (n+1)) , p
 
@@ -253,12 +268,24 @@ and gen_block ctx el p =
 	ctx.refvars <- old;
 	List.rev !ell
 
-let generate e m =
+let generate e deps idents m =
 	let m = String.concat "_" m in
 	let ctx = {
 		module_name = m;
 		counter = 0;
 		refvars = PMap.empty;
 	} in
-	let init = EBinop ("=",ident m,(ECall (builtin "new",[null]),Ast.null_pos)) , Ast.null_pos in
-	ENext (init,gen_expr ctx e) , Ast.null_pos
+	if !verbose then print_endline ("Generating " ^ m ^ ".neko");
+	let init = EBinop ("=",ident m,builtin "exports"), null_pos in
+	let deps = List.map (fun (path,m) -> 
+		let file = (match path with [] -> m | l -> String.concat "/" l ^ "/" ^ m) in
+		let load = ECall ((EField (builtin "loader","loadmodule"),null_pos),[gen_constant ctx (TString file) null_pos;builtin "loader"]) , null_pos in
+		EBinop ("=", gen_constant ctx (TModule (path,TIdent m)) Ast.null_pos, load ) , null_pos
+	) deps in
+	let exports = List.map (fun i ->
+		EBinop ("=", (EField (builtin "exports",i),null_pos) , ident i) , null_pos
+	) idents in
+	match gen_expr ctx e with
+	| EBlock e , p -> EBlock (init :: deps @ e @ exports) , p 
+	| e -> EBlock (init :: deps @ e :: exports) , null_pos
+
