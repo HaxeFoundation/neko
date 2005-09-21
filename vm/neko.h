@@ -21,15 +21,16 @@
 #ifndef _NEKO_H
 #define _NEKO_H
 
-#ifndef NULL
-#	define NULL			0
-#endif
-
 #ifdef _WIN32
 #include <basetsd.h>
 typedef INT_PTR		int_val;
 typedef UINT_PTR	uint_val;
+#ifndef NULL
+#	define NULL			0
+#endif
 #else
+#include <stddef.h>
+#include <stdint.h>
 typedef intptr_t	int_val;
 typedef uintptr_t	uint_val;
 #endif
