@@ -279,7 +279,9 @@ extern value append_strings( value s1, value s2 );
 #endif
 
 void neko_setup_trap( neko_vm *vm, int_val where ) {
+#ifdef ACC_SAVE
 	int_val acc = 0;
+#endif
 	int_val *sp, *csp;
 	vm->sp -= 5;
 	csp = vm->csp;
@@ -503,7 +505,7 @@ static int_val interp_loop( neko_vm *vm, int_val _acc, int_val *_pc, value env )
 		Next;
 	Instr(MakeEnv)
 		{
-			int_val n = *pc++;
+			int n = (int)*pc++;
 			ACC_BACKUP
 			int_val tmp = (int_val)alloc_array(n);
 			ACC_RESTORE;
@@ -520,7 +522,7 @@ static int_val interp_loop( neko_vm *vm, int_val _acc, int_val *_pc, value env )
 		Next;
 	Instr(MakeArray)
 		{
-			int_val n = *pc++;
+			int n = (int)*pc++;
 			acc = (int_val)alloc_array(n);
 			while( n-- ) {
 				val_array_ptr(acc)[n] = (value)*sp;
