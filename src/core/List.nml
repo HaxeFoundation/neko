@@ -1,4 +1,11 @@
 
+function length(l) {
+	match l {
+	| [] -> 0
+	| _ :: l -> 1 + length l
+	}
+}
+
 function map(f,l) {
 	match l {
 	| [] -> []
