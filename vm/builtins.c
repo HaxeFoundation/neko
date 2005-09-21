@@ -32,9 +32,9 @@
 
 extern value *neko_builtins;
 
-static value builtin_print( value *args, int_val nargs ) {
+static value builtin_print( value *args, int nargs ) {
 	buffer b;
-	int_val i;
+	int i;
 	if( nargs == 1 && val_is_string(*args) ) {
 		val_print(*args);
 		return val_true;
@@ -52,9 +52,9 @@ static value builtin_new( value o ) {
 	return alloc_object(o);
 }
 
-static value builtin_array( value *args, int_val nargs ) {
+static value builtin_array( value *args, int nargs ) {
 	value a = alloc_array(nargs);
-	int_val i;
+	int i;
 	for(i=0;i<nargs;i++)
 		val_array_ptr(a)[i] = args[i];
 	return a;
@@ -62,7 +62,7 @@ static value builtin_array( value *args, int_val nargs ) {
 
 static value builtin_amake( value size ) {
 	value a;
-	int_val i,s;
+	int i,s;
 	val_check(size,int);
 	s = val_int(size);
 	a = alloc_array(s);
@@ -72,7 +72,7 @@ static value builtin_amake( value size ) {
 }
 
 static value builtin_acopy( value a ) {
-	int_val i;
+	int i;
 	value a2;
 	val_check(a,array);
 	a2 = alloc_array(val_array_size(a));
@@ -88,8 +88,8 @@ static value builtin_asize( value a ) {
 
 static value builtin_asub( value a, value p, value l ) {
 	value a2;
-	int_val i;
-	int_val pp, ll;
+	int i;
+	int pp, ll;
 	val_check(a,array);
 	val_check(p,int);
 	val_check(l,int);
@@ -104,7 +104,7 @@ static value builtin_asub( value a, value p, value l ) {
 }
 
 static value builtin_ablit( value dst, value dp, value src, value sp, value l ) {
-	int_val dpp, spp, ll;
+	int dpp, spp, ll;
 	val_check(dst,array);
 	val_check(dp,int);
 	val_check(src,array);
@@ -135,7 +135,7 @@ static value builtin_scopy( value s ) {
 }
 
 static value builtin_ssub( value s, value p, value l ) {
-	int_val pp , ll;
+	int pp , ll;
 	val_check(s,string);
 	val_check(p,int);
 	val_check(l,int);
@@ -147,7 +147,7 @@ static value builtin_ssub( value s, value p, value l ) {
 }
 
 static value builtin_sget( value s, value p ) {
-	int_val pp;
+	int pp;
 	val_check(s,string);
 	val_check(p,int);
 	pp = val_int(p);
@@ -157,7 +157,7 @@ static value builtin_sget( value s, value p ) {
 }
 
 static value builtin_sset( value s, value p, value c ) {
-	int_val pp;
+	int pp;
 	unsigned char cc;
 	val_check(s,string);
 	val_check(p,int);
@@ -171,7 +171,7 @@ static value builtin_sset( value s, value p, value c ) {
 }
 
 static value builtin_sblit( value dst, value dp, value src, value sp, value l ) {
-	int_val dpp, spp, ll;
+	int dpp, spp, ll;
 	val_check(dst,string);
 	val_check(dp,int);
 	val_check(src,string);
@@ -231,14 +231,14 @@ static value builtin_idiv( value a, value b ) {
 typedef union {
 	double d;
 	union {
-		uint_val l;
-		uint_val h;
+		unsigned int l;
+		unsigned int h;
 	} i;
 } qw;
 
 static value builtin_isnan( value f ) {
 	qw q;
-	uint_val h, l;
+	unsigned int h, l;
 	if( !val_is_float(f) )
 		return val_false;
 	q.d = val_float(f);
@@ -251,7 +251,7 @@ static value builtin_isnan( value f ) {
 
 static value builtin_isinfinite( value f ) {
 	qw q;
-	uint_val h, l;
+	unsigned int h, l;
 	if( !val_is_float(f) )
 		return val_false;
 	q.d = val_float(f);
@@ -300,7 +300,7 @@ static value builtin_objremove( value o, value f ) {
 }
 
 static void builtin_objfields_rec( value d, field id, void *a ) {
-	*((*(value**)a)++) = alloc_int((int_val)id);
+	*((*(value**)a)++) = alloc_int((int)(int_val)id);
 }
 
 static value builtin_objfields( value o ) {
@@ -317,7 +317,7 @@ static value builtin_objfields( value o ) {
 
 static value builtin_hash( value f ) {
 	val_check(f,string);
-	return alloc_int( (int_val)val_id(val_string(f)) );
+	return alloc_int( (int)(int_val)val_id(val_string(f)) );
 }
 
 static value builtin_field( value f ) {
@@ -329,7 +329,7 @@ static value builtin_int( value f ) {
 	if( val_is_string(f) ) {
 		char *c = val_string(f);
 		if( val_strlen(f) >= 2 && c[0] == '0' && c[1] == 'x' ) {
-			int_val h = 0;
+			int h = 0;
 			c += 2;
 			while( *c ) {
 				char k = *c++;
@@ -347,7 +347,7 @@ static value builtin_int( value f ) {
 		return alloc_int( atoi(val_string(f)) );
 	}
 	if( val_is_number(f) )
-		return alloc_int( (int_val)val_number(f) );
+		return alloc_int( (int)val_number(f) );
 	return val_null;
 }
 
@@ -384,14 +384,14 @@ static value builtin_typeof( value v ) {
 	}
 }
 
-static value closure_callback( value *args, int_val nargs ) {
+static value closure_callback( value *args, int nargs ) {
 	value env = NEKO_VM()->env;
-	int_val cargs = val_array_size(env) - 2;
+	int cargs = val_array_size(env) - 2;
 	value *a = val_array_ptr(env);
 	value f = a[0];
 	value o = a[1];
-	int_val fargs = val_fun_nargs(f);
-	int_val i;
+	int fargs = val_fun_nargs(f);
+	int i;
 	if( fargs != cargs + nargs && fargs != VAR_ARGS )
 		return val_null;
 	if( nargs == 0 )
@@ -408,10 +408,10 @@ static value closure_callback( value *args, int_val nargs ) {
 	return val_callEx(o,f,a,nargs+cargs,NULL);
 }
 
-static value builtin_closure( value *args, int_val nargs ) {
+static value builtin_closure( value *args, int nargs ) {
 	value f;
 	value env;
-	int_val fargs;
+	int fargs;
 	if( nargs <= 1 )
 		failure("Invalid closure arguments number");
 	f = args[0];
@@ -428,7 +428,7 @@ static value builtin_closure( value *args, int_val nargs ) {
 }
 
 static value builtin_compare( value a, value b ) {
-	int_val r = val_compare(a,b);
+	int r = val_compare(a,b);
 	return (r == invalid_comparison)?val_null:alloc_int(r);
 }
 
@@ -447,7 +447,7 @@ static value builtin_string( value v ) {
 	neko_builtins[p++] = alloc_function(builtin_##name,nargs,"$" #name)
 
 void neko_init_builtins() {
-	int_val p = 0;
+	int p = 0;
 	neko_builtins = alloc_root(NBUILTINS+1);
 	neko_builtins[NBUILTINS] = alloc_object(NULL);
 	BUILTIN(print,VAR_ARGS);
