@@ -27,7 +27,7 @@
 #define BAL_LEFT	1
 #define BAL_RIGHT	2
 
-#define ERROR		((uint_val)-1)
+#define ERROR		((unsigned int)-1)
 #define DONE		0
 #define OK			1
 #define BALANCE		2
@@ -120,7 +120,7 @@ INLINE unsigned int avlrightgrown(objtable *n) {
 
 
 unsigned int _otable_replace(objtable *n, field id, value data) {
-	int tmp;
+	unsigned int tmp;
 	if( !(*n) ) {
 		*n = (objtable)alloc(sizeof(struct _objtable));
 		(*n)->left = NULL;
@@ -232,7 +232,7 @@ INLINE unsigned int avlrightshrunk(objtable *n) {
 	}
 }
 
-INLINE int avlfindhighest(objtable target, objtable *n, uint_val *res)  {
+INLINE int avlfindhighest(objtable target, objtable *n, unsigned int *res)  {
 	objtable tmp;
 	*res = BALANCE;
 	if( !(*n) )
@@ -252,7 +252,7 @@ INLINE int avlfindhighest(objtable target, objtable *n, uint_val *res)  {
 	return 1;
 }
 
-INLINE int avlfindlowest(objtable target, objtable *n, uint_val *res) {
+INLINE int avlfindlowest(objtable target, objtable *n, unsigned int *res) {
 	objtable tmp;
 	*res = BALANCE;
 	if( !(*n) )
@@ -365,9 +365,9 @@ objtable otable_empty() {
 }
 
 void otable_remove( objtable t, field id ) {
-	int_val min = 0;
-	int_val max = t->count;
-	int_val mid;
+	int min = 0;
+	int max = t->count;
+	int mid;
 	field cid;
 	cell *c = t->cells;
 	if( !max )
@@ -393,9 +393,9 @@ void otable_remove( objtable t, field id ) {
 }
 
 void otable_optimize( objtable t ) {
-	int_val max = t->count;
-	int_val i;
-	int_val cur = 0;
+	int max = t->count;
+	int i;
+	int cur = 0;
 	cell *c = t->cells;
 	for(i=0;i<max;i++) {
 		value v = c[i].v;
@@ -408,9 +408,9 @@ void otable_optimize( objtable t ) {
 }
 
 void otable_replace( objtable t, field id, value data ) {
-	int_val min = 0;
-	int_val max = t->count;
-	int_val mid;
+	int min = 0;
+	int max = t->count;
+	int mid;
 	field cid;
 	cell *c = t->cells;
 	while( min < max ) {
@@ -451,7 +451,7 @@ objtable otable_copy( objtable t ) {
 }
 
 void otable_iter(objtable t, void f( value data, field id, void *), void *p ) {
-	int_val i;
+	int i;
 	cell *c = t->cells;
 	for(i=0;i<t->count;i++)
 		f(c[i].v,c[i].id,p);
