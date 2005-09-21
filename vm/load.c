@@ -72,7 +72,7 @@ extern field id_exports;
 extern field id_data;
 extern field id_module;
 extern value *neko_builtins;
-extern value alloc_module_function( void *m, int_val pos, int_val nargs );
+extern value alloc_module_function( void *m, int_val pos, int nargs );
 
 static int_val read_string( reader r, readp p, char *buf ) {
 	int_val i = 0;
@@ -106,7 +106,6 @@ static int_val builtin_id( neko_module *m, field id ) {
 
 static int_val neko_check_stack( neko_module *m, unsigned char *tmp, uint_val i, int_val stack, int_val istack ) {
 	uint_val itmp;
-	int_val k = 0;
 	while( true ) {
 		int_val c = m->code[i];
 		int_val s = stack_table[c];
@@ -201,7 +200,7 @@ static neko_module *neko_module_read( reader r, readp p, value loader ) {
 			READ_LONG(itmp);
 			if( (itmp & 0xFFFFFF) >= m->codesize )
 				ERROR();
-			m->globals[i] = alloc_module_function(m,(itmp&0xFFFFFF),(itmp >> 24));
+			m->globals[i] = alloc_module_function(m,(itmp&0xFFFFFF),(int)(itmp >> 24));
 			break;
 		case 3:
 			READ_SHORT(stmp);
@@ -451,16 +450,16 @@ typedef struct _liblist {
 
 typedef value (*PRIM0)();
 
-EXTERN void *neko_default_load_primitive( const char *prim, int_val nargs, void **custom ) {
+EXTERN void *neko_default_load_primitive( const char *prim, int nargs, void **custom ) {
 	char *pos = strchr(prim,'@');
-	int_val len;	
+	int len;	
 	liblist *l;
 	PRIM0 ptr;
 	if( pos == NULL )
 		return NULL;
 	l = (liblist*)*custom;
 	*pos = 0;
-	len = strlen(prim) + 1;
+	len = (int)strlen(prim) + 1;
 	while( l != NULL ) {
 		if( memcmp(l->name,prim,len) == 0 )
 			break;
