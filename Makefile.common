@@ -39,10 +39,10 @@ compiler : bin/neko
 clean :
 	(cd neko && rm -rf ${COMPILER_OBJECTS} *.o *.obj *.cm* neko)
 	(cd vm && rm -rf ${VM_OBJECTS} libneko.so)
-	rm -rf libs/*/*.o
+	rm -rf libs/*/*.o ${TARGETS}
 
 distclean : clean
-	rm -rf extlib-dev ${TARGETS}
+	rm -rf extlib-dev
 
 extlib : extlib-dev/extLib.cmxa
 
