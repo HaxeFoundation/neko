@@ -84,7 +84,7 @@ enum OPCODE {
 
 
 #ifdef PARAMETER_TABLE
-static int_val parameter_table[] = {
+static int parameter_table[] = {
 	0, // AccNull
 	0, // AccTrue
 	0, // AccFalse
@@ -145,7 +145,7 @@ static int_val parameter_table[] = {
 
 #define P	0xFF
 
-static int_val stack_table[] = {
+static int stack_table[] = {
 	0, // AccNull
 	0, // AccTrue
 	0, // AccFalse
