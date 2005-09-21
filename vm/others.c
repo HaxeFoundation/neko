@@ -136,9 +136,22 @@ EXTERN value buffer_to_string( buffer b ) {
 	return v;
 }
 
-EXTERN void val_buffer( buffer b, value v ) {
+typedef struct vlist {
+	value v;
+	struct vlist *next;
+} vlist;
+
+static void val_buffer_rec( buffer b, value v, vlist *stack ) {
 	char buf[32];
 	int i, l;
+	vlist *vtmp = stack;
+	while( vtmp != NULL ) {
+		if( vtmp->v == v ) {
+			buffer_append_sub(b,"...",3);
+			return;
+		}
+		vtmp = vtmp->next;
+	}
 	switch( val_type(v) ) {
 	case VAL_INT:
 		buffer_append_sub(b,buf,sprintf(buf,"%d",val_int(v)));
@@ -170,13 +183,16 @@ EXTERN void val_buffer( buffer b, value v ) {
 		break;
 	case VAL_ARRAY:
 		buffer_append_sub(b,"[",1);
-		l = val_array_size(v) - 1;
+		l = val_array_size(v);
+		vtmp = (vlist*)alloc(sizeof(vlist));
+		vtmp->v = v;
+		vtmp->next = stack;
 		for(i=0;i<l;i++) {
-			val_buffer(b,val_array_ptr(v)[i]);
-			buffer_append_sub(b,",",1);
+			value vi = val_array_ptr(v)[i];
+			val_buffer_rec(b,vi,vtmp);
+			if( i != l - 1 )
+				buffer_append_sub(b,",",1);
 		}
-		if( l >= 0 )
-			val_buffer(b,val_array_ptr(v)[l]);
 		buffer_append_sub(b,"]",1);
 		break;
 	case VAL_ABSTRACT:
@@ -186,6 +202,10 @@ EXTERN void val_buffer( buffer b, value v ) {
 		buffer_append_sub(b,"#unknown",8);
 		break;
 	}
+}
+
+EXTERN void val_buffer( buffer b, value v ) {
+	val_buffer_rec(b,v,NULL);
 }
 
 // theses two 'append' function belongs here because we don't want 
