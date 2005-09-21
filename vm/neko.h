@@ -238,8 +238,8 @@ C_FUNCTION_BEGIN
 	EXTERN value alloc_float( tfloat t );
 
 	EXTERN value alloc_string( const char *str );
-	EXTERN value alloc_empty_string( uint_val size );
-	EXTERN value copy_string( const char *str, uint_val size );
+	EXTERN value alloc_empty_string( unsigned int size );
+	EXTERN value copy_string( const char *str, unsigned int size );
 
 	EXTERN value val_this();
 	EXTERN field val_id( const char *str );
@@ -249,38 +249,38 @@ C_FUNCTION_BEGIN
 	EXTERN void val_iter_fields( value obj, void f( value v, field f, void * ), void *p );
 	EXTERN value val_field_name( field f );
 
-	EXTERN value alloc_array( uint_val n );
+	EXTERN value alloc_array( unsigned int n );
 	EXTERN value alloc_abstract( vkind k, void *data );
 
 	EXTERN value val_call0( value f );
 	EXTERN value val_call1( value f, value arg );
 	EXTERN value val_call2( value f, value arg1, value arg2 );
 	EXTERN value val_call3( value f, value arg1, value arg2, value arg3 );
-	EXTERN value val_callN( value f, value *args, int_val nargs );
+	EXTERN value val_callN( value f, value *args, int nargs );
 	EXTERN value val_ocall0( value o, field f );
 	EXTERN value val_ocall1( value o, field f, value arg );
 	EXTERN value val_ocall2( value o, field f, value arg1, value arg2 );
-	EXTERN value val_ocallN( value o, field f, value *args, int_val nargs );
-	EXTERN value val_callEx( value this, value f, value *args, int_val nargs, value *exc );
+	EXTERN value val_ocallN( value o, field f, value *args, int nargs );
+	EXTERN value val_callEx( value this, value f, value *args, int nargs, value *exc );
 
-	EXTERN value *alloc_root( uint_val nvals );
+	EXTERN value *alloc_root( unsigned int nvals );
 	EXTERN void free_root( value *r );
-	EXTERN char *alloc( uint_val nbytes );
-	EXTERN char *alloc_private( uint_val nbytes );
-	EXTERN value alloc_function( void *c_prim, uint_val nargs, const char *name );
+	EXTERN char *alloc( unsigned int nbytes );
+	EXTERN char *alloc_private( unsigned int nbytes );
+	EXTERN value alloc_function( void *c_prim, int nargs, const char *name );
 
 	EXTERN buffer alloc_buffer( const char *init );
 	EXTERN void buffer_append( buffer b, const char *s );
-	EXTERN void buffer_append_sub( buffer b, const char *s, int_val len );
+	EXTERN void buffer_append_sub( buffer b, const char *s, int len );
 	EXTERN value buffer_to_string( buffer b );
 	EXTERN void val_buffer( buffer b, value v );
 
-	EXTERN int_val val_compare( value a, value b );
+	EXTERN int val_compare( value a, value b );
 	EXTERN void val_print( value s );
 	EXTERN void val_gc( value v, finalizer f );
 	EXTERN void val_throw( value v );
 
-	EXTERN void _neko_failure( value msg, const char *file, int_val line );
+	EXTERN void _neko_failure( value msg, const char *file, int line );
 
 C_FUNCTION_END
 
