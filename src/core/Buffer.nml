@@ -11,8 +11,12 @@ neko("
 
 ");
 
-var create : void -> buffer = neko("buffer_alloc");
-var contents : buffer -> string = neko("buffer_string");
+function create() : buffer {
+	neko("buffer_alloc()");
+}
+
+var string : buffer -> string = neko("buffer_string");
+
 function add(b:buffer,x) : void {
 	neko("buffer_add")(b,x);
 }
