@@ -73,15 +73,15 @@ EXTERN void neko_gc_major() {
 	GC_gcollect();
 }
 
-EXTERN char *alloc( uint_val nbytes ) {
+EXTERN char *alloc( unsigned int nbytes ) {
 	return GC_MALLOC(nbytes);
 }
 
-EXTERN char *alloc_private( uint_val nbytes ) {
+EXTERN char *alloc_private( unsigned int nbytes ) {
 	return GC_MALLOC_ATOMIC(nbytes);
 }
 
-EXTERN value alloc_empty_string( uint_val size ) {
+EXTERN value alloc_empty_string( unsigned int size ) {
 	vstring *s;
 	if( size == 0 )
 		return (value)&empty_string;
@@ -96,7 +96,7 @@ EXTERN value alloc_empty_string( uint_val size ) {
 EXTERN value alloc_string( const char *str ) {
 	if( str == NULL )
 		return val_null;
-	return copy_string(str,strlen(str));
+	return copy_string(str,(int)strlen(str));
 }
 
 EXTERN value alloc_float( tfloat f ) {
@@ -106,7 +106,7 @@ EXTERN value alloc_float( tfloat f ) {
 	return (value)v;
 }
 
-EXTERN value alloc_array( uint_val n ) {
+EXTERN value alloc_array( unsigned int n ) {
 	value v;
 	if( n == 0 )
 		return empty_array;
@@ -125,7 +125,7 @@ EXTERN value alloc_abstract( vkind k, void *data ) {
 	return (value)v;
 }
 
-EXTERN value alloc_function( void *c_prim, uint_val nargs, const char *name ) {
+EXTERN value alloc_function( void *c_prim, int nargs, const char *name ) {
 	vfunction *v;
 	if( c_prim == NULL || (nargs < 0 && nargs != VAR_ARGS) )
 		failure("alloc_function");
@@ -138,7 +138,7 @@ EXTERN value alloc_function( void *c_prim, uint_val nargs, const char *name ) {
 	return (value)v;
 }
 
-value alloc_module_function( void *m, int_val pos, int_val nargs ) {
+value alloc_module_function( void *m, int_val pos, int nargs ) {
 	vfunction *v;
 	if( nargs < 0 && nargs != VAR_ARGS )
 		failure("alloc_module_function");
@@ -164,7 +164,7 @@ EXTERN value alloc_object( value cpy ) {
 	return (value)v;
 }
 
-EXTERN value copy_string( const char *str, uint_val strlen ) {
+EXTERN value copy_string( const char *str, unsigned int strlen ) {
 	value v = alloc_empty_string(strlen);
 	char *c = (char*)val_string(v);
 	memcpy(c,str,strlen);
@@ -202,7 +202,7 @@ static root_list *roots = NULL;
 static int_val thread_count = 0;
 #endif
 
-EXTERN value *alloc_root( uint_val size ) {
+EXTERN value *alloc_root( unsigned int size ) {
 	value *v = (value*)GC_MALLOC_UNCOLLECTABLE(size*sizeof(value));
 #ifdef _DEBUG
 	root_list *r = malloc(sizeof(root_list));
