@@ -71,15 +71,15 @@ let rec gen_constant ctx c p =
 	| TString s -> EConst (String s)
 	| TIdent s -> 		
 		if PMap.mem s ctx.refvars then EArray ((EConst (Ident s),null_pos),int 0) else EConst (Ident s)
-	| TConstr "true" -> EConst True
-	| TConstr "false" -> EConst False
-	| TConstr "[]" | TConstr "::" -> fst (gen_constant ctx (TModule (["List"],c)) p)
+	| TConstr "true" | TModule (["Core"],TConstr "true") -> EConst True
+	| TConstr "false" | TModule (["Core"],TConstr "false") -> EConst False
+	| TConstr "[]" | TModule (["Core"],TConstr "[]") -> EField ((EConst (Ident "Core"),p),"@empty")
+	| TConstr "::" | TModule (["Core"],TConstr "::") -> EField ((EConst (Ident "Core"),p),"@cons")
 	| TConstr s -> EConst (Ident s)
+	| TModule ([],c) -> fst (gen_constant ctx c p)
 	| TModule (path,c) ->
 		let rec loop = function
 			| [] -> assert false
-			| ["[]" ; "List"] -> EConst (Ident "@empty")
-			| ["::" ; "List"] -> EConst (Ident "@cons")
 			| [x] -> EConst (Ident x)
 			| x :: l -> EField ((loop l,Ast.null_pos) , x)
 		in
@@ -161,7 +161,7 @@ and gen_type ctx t p =
 		gen_type ctx t p
 	| TUnion (_,constrs) ->
 		EBlock (List.map (fun (c,t) ->
-			let field = EField (ident ctx.module_name,c) , p in
+			let field = ident c in
 			let val_fun n =
 				let args = Array.to_list (Array.init n (fun n -> "p" ^ string_of_int n)) in
 				let build = ECall (builtin "array",field :: List.map (fun a -> EConst (Ident a) , p) args) , p in
@@ -177,7 +177,8 @@ and gen_type ctx t p =
 				| TLink t -> val_type t
 				| _ -> val_fun 1
 			in
-			val_type t
+			let export = EBinop ("=", (EField (ident ctx.module_name,c),p) , field) , p in
+			ENext (val_type t , export) , p
 		) constrs) , p
 
 and gen_expr ctx e =
