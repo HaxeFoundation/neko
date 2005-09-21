@@ -330,7 +330,7 @@ static neko_module *neko_module_read( reader r, readp p, value loader ) {
 	}
 	// Check stack preservation
 	{
-		unsigned char *stmp = alloc_private(sizeof(char)*(m->codesize+1));
+		unsigned char *stmp = (unsigned char*)alloc_private(sizeof(char)*(m->codesize+1));
 		memset(stmp,UNKNOWN,sizeof(char)*(m->codesize+1));
 		if( !neko_check_stack(m,stmp,0,0,0) )
 			ERROR();
