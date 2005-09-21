@@ -107,7 +107,6 @@ type expr_decl =
 	| ETupleDecl of expr list
 	| ETypeDecl of string list * string * type_decl
 	| ERecordDecl of (string * expr) list
-	| EListDecl of expr list
 	| EMatch of expr * (pattern list * expr option * expr) list
 	| ETupleGet of expr * int
 	| EApply of expr * expr list

@@ -71,12 +71,18 @@ let rec make_unop op ((v,p2) as e) p1 =
 	| _ ->
 		EUnop (op,e), punion p1 p2
 
-let rec make_list p = function
+let rec make_list_pat p = function
 	| [] -> PConstr ([],"[]",None) , p
 	| x :: l ->
 		let p = snd x in
-		let params = PTuple [x;make_list p l] , p in
+		let params = PTuple [x;make_list_pat p l] , p in
 		PConstr ([],"::",Some params) , p
+
+let rec make_list p = function
+	| [] -> EConst (Constr "[]") , p
+	| x :: l ->
+		let p = snd x in		
+		ECall ((EConst (Constr "::") , p), [x;make_list p l]) , p
 
 let is_unop = function
 	| "-" | "*" | "!" | "&" -> true
@@ -123,7 +129,7 @@ and expr_short = parser
 	| [< '(Const c,p); s >] ->
 		expr_next (EConst c,p) s
 	| [< '(BracketOpen,p1); b = block; '(BracketClose,p2); s >] ->
-		expr_next (EListDecl b , punion p1 p2) s
+		expr_next (make_list (punion p1 p2) b) s
 
 and expr_next e = parser
 	| [< '(Binop ":",_); t , p = type_path; s >] ->
@@ -293,7 +299,7 @@ and pattern_decl = parser
 	| [< '(Const (Constr name),p1); l, name, p2 = pattern_mod_path name p1; p , p2 = pattern_opt p2 >] -> PConstr (l,name,p) , punion p1 p2
 	| [< '(Const (Ident i),p); >] -> PIdent i , p
 	| [< '(Const c,p); >] -> PConst c , p
-	| [< '(BracketOpen,p1); l = pattern_list; '(BracketClose,p2) >] -> make_list (punion p1 p2) l
+	| [< '(BracketOpen,p1); l = pattern_list; '(BracketClose,p2) >] -> make_list_pat (punion p1 p2) l
 
 and pattern_mod_path name p = parser
 	| [< '(Dot,_); '(Const (Constr n),p); l, n, p = pattern_mod_path n p >] -> name :: l , n , p
