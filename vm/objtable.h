@@ -39,9 +39,9 @@ value *otable_find(objtable t,field id);
 #define otable_remove(t,id) _otable_remove(&(t),id)
 #define otable_optimize(t) _otable_optimize(&(t))
 
-int_val otable_count(objtable t);
-uint_val _otable_replace(objtable *t, field id, value data);
-uint_val _otable_remove(objtable *t, field id);
+int otable_count(objtable t);
+unsigned int _otable_replace(objtable *t, field id, value data);
+unsigned int _otable_remove(objtable *t, field id);
 void _otable_optimize(objtable *t);
 
 
