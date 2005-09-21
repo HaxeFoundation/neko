@@ -29,7 +29,7 @@ struct _objtable {
 	value data;
 	struct _objtable *left;
 	struct _objtable *right;
-	int_val skew;
+	int skew;
 };
 
 value *otable_find(objtable t,field id);
@@ -54,14 +54,14 @@ typedef struct {
 
 struct _objtable
 {
-	int_val count;
+	int count;
 	cell *cells;
 };
 
 static INLINE value *otable_find(objtable t,field id) {
-	int_val min;
-	int_val max;
-	int_val mid;
+	int min;
+	int max;
+	int mid;
 	field cid;
 	if( !t->count )
 		return NULL;
