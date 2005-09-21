@@ -74,8 +74,8 @@ extern field id_module;
 extern value *neko_builtins;
 extern value alloc_module_function( void *m, int_val pos, int nargs );
 
-static int_val read_string( reader r, readp p, char *buf ) {
-	int_val i = 0;
+static int read_string( reader r, readp p, char *buf ) {
+	int i = 0;
 	char c;
 	while( i < MAXSIZE ) {
 		if( r(p,&c,1) == -1 )
@@ -104,11 +104,11 @@ static int_val builtin_id( neko_module *m, field id ) {
 
 #define UNKNOWN  ((unsigned char)-1)
 
-static int_val neko_check_stack( neko_module *m, unsigned char *tmp, uint_val i, int_val stack, int_val istack ) {
-	uint_val itmp;
+static int neko_check_stack( neko_module *m, unsigned char *tmp, int i, int stack, int istack ) {
+	int itmp;
 	while( true ) {
 		int_val c = m->code[i];
-		int_val s = stack_table[c];
+		int s = stack_table[c];
 		if( tmp[i] == UNKNOWN )
 			tmp[i] = (unsigned char)stack;
 		else if( tmp[i] != stack )
@@ -116,9 +116,9 @@ static int_val neko_check_stack( neko_module *m, unsigned char *tmp, uint_val i,
 		else
 			return 1;
 		if( s == P )
-			stack += m->code[i+1];
+			stack += (int)m->code[i+1];
 		else if( s == -P )
-			stack -= m->code[i+1];
+			stack -= (int)m->code[i+1];
 		else
 			stack += s;
 		if( stack < istack || stack >= UNKNOWN )
@@ -128,7 +128,7 @@ static int_val neko_check_stack( neko_module *m, unsigned char *tmp, uint_val i,
 		case JumpIf:
 		case JumpIfNot:
 		case Trap:
-			itmp = ((int_val*)m->code[i+1]) - m->code;
+			itmp = (int)(((int_val*)m->code[i+1]) - m->code);
 			if( tmp[itmp] == UNKNOWN ) {
 				if( c == Trap )
 					stack -= s;
@@ -338,7 +338,7 @@ static neko_module *neko_module_read( reader r, readp p, value loader ) {
 			if( val_type(f) == VAL_FUNCTION ) {
 				if( (uint_val)f->addr >= m->codesize || !tmp[(uint_val)f->addr]  )
 					ERROR();
-				if( !neko_check_stack(m,stmp,(int_val)f->addr,f->nargs,f->nargs) )
+				if( !neko_check_stack(m,stmp,(int)(int_val)f->addr,(int)f->nargs,(int)f->nargs) )
 					ERROR();
 				f->addr = m->code + (int_val)f->addr;
 			}
@@ -414,10 +414,10 @@ static value default_loadmodule( value mname, value this ) {
 #	define dlsym(h,n)		GetProcAddress((HANDLE)h,n)
 #endif
 
-static int_val file_reader( readp p, void *buf, int_val size ) {
-	int_val len = 0;
+static int file_reader( readp p, void *buf, int size ) {
+	int len = 0;
 	while( size > 0 ) {
-		int_val l = fread(buf,1,size,(FILE*)p);
+		int l = (int)fread(buf,1,size,(FILE*)p);
 		if( l <= 0 )
 			return len;
 		size -= l;
@@ -427,7 +427,7 @@ static int_val file_reader( readp p, void *buf, int_val size ) {
 	return len;
 }
 
-EXTERN int_val neko_default_load_module( const char *mname, reader *r, readp *p ) {
+EXTERN int neko_default_load_module( const char *mname, reader *r, readp *p ) {
 	FILE *f;
 	value fname = neko_select_file(mname,neko_vm_current()->env,".n");
 	f = fopen(val_string(fname),"rb");
