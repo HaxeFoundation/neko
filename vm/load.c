@@ -64,8 +64,8 @@ DEFINE_KIND(k_module);
 #define MAXSIZE 0x100
 #define ERROR() { return NULL; }
 #define READ(buf,len) if( r(p,buf,len) == -1 ) ERROR()
-#define READ_LONG(var) READ(&(var), 4); var = LONG_TO_LE(var)
-#define READ_SHORT(var) READ(&(var), 2); var = SHORT_TO_LE(var)
+#define READ_LONG(var) read_long(r,p,&var)
+#define READ_SHORT(var) read_short(r,p,&var)
 
 extern field id_loader;
 extern field id_exports;
@@ -85,6 +85,22 @@ static int read_string( reader r, readp p, char *buf ) {
 			return i;
 	}
 	return -1;
+}
+
+static void read_long( reader r, readp p, uint_val *i ) {
+	unsigned char c[4];
+	int n;
+	r(p,c,4);
+	n = c[0] | (c[1] << 8) | (c[2] << 16) | (c[3] << 24);
+	*i = LONG_TO_LE(n);
+}
+
+static void read_short( reader r, readp p, unsigned short *i ) {
+	unsigned char c[2];
+	int n;
+	r(p,c,2);
+	n = c[0] | (c[1] << 8);
+	*i = SHORT_TO_LE(n);
 }
 
 static int_val builtin_id( neko_module *m, field id ) {
