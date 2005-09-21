@@ -23,21 +23,21 @@ open Mltype
 type module_context = {
 	path : string list;
 	types : (string,t) Hashtbl.t;
-	constr : (string, t * t) Hashtbl.t;
-	mdeps : (string list, module_context) Hashtbl.t;
+	constrs : (string, t * t) Hashtbl.t;
+	records : (string,t * t * mutflag) Hashtbl.t;
+	deps : (string list, module_context) Hashtbl.t;
 	mutable expr : texpr option;
-	mutable midents : (string,t) PMap.t;
+	mutable idents : (string,t) PMap.t;
 }
 
 type context = {
-	mutable idents : (string,string list * t) PMap.t;
-	mutable functions : (string * texpr ref * t * (string * t) list * expr * t * pos) list;
 	gen : id_gen;
-	records : (string,t * t * mutflag) Hashtbl.t;
+	mutable functions : (string * texpr ref * t * (string * t) list * expr * t * pos) list;
+	mutable opens : module_context list;
 	tmptypes : (string, t * t list * (string,t) Hashtbl.t) Hashtbl.t;
 	current : module_context;
 	modules : (string list, module_context) Hashtbl.t;
-	cpath : string list;
+	classpath : string list;
 }
 
 type error_msg =
@@ -66,6 +66,15 @@ let verbose = ref false
 
 let load_module_ref = ref (fun _ _ -> assert false)
 
+let add_local ctx v t =
+	if v <> "_" then ctx.current.idents <- PMap.add v t ctx.current.idents
+
+let save_locals ctx = 
+	ctx.current.idents
+
+let restore_locals ctx l =
+	ctx.current.idents <- l
+
 let get_module ctx path p =
 	match path with
 	| [] -> ctx.current
@@ -74,37 +83,72 @@ let get_module ctx path p =
 			Hashtbl.find ctx.modules path
 		with
 			Not_found -> 
-				!load_module_ref ctx path p) in
-		if m != ctx.current then Hashtbl.replace ctx.current.mdeps m.path m;
+				!load_module_ref ctx path p) in		
+		if m != ctx.current then begin
+			if m.expr = None then error (Module_not_loaded m) p;
+			Hashtbl.replace ctx.current.deps m.path m;
+		end;
 		m
 
 let get_type ctx path name p =
-	let m = get_module ctx path p in
-	try
-		Hashtbl.find m.types name
-	with
-		Not_found -> 
-			if m != ctx.current && m.expr = None then error (Module_not_loaded m) p;
-			error (Custom ("Unknown type " ^ s_path path name)) p
+	let rec loop = function
+		| [] -> error (Custom ("Unknown type " ^ s_path path name)) p
+		| m :: l ->
+			try
+				Hashtbl.find m.types name
+			with
+				Not_found -> loop l
+	in
+	match path with
+	| [] ->
+		loop (ctx.current :: ctx.opens)
+	| _ ->
+		loop [get_module ctx path p]
 
 let get_constr ctx path name p =
-	let m = get_module ctx path p in
-	try
-		let ut , t = Hashtbl.find m.constr name in
-		m.path , ut , t
-	with
-		Not_found -> 
-			if m != ctx.current && m.expr = None then error (Module_not_loaded m) p;		
-			error (Custom ("Unknown constructor " ^ s_path path name)) p
+	let rec loop = function
+		| [] -> error (Custom ("Unknown constructor " ^ s_path path name)) p
+		| m :: l ->
+			try
+				let t1, t2 = Hashtbl.find m.constrs name in
+				(if m == ctx.current then [] else m.path) , t1, t2
+			with
+				Not_found -> loop l
+	in
+	match path with
+	| [] ->
+		loop (ctx.current :: ctx.opens)
+	| _ ->
+		loop [get_module ctx path p]
 
 let get_ident ctx path name p =
-	let m = get_module ctx path p in
-	try
-		if path = [] then PMap.find name ctx.idents else path, PMap.find name m.midents
-	with
-		Not_found -> 
-			if m != ctx.current && m.expr = None then error (Module_not_loaded m) p;
-			error (Custom ("Unknown variable " ^ s_path path name)) p
+	let rec loop = function
+		| [] -> error (Custom ("Unknown identifier " ^ s_path path name)) p
+		| m :: l ->
+			try
+				(if m == ctx.current then [] else m.path) , PMap.find name m.idents
+			with
+				Not_found -> loop l
+	in
+	match path with
+	| [] ->
+		loop (ctx.current :: ctx.opens)
+	| _ ->
+		loop [get_module ctx path p]
+
+let get_record ctx f p =
+	let rec loop = function
+		| [] -> error (Unknown_field f) p
+		| m :: l ->
+			try
+				Hashtbl.find m.records f
+			with
+				Not_found -> loop l
+	in
+	let rt , ft , mut = loop (ctx.current :: ctx.opens) in
+	let h = Hashtbl.create 0 in
+	duplicate ctx.gen ~h rt, duplicate ctx.gen ~h ft, mut
+
 
 let rec is_recursive t1 t2 = 
 	if t1 == t2 then
@@ -129,11 +173,6 @@ let link ctx t1 t2 p =
 		if t2.tid = -1 then t1.tid <- -1 else t1.tid <- genid ctx.gen;
 	end else
 		if t2.tid = -1 then t1.tid <- -1
-
-let record_field ctx f p =
-	let rt , ft , mut = (try Hashtbl.find ctx.records f with Not_found -> error (Unknown_field f) p) in
-	let h = Hashtbl.create 0 in
-	duplicate ctx.gen ~h rt, duplicate ctx.gen ~h ft, mut
 
 let unify_stack t1 t2 = function
 	| Error (Cannot_unify _ as e , p) -> error (Stack (e , Cannot_unify (t1,t2))) p
@@ -238,7 +277,8 @@ let rec type_constant ctx ?(path=[]) c p =
 	| Char c -> mk (TConst (TChar c)) t_char p
 	| Ident s ->
 		let path , t = get_ident ctx path s p in
-		mk (TConst (TModule (path,TIdent s))) (duplicate ctx.gen t) p
+		let t = duplicate ctx.gen t in		
+		mk (TConst (TModule (path,TIdent s))) t p
 	| Constr s ->
 		let path , ut , t = get_constr ctx path s p in
 		let t = duplicate ctx.gen (match t.texpr with
@@ -403,19 +443,19 @@ let register_function ctx name pl e rt p =
 	) in
 	let ft = mk_fun ctx.gen (List.map snd el) rt in	
 	ctx.functions <- (name,expr,ft,el,e,rt,p) :: ctx.functions;
-	if name <> "_" then ctx.idents <- PMap.add name ([],ft) ctx.idents;
+	add_local ctx name ft;
 	mk (TMut expr) ft p
 
 let rec type_functions ctx =
 	let l = ctx.functions in
 	ctx.functions <- [];
 	let l = List.map (fun (name,expr,ft,el,e,rt,p) ->
-		let idents = ctx.idents in
+		let locals = save_locals ctx in
 		List.iter (fun (p,pt) ->
-			if p <> "_" then ctx.idents <- PMap.add p ([],pt) ctx.idents;
+			add_local ctx p pt
 		) el;
 		let e = type_expr ctx e in
-		ctx.idents <- idents;
+		restore_locals ctx locals;
 		let ft2 = mk_fun ctx.gen (List.map snd el) e.etype in
 		unify ctx ft ft2 p;
 		expr := mk (TFunction (name,el,e)) ft2 p;
@@ -430,20 +470,24 @@ and type_expr ctx (e,p) =
 	| EBlock [] -> 
 		mk (TConst TVoid) t_void p
 	| EBlock (e :: l) ->
-		let idents = ctx.idents in
+		let locals = save_locals ctx in
 		let e = type_block ctx e in
 		let el , t = List.fold_left (fun (l,t) e ->
 			let e = type_block ctx e in
 			e :: l , e.etype
 		) ([e] , e.etype) l in
 		type_functions ctx;
-		ctx.idents <- idents;
-		mk (TBlock (List.rev el)) t p
+		restore_locals ctx locals;
+		mk (TBlock (List.rev el)) t p	
+	| EApply (e,el) ->
+		type_expr ctx (ECall (e,el),p)
+	| ECall ((EConst (Ident "open"),_),[EConst (Constr modname),p]) ->
+		ctx.opens <- get_module ctx [modname] p :: ctx.opens;
+		mk (TConst TVoid) t_void p
 	| ECall ((EConst (Constr "TYPE"),_),[e]) ->
 		let e = type_expr ctx e in
 		prerr_endline ("type : " ^ s_type e.etype);
 		e
-	| EApply (e,el)
 	| ECall (e,el) ->
 		let e = type_expr ctx e in
 		let el = (match el with [] -> [ETupleDecl [],p] | _ -> el) in
@@ -481,7 +525,7 @@ and type_expr ctx (e,p) =
 			with
 				Not_found -> error (Have_no_field (e.etype,s)) p)
 		| _ ->
-			let r , t , _ = record_field ctx s p in
+			let r , t , _ = get_record ctx s p in
 			unify ctx e.etype r (pos e);
 			t
 		) in
@@ -528,6 +572,7 @@ and type_expr ctx (e,p) =
 		let el = List.map (type_expr ctx) el in
 		mk (TTupleDecl el) (mk_tup ctx.gen (List.map (fun e -> e.etype) el)) p
 	| ETypeDecl (params,tname,decl) ->
+		let fullname = (match ctx.current.path with ["Core"] -> tname | p -> s_path p tname) in
 		let t , tl , h =
 			try
 				let t , tl , h = Hashtbl.find ctx.tmptypes tname in
@@ -542,10 +587,10 @@ and type_expr ctx (e,p) =
 						let t = t_mono() in
 						Hashtbl.add h p t;
 						t
-					) params in
+					) params in					
 					let t = {
 						tid = genid ctx.gen;
-						texpr = TNamed (s_path ctx.current.path tname,tl,t_abstract);
+						texpr = TNamed (fullname,tl,t_abstract);
 					} in
 					Hashtbl.add ctx.current.types tname t;
 					if decl = EAbstract then Hashtbl.add ctx.tmptypes tname (t,tl,h);
@@ -558,7 +603,7 @@ and type_expr ctx (e,p) =
 				let fields = List.map (fun (f,m,ft) ->
 					let ft = type_type ~allow:false ~h ctx ft p in
 					let m = (if m then Mutable else Immutable) in
-					Hashtbl.add ctx.records f (t,ft,m);
+					Hashtbl.add ctx.current.records f (t,ft,m);
 					f , m , ft
 				) fields in
 				mk_record ctx.gen fields
@@ -568,18 +613,18 @@ and type_expr ctx (e,p) =
 						| None -> t_abstract
 						| Some ft -> type_type ~allow:false ~h ctx ft p
 					) in
-					Hashtbl.add ctx.current.constr c (t,ft);
+					Hashtbl.add ctx.current.constrs c (t,ft);
 					c , ft
 				) constr in
 				mk_union ctx.gen constr
 		) in
 		t.tid <- if t2.tid = -1 && params = [] then -1 else genid ctx.gen;
-		t.texpr <- TNamed (s_path ctx.current.path tname,tl,t2);
+		t.texpr <- TNamed (fullname,tl,t2);
 		polymorphize ctx.gen t;
 		mk (TTypeDecl t) t_void p
 	| ERecordDecl fl ->
 		let s , _ = (try List.hd fl with _ -> assert false) in
-		let r , _ , _ = record_field ctx s p in
+		let r , _ , _ = get_record ctx s p in
 		let fll = (match tlinks false r with
 			| TRecord fl -> fl
 			| _ -> assert false
@@ -607,14 +652,6 @@ and type_expr ctx (e,p) =
 			error (Custom ("Missing field " ^ f ^ " in record declaration")) p;
 		) !fl2;
 		mk (TRecordDecl el) r p
-	| EListDecl el ->
-		let t , pt = t_poly ctx.gen "list" in
-		let el = List.map (fun e ->
-			let e = type_expr ctx e in
-			unify ctx e.etype pt (pos e);
-			e
-		) el in
-		mk (TListDecl el) t p
 	| EUnop (op,e) ->
 		type_unop ctx op (type_expr ctx e) p
 	| EMatch (e,cl) ->
@@ -644,7 +681,7 @@ and type_block ctx ((e,p) as x)  =
 		| Some t ->
 			let t = type_type ctx t p in
 			unify ctx t e.etype (pos e));
-		if v <> "_" then ctx.idents <- PMap.add v ([],e.etype) ctx.idents;
+		add_local ctx v e.etype;
 		mk (TVar (v,e)) t_void p
 	| EFunction (name,pl,e,rt) ->
 		register_function ctx name pl e rt p
@@ -678,7 +715,7 @@ and type_pattern (ctx:context) h ?(h2 = Hashtbl.create 0) set (pat,p) =
 			mk_tup ctx.gen pl , PTuple patl
 		| PRecord fl ->
 			let s = (try fst (List.hd fl) with _ -> assert false) in
-			let r , _ , _ = record_field ctx s p in
+			let r , _ , _ = get_record ctx s p in
 			let fl = (match tlinks false r with
 			| TRecord rl ->
 				List.map (fun (f,pat) ->
@@ -749,10 +786,8 @@ and type_match ctx e cl p =
 			unify ctx pt e.etype p;
 			pat 
 		) pl in
-		let idents = ctx.idents in
-		Hashtbl.iter (fun v t ->
-			ctx.idents <- PMap.add v ([],t) ctx.idents
-		) h;
+		let locals = save_locals ctx in
+		Hashtbl.iter (fun v t -> add_local ctx v t) h;
 		let wh = (match wh with 
 			| None -> None
 			| Some e -> 
@@ -762,7 +797,7 @@ and type_match ctx e cl p =
 		) in
 		let pe = type_expr ctx pe in
 		unify ctx pe.etype ret (pos pe);
-		ctx.idents <- idents;
+		restore_locals ctx locals;
 		pl , wh , pe
 	) cl in
 	Mlmatch.fully_matched_ref := (fun cl ->
@@ -787,7 +822,7 @@ let modules ctx =
 		match m.expr with 
 		| None -> ()
 		| Some e -> 		
-			let deps = ref (if m.path = [] then [] else [[],"Core"]) in
+			let deps = ref (if m.path = ["Core"] then [] else [[],"Core"]) in
 			let idents = ref [] in
 			Hashtbl.iter (fun _ m ->
 				let rec loop = function
@@ -798,11 +833,11 @@ let modules ctx =
 						p :: path , x
 				in
 				deps := loop m.path :: !deps
-			) m.mdeps;
+			) m.deps;
 			PMap.iter (fun i t ->
 				idents := i :: !idents
-			) m.midents;
-			Hashtbl.add h (if m.path = [] then ["Core"] else p) (e,!deps,!idents)
+			) m.idents;
+			Hashtbl.add h p (e,!deps,!idents)
 	) ctx.modules;
 	h
 
@@ -816,7 +851,7 @@ let open_file ctx file p =
 			with
 				_ -> loop l
 	in
-	loop ctx.cpath
+	loop ctx.classpath
 
 let load_module ctx m p =
 	try
@@ -824,20 +859,24 @@ let load_module ctx m p =
 	with
 		Not_found ->			
 			let file , ch = open_file ctx (String.concat "/" m ^ ".nml") p in
-			let base = (try Hashtbl.find ctx.modules [] with Not_found when m = ["Core"] -> ctx.current) in
+			let is_core , core = (try
+				false , Hashtbl.find ctx.modules ["Core"]
+			with Not_found ->
+				true , ctx.current
+			) in
 			let ctx = {	ctx with
-				idents = PMap.map (fun t -> (if m = ["Core"] then [] else ["Core"]),t) base.midents;
-				records = Hashtbl.create 0;
 				tmptypes = Hashtbl.create 0;
 				functions = [];
-				current = {
-					path = (if m = ["Core"] then [] else m);
-					constr = Hashtbl.copy base.constr;
-					types = Hashtbl.copy base.types;
+				opens = [core];
+				current = (if is_core then ctx.current else {
+					path = m;
+					constrs = Hashtbl.create 0;
+					records = Hashtbl.create 0;
+					types = Hashtbl.create 0;
 					expr = None;
-					midents = PMap.empty;
-					mdeps = Hashtbl.create 0;
-				}
+					idents = PMap.empty;
+					deps = Hashtbl.create 0;
+				})
 			} in
 			Hashtbl.add ctx.modules m ctx.current;
 			let ast = Mlparser.parse (Lexing.from_channel ch) file in
@@ -854,37 +893,33 @@ let load_module ctx m p =
 				| _ ->
 					type_expr ctx ast
 			) in
-			ctx.current.expr <- Some e;
-			ctx.current.midents <- PMap.empty;
+			ctx.current.expr <- Some e;			
 			if !verbose then print_endline ("Typing done with " ^ file);
-			PMap.iter (fun i (p,t) ->				
-				if p = [] then ctx.current.midents <- PMap.add i t ctx.current.midents; 	
-			) ctx.idents;
 			ctx.current
 
 let context cpath = 
 	let ctx = {
-		idents = PMap.empty;
 		gen = generator();
-		records = Hashtbl.create 0;
 		tmptypes = Hashtbl.create 0;
 		modules = Hashtbl.create 0;
 		functions = [];
-		cpath = cpath;
+		opens = [];
+		classpath = cpath;
 		current = {
-			midents = PMap.empty;
-			path = [];
-			constr = Hashtbl.create 0;
-			types = Hashtbl.create 0;
-			mdeps = Hashtbl.create 0;
+			path = ["Core"];
 			expr = None;
+			idents = PMap.empty;
+			constrs = Hashtbl.create 0;
+			types = Hashtbl.create 0;
+			deps = Hashtbl.create 0;
+			records = Hashtbl.create 0;
 		};
 	} in
 	let add_type args name t = 
 		ignore(type_expr ctx (ETypeDecl (args,name,t) , null_pos));
 	in
 	let add_variable name t = 
-		ctx.current.midents <- PMap.add name t ctx.current.midents
+		ctx.current.idents <- PMap.add name t ctx.current.idents
 	in
 	add_type [] "bool" (EUnion ["true",None;"false",None]);
 	add_type ["a"] "list" (EUnion ["[]",None;"::",Some (ETuple [
@@ -893,7 +928,6 @@ let context cpath =
 	])]);
 	add_variable "neko" (mk_fun ctx.gen [t_polymorph ctx.gen] (t_polymorph ctx.gen));
 	let core = load_module ctx ["Core"] null_pos in
-	Hashtbl.add ctx.modules [] core;
 	ctx
 
 ;;
