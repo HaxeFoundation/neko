@@ -21,7 +21,9 @@
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
-#undef NULL
+#ifdef _WIN32
+#	undef NULL
+#endif
 #include "context.h"
 #include "load.h"
 #include "interp.h"
