@@ -36,7 +36,7 @@ extern void neko_setup_trap( neko_vm *vm, int_val where );
 extern void neko_process_trap( neko_vm *vm );
 extern int_val neko_stack_expand( int_val *sp, int_val *csp, neko_vm *vm );
 
-EXTERN value val_callEx( value this, value f, value *args, int_val nargs, value *exc ) {
+EXTERN value val_callEx( value this, value f, value *args, int nargs, value *exc ) {
 	neko_vm *vm = NEKO_VM();
 	value old_this = vm->this;
 	value ret = val_null;
@@ -113,11 +113,11 @@ EXTERN value val_callEx( value this, value f, value *args, int_val nargs, value 
 	return ret;
 }
 
-EXTERN value val_callN( value f, value *args, int_val nargs ) {
+EXTERN value val_callN( value f, value *args, int nargs ) {
 	return val_callEx(NULL,f,args,nargs,NULL);
 }
 
-EXTERN value val_ocallN( value o, field f, value *args, int_val nargs ) {
+EXTERN value val_ocallN( value o, field f, value *args, int nargs ) {
 	value *meth;
 	meth = otable_find(((vobject*)o)->table,f);
 	if( meth == NULL )

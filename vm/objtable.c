@@ -46,7 +46,7 @@ INLINE void avlrotright(objtable *n) {
 	(*n)->right = tmp;
 }
 
-INLINE uint_val avlleftgrown(objtable *n) {
+INLINE unsigned int avlleftgrown(objtable *n) {
 	switch( (*n)->skew ) {
 	case BAL_LEFT:
 		if( (*n)->left->skew == BAL_LEFT ) {
@@ -82,7 +82,7 @@ INLINE uint_val avlleftgrown(objtable *n) {
 	}
 }
 
-INLINE uint_val avlrightgrown(objtable *n) {
+INLINE unsigned int avlrightgrown(objtable *n) {
 	switch( (*n)->skew ) {
 	case BAL_LEFT:					
 		(*n)->skew = BAL_NONE;
@@ -119,8 +119,8 @@ INLINE uint_val avlrightgrown(objtable *n) {
 }
 
 
-uint_val _otable_replace(objtable *n, field id, value data) {
-	uint_val tmp;
+unsigned int _otable_replace(objtable *n, field id, value data) {
+	int tmp;
 	if( !(*n) ) {
 		*n = (objtable)alloc(sizeof(struct _objtable));
 		(*n)->left = NULL;
@@ -145,7 +145,7 @@ uint_val _otable_replace(objtable *n, field id, value data) {
 }
 
 
-INLINE uint_val avlleftshrunk(objtable *n) {
+INLINE unsigned int avlleftshrunk(objtable *n) {
 	switch( (*n)->skew ) {
 	case BAL_LEFT:
 		(*n)->skew = BAL_NONE;
@@ -189,7 +189,7 @@ INLINE uint_val avlleftshrunk(objtable *n) {
 
 }
 
-INLINE uint_val avlrightshrunk(objtable *n) {
+INLINE unsigned int avlrightshrunk(objtable *n) {
 	switch( (*n)->skew ) {
 	case BAL_RIGHT:
 		(*n)->skew = BAL_NONE;
@@ -232,7 +232,7 @@ INLINE uint_val avlrightshrunk(objtable *n) {
 	}
 }
 
-INLINE int_val avlfindhighest(objtable target, objtable *n, uint_val *res)  {
+INLINE int avlfindhighest(objtable target, objtable *n, uint_val *res)  {
 	objtable tmp;
 	*res = BALANCE;
 	if( !(*n) )
@@ -252,7 +252,7 @@ INLINE int_val avlfindhighest(objtable target, objtable *n, uint_val *res)  {
 	return 1;
 }
 
-INLINE int_val avlfindlowest(objtable target, objtable *n, uint_val *res) {
+INLINE int avlfindlowest(objtable target, objtable *n, uint_val *res) {
 	objtable tmp;
 	*res = BALANCE;
 	if( !(*n) )
@@ -271,8 +271,8 @@ INLINE int_val avlfindlowest(objtable target, objtable *n, uint_val *res) {
 	return 1;
 }
 
-uint_val _otable_remove(objtable *n, field key) {
-	uint_val tmp = BALANCE;
+unsigned int _otable_remove(objtable *n, field key) {
+	unsigned int tmp = BALANCE;
 	if( !(*n) )
 		return ERROR;
 	if( key < (*n)->id ) {
@@ -349,7 +349,7 @@ void _otable_optimize( objtable *t ) {
 	*t = t2;
 }
 
-int_val otable_count( objtable t ) {
+int otable_count( objtable t ) {
 	if( t == NULL )
 		return 0;
 	return 1 + otable_count(t->left) + otable_count(t->right);
