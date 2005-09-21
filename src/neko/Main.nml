@@ -1,1 +1,2 @@
-print (Ast.s_token Ast.Comment("xxx"));
+open Ast;
+print s_token(Keyword If)
