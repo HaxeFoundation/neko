@@ -265,8 +265,8 @@ let rec type_type ?(allow=true) ?(h=Hashtbl.create 0) ctx t p =
 	| EArrow (ta,tb) ->
 		let ta = type_type ~allow ~h ctx ta p in
 		let tb = type_type ~allow ~h ctx tb p in
-		match ta.texpr with
-		| TFun (params,r) -> mk_fun ctx.gen (params @ [r]) tb
+		match tb.texpr with
+		| TFun (params,r) -> mk_fun ctx.gen (ta :: params) r
 		| _ -> mk_fun ctx.gen [ta] tb
 
 let rec type_constant ctx ?(path=[]) c p =
