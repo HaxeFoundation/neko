@@ -170,9 +170,12 @@ let rec scan_labels ctx supported e =
 	match fst e with
 	| EFunction (args,e) -> 
 		let nargs = List.length args in
+		let ntraps = ctx.ntraps in
+		ctx.ntraps <- 0;
 		ctx.stack <- ctx.stack + nargs;
 		scan_labels ctx supported e;
 		ctx.stack <- ctx.stack - nargs;
+		ctx.ntraps <- ntraps
 	| EBlock _ -> 
 		let old = ctx.stack in
 		Ast.iter (scan_labels ctx supported) e;
@@ -463,7 +466,7 @@ and compile_builtin ctx b el p =
 		if ctx.stack > l.lstack then write ctx (Pop (ctx.stack - l.lstack));
 		while ctx.stack < l.lstack do
 			write ctx Push;
-		done;
+		done;		
 		ctx.stack <- os;
 		(match l.lpos with
 		| None -> l.lwait <- jmp ctx :: l.lwait
