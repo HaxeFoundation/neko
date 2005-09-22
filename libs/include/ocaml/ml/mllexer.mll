@@ -48,7 +48,7 @@ let error e pos =
 let keywords =
 	let h = Hashtbl.create 3 in
 	List.iter (fun k -> Hashtbl.add h (s_keyword k) k)
-	[Var;If;Else;Function;Try;Catch;Type;Match;Then;When]
+	[Var;If;Else;Function;Try;Catch;Type;Match;Then;When;While;Exception]
 	; h
 
 let init file =
@@ -141,8 +141,6 @@ rule token = parse
 	| '.' number+ { mk lexbuf (Const (Float (lexeme lexbuf))) }
 	| "true" { mk lexbuf (Const (Constr "true")) } 
 	| "false" { mk lexbuf (Const (Constr "false")) }
-	| ident { mk_ident lexbuf }
-	| modident { mk lexbuf (Const (Constr (lexeme lexbuf))) } 
 	| '"' {
 			reset();
 			let pmin = lexeme_start lexbuf in
@@ -175,6 +173,8 @@ rule token = parse
 		}
 	| "->" { mk lexbuf Arrow }
 	| binop binop? | ">>>" | "or" | "and" | "xor" { mk lexbuf (Binop (lexeme lexbuf)) }
+	| ident { mk_ident lexbuf }
+	| modident { mk lexbuf (Const (Constr (lexeme lexbuf))) } 
 	| _ {
 			error (Invalid_character (lexeme_char lexbuf 0)) (lexeme_start lexbuf)
 		}

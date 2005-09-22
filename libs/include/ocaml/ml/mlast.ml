@@ -43,6 +43,8 @@ type keyword =
 	| Match
 	| Then
 	| When
+	| While
+	| Exception
 
 type token =
 	| Eof
@@ -98,7 +100,7 @@ type expr_decl =
 	| EField of expr * string
 	| ECall of expr * expr list
 	| EArray of expr * expr	
-	| EVar of string * type_path option * expr 
+	| EVar of (string * type_path option) list * expr 
 	| EIf of expr * expr * expr option
 	| EFunction of string option * arg list * expr * type_path option
 	| EBinop of string * expr * expr
@@ -106,10 +108,13 @@ type expr_decl =
 	| ETypeAnnot of expr * type_path
 	| ETupleDecl of expr list
 	| ETypeDecl of string list * string * type_decl
+	| EErrorDecl of string * type_path option
 	| ERecordDecl of (string * expr) list
 	| EMatch of expr * (pattern list * expr option * expr) list
+	| ETry of expr * (pattern list * expr option * expr) list
 	| ETupleGet of expr * int
 	| EApply of expr * expr list
+	| EWhile of expr * expr
 
 and expr = expr_decl * pos
 
@@ -167,6 +172,8 @@ let s_keyword = function
 	| Match -> "match"
 	| Then -> "then"
 	| When -> "when"
+	| While -> "while"
+	| Exception -> "exception"
 
 let s_token = function
 	| Eof -> "<eof>"

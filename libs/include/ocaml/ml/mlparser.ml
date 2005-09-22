@@ -38,7 +38,7 @@ let error_msg = function
 let error m p = raise (Error (m,p))
 
 let priority = function
-	| "=" | "+=" | "-=" | "*=" | "/=" | "|=" | "&=" | "^=" -> -3
+	| "=" | "+=" | "-=" | "*=" | "/=" | "|=" | "&=" | "^=" | ":=" -> -3
 	| "&&" | "||" -> -2
 	| "==" | "!=" | ">" | "<" | "<=" | ">=" -> -1
 	| "+" | "-" -> 0
@@ -100,19 +100,29 @@ and expr = parser
 		(match s with parser
 		| [< '(BraceClose,p2); s >] -> expr_next (e,punion p1 p2) s
 		| [< '(Eof,_) >] -> unclosed "{" p1)
-	| [< '(Keyword Var,p1); '(Const (Ident name),_); t = type_opt; '(Binop "=",_); e = expr; s >] ->
-		expr_next (EVar (name,t,e),punion p1 (pos e)) s
+	| [< '(Keyword Var,p1); '(Const (Ident name),_); t = type_opt; l = vars; e = expr; s >] ->
+		EVar ((name,t) :: l,e) , punion p1 (pos e)
 	| [< '(Keyword If,p1); cond = expr; '(Keyword Then,_); e = expr; s >] ->
 		(match s with parser
-		| [< '(Keyword Else,_); e2 = expr; s >] -> expr_next (EIf (cond,e,Some e2),punion p1 (pos e2)) s
-		| [< >] -> expr_next (EIf (cond,e,None),punion p1 (pos e)) s)
-	| [< '(Keyword Function,p1); n = ident_opt; '(ParentOpen _,po); p = parameters_decl; t = type_opt; e = expr; s >] ->
-		expr_next (EFunction (n,p,e,t),punion p1 (pos e)) s
-	| [< '(Keyword Type,p1); pl = type_decl_parameters; '(Const (Ident tname),p2); d , p2 = type_declaration p2; s >] ->
+		| [< '(Keyword Else,_); e2 = expr; s >] -> EIf (cond,e,Some e2) , punion p1 (pos e2)
+		| [< >] -> EIf (cond,e,None) , punion p1 (pos e))
+	| [< '(Keyword Function,p1); n = ident_opt; '(ParentOpen _,po); p = parameters_decl; t = type_opt; e = expr >] ->
+		EFunction (n,p,e,t) , punion p1 (pos e)
+	| [< '(Keyword Type,p1); pl = type_decl_parameters; '(Const (Ident tname),p2); d , p2 = type_declaration p2 >] ->
 		ETypeDecl (pl,tname,d) , punion p1 p2
+	| [< '(Keyword Exception,p1); '(Const (Constr ename),p2); t = type_opt; s >] ->
+		EErrorDecl (ename,t) , punion p1 p2
 	| [< '(Keyword Match,p1); e = expr; '(BraceOpen,po); pl = patterns_begin; s >] ->
 		(match s with parser
-		| [< '(BraceClose,_); s >] -> expr_next (EMatch (e,pl),punion p1 (pos e)) s
+		| [< '(BraceClose,pe); >] -> EMatch (e,pl), punion p1 pe
+		| [< '(Eof,_) >] -> unclosed "{" po)
+	| [< '(Keyword Try,p1); b = block; '(Keyword Catch,p2); '(BraceOpen,po); pl = patterns_begin; s >] ->
+		(match s with parser
+		| [< '(BraceClose,pe); >] -> ETry ((EBlock b,punion p1 p2),pl), punion p1 pe
+		| [< '(Eof,_) >] -> unclosed "{" po)
+	| [< '(Keyword While,p1); e = expr; '(BraceOpen,po); b = block; s >] ->
+		(match s with parser
+		| [< '(BraceClose,pe); s >] -> EWhile (e,(EBlock b,punion po pe)) , punion po pe
 		| [< '(Eof,_) >] -> unclosed "{" po)
 	| [< e = expr_short >] ->
 		e
@@ -179,6 +189,10 @@ and record_fields = parser
 	| [< '(Const (Ident name),_); '(Binop "=",_); e = expr; l = record_fields >] -> (name,e) :: l
 	| [< '(Semicolon,_); l = record_fields >] -> l
 	| [< >] -> []
+
+and vars = parser
+	| [< '(Binop "=",_) >] -> []
+	| [< '(Comma,_); '(Const (Ident name),_); t = type_opt; l = vars >] -> (name,t) :: l
 
 and block = parser
 	| [< e = expr; b = block >] -> e :: b
