@@ -67,7 +67,7 @@ and texpr_decl =
 	| TCall of texpr * texpr list
 	| TField of texpr * string
 	| TArray of texpr * texpr
-	| TVar of string * texpr
+	| TVar of string list * texpr
 	| TIf of texpr * texpr * texpr option
 	| TFunction of string * (string * t) list * texpr
 	| TBinop of string * texpr * texpr
@@ -78,7 +78,11 @@ and texpr_decl =
 	| TListDecl of texpr list
 	| TUnop of string * texpr
 	| TMatch of match_op
+	| TTry of texpr * match_op
 	| TTupleGet of texpr * int
+	| TErrorDecl of string * t
+	| TWhile of texpr * texpr
+	| TException
 
 and texpr = {
 	edecl : texpr_decl;
@@ -118,6 +122,7 @@ let t_void = abstract "void"
 let t_int = abstract "int"
 let t_float = abstract "float"
 let t_char = abstract "char"
+let t_error = abstract "error"
 let t_bool = {
 	tid = -1;
 	texpr = TNamed ("bool",[], {
