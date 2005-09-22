@@ -1,3 +1,16 @@
 
-var length : string -> int = magic();
-var get : string -> int -> char = magic();
+function make(size : int, c : char) : string {
+	neko("
+		var s = $smake(size);
+		var i = 0;
+		while( i < size ) {
+			$sset(s,i,c);
+			i = i + 1;
+		}
+		s
+	");
+}
+
+var length : string -> int = neko("$ssize");
+var get : string -> int -> char = neko("$sget");
+var set : string -> int -> char -> void = neko("$sset");

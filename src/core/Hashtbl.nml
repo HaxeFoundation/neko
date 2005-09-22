@@ -1,0 +1,22 @@
+
+type ('a,'b) t
+
+function create() : ('a,'b) t {
+	assert()
+}
+
+function length( h : ('a,'b) t) : int {
+	assert()
+}
+
+function find(h : ('a,'b) t, k : 'a) : 'b {
+	assert()
+}
+
+function add(h : ('a,'b) t, k : 'a, v : 'b) : void {
+	assert()
+}
+
+function iter(f : 'a -> 'b -> void,h : ('a,'b) t) : void {
+	assert()
+}

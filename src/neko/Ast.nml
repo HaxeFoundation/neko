@@ -207,7 +207,7 @@ function is_printable(c) {
 function escape(s) {
 	var b = Buffer.create();
 	function loop(i) {
-		if i = String.length s then
+		if i == String.length s then
 			Buffer.string b
 		else {
 			match String.get s i {
@@ -216,7 +216,7 @@ function escape(s) {
 			| '\r' -> Buffer.add b "\\r"
 			| '\\' -> Buffer.add b "\\\\"
 			| '"' -> Buffer.add b "\\\""
-			| c when !is_printable c -> Buffer.add b "???" //(Printf.sprintf "\\%.3d" (int_of_char c))
+			| c when !is_printable c -> Buffer.add b (IO.sprintf "\\%.3d" (ord c))
 			| c -> Buffer.add_char b c
 			};
 			loop (i+1)

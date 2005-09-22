@@ -3,29 +3,22 @@ type buffer;
 
 neko("
 
-	buffer_alloc = $loader.loadprim(\"std@buffer_alloc\",0);
-	buffer_add = $loader.loadprim(\"std@buffer_add\",2);
-	buffer_add_sub = $loader.loadprim(\"std@buffer_add_sub\",4);
-	//buffer_add_char = $loader.loadprim(\"std@buffer_add_char\",2);
-	buffer_string = $loader.loadprim(\"std@buffer_string\",1);
+	@buffer_alloc = $loader.loadprim('std2@buffer_alloc',0);
+	@buffer_add = $loader.loadprim('std2@buffer_add',2);
+	@buffer_add_sub = $loader.loadprim('std2@buffer_add_sub',4);
+	@buffer_add_char = $loader.loadprim('std2@buffer_add_char',2);
+	@buffer_string = $loader.loadprim('std2@buffer_string',1);
 
 ");
 
 function create() : buffer {
-	neko("buffer_alloc()");
+	neko("@buffer_alloc()");
 }
 
-var string : buffer -> string = neko("buffer_string");
-
-function add(b:buffer,x) : void {
-	neko("buffer_add")(b,x);
+function add(b:buffer,x : 'a) : void {
+	neko("@buffer_add")(b,x);
 }
-var add_sub : buffer -> string -> int -> int -> void = neko("buffer_add_sub");
 
-function add_char(b:buffer,c:char) : void {
-	neko("
-		var s = $smake(1);
-		$sset(s,0,c);
-		buffer_add(b,s);
-	");
-}
+var string : buffer -> string = neko("@buffer_string");
+var add_sub : buffer -> string -> int -> int -> void = neko("@buffer_add_sub");
+var add_char : buffer -> char -> void = neko("@buffer_add_char");

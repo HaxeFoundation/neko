@@ -1,2 +1,2 @@
-open Ast;
-print s_token(Keyword If)
+open Bytecode;
+var ch = IO.read_file "Core.n" true;

@@ -1,0 +1,97 @@
+
+type file
+
+type input {
+	mutable in_read : void -> char;
+	mutable in_input : string -> int -> int -> int;
+	mutable in_close : void -> void;
+}
+
+type output {
+	mutable out_write : char -> void;
+	mutable out_output : string -> int -> int -> int;
+	mutable out_close : void -> void;
+	mutable out_flush : void -> void;
+}
+
+exception Overflow : string;
+exception No_more_input;
+
+neko("
+	@file_new = $loader.loadprim('std2@file_new',1);
+	@file_open = $loader.loadprim('std2@file_open',2);
+");
+
+function file_open( path : string , bin : bool ) : file {
+	neko("
+		var f = @file_new(path);
+		@file_open(f,if bin 'rb' else 'r');
+		f
+	");
+}
+
+var file_close : file -> void = neko("$loader.loadprim('std2@file_close',1)");
+var file_read_char : file -> char = neko("$loader.loadprim('std2@file_read_char',1)");
+
+function read_file(path : string, bin : bool) : input {
+	var f = file_open(path,bin);
+	var x : input = magic();	
+	{
+		in_read = function() { file_read_char(f) };
+		in_input = function(s,p,l) { assert() };
+		in_close = function() { file_close(f) };
+	}
+}
+
+function read_char(ch : input) : char {
+	ch.in_read()
+}
+
+function read(ch : input, n : int) : string {
+	assert();
+}
+
+function read_i32(ch : input) : int {
+	assert();
+}
+
+function read_ui16(ch : input) : int {
+	assert();
+}
+
+function read_byte(ch : input) : int {
+	ord (ch.in_char())
+}
+
+function close_in(ch : input) : void {
+	ch
+}
+
+function write(ch : output,x : string) : void {
+	assert()
+}
+
+function write_byte(ch : output, x : int) : void {
+	assert()
+}
+
+function write_char(ch : output, x : char) : void {
+	assert()
+}
+
+function write_i32(ch : output, x : int) : void {
+	assert()
+}
+
+function write_ui16(ch : output, x : int) : void {
+	assert()
+}
+
+function printf(ch : output, fmt : 'a format, p : 'a ) : void {
+	assert();
+}
+
+function sprintf(fmt : 'a format, p : 'a ) : string {
+	assert();
+}
+

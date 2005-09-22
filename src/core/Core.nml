@@ -3,13 +3,19 @@ type int;
 type float;
 type char;
 type string;
+type error;
 type 'a array;
 type 'a ref;
+type 'a format;
 
 type 'a option {
 	None;
 	Some : 'a;
 }
+
+exception Assert_failure : (string,int);
+exception Error : string;
+exception Not_found;
 
 /* -----
 
@@ -41,6 +47,25 @@ neko("
 ");
 
 function magic(x) {
+	neko("x");
+}
+
+function throw(x : error) : 'a {
+	neko("$throw(x)");
+}
+
+function assert(file,line) {
+	throw Assert_failure(file,line)
+}
+
+function error(x : string) {
+	throw (Error x)
+}
+
+function ignore(x) {
+}
+
+function ord(x:char) : int {
 	neko("x");
 }
 
