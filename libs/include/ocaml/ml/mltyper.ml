@@ -345,13 +345,11 @@ let type_binop ctx op e1 e2 p =
 		unify ctx e1.etype t_bool (pos e1);
 		unify ctx e2.etype t_bool (pos e2);
 		emk t_bool
-	| "="
 	| "<"
 	| "<="
 	| ">"
 	| ">="
 	| "=="
-	| "<>"
 	| "!=" ->
 		unify ctx e2.etype e1.etype (pos e2);
 		emk t_bool
@@ -434,7 +432,7 @@ let register_function ctx name pl e rt p =
 		| [] -> e
 		| l -> 
 			EBlock (List.fold_left (fun acc (v,n,v2) ->
-				(EVar (v2,None, (ETupleGet ((EConst (Ident v),p),n),p)) , p) :: acc
+				(EVar ([v2,None], (ETupleGet ((EConst (Ident v),p),n),p)) , p) :: acc
 			) [e] l) , p
 	) in
 	let rt = (match rt with 
@@ -444,7 +442,44 @@ let register_function ctx name pl e rt p =
 	let ft = mk_fun ctx.gen (List.map snd el) rt in	
 	ctx.functions <- (name,expr,ft,el,e,rt,p) :: ctx.functions;
 	add_local ctx name ft;
-	mk (TMut expr) ft p
+	mk (TMut expr) (if name = "_" then ft else t_void) p
+
+let type_format ctx s p =
+	let types = ref [] in
+	let percent = ref false in
+	for i = 0 to String.length s - 1 do
+		let c = String.get s i in
+		if !percent then begin
+			percent := false;
+			match c with
+			| '%' -> 
+				()
+			| 'x' | 'X' | 'd' ->
+				types := t_int :: !types
+			| 'f' ->
+				types := t_float :: !types
+			| 's' ->
+				types := t_string :: !types
+			| 'b' ->
+				types := t_bool :: !types
+			| 'c' ->
+				types := t_char :: !types
+			| '0'..'9' | '.' ->
+				percent := true
+			| _ ->
+				error (Custom "Invalid % sequence") p
+		end else
+			match c with
+			| '%' -> 
+				percent := true
+			| _ ->
+				()
+	done;
+	if !percent then error (Custom "Invalid % sequence") p;
+	match !types with
+	| [] -> t_void
+	| [x] -> x
+	| l -> mk_tup ctx.gen (List.rev l)
 
 let rec type_functions ctx =
 	let l = ctx.functions in
@@ -473,6 +508,7 @@ and type_expr ctx (e,p) =
 		let locals = save_locals ctx in
 		let e = type_block ctx e in
 		let el , t = List.fold_left (fun (l,t) e ->
+			unify ctx t t_void (List.hd l).epos;
 			let e = type_block ctx e in
 			e :: l , e.etype
 		) ([e] , e.etype) l in
@@ -484,6 +520,9 @@ and type_expr ctx (e,p) =
 	| ECall ((EConst (Ident "open"),_),[EConst (Constr modname),p]) ->
 		ctx.opens <- get_module ctx [modname] p :: ctx.opens;
 		mk (TConst TVoid) t_void p
+	| ECall ((EConst (Ident "assert"),_) as a,[]) ->
+		let line = Mllexer.get_error_line p in
+		type_expr ctx (ECall (a,[EConst (String p.pfile),p;EConst (Int line),p]),p)
 	| ECall ((EConst (Constr "TYPE"),_),[e]) ->
 		let e = type_expr ctx e in
 		prerr_endline ("type : " ^ s_type e.etype);
@@ -497,7 +536,15 @@ and type_expr ctx (e,p) =
 			let rec loop l tl r =
 				match l , tl with
 				| e :: l , t :: tl ->
-					unify ctx e.etype t (pos e);
+					(match tlinks true t with 
+					| TNamed ("format",[params],_) ->
+						(match e.edecl with
+						| TConst (TString s) ->
+							let tfmt = type_format ctx s e.epos in
+							unify ctx params tfmt e.epos;							
+						| _ -> error (Custom "Constant string required for format") e.epos)
+					| _ ->
+						unify ctx e.etype t (pos e));
 					loop l tl r
 				| [] , [] ->
 					mk (TCall (e,el)) r p
@@ -538,7 +585,7 @@ and type_expr ctx (e,p) =
 		unify ctx e.etype t (pos e);
 		mk (TArray (e,ei)) pt p
 	| EVar _ ->
-		error (Custom "Variable declaration not allowed outside a block") p
+		error (Custom "Variable declaration not allowed outside a block") p	
 	| EIf (e,e1,None) ->
 		let e = type_expr ctx e in
 		unify ctx e.etype t_bool (pos e);
@@ -552,6 +599,12 @@ and type_expr ctx (e,p) =
 		let e2 = type_expr ctx e2 in
 		unify ctx e2.etype e1.etype (pos e2);
 		mk (TIf (e,e1,Some e2)) e1.etype p
+	| EWhile (e1,e2) ->
+		let e1 = type_expr ctx e1 in
+		unify ctx e1.etype t_bool (pos e1);
+		let e2 = type_expr ctx e2 in
+		unify ctx e2.etype t_void (pos e2);
+		mk (TWhile (e1,e2)) t_void p
 	| EFunction (name,pl,e,rt) ->
 		let r = register_function ctx name pl e rt p in
 		type_functions ctx;
@@ -652,10 +705,20 @@ and type_expr ctx (e,p) =
 			error (Custom ("Missing field " ^ f ^ " in record declaration")) p;
 		) !fl2;
 		mk (TRecordDecl el) r p
+	| EErrorDecl (name,t) ->
+		let t = (match t with None -> t_abstract | Some t -> type_type ~allow:false ctx t p) in
+		Hashtbl.add ctx.current.constrs name (t_error,t);
+		mk (TErrorDecl (name,t)) t_void p
 	| EUnop (op,e) ->
 		type_unop ctx op (type_expr ctx e) p
 	| EMatch (e,cl) ->
-		type_match ctx (type_expr ctx e) cl p
+		let m , t = type_match ctx (type_expr ctx e) cl p in
+		mk (TMatch m) t p
+	| ETry (e,cl) ->
+		let e = type_expr ctx e in
+		let m , t = type_match ctx (mk TException t_error p) cl p in
+		unify ctx t e.etype p;
+		mk (TTry (e,m)) t p
 	| ETupleGet (e,n) ->
 		let e = type_expr ctx e in
 		let try_unify et =
@@ -673,16 +736,25 @@ and type_expr ctx (e,p) =
 
 and type_block ctx ((e,p) as x)  = 
 	match e with
-	| EVar (v,t,e) ->
+	| EVar (vl,e) ->
 		type_functions ctx;
 		let e = type_expr ctx e in
-		(match t with
-		| None -> ()
-		| Some t ->
-			let t = type_type ctx t p in
-			unify ctx t e.etype (pos e));
-		add_local ctx v e.etype;
-		mk (TVar (v,e)) t_void p
+		let make v t =
+			let t = (match t with 
+				| None -> t_mono()
+				| Some t -> type_type ctx t p
+			) in
+			add_local ctx v t;
+			t
+		in
+		let t = (match vl with
+			| [] -> assert false
+			| [v,t] -> make v t
+			| _ -> 
+				mk_tup ctx.gen (List.map (fun (v,t) -> make v t) vl)
+		) in
+		unify ctx t e.etype (pos e);
+		mk (TVar (List.map fst vl,e)) t_void p
 	| EFunction (name,pl,e,rt) ->
 		register_function ctx name pl e rt p
 	| _ ->
@@ -804,6 +876,9 @@ and type_match ctx e cl p =
 		match cl with
 		| TModule(path,TConstr c) :: l ->			
 			let path , ut , t = get_constr ctx path c null_pos in
+			if ut == t_error then
+				true
+			else
 			(match tlinks false ut with
 			| TUnion (n,_) ->
 				n = List.length cl
@@ -814,7 +889,7 @@ and type_match ctx e cl p =
 		| _ ->
 			false
 	);	
-	mk (Mlmatch.make e cl p) ret p
+	Mlmatch.make e cl p , ret
 
 let modules ctx =
 	let h = Hashtbl.create 0 in
