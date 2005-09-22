@@ -147,6 +147,26 @@ let rec gen_matching ctx h p out fail m =
 		let fail = gen_rec fail MFailure in
 		EIf (gen_expr ctx e,m,Some fail) , p
 
+and gen_constructor ctx c t p =
+	let field = ident c in
+	let val_fun n =
+		let args = Array.to_list (Array.init n (fun n -> "p" ^ string_of_int n)) in
+		let build = ECall (builtin "array",field :: List.map (fun a -> EConst (Ident a) , p) args) , p in
+		let func = EFunction (args, (EBlock [EReturn (Some build),p] , p)) , p in
+		EBinop ("=" , field , func ) , p
+	in
+	let rec val_type t =
+		match t.texpr with
+		| TAbstract ->
+			let make = ECall (builtin "array",[null]) , p in
+			ENext ((EBinop ("=" , field, make) ,p) , (EBinop("=" , (EArray (field,int 0),p) , field) , p)) , p
+		| TTuple tl -> val_fun (List.length tl)
+		| TLink t -> val_type t
+		| _ -> val_fun 1
+	in
+	let export = EBinop ("=", (EField (ident ctx.module_name,c),p) , field) , p in
+	ENext (val_type t , export) , p
+
 and gen_type ctx t p =
 	match t.texpr with
 	| TAbstract
@@ -160,26 +180,23 @@ and gen_type ctx t p =
 	| TNamed (_,_,t) ->
 		gen_type ctx t p
 	| TUnion (_,constrs) ->
-		EBlock (List.map (fun (c,t) ->
-			let field = ident c in
-			let val_fun n =
-				let args = Array.to_list (Array.init n (fun n -> "p" ^ string_of_int n)) in
-				let build = ECall (builtin "array",field :: List.map (fun a -> EConst (Ident a) , p) args) , p in
-				let func = EFunction (args, (EBlock [EReturn (Some build),p] , p)) , p in
-				EBinop ("=" , field , func ) , p
-			in
-			let rec val_type t =
-				match t.texpr with
-				| TAbstract ->
-					let make = ECall (builtin "array",[null]) , p in
-					ENext ((EBinop ("=" , field, make) ,p) , (EBinop("=" , (EArray (field,int 0),p) , field) , p)) , p
-				| TTuple tl -> val_fun (List.length tl)
-				| TLink t -> val_type t
-				| _ -> val_fun 1
-			in
-			let export = EBinop ("=", (EField (ident ctx.module_name,c),p) , field) , p in
-			ENext (val_type t , export) , p
-		) constrs) , p
+		EBlock (List.map (fun (c,t) -> gen_constructor ctx c t p) constrs) , p
+
+and gen_binop ctx op e1 e2 p =
+	let make op =
+		EBinop (op,gen_expr ctx e1,gen_expr ctx e2) , p
+	in
+	match op with
+	| "and" -> make "&"
+	| "or" -> make "|"
+	| "xor" -> make "^"
+	| ":=" ->
+		(match e1.edecl with
+		| TArray _ -> make "="
+		| _ ->
+			EBinop ("=",(EArray (gen_expr ctx e1,int 0),pos e1.epos),gen_expr ctx e2) , p)
+	| _ -> 
+		make op
 
 and gen_expr ctx e =
 	let p = pos e.epos in
@@ -190,19 +207,27 @@ and gen_expr ctx e =
 	| TCall ({ edecl = TConst (TIdent "neko") },[{ edecl = TConst (TString s) }])
 	| TCall ({ edecl = TConst (TModule ([],TIdent "neko")) },[{ edecl = TConst (TString s) }])
 	| TCall ({ edecl = TConst (TModule (["Core"],TIdent "neko")) },[{ edecl = TConst (TString s) }]) ->
-		let ch = IO.input_string s in
+		let ch = IO.input_string (String.concat "\"" (ExtString.String.nsplit s "'")) in
 		let file = "neko@" ^ p.pfile in
 		Parser.parse (Lexing.from_function (fun s p -> try IO.input ch s 0 p with IO.No_more_input -> 0)) file
 	| TCall (e,el) -> ECall (gen_expr ctx e, List.map (gen_expr ctx) el) , p
 	| TField (e,s) -> EField (gen_expr ctx e, s) , p
 	| TArray (e1,e2) -> EArray (gen_expr ctx e1,gen_expr ctx e2) , p
-	| TVar (s,e) ->
-		ctx.refvars <- PMap.remove s ctx.refvars;
-		EVars [s , Some (gen_expr ctx e)] , p
+	| TVar ([v],e) ->
+		ctx.refvars <- PMap.remove v ctx.refvars;
+		EVars [v , Some (gen_expr ctx e)] , p
+	| TVar (vl,e) ->
+		let n = ref 0 in
+		EVars (("@tmp" , Some (gen_expr ctx e)) :: List.map (fun v ->
+			ctx.refvars <- PMap.remove v ctx.refvars;
+			incr n;
+			v , Some (EArray (ident "@tmp",int !n),p)
+		) vl) , p
 	| TIf (e,e1,e2) -> EIf (gen_expr ctx e, gen_expr ctx e1, match e2 with None -> None | Some e2 -> Some (gen_expr ctx e2)) , p
+	| TWhile (e1,e2) -> EWhile (gen_expr ctx e1 , gen_expr ctx e2 , NormalWhile) , p
 	| TFunction ("_",params,e) -> EFunction (List.map fst params,block (gen_expr ctx e)) , p
 	| TFunction _ -> EBlock [gen_functions ctx [e] p] , p
-	| TBinop (op,e1,e2) -> EBinop (op,gen_expr ctx e1,gen_expr ctx e2) , p
+	| TBinop (op,e1,e2) -> gen_binop ctx op e1 e2 p
 	| TTupleDecl tl -> ECall (builtin "array",List.map (gen_expr ctx) tl) , p
 	| TTypeDecl t -> gen_type ctx t p
 	| TMut e -> gen_expr ctx (!e)
@@ -225,6 +250,16 @@ and gen_expr ctx e =
 		EBlock [gen_matching ctx (Hashtbl.create 0) p out "<assert>" m ; ELabel out , p] , p
 	| TTupleGet (e,n) ->
 		EArray (gen_expr ctx e,int (n+1)) , p
+	| TErrorDecl (e,t) ->
+		gen_constructor ctx e t p
+	| TException ->
+		ident "@exc"
+	| TTry (e,m) ->
+		let out = gen_label ctx in
+		let matching = gen_matching ctx (Hashtbl.create 0) p out "<assert>" m in
+		let reraise = ECall (builtin "throw",[ident "@exc"]) , p in
+		let handle = EBlock [matching;reraise;ELabel out , p] , p in
+		ETry (gen_expr ctx e,"@exc",handle) , p
 
 and gen_functions ctx fl p =
 	let ell = ref (EVars (List.map (fun e ->
