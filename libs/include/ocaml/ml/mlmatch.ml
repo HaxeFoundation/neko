@@ -263,5 +263,5 @@ let make (e : texpr) (cases : (pattern list * texpr option * texpr) list) p =
 	| ([] , _ ) :: _ -> error "Some pattern are never matched" p
 	| ((_,p) :: _ , _) :: _ -> error "This pattern is never matched" p);
 	(match partial with
-	| Total -> TMatch lambda
+	| Total -> lambda
 	| _ -> error "This matching is not complete" p)
