@@ -33,7 +33,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="../../bin/neko.lib ws2_32.lib"
-				OutputFile="../../bin/std.ndll"
+				OutputFile="../../bin/std2.ndll"
 				LinkIncremental="2"
 				GenerateDebugInformation="TRUE"
 				ProgramDatabaseFile="$(OutDir)/std.pdb"
@@ -82,7 +82,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="../../bin/neko.lib ws2_32.lib msvcrt60.lib"
-				OutputFile="../../bin/std.ndll"
+				OutputFile="../../bin/std2.ndll"
 				LinkIncremental="1"
 				IgnoreDefaultLibraryNames="MSVCRT"
 				GenerateDebugInformation="TRUE"
