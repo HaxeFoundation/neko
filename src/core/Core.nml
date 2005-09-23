@@ -38,10 +38,10 @@ val neko : string -> 'a
 ----- */
 
 neko("
-	@empty = $array(null);
+	@empty = $array(null,'[]');
 	@empty[0] = @empty;
 	@cons = function(x,l) {
-		$array(@cons,x,l)
+		$array(@cons,'::',x,l)
 	}
 	$exports.@cons = @cons;
 	$exports.@empty = @empty;
@@ -129,6 +129,10 @@ function string(x : 'a) : string {
 
 function print(x) : void {
 	neko("$print(string(x))");
+}
+
+function nprint(x) : void {
+	neko("$print(x)");
 }
 
 function compare(x : 'a, y : 'a) : int {
