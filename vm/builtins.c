@@ -427,6 +427,90 @@ static value builtin_closure( value *args, int nargs ) {
 	return f;
 }
 
+static value apply1( value p1 ) {
+	value env = NEKO_VM()->env;
+	value *a = val_array_ptr(env) + 1;
+	int n = val_array_size(env) - 1;
+	a[n-1] = p1;
+	return val_callN(a[-1],a,n);
+}
+
+static value apply2( value p1, value p2 ) {
+	value env = NEKO_VM()->env;
+	value *a = val_array_ptr(env) + 1;
+	int n = val_array_size(env) - 1;
+	a[n-2] = p1;
+	a[n-1] = p2;
+	return val_callN(a[-1],a,n);
+}
+
+static value apply3( value p1, value p2, value p3 ) {
+	value env = NEKO_VM()->env;
+	value *a = val_array_ptr(env) + 1;
+	int n = val_array_size(env) - 1;
+	a[n-3] = p1;
+	a[n-2] = p2;
+	a[n-1] = p3;
+	return val_callN(a[-1],a,n);
+}
+
+static value apply4( value p1, value p2, value p3, value p4 ) {
+	value env = NEKO_VM()->env;
+	value *a = val_array_ptr(env) + 1;
+	int n = val_array_size(env) - 1;
+	a[n-4] = p1;
+	a[n-3] = p2;
+	a[n-2] = p3;
+	a[n-1] = p4;
+	return val_callN(a[-1],a,n);
+}
+
+static value builtin_apply( value *args, int nargs ) {
+	value f, env;
+	int fargs;
+	int i;
+	nargs--;
+	args++;
+	if( nargs < 0 )
+		type_error();
+	f = args[-1];
+	if( !val_is_function(f) )
+		type_error();
+	fargs = val_fun_nargs(f);
+	if( fargs == VAR_ARGS )
+		return val_callN(f,args,nargs);
+	if( fargs > 0 && nargs == 0 )
+		return f;
+	if( fargs == nargs )
+		return val_callN(f,args,nargs);
+	env = alloc_array(fargs + 1);
+	val_array_ptr(env)[0] = f;
+	for(i=0;i<nargs;i++)
+		val_array_ptr(env)[i+1] = args[i];
+	switch( fargs - nargs ) {
+	case 1:
+		f = alloc_function( apply1, 1, "apply1" );
+		((vfunction*)f)->env = env;
+		return f;
+	case 2:
+		f = alloc_function( apply2, 2, "apply2" );
+		((vfunction*)f)->env = env;
+		return f;
+	case 3:
+		f = alloc_function( apply3, 3, "apply3" );
+		((vfunction*)f)->env = env;
+		return f;
+	case 4:
+		f = alloc_function( apply4, 4, "apply4" );
+		((vfunction*)f)->env = env;
+		return f;
+	default:
+		failure("Too many arguments");
+		break;
+	}
+	return val_null;
+}
+
 static value builtin_compare( value a, value b ) {
 	int r = val_compare(a,b);
 	return (r == invalid_comparison)?val_null:alloc_int(r);
@@ -482,6 +566,7 @@ void neko_init_builtins() {
 	BUILTIN(string,1);
 	BUILTIN(typeof,1);
 	BUILTIN(closure,VAR_ARGS);
+	BUILTIN(apply,VAR_ARGS);
 	BUILTIN(compare,2);
 	BUILTIN(not,1);
 	BUILTIN(throw,1);
