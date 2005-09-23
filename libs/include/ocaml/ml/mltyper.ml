@@ -34,6 +34,7 @@ type context = {
 	gen : id_gen;
 	mutable functions : (string * texpr ref * t * (string * t) list * expr * t * pos) list;
 	mutable opens : module_context list;
+	mutable curfunction : string;
 	tmptypes : (string, t * t list * (string,t) Hashtbl.t) Hashtbl.t;
 	current : module_context;
 	modules : (string list, module_context) Hashtbl.t;
@@ -262,12 +263,17 @@ let rec type_type ?(allow=true) ?(h=Hashtbl.create 0) ctx t p =
 			List.iter2 (fun pa t -> unify ctx pa t p) params tl;
 			t
 		| _ -> assert false)
-	| EArrow (ta,tb) ->
-		let ta = type_type ~allow ~h ctx ta p in
-		let tb = type_type ~allow ~h ctx tb p in
-		match tb.texpr with
-		| TFun (params,r) -> mk_fun ctx.gen (ta :: params) r
-		| _ -> mk_fun ctx.gen [ta] tb
+	| EArrow _ ->
+		let rec loop params t =
+			match t with
+			| EArrow (ta,tb) -> 
+				let ta = type_type ~allow ~h ctx ta p in
+				loop (ta :: params) tb
+			| _ ->
+				let t = type_type ~allow ~h ctx t p in
+				mk_fun ctx.gen (List.rev params) t
+		in
+		loop [] t
 
 let rec type_constant ctx ?(path=[]) c p =
 	match c with
@@ -486,13 +492,16 @@ let rec type_functions ctx =
 	ctx.functions <- [];
 	let l = List.map (fun (name,expr,ft,el,e,rt,p) ->
 		let locals = save_locals ctx in
+		let func = ctx.curfunction in
+		if name <> "_" then ctx.curfunction <- s_path ctx.current.path name;
 		List.iter (fun (p,pt) ->
 			add_local ctx p pt
-		) el;
+		) el;		
 		let e = type_expr ctx e in
 		restore_locals ctx locals;
+		ctx.curfunction <- func;
 		let ft2 = mk_fun ctx.gen (List.map snd el) e.etype in
-		unify ctx ft ft2 p;
+		unify ctx ft ft2 p;		
 		expr := mk (TFunction (name,el,e)) ft2 p;
 		ft2
 	) (List.rev l) in
@@ -523,6 +532,8 @@ and type_expr ctx (e,p) =
 	| ECall ((EConst (Ident "assert"),_) as a,[]) ->
 		let line = Mllexer.get_error_line p in
 		type_expr ctx (ECall (a,[EConst (String p.pfile),p;EConst (Int line),p]),p)
+	| ECall ((EConst (Ident "invalid_arg"),_) as a,[]) ->
+		type_expr ctx (ECall (a,[EConst (String ctx.curfunction),p]),p)
 	| ECall ((EConst (Constr "TYPE"),_),[e]) ->
 		let e = type_expr ctx e in
 		prerr_endline ("type : " ^ s_type e.etype);
@@ -980,6 +991,7 @@ let context cpath =
 		functions = [];
 		opens = [];
 		classpath = cpath;
+		curfunction = "anonymous";
 		current = {
 			path = ["Core"];
 			expr = None;
