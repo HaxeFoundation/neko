@@ -29,15 +29,13 @@ function length(h) {
 }
 
 function find_rec(k,r) {
-	print ("find_rec",k,r);
 	match r {
-	| Empty -> print "not_found"; throw Not_found
-	| Cons (k2,d,r) -> print ("compare",k,k2,compare k k2); if compare k k2 == 0 then { print "ok"; d } else find_rec k r
+	| Empty -> throw Not_found
+	| Cons (k2,d,r) -> if compare k k2 == 0 then d else find_rec k r
 	}
 }
 
 function find(h,k) {
-	print ("Looking for ",k,hash(k) % Array.length h.data,Array.length h.data);
 	find_rec k (h.data.[hash(k) % Array.length h.data])
 }
 
@@ -60,7 +58,6 @@ function resize(h) {
 		insert old_data.[*i];
 		i := *i + 1;
 	}
-	print ("Resized",new_data);
 	h.data := new_data;
 }
 
