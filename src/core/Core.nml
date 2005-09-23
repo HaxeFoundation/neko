@@ -13,6 +13,7 @@ type 'a option {
 	Some : 'a;
 }
 
+exception Invalid_argument : string;
 exception Assert_failure : (string,int);
 exception Error : string;
 exception Not_found;
@@ -44,6 +45,55 @@ neko("
 	}
 	$exports.@cons = @cons;
 	$exports.@empty = @empty;
+
+	@string = function(x) {
+		if( $typeof(x) == $tobject ) {
+			var s = '{ ';
+			var f = $objfields(x);
+			var l = $asize(f);
+			var i = 0;
+			while i < l {
+				var k = f[i];
+				s = s + $field(k) + ': ' + @string($objget(x,k));
+				i = i + 1;
+				if i < l 
+					s = s + ', ';
+			}
+			s = s + ' }';
+			return s;
+		}
+		if( $typeof(x) == $tarray && $typeof(x[1]) == $tstring && ($typeof(x[0]) == $tfunction || x[0] == x) ) {
+			var s = x[1];
+			var l = $asize(x);
+			if( l > 2 ) {
+				var i = 2;
+				s = s + '(';
+				while i < l {
+					s = s + @string(x[i]);
+					i = i + 1;
+					if i < l
+						s = s + ', ';
+				}
+				s = s + ')';
+			}
+			return s;
+		}
+		if( $typeof(x) == $tarray ) {
+			var s = '[';
+			var l = $asize(x);
+			var i = 0;
+			while i < l {
+				s = s + @string(x[i]);
+				i = i + 1;
+				if i < l 
+					s = s + ', ';
+			}
+			s = s + ']';
+			return s;
+		}
+		return $string(x);
+	}
+
 ");
 
 function magic(x) {
@@ -51,15 +101,19 @@ function magic(x) {
 }
 
 function throw(x : error) : 'a {
-	neko("$throw(x)");
+	neko("$throw(x)");	
 }
 
 function assert(file,line) {
 	throw Assert_failure(file,line)
 }
 
+function invalid_arg(fun) : 'a {
+	throw Invalid_argument(fun);
+}
+
 function error(x : string) {
-	throw (Error x)
+	throw Error(x)
 }
 
 function ignore(x) {
@@ -69,12 +123,16 @@ function ord(x:char) : int {
 	neko("x");
 }
 
-function string(x) : string {
-	neko("$string(x)");
+function string(x : 'a) : string {
+	neko("@string(x)");
 }
 
 function print(x) : void {
-	neko("$print(x)");
+	neko("$print(string(x))");
+}
+
+function compare(x : 'a, y : 'a) : int {
+	neko("$compare(x,y)");
 }
 
 function min(x,y) {
@@ -84,3 +142,14 @@ function min(x,y) {
 function max(x,y) {
 	if x < y then y else x
 }
+
+function printf(fmt : 'a format, p : 'a ) : string {
+	var _ = assert();
+	magic();
+}
+
+function sprintf(fmt : 'a format, p : 'a ) : string {
+	var _ = assert();
+	magic();
+}
+

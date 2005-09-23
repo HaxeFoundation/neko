@@ -1,20 +1,75 @@
 
-type ('a,'b) t
-
-function create() : ('a,'b) t {
-	assert()
+type ('a, 'b) bucketlist {
+	Empty;
+	Cons : ('a , 'b , ('a, 'b) bucketlist);
 }
 
-function length( h : ('a,'b) t) : int {
-	assert()
+type ('a,'b) t {
+	mutable size : int;
+	mutable data : ('a,'b) bucketlist array;
 }
 
-function find(h : ('a,'b) t, k : 'a) : 'b {
-	assert()
+neko("
+	@hash = $loader.loadprim('std2@hash',1);
+");
+
+function hash(x:'a) : int {
+	neko("@hash(x)");
+}
+
+function create() {
+	{
+		size = 0;
+		data = Array.make 1 Empty;
+	}
+}
+
+function length(h) {
+	h.size
+}
+
+function find_rec(k,r) {
+	print ("find_rec",k,r);
+	match r {
+	| Empty -> print "not_found"; throw Not_found
+	| Cons (k2,d,r) -> print ("compare",k,k2,compare k k2); if compare k k2 == 0 then { print "ok"; d } else find_rec k r
+	}
+}
+
+function find(h,k) {
+	print ("Looking for ",k,hash(k) % Array.length h.data,Array.length h.data);
+	find_rec k (h.data.[hash(k) % Array.length h.data])
+}
+
+function resize(h) {
+	var old_data = h.data;
+	var old_size = h.size;
+	var new_size = old_size << 1 + 1;
+	var new_data = Array.make new_size Empty;	
+	function insert(x) {
+		match x {
+		| Empty -> ()
+		| Cons (k,v,r) ->
+			insert r;
+			var i = hash(k) % new_size;
+			new_data.[i] := Cons(k,v,new_data.[i])
+		}
+	};
+	var i = &0;
+	while *i < old_size - 1 {
+		insert old_data.[*i];
+		i := *i + 1;
+	}
+	print ("Resized",new_data);
+	h.data := new_data;
 }
 
 function add(h : ('a,'b) t, k : 'a, v : 'b) : void {
-	assert()
+	var p = hash(k) % Array.length(h.data);
+	var bucket = Cons(k, v, h.data.[p]);
+	h.data.[p] := bucket;	
+	h.size := h.size + 1;
+	if h.size > Array.length h.data << 1 then resize h
 }
 
 function iter(f : 'a -> 'b -> void,h : ('a,'b) t) : void {

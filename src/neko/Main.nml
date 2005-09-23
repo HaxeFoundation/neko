@@ -1,2 +1,6 @@
-open Bytecode;
-var ch = IO.read_file "Core.n" true;
+try {
+	var ch = IO.read_file "Core.n" true;	
+	var data = Bytecode.read ch;
+} catch {
+	e -> print ("Exception : " + string e)
+}

@@ -11,6 +11,7 @@ function make(size : int, c : char) : string {
 	");
 }
 
+var create : int -> string = neko("$smake");
 var length : string -> int = neko("$ssize");
 var get : string -> int -> char = neko("$sget");
 var set : string -> int -> char -> void = neko("$sset");

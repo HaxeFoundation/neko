@@ -306,8 +306,8 @@ function read(ch) {
 			match IO.read_byte ch {
 			| 1 ->
 				GlobalVar(read_string ch)
-			| 2 -> 
-				var v = IO.read_i32 ch;				
+			| 2 ->
+				var v = IO.read_i32 ch;
 				GlobalFunction(v and 0xFFFFFF, v >> 24)
 			| 3 ->
 				var len = IO.read_ui16 ch;
@@ -328,7 +328,7 @@ function read(ch) {
 				try
 					var s2 = Hashtbl.find ids id;
 					if s != s2 then throw Invalid_file;
-				catch {	
+				catch {
 					Not_found ->
 						Hashtbl.add ids id s;
 						loop (n-1)
@@ -418,7 +418,7 @@ function read(ch) {
 			var idx = pos.[sadr];
 			if idx == -1 then throw Invalid_file;
 			idx - i
-		};		
+		};
 		List.iter (function((a,i)) {
 			Array.set ops i (match Array.get ops i {
 			| Jump p -> Jump (pos_index i (a+p))
@@ -436,7 +436,7 @@ function read(ch) {
 		}) globals;
 		(globals , ops)
 	} catch {
-		| IO.No_more_input
+		| IO.Eof
 		| IO.Overflow _ -> throw Invalid_file
 	}
 }
