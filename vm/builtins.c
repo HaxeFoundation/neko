@@ -483,6 +483,8 @@ static value builtin_apply( value *args, int nargs ) {
 		return f;
 	if( fargs == nargs )
 		return val_callN(f,args,nargs);
+	if( nargs > fargs )
+		type_error();
 	env = alloc_array(fargs + 1);
 	val_array_ptr(env)[0] = f;
 	for(i=0;i<nargs;i++)
