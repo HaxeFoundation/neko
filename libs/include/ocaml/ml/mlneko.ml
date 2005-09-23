@@ -279,7 +279,7 @@ and gen_expr ctx e =
 		let m = ENext ((EVars [v,Some (gen_expr ctx e)],p),m) , p in
 		EBlock [m; ELabel out , p] , p
 	| TTupleGet (e,n) ->
-		EArray (gen_expr ctx e,int (n+2)) , p
+		EArray (gen_expr ctx e,int n) , p
 	| TErrorDecl (e,t) ->
 		gen_constructor ctx e t p
 	| TTry (e,m) ->
