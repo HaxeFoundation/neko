@@ -104,19 +104,19 @@ let rec gen_constant ctx c p =
 		loop ((match c with TConstr x -> x | TIdent s -> s | _ -> assert false) :: List.rev path)
 	) , p
 
-let rec gen_matching ctx h p out fail m =
+let rec gen_match_rec ctx h p out fail m =
 	try
 		ident (Hashtbl.find h m)
 	with Not_found ->
-	let gen_rec = gen_matching ctx h p out in
+	let gen_rec = gen_match_rec ctx h p out in
 	match m with
 	| MFailure ->
 		call t_void (builtin "goto") [ident fail] p
 	| MHandle (m1,m2) -> 
 		let label = gen_label ctx in
 		EBlock [gen_rec label m1; ELabel label, p; gen_rec fail m2] , p
-	| MEval e ->
-		gen_expr ctx e
+	| MRoot ->
+		assert false
 	| MExecute e ->
 		let out = call t_void (builtin "goto") [ident out] p in
 		EBlock [gen_expr ctx e;out] , p
@@ -135,6 +135,8 @@ let rec gen_matching ctx h p out fail m =
 				EVars [v, Some e] , p;
 				exec
 			] , p)
+	| MTuple (m,n) ->
+		EArray (gen_rec fail m, int n) , p
 	| MField (m,n) ->
 		EArray (gen_rec fail m, int (n + 2)) , p
 	| MSwitch (m,[TVoid,m1]) ->
@@ -164,6 +166,11 @@ let rec gen_matching ctx h p out fail m =
 		let m = gen_rec fail m in
 		let fail = gen_rec fail MFailure in
 		EIf (gen_expr ctx e,m,Some fail) , p
+
+and gen_matching ctx v m p out =
+	let h = Hashtbl.create 0 in
+	Hashtbl.add h MRoot v;
+	gen_match_rec ctx h p out "<assert>" m
 
 and gen_constructor ctx c t p =
 	let field = ident c in
@@ -232,12 +239,12 @@ and gen_expr ctx e =
 		Parser.parse (Lexing.from_function (fun s p -> try IO.input ch s 0 p with IO.No_more_input -> 0)) file
 	| TCall (f,el) -> call e.etype (gen_expr ctx f) (List.map (gen_expr ctx) el) p
 	| TField (e,s) -> EField (gen_expr ctx e, s) , p
-	| TArray (e1,e2) -> EArray (gen_expr ctx e1,gen_expr ctx e2) , p
+	| TArray (e1,e2) -> EArray ((EArray (gen_expr ctx e1,int 0),p),gen_expr ctx e2) , p
 	| TVar ([v],e) ->
 		ctx.refvars <- PMap.remove v ctx.refvars;
 		EVars [v , Some (gen_expr ctx e)] , p
 	| TVar (vl,e) ->
-		let n = ref 0 in
+		let n = ref (-1) in
 		EVars (("@tmp" , Some (gen_expr ctx e)) :: List.map (fun v ->
 			ctx.refvars <- PMap.remove v ctx.refvars;
 			incr n;
@@ -248,7 +255,7 @@ and gen_expr ctx e =
 	| TFunction ("_",params,e) -> EFunction (List.map fst params,block (gen_expr ctx e)) , p
 	| TFunction _ -> EBlock [gen_functions ctx [e] p] , p
 	| TBinop (op,e1,e2) -> gen_binop ctx op e1 e2 p
-	| TTupleDecl tl -> array (null :: List.map (gen_expr ctx) tl) p
+	| TTupleDecl tl -> array (List.map (gen_expr ctx) tl) p
 	| TTypeDecl t -> gen_type ctx t p
 	| TMut e -> gen_expr ctx (!e)
 	| TRecordDecl fl -> 
@@ -265,18 +272,19 @@ and gen_expr ctx e =
 		| "!" -> call t_void (builtin "not") [gen_expr ctx e] p
 		| "&" -> array [gen_expr ctx e] p
 		| _ -> assert false)
-	| TMatch m ->
+	| TMatch (e,m) ->
 		let out = gen_label ctx in 
-		EBlock [gen_matching ctx (Hashtbl.create 0) p out "<assert>" m ; ELabel out , p] , p
+		let v = gen_variable ctx in
+		let m = gen_matching ctx v m p out in
+		let m = ENext ((EVars [v,Some (gen_expr ctx e)],p),m) , p in
+		EBlock [m; ELabel out , p] , p
 	| TTupleGet (e,n) ->
-		EArray (gen_expr ctx e,int (n+1)) , p
+		EArray (gen_expr ctx e,int (n+2)) , p
 	| TErrorDecl (e,t) ->
 		gen_constructor ctx e t p
-	| TException ->
-		ident "@exc"
 	| TTry (e,m) ->
 		let out = gen_label ctx in
-		let matching = gen_matching ctx (Hashtbl.create 0) p out "<assert>" m in
+		let matching = gen_matching ctx "@exc" m p out in
 		let reraise = call t_void (builtin "throw") [ident "@exc"] p in
 		let handle = EBlock [matching;reraise;ELabel out , p] , p in
 		ETry (gen_expr ctx e,"@exc",handle) , p

@@ -51,47 +51,11 @@ let exec e = MExecute e
 let cond path lambdas = MConstants (path,lambdas)
 let switch path lambdas = MSwitch (path,lambdas)
 let ewhen e e2 = MWhen (e,e2)
-let eval e = MEval e
 
 let rec have_when = function
 	| MWhen _ -> true
 	| MBind (_,_,e) -> have_when e
 	| _ -> false
-
-let rec s_tconstant = function
-	| TVoid -> "void"
-	| TInt n -> string_of_int n
-	| TFloat s -> s
-	| TChar c -> "'" ^ escape_char c ^ "'"
-	| TString s -> "\"" ^ s ^ "\""
-	| TIdent s -> s
-	| TConstr s -> s
-	| TModule ([],c) -> s_tconstant c
-	| TModule (sl,c) -> String.concat "." sl ^ "." ^ s_tconstant c
-
-let delta tab = tab ^ "  "
-
-let rec match_to_string ?(tab="") = function
-	| MFailure ->
-		Printf.sprintf "%sFailure" tab
-	| MHandle (op1,op2) ->
-		Printf.sprintf "%sHandle\n%s\n%s" tab (match_to_string ~tab:(delta tab) op1) (match_to_string ~tab:(delta tab) op2)
-	| MExecute e -> 
-		Printf.sprintf "%sExecute(%d,%d)" tab e.epos.pmin e.epos.pmax 
-	| MEval e ->
-		Printf.sprintf "%sEval(%d,%d)" tab e.epos.pmin e.epos.pmax 
-	| MSwitch (op,cl)
-	| MConstants (op,cl) as m ->
-		Printf.sprintf "%s%s\n%s [\n%s\n%s]" tab (match m with MSwitch _ -> "Switch" | _ -> "Consts") 
-			(match_to_string ~tab:(delta tab) op) 
-			(String.concat "\n" (List.map (fun (c,o) -> match_to_string ~tab:(delta tab) o ^ " <= " ^ s_tconstant c) cl))
-			tab
-	| MField (op,n) ->
-		Printf.sprintf "%sField %d\n%s" tab n (match_to_string ~tab:(delta tab) op)
-	| MBind (v,e,n) ->
-		Printf.sprintf "%sBind %s\n%s\n%s" tab v (match_to_string ~tab:(delta tab) e) (match_to_string ~tab:(delta tab) n)
-	| MWhen (e,p) ->
-		Printf.sprintf "%sWhen (%d,%d)\n%s" tab e.epos.pmin e.epos.pmax (match_to_string ~tab:(delta tab) p)
 
 let t_const = function
 	| Int i -> TInt i
@@ -127,12 +91,16 @@ let make_constant_match path cas =
 	| [] -> assert false
 	| _ :: pathl -> [cas] , pathl
 
-let make_construct_match nargs pathl cas =
+let make_construct_match tuple nargs pathl cas =
 	match pathl with
 	| [] -> assert false
 	| path :: pathl ->
 		let rec make_path i =
-			if i >= nargs then pathl else (MField (path,i)) :: make_path (i + 1)
+			if i >= nargs then
+				pathl
+			else
+				let k = if tuple then MTuple (path,i) else MField (path,i) in
+				k :: make_path (i + 1)
 		in
 		[cas] , make_path 0
 
@@ -192,13 +160,13 @@ let divide_matching (m:matching) =
 			| ((PConstr (path,c,arg),_) :: l,act) :: rest ->				
 				let constants , constrs, others = divide_rec rest in
 				let args = flatten arg in
-				constants , add_to_division (make_construct_match (List.length args) pathl) constrs (TModule (path,TConstr c)) (args @ l,act) , others
+				constants , add_to_division (make_construct_match false (List.length args) pathl) constrs (TModule (path,TConstr c)) (args @ l,act) , others
 			| ((PTuple [],_) :: l,act) :: rest ->
 				let constants , constrs, others = divide_rec rest in
 				constants , add_to_division (make_constant_match pathl) constrs TVoid (l, act), others
 			| ((PTuple args,_) :: l,act) :: rest ->
 				let constants , constrs, others = divide_rec rest in
-				constants , add_to_division (make_construct_match (List.length args) pathl) constrs TVoid (args @ l,act) , others			
+				constants , add_to_division (make_construct_match true (List.length args) pathl) constrs TVoid (args @ l,act) , others			
 			| casel ->
 				[] , [] , (casel,pathl)
 		in
@@ -250,13 +218,13 @@ and conquer_matching (m:matching) =
 		| _ ->
 			assert false
 
-let make (e : texpr) (cases : (pattern list * texpr option * texpr) list) p =
+let make (cases : (pattern list * texpr option * texpr) list) p =
 	let cases = List.concat (List.map (fun (pl,wcond,e) ->		
 		let e = exec e in 
 		let e = (match wcond with None -> e | Some e2 -> ewhen e2 e) in
 		List.map (fun p -> [p] , e) pl
 	) cases) in
-	let m = cases , [eval e] in
+	let m = cases , [MRoot] in
 	let lambda, partial, unused = conquer_matching m in
 	(match unused with
 	| [] -> ()

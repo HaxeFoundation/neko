@@ -723,11 +723,12 @@ and type_expr ctx (e,p) =
 	| EUnop (op,e) ->
 		type_unop ctx op (type_expr ctx e) p
 	| EMatch (e,cl) ->
-		let m , t = type_match ctx (type_expr ctx e) cl p in
-		mk (TMatch m) t p
+		let e = type_expr ctx e in
+		let m , t = type_match ctx e.etype cl p true in
+		mk (TMatch (e,m)) t p
 	| ETry (e,cl) ->
 		let e = type_expr ctx e in
-		let m , t = type_match ctx (mk TException t_error p) cl p in
+		let m , t = type_match ctx t_error cl p false in
 		unify ctx t e.etype p;
 		mk (TTry (e,m)) t p
 	| ETupleGet (e,n) ->
@@ -849,7 +850,7 @@ and type_pattern (ctx:context) h ?(h2 = Hashtbl.create 0) set (pat,p) =
 	) in	
 	pt , (pat,p)
 	
-and type_match ctx e cl p =
+and type_match ctx t cl p complete =
 	let ret = t_mono() in
 	let cl = List.map (fun (pl,wh,pe) ->
 		let first = ref true in
@@ -866,7 +867,7 @@ and type_match ctx e cl p =
 				let s2 = SSet.diff !mainset !set in
 				SSet.iter (fun s -> error (Custom ("Variable " ^ s ^ " must occur in all patterns")) p) (SSet.union s1 s2);
 			end;
-			unify ctx pt e.etype p;
+			unify ctx pt t p;
 			pat 
 		) pl in
 		let locals = save_locals ctx in
@@ -888,7 +889,7 @@ and type_match ctx e cl p =
 		| TModule(path,TConstr c) :: l ->			
 			let path , ut , t = get_constr ctx path c null_pos in
 			if ut == t_error then
-				true
+				not complete
 			else
 			(match tlinks false ut with
 			| TUnion (n,_) ->
@@ -898,9 +899,9 @@ and type_match ctx e cl p =
 		| TVoid :: _ ->
 			true
 		| _ ->
-			false
+			not complete
 	);	
-	Mlmatch.make e cl p , ret
+	Mlmatch.make cl p , ret
 
 let modules ctx =
 	let h = Hashtbl.create 0 in
