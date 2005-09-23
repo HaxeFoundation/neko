@@ -23,183 +23,208 @@
 #ifdef _WIN32
 #	include <windows.h>
 #endif
-#include <time.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 
 typedef struct {
 	value name;
 	FILE *io;
-	bool tmp;
 } fio;
 
 #define val_file(o)	((fio*)val_data(o))
 
 DEFINE_KIND(k_file);
 
-static value file_new( value cwd, value fname ) {
-	value f;
-	fio *io;
-	buffer b;
-	val_check(cwd,string);
-	val_check(fname,string);
-	f = alloc_abstract(k_file, alloc(sizeof(fio)) );
-	io = val_data(f);
-	b = alloc_buffer(NULL);
-	if( *val_string(fname) == '~' ) {
-#ifdef _WIN32
-		char buf[MAX_PATH];
-		GetTempPath(MAX_PATH,buf);
-		buffer_append(b,buf);
-#else
-		buffer_append(b,"/tmp/");
-#endif		
-		val_buffer(b,fname);
-		io->tmp = true;
-	} else {
-		val_buffer(b,cwd);
-		val_buffer(b,fname);
-	}
-	io->name = buffer_to_string(b);
-	io->io = NULL;	
-	return f;
+static void file_error( const char *msg, fio *f ) {
+	value a = alloc_array(2);
+	val_array_ptr(a)[0] = alloc_string(msg);
+	val_array_ptr(a)[1] = alloc_string(val_string(f->name));
+	val_throw(a);
 }
 
-static value file_open( value o, value r ) {
+static value file_open( value name, value r ) {
 	fio *f;
-	val_check_kind(o,k_file);
-	if( !val_is_string(r) )
-		return val_false;
-	f = val_file(o);
-	if( f->io != NULL )
-		fclose(f->io);
-	f->io = fopen(val_string(f->name),val_string(r));
-	return alloc_bool(f->io != NULL);
+	val_check(name,string);
+	val_check(r,string);
+	f = (fio*)alloc_private(sizeof(fio));
+	f->name = alloc_string(val_string(name));
+	f->io = fopen(val_string(name),val_string(r));
+	if( f->io == NULL )
+		file_error("file_open",f);
+	return alloc_abstract(k_file,f);
 }
 
 static value file_close( value o ) {	
 	fio *f;
 	val_check_kind(o,k_file);
 	f = val_file(o);
-	if( f->io != NULL ) {
-		fclose(f->io);
-		f->io = NULL;
-		return val_true;
-	}
-	return val_false;
-}
-
-static value file_contents( value o ) {
-	value s;
-	fio *f;
-	FILE *io;
-	int len;
-	int p;
-	val_check_kind(o,k_file);
-	f = val_file(o);
-	io = fopen(val_string(f->name),"rb");
-	if( io == NULL )
-		return val_null;
-	fseek(io,0,SEEK_END);
-	len = ftell(io);
-	fseek(io,0,SEEK_SET);
-	s = alloc_empty_string(len);
-	p = 0;
-	while( len > 0 ) {
-		int d = fread((char*)val_string(s)+p,1,len,io);
-		if( d <= 0 ) {
-			fclose(io);
-			return val_null;
-		}
-		p += d;
-		len -= d;
-	}	
-	fclose(io);	
-	return s;
-}
-
-static value file_write( value o, value s ) {
-	fio *f;
-	int p = 0;
-	int len;
-	val_check_kind(o,k_file);
-	val_check(s,string);
-	f = val_file(o);
-	if( f->io == NULL )
-		return val_false;
-	len = val_strlen(s);
-	while( len > 0 ) {
-		int d = fwrite(val_string(s)+p,1,len,f->io);
-		if( d <= 0 )			
-			return val_false;		
-		p += d;
-		len -= d;
-	}
+	fclose(f->io);
+	val_kind(o) = NULL;
 	return val_true;
-}
-
-static value file_read( value o, value n ) {
-	fio *f;
-	int p = 0;
-	int len;
-	value s;
-	val_check_kind(o,k_file);
-	val_check(n,int);
-	f = val_file(o);
-	len = val_int(n);
-	if( f->io == NULL )
-		return val_null;
-	s = alloc_empty_string(len);
-	while( len > 0 ) {
-		int d = fread((char*)val_string(s)+p,1,len,f->io);
-		if( d <= 0 ) {
-			val_set_length(s,p);
-			break;
-		}
-		p += d;
-		len -= d;
-	}
-	return s;
-}
-
-static value file_exists( value o ) {
-	struct stat inf;
-	val_check_kind(o,k_file);
-	return alloc_bool( stat(val_string(val_file(o)->name),&inf) == 0 );
-}
-
-static value file_delete( value o ) {
-	val_check_kind(o,k_file);
-	return alloc_bool( unlink(val_string(val_file(o)->name)) == 0 );
 }
 
 static value file_path( value o ) {
 	val_check_kind(o,k_file);
-	return val_file(o)->name;
+	return alloc_string(val_string(val_file(o)->name));
 }
 
-#define MAKE_STDIO(name) \
-	static value file_##name() { \
-		value ret; \
-		fio *f; \
-		ret = file_new(alloc_string(""), alloc_string(#name)); \
-		f = val_file(ret); \
-		f->io = name; \
-		return ret; \
+static value file_write( value o, value s, value pp, value n ) {
+	int p, len;
+	fio *f;
+	val_check_kind(o,k_file);
+	val_check(s,string);
+	val_check(pp,int);
+	val_check(n,int);
+	f = val_file(o);
+	p = val_int(pp);
+	len = val_int(n);
+	if( p < 0 || len < 0 || p > val_strlen(s) || p + len > val_strlen(s) )
+		type_error();
+	while( len > 0 ) {
+		int d = fwrite(val_string(s)+p,1,len,f->io);
+		if( d <= 0 )
+			file_error("file_write",f);
+		p += d;
+		len -= d;
 	}
+	return n;
+}
+
+static value file_read( value o, value s, value pp, value n ) {
+	fio *f;
+	int p;
+	int len;
+	val_check_kind(o,k_file);
+	val_check(s,string);
+	val_check(pp,int);
+	val_check(n,int);
+	f = val_file(o);
+	p = val_int(pp);
+	len = val_int(n);
+	if( p < 0 || len < 0 || p > val_strlen(s) || p + len > val_strlen(s) )
+		type_error();
+	while( len > 0 ) {
+		int d = fread((char*)val_string(s)+p,1,len,f->io);
+		if( d <= 0 ) {
+			if( p == 0 )
+				file_error("file_read",f);
+			return alloc_int(val_int(n) - len);
+		}
+		p += d;
+		len -= d;
+	}
+	return n;
+}
+
+static value file_write_char( value o, value c ) {
+	unsigned char cc;
+	fio *f;
+	val_check(c,int);
+	val_check_kind(o,k_file);
+	if( val_int(c) < 0 || val_int(c) > 255 )
+		type_error();
+	cc = (char)val_int(c);
+	f = val_file(o);
+	if( fwrite(&cc,1,1,f->io) != 1 )
+		file_error("file_write_char",f);
+	return val_true;
+}
+
+static value file_read_char( value o ) {
+	unsigned char cc;
+	fio *f;
+	val_check_kind(o,k_file);
+	f = val_file(o);	
+	if( fread(&cc,1,1,f->io) != 1 )
+		file_error("file_read_char",f);
+	return alloc_int(cc);
+}
+
+static value file_seek( value o, value pos, value kind ) {
+	fio *f;
+	val_check_kind(o,k_file);
+	val_check(pos,int);
+	val_check(kind,int);
+	f = val_file(o);
+	if( fseek(f->io,val_int(pos),val_int(kind)) != 0 )
+		file_error("file_seek",f);
+	return val_true;
+}
+
+static value file_tell( value o ) {
+	int p;
+	fio *f;
+	val_check_kind(o,k_file);
+	f = val_file(o);
+	p = ftell(f->io);
+	if( p == -1 )
+		file_error("file_tell",f);
+	return alloc_int(p);
+}
+
+static value file_eof( value o ) {
+	val_check_kind(o,k_file);
+	return alloc_bool( feof(val_file(o)->io) );
+}
+
+static value file_flush( value o ) {
+	fio *f;
+	val_check_kind(o,k_file);
+	f = val_file(o);
+	if( fflush( f->io ) != 0 )
+		file_error("file_flush",f);
+	return val_true;
+}
+
+static value file_contents( value name ) {
+	value s;
+	fio f;
+	int len;
+	int p;
+	val_check(name,string);
+	f.name = name;
+	f.io = fopen(val_string(name),"rb");
+	if( f.io == NULL )
+		file_error("file_contents",&f);
+	fseek(f.io,0,SEEK_END);
+	len = ftell(f.io);
+	fseek(f.io,0,SEEK_SET);
+	s = alloc_empty_string(len);
+	p = 0;
+	while( len > 0 ) {
+		int d = fread((char*)val_string(s)+p,1,len,f.io);
+		if( d <= 0 )
+			file_error("file_contents",&f);
+		p += d;
+		len -= d;
+	}	
+	fclose(f.io);
+	return s;
+}
+
+#define MAKE_STDIO(k) \
+	static value file_##k() { \
+		fio *f; \
+		f = (fio*)alloc_private(sizeof(fio)); \
+		f->name = alloc_string(#k); \
+		f->io = k; \
+		return alloc_abstract(k_file,f); \
+	} \
+	DEFINE_PRIM(file_##k,0);
 
 MAKE_STDIO(stdin);
 MAKE_STDIO(stdout);
 MAKE_STDIO(stderr);
 
-DEFINE_PRIM(file_new,2);
 DEFINE_PRIM(file_open,2);
 DEFINE_PRIM(file_close,1);
-DEFINE_PRIM(file_contents,1);
-DEFINE_PRIM(file_write,2);
-DEFINE_PRIM(file_read,2);
-DEFINE_PRIM(file_exists,1);
-DEFINE_PRIM(file_delete,1);
 DEFINE_PRIM(file_path,1);
+DEFINE_PRIM(file_write,4);
+DEFINE_PRIM(file_read,4);
+DEFINE_PRIM(file_write_char,2);
+DEFINE_PRIM(file_read_char,1);
+DEFINE_PRIM(file_seek,3);
+DEFINE_PRIM(file_tell,1);
+DEFINE_PRIM(file_eof,1);
+DEFINE_PRIM(file_flush,1);
+DEFINE_PRIM(file_contents,1);
 
 /* ************************************************************************ */
