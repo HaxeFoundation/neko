@@ -68,6 +68,10 @@ let rec print_ast ?(binop=false) ctx (e,p) =
 		ctx.level <- ctx.level - 1;
 		print ctx "}";
 		newline ctx;
+	| EParenthesis e when not ctx.tabs ->
+		print ctx "{ ";
+		print_ast ctx e;
+		print ctx " }";
 	| EParenthesis e ->
 		print ctx "( ";
 		print_ast ctx e;
@@ -110,7 +114,7 @@ let rec print_ast ?(binop=false) ctx (e,p) =
 	| EIf (cond,e,e2) ->
 		print ctx "if ";
 		print_ast ctx cond;
-		level_expr ctx e;
+		level_expr ~closed:(e2=None) ctx e;
 		(match e2 with
 		| None -> ()
 		| Some e -> 
@@ -127,11 +131,12 @@ let rec print_ast ?(binop=false) ctx (e,p) =
 		print ctx ")";
 		level_expr ctx e;
 	| EBinop (op,e1,e2) ->
-		if binop then print ctx "(";
+		let tabs = ctx.tabs in
+		if binop then (if tabs then print ctx "(" else print ctx "{");
 		print_ast ~binop:true ctx e1;
 		print ctx " %s " op;
 		print_ast ~binop:true ctx e2;
-		if binop then print ctx ")";
+		if binop then (if tabs then print ctx ")" else print ctx "}");		
 	| EReturn None ->
 		print ctx "return;";
 	| EReturn (Some e) ->
@@ -173,7 +178,7 @@ let rec print_ast ?(binop=false) ctx (e,p) =
 	| ELabel s ->
 		print ctx "%s:" s
 
-and level_expr ctx (e,p) =
+and level_expr ?(closed=false) ctx (e,p) =
 	match e with
 	| EBlock _ -> 
 		if ctx.tabs then print ctx " ";
@@ -187,7 +192,8 @@ and level_expr ctx (e,p) =
 		print ctx "}";
 	| _ ->
 		level ctx true;
-		print_ast ctx (e,p);		
+		print_ast ctx (e,p);
+		if closed then print ctx ";";
 		level ctx false
 
 let print ctx ast =
