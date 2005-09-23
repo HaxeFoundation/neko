@@ -184,14 +184,16 @@ static void val_buffer_rec( buffer b, value v, vlist *stack ) {
 	case VAL_ARRAY:
 		buffer_append_sub(b,"[",1);
 		l = val_array_size(v);
-		vtmp = (vlist*)alloc(sizeof(vlist));
-		vtmp->v = v;
-		vtmp->next = stack;
-		for(i=0;i<l;i++) {
-			value vi = val_array_ptr(v)[i];
-			val_buffer_rec(b,vi,vtmp);
-			if( i != l - 1 )
-				buffer_append_sub(b,",",1);
+		{
+			vlist vtmp;
+			vtmp.v = v;
+			vtmp.next = stack;
+			for(i=0;i<l;i++) {
+				value vi = val_array_ptr(v)[i];
+				val_buffer_rec(b,vi,&vtmp);
+				if( i != l - 1 )
+					buffer_append_sub(b,",",1);
+			}
 		}
 		buffer_append_sub(b,"]",1);
 		break;
