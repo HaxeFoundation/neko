@@ -224,7 +224,7 @@ let rec scan_labels ctx supported e =
 		ctx.stack <- ctx.stack + 1;
 		scan_labels ctx supported e1;
 		ctx.stack <- ctx.stack - (if ext then 2 else 1);
-	| ECall ((EConst (Builtin x),_),el) when x <> "array" ->
+	| ECall ((EConst (Builtin x),_),el) when x <> "array" && x <> "apply" ->
 		Ast.iter (scan_labels ctx false) e
 	| ECall (_,el) ->
 		List.iter (fun e ->
