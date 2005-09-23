@@ -971,6 +971,17 @@ Defining new functions is easy, since functions are values, you can simply assig
 	Some languages might want more security about the types of the arguments that are passed to a function, or selecting at runtime different implementations of a function depending on the type of the arguments. There are many ways of doing that in Neko. For example, you might want to add arguments checks at the beginning of the function body using runtime types informations (RTTI) builtins.
 </p>
 
+<p>
+	Another useful builtin is <code>$apply</code> which is identical to a direct function call except that if the function require extra arguments then its call is delayed until further arguments are used :
+</p>
+
+<pre>
+	var f = function(x,y) { return x + y };
+	f(1,2);
+	$apply(f,1)(2); // equivalent
+	$apply(f,1,2); // equivalent
+</pre>
+
 <!-- ****************************************************************************** -->
 
 <a name="objects"></a>
