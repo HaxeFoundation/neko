@@ -178,7 +178,7 @@ function code_tables(ops) {
 			var id = hash_field s;
 			try
 				var f = Hashtbl.find ids id;
-				if f == s then error("Field hashing conflict " + s + " and " + f);
+				if f != s then error("Field hashing conflict " + s + " and " + f);
 			catch { Not_found -> Hashtbl.add ids id s }
 		| _ -> ()
 		}

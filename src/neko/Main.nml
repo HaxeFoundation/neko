@@ -1,6 +1,9 @@
+
 try {
-	var ch = IO.read_file "Core.n" true;	
+	var ch = IO.read_file "Bytecode.n" true;	
 	var data = Bytecode.read ch;
+	print data;
+	Bytecode.dump IO.stdout data
 } catch {
 	e -> print ("Exception : " + string e)
 }
