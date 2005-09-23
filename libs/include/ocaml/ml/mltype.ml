@@ -32,7 +32,7 @@ type type_expr =
 	| TTuple of t list
 	| TLink of t
 	| TFun of t list * t
-	| TNamed of string * t list * t
+	| TNamed of string list * t list * t
 
 and t = {
 	mutable tid : int;
@@ -115,7 +115,7 @@ let t_abstract = { tid = -1; texpr = TAbstract }
 
 let abstract s = {
 	tid = -1;
-	texpr = TNamed (s,[], t_abstract);
+	texpr = TNamed ([s],[], t_abstract);
 }
 
 let t_void = abstract "void"
@@ -125,7 +125,7 @@ let t_char = abstract "char"
 let t_error = abstract "error"
 let t_bool = {
 	tid = -1;
-	texpr = TNamed ("bool",[], {
+	texpr = TNamed (["bool"],[], {
 		tid = -1; 
 		texpr = TUnion (2,[
 			("true",{ tid = -1; texpr = TAbstract });
@@ -150,7 +150,7 @@ let t_poly g name =
 	let param = t_mono() in
 	{
 		tid = genid g;
-		texpr = TNamed (name,[param], { tid = -1; texpr = TAbstract });
+		texpr = TNamed ([name],[param], { tid = -1; texpr = TAbstract });
 	} , param
 
 let mk_fun g params ret = {
@@ -229,6 +229,7 @@ let rec s_type ?(ext=false) ?(h=s_context()) t =
 			| [p] -> s_type ~h p ^ " "
 			| l -> "(" ^ String.concat ", " (List.map (s_type ~h) l) ^ ") ")
 		in
+		let name = String.concat "." name in
 		if ext then
 			s ^ name ^ " = " ^ s_type ~h t
 		else

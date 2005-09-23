@@ -299,9 +299,9 @@ type addable = NInt | NFloat | NString | NNan
 
 let addable str e =
 	match etype true e with
-	| TNamed ("int",_,_) -> NInt
-	| TNamed ("float",_,_) -> NFloat
-	| TNamed ("string",_,_) when str -> NString
+	| TNamed (["int"],_,_) -> NInt
+	| TNamed (["float"],_,_) -> NFloat
+	| TNamed (["string"],_,_) when str -> NString
 	| _ -> NNan
 
 let type_binop ctx op e1 e2 p =
@@ -537,7 +537,7 @@ and type_expr ctx (e,p) =
 	| ECall ((EConst (Constr "TYPE"),_),[e]) ->
 		let e = type_expr ctx e in
 		prerr_endline ("type : " ^ s_type e.etype);
-		e
+		mk (TParenthesis e) t_void p
 	| ECall (e,el) ->
 		let e = type_expr ctx e in
 		let el = (match el with [] -> [ETupleDecl [],p] | _ -> el) in
@@ -548,7 +548,7 @@ and type_expr ctx (e,p) =
 				match l , tl with
 				| e :: l , t :: tl ->
 					(match tlinks true t with 
-					| TNamed ("format",[params],_) ->
+					| TNamed (["format"],[params],_) ->
 						(match e.edecl with
 						| TConst (TString s) ->
 							let tfmt = type_format ctx s e.epos in
@@ -636,7 +636,7 @@ and type_expr ctx (e,p) =
 		let el = List.map (type_expr ctx) el in
 		mk (TTupleDecl el) (mk_tup ctx.gen (List.map (fun e -> e.etype) el)) p
 	| ETypeDecl (params,tname,decl) ->
-		let fullname = (match ctx.current.path with ["Core"] -> tname | p -> s_path p tname) in
+		let fullname = (match ctx.current.path with ["Core"] -> [tname] | p -> p @ [tname]) in
 		let t , tl , h =
 			try
 				let t , tl , h = Hashtbl.find ctx.tmptypes tname in
