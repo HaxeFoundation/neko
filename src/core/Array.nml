@@ -1,23 +1,40 @@
 
+function string( a : 'a array ) : string {
+	neko("
+		var s = '[';
+		var items = a[0];
+		var l = a[2];
+		var i = 0;
+		while i < l {
+			s = s + Core.string(items[i]);
+			i = i + 1;
+			if i < l
+				s = s + ', ';
+		}
+		s = s + ']';
+		s
+	");
+}
+
 function length( a : 'a array ) : int {
-	neko("a[1]");
+	neko("a[2]");
 }
 
 function create() : 'a array {
-	neko("$array($array(),0)");
+	neko("$array($array(),string,0)");
 }
 
 function add( a : 'a array, x : 'a ) : void {
 	neko("
 		var k = a[0];
-		var n = a[1];
+		var n = a[2];
 		if( $asize(k) == n ) {
 			k = $amake(n*2+1);
 			$ablit(k,0,a[0],0,n);
 			a[0] = k;
 		}
 		k[n] = x;
-		a[1] = n + 1;
+		a[2] = n + 1;
 	");
 }
 
@@ -37,7 +54,7 @@ function make( size : int, x : 'a ) : 'a array {
 			a[i] = x;
 			i = i + 1;
 		}
-		$array(a,size)
+		$array(a,string,size)
 	");
 }
 
@@ -49,15 +66,15 @@ function init( size : int, f : int -> 'a ) : 'a array {
 			a[i] = f(i);
 			i = i + 1;
 		}
-		$array(a,size)
+		$array(a,to_string,size)
 	");
 }
 
 function iter( f : 'a -> void, a : 'a array ) : void {
 	neko("
-		a = a[0];
-		var l = a[1];
+		var l = a[2];
 		var i = 0;
+		a = a[0];
 		while (i  <  l) {
 			f(a[i]);
 			i = i + 1;
@@ -67,9 +84,9 @@ function iter( f : 'a -> void, a : 'a array ) : void {
 
 function iteri( f : int -> 'a -> void, a : 'a array ) : void {
 	neko("
-		a = a[0];
-		var l = a[1];
+		var l = a[2];
 		var i = 0;
+		a = a[0];
 		while (i  <  l) {
 			f(i,a[i]);
 			i = i + 1;

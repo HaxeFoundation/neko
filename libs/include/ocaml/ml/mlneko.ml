@@ -80,6 +80,13 @@ let block e =
 	| EBlock _ , _ -> e 
 	| _ -> EBlock [e] , snd e
 
+let rec arity t =
+	match t.texpr with
+	| TAbstract -> 0
+	| TTuple tl -> List.length tl
+	| TLink t -> arity t
+	| _ -> 1
+
 let rec gen_constant ctx c p =
 	(match c with
 	| TVoid -> EConst Null
@@ -87,7 +94,7 @@ let rec gen_constant ctx c p =
 	| TFloat s -> EConst (Float s)
 	| TChar c -> EConst (Int (int_of_char c))
 	| TString s -> EConst (String s)
-	| TIdent s -> 		
+	| TIdent s ->
 		if PMap.mem s ctx.refvars then EArray ((EConst (Ident s),null_pos),int 0) else EConst (Ident s)
 	| TConstr "true" | TModule (["Core"],TConstr "true") -> EConst True
 	| TConstr "false" | TModule (["Core"],TConstr "false") -> EConst False
@@ -172,28 +179,40 @@ and gen_matching ctx v m p out =
 	Hashtbl.add h MRoot v;
 	gen_match_rec ctx h p out "<assert>" m
 
-and gen_constructor ctx c t p =
+and gen_match ctx e m p =
+	let out = gen_label ctx in 
+	let v = gen_variable ctx in
+	let m = gen_matching ctx v m p out in
+	let m = ENext ((EVars [v,Some e],p),m) , p in
+	EBlock [m; ELabel out , p] , p
+
+and gen_constructor ctx tname c t p =
 	let field = ident c in
-	let field_name = EConst (String c) , p in 
-	let val_fun n =
-		let args = Array.to_list (Array.init n (fun n -> "p" ^ string_of_int n)) in
-		let build = array (field :: field_name :: List.map (fun a -> EConst (Ident a) , p) args) p in
-		let func = EFunction (args, (EBlock [EReturn (Some build),p] , p)) , p in
-		EBinop ("=" , field , func ) , p
-	in
-	let rec val_type t =
-		match t.texpr with
-		| TAbstract ->			
-			let make = array [null;field_name] p in
+	let printer = EConst (Ident (tname ^ "__string")) , p in
+	let val_type t =
+		match arity t with
+		| 0 ->
+			let make = array [null;printer] p in
 			ENext ((EBinop ("=" , field, make) ,p) , (EBinop("=" , (EArray (field,int 0),p) , field) , p)) , p
-		| TTuple tl -> val_fun (List.length tl)
-		| TLink t -> val_type t
-		| _ -> val_fun 1
+		| n ->
+			let args = Array.to_list (Array.init n (fun n -> "p" ^ string_of_int n)) in
+			let build = array (field :: printer :: List.map (fun a -> EConst (Ident a) , p) args) p in
+			let func = EFunction (args, (EBlock [EReturn (Some build),p] , p)) , p in
+			EBinop ("=" , field , func ) , p
 	in
 	let export = EBinop ("=", (EField (ident ctx.module_name,c),p) , field) , p in
 	ENext (val_type t , export) , p
 
-and gen_type ctx t p =
+and gen_type_printer ctx c t =
+	let core = mk (TConst (TIdent "Core")) t_void Mlast.null_pos in
+	let printer = mk (TField (core,"@print_union")) t_void Mlast.null_pos in
+	let e = mk (TCall (printer,[
+		mk (TConst (TString c)) t_string Mlast.null_pos;
+		mk (TConst (TIdent "v")) t_void Mlast.null_pos
+	])) t_string Mlast.null_pos in
+	e
+
+and gen_type ctx name t p =
 	match t.texpr with
 	| TAbstract
 	| TMono
@@ -202,11 +221,23 @@ and gen_type ctx t p =
 	| TTuple _
 	| TFun _ ->
 		EBlock [] , p
-	| TLink t
-	| TNamed (_,_,t) ->
-		gen_type ctx t p
+	| TLink t ->
+		gen_type ctx name t p
+	| TNamed (name,_,t) ->
+		let rec loop = function
+			| [] -> assert false
+			| [x] -> x
+			| _ :: l -> loop l
+		in
+		gen_type ctx (loop name) t p
 	| TUnion (_,constrs) ->
-		EBlock (List.map (fun (c,t) -> gen_constructor ctx c t p) constrs) , p
+		let cmatch = gen_match ctx (ident "v") (MSwitch (MRoot,List.map (fun (c,t) ->
+			let e = gen_type_printer ctx c t in
+			TConstr c , MExecute e
+		) constrs)) p in
+		let printer = EFunction (["v"], cmatch) , p in
+		let regs = List.map (fun (c,t) -> gen_constructor ctx name c t p) constrs in
+		EBlock ((EVars [name ^ "__string",Some printer],p) :: regs) , p
 
 and gen_binop ctx op e1 e2 p =
 	let make op =
@@ -256,10 +287,10 @@ and gen_expr ctx e =
 	| TFunction _ -> EBlock [gen_functions ctx [e] p] , p
 	| TBinop (op,e1,e2) -> gen_binop ctx op e1 e2 p
 	| TTupleDecl tl -> array (List.map (gen_expr ctx) tl) p
-	| TTypeDecl t -> gen_type ctx t p
+	| TTypeDecl t -> gen_type ctx "<assert>" t p
 	| TMut e -> gen_expr ctx (!e)
 	| TRecordDecl fl -> 
-		EObject (List.map (fun (s,e) -> s , gen_expr ctx e) fl) , p
+		EObject (("__string", (EField((EConst (Ident "Core"),p),"@print_record"),p)) :: List.map (fun (s,e) -> s , gen_expr ctx e) fl) , p
 	| TListDecl el ->
 		(match el with
 		| [] -> array [] p
@@ -273,15 +304,14 @@ and gen_expr ctx e =
 		| "&" -> array [gen_expr ctx e] p
 		| _ -> assert false)
 	| TMatch (e,m) ->
-		let out = gen_label ctx in 
-		let v = gen_variable ctx in
-		let m = gen_matching ctx v m p out in
-		let m = ENext ((EVars [v,Some (gen_expr ctx e)],p),m) , p in
-		EBlock [m; ELabel out , p] , p
+		gen_match ctx (gen_expr ctx e) m p
 	| TTupleGet (e,n) ->
 		EArray (gen_expr ctx e,int n) , p
 	| TErrorDecl (e,t) ->
-		gen_constructor ctx e t p
+		let printer = gen_expr ctx (gen_type_printer ctx e t) in
+		let printer = EFunction (["v"], (EBlock [printer],p)) , p in
+		let printer = EVars [e ^ "__string",Some printer] , p in
+		ENext (printer , gen_constructor ctx e e t p) , p
 	| TTry (e,m) ->
 		let out = gen_label ctx in
 		let matching = gen_matching ctx "@exc" m p out in
@@ -307,7 +337,7 @@ and gen_functions ctx fl p =
 				let e = gen_expr ctx e in
 				let e = EFunction (List.map fst params,block e) , p in
 				let e = EBinop ("=",(EArray (ident name,int 0),p),e) , p in
-				let e = EBlock [e; EBinop ("=",ident name,(EArray (ident name,int 0),p)) , p] , p in		
+				let e = EBlock [e; EBinop ("=",ident name,(EArray (ident name,int 0),p)) , p] , p in
 				ell := ENext (!ell, e) , p;
 				ctx.refvars <- PMap.remove name ctx.refvars;
 			end;
@@ -316,7 +346,7 @@ and gen_functions ctx fl p =
 	) fl;
 	!ell
 
-and gen_block ctx el p =	
+and gen_block ctx el p =
 	let old = ctx.refvars in
 	let ell = ref [] in
 	let rec loop fl = function

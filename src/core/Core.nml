@@ -38,48 +38,13 @@ val neko : string -> 'a
 ----- */
 
 neko("
-	@empty = $array(null,'[]');
-	@empty[0] = @empty;
-	@cons = function(x,l) {
-		$array(@cons,'::',x,l)
-	}
-	$exports.@cons = @cons;
-	$exports.@empty = @empty;
-
 	@string = function(x) {
-		if( $typeof(x) == $tobject ) {
-			var s = '{ ';
-			var f = $objfields(x);
-			var l = $asize(f);
-			var i = 0;
-			while i < l {
-				var k = f[i];
-				s = s + $field(k) + ': ' + @string($objget(x,k));
-				i = i + 1;
-				if i < l 
-					s = s + ', ';
-			}
-			s = s + ' }';
-			return s;
-		}
-		if( $typeof(x) == $tarray && $typeof(x[1]) == $tstring && ($typeof(x[0]) == $tfunction || x[0] == x) ) {
-			var s = x[1];
-			var l = $asize(x);
-			if( l > 2 ) {
-				var i = 2;
-				s = s + '(';
-				while i < l {
-					s = s + @string(x[i]);
-					i = i + 1;
-					if i < l
-						s = s + ', ';
-				}
-				s = s + ')';
-			}
-			return s;
-		}
+		// constructor
+		if( $typeof(x[1]) == $tfunction )
+			return x[1](x);
+		// tuples
 		if( $typeof(x) == $tarray ) {
-			var s = '[';
+			var s = '(';
 			var l = $asize(x);
 			var i = 0;
 			while i < l {
@@ -88,12 +53,54 @@ neko("
 				if i < l 
 					s = s + ', ';
 			}
-			s = s + ']';
+			s = s + ')';
 			return s;
 		}
+		// others
 		return $string(x);
 	}
 
+	$exports.@print_record = function() {
+		var o = $objfields(this);
+		var s = '{ ';
+		var i = 0;
+		var l = $asize(o) - 1;
+		while i < l {
+			var f = o[i];
+			var fname = $field(f);
+			if fname == '__string'
+				l = l + 1;
+			else
+				s = s + fname + ' = ' + @string($objget(this,f))+'; ';
+			i = i + 1;
+		}
+		s = s + '}';
+		s
+	}
+
+	$exports.@print_union = function(s,a) {
+		var l = $asize(a);
+		if l == 2
+			return s;
+		var i = 2;
+		s = s + '(';
+		while i < l {
+			s = s + @string(a[i]);
+			i = i + 1;
+			if i < l
+				s = s + ', ';
+		}
+		s = s + ')';
+		return s;
+	}
+
+	@empty = $array(null,function(_){ '[]' });
+	@empty[0] = @empty;
+	@cons = function(x,l) {
+		$array(@cons,function(c) { @string(c[2]) + ' :: ' + @string(c[3]) },x,l)
+	}
+	$exports.@cons = @cons;
+	$exports.@empty = @empty;
 ");
 
 function magic(x) {
@@ -125,6 +132,10 @@ function ord(x:char) : int {
 
 function string(x : 'a) : string {
 	neko("@string(x)");
+}
+
+function nstring(x : 'a) : string {
+	 neko("$string(x)");
 }
 
 function print(x) : void {
