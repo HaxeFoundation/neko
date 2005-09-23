@@ -1,14 +1,24 @@
 
 function length( a : 'a array ) : int {
-	neko("$asize(a[0])");
+	neko("a[1]");
 }
 
 function create() : 'a array {
-	neko("$array($array())");
+	neko("$array($array(),0)");
 }
 
 function add( a : 'a array, x : 'a ) : void {
-	assert();
+	neko("
+		var k = a[0];
+		var n = a[1];
+		if( $asize(k) == n ) {
+			k = $amake(n*2+1);
+			$ablit(k,0,a[0],0,n);
+			a[0] = k;
+		}
+		k[n] = x;
+		a[1] = n + 1;
+	");
 }
 
 function get( a : 'a array, p : int ) : 'a {
@@ -19,7 +29,6 @@ function set( a : 'a array, p : int, x : 'a ) : void {
 	a.[p] := x;
 }
 
-
 function make( size : int, x : 'a ) : 'a array {
 	neko("
 		var a = $amake(size);
@@ -28,7 +37,7 @@ function make( size : int, x : 'a ) : 'a array {
 			a[i] = x;
 			i = i + 1;
 		}
-		$array(a)
+		$array(a,size)
 	");
 }
 
@@ -40,16 +49,16 @@ function init( size : int, f : int -> 'a ) : 'a array {
 			a[i] = f(i);
 			i = i + 1;
 		}
-		$array(a)
+		$array(a,size)
 	");
 }
 
 function iter( f : 'a -> void, a : 'a array ) : void {
 	neko("
 		a = a[0];
-		var x = $asize(a);
+		var l = a[1];
 		var i = 0;
-		while (i  <  x) {
+		while (i  <  l) {
 			f(a[i]);
 			i = i + 1;
 		}
@@ -59,9 +68,9 @@ function iter( f : 'a -> void, a : 'a array ) : void {
 function iteri( f : int -> 'a -> void, a : 'a array ) : void {
 	neko("
 		a = a[0];
-		var x = $asize(a);
+		var l = a[1];
 		var i = 0;
-		while (i  <  x) {
+		while (i  <  l) {
 			f(i,a[i]);
 			i = i + 1;
 		}
