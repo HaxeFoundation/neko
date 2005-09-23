@@ -37,8 +37,7 @@ var file_write : file -> string -> int -> int -> int = neko("@load('file_write',
 var file_write_char : file -> char -> void = neko("@load('file_write_char',2)");
 var file_flush : file -> void = neko("@load('file_flush',1)");
 
-function read_file(path,bin) {
-	var f = file_open(path,if bin then "rb" else "r");
+function file_input(f) {
 	{
 		in_read = function() { file_read_char(f) };
 		in_input = file_read f;
@@ -46,8 +45,12 @@ function read_file(path,bin) {
 	}
 }
 
-function write_file(path,bin) {
-	var f = file_open(path,if bin then "wb" else "w");
+function read_file(path,bin) {
+	var f = file_open(path,if bin then "rb" else "r");
+	file_input f
+}
+
+function file_output(f) {
 	{
 		out_write = file_write_char f;
 		out_output = file_write f;
@@ -55,6 +58,19 @@ function write_file(path,bin) {
 		out_flush = function() { file_flush(f) };
 	}
 }
+
+function write_file(path,bin) {
+	var f = file_open(path,if bin then "wb" else "w");
+	file_output f
+}
+
+var file_stdin : file = neko("load('file_stdin',0)()");
+var file_stdout : file = neko("load('file_stdout',0)()");
+var file_stderr : file = neko("load('file_stderr',0)()");
+
+var stdin : input = file_input file_stdin;
+var stdout : output = file_output file_stdout;
+var stderr : output = file_output file_stderr;
 
 /* ----------------------------
 	INPUT API
