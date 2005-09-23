@@ -157,10 +157,14 @@ and expr_next e = parser
 			| [< '(Eof,_) >] -> unclosed "[" po))
 	| [< '(Binop op,_); e2 = expr; s >] ->
 		make_binop op e e2
-	| [< e2 = expr_short >] ->
-		(match e2 with
-		| EApply (e2,l) , p -> EApply (e,e2 :: l) , punion (pos e) p
-		| _ -> EApply (e,[e2]) , punion (pos e) (pos e2))
+	| [< ep = expr_short >] ->
+		let rec loop ep =
+			match ep with
+			| EApply (e2,l) , p -> EApply (e,e2 :: l) , punion (pos e) p
+			| EBinop (op,e1,e2) , p -> EBinop (op,loop e1,e2) , punion (pos e) p
+			| _ -> EApply (e,[ep]) , punion (pos e) (pos ep)
+		in
+		loop ep
 	| [< >] ->
 		e
 
@@ -240,10 +244,7 @@ and type_path_list_next p = parser
 	| [< >] -> [] , p
 
 and type_path_next t p = parser
-	| [< '(Arrow,_); t2 , p = type_path >] -> 
-		(match t2 with
-		| EArrow (ta,tb) -> EArrow (EArrow(t,ta),tb) , p
-		| _ -> EArrow (t,t2) , p);
+	| [< '(Arrow,_); t2 , p = type_path >] -> EArrow(t,t2) , p
 	| [< '(Const (Ident tname),p); t = type_path_next (EType (Some t,[],tname)) p >] -> t
 	| [< '(Const (Constr m),p); '(Dot,_); l = type_path_mod; '(Const (Ident tname),_); t = type_path_next (EType (Some t,m :: l,tname)) p >] -> t
 	| [< >] -> t , p
