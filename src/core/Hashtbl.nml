@@ -70,5 +70,19 @@ function add(h : ('a,'b) t, k : 'a, v : 'b) : void {
 }
 
 function iter(f : 'a -> 'b -> void,h : ('a,'b) t) : void {
-	assert()
+	var i = &0;
+	var d = h.data;
+	var len = Array.length d;
+	function loop(b) {
+		match b {
+		| Empty -> ()
+		| Cons (k,d,r) ->
+			f k d;
+			loop r
+		}
+	};
+	while *i < len {
+		loop d.[*i];
+		i := *i + 1;
+	}
 }
