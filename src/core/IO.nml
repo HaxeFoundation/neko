@@ -50,6 +50,28 @@ function read_file(path,bin) {
 	file_input f
 }
 
+function read_string(str) {
+	var p = &0;
+	var len = String.length str;
+	{
+		in_read = function() {
+			if *p == len then throw Eof;
+			var c = String.get str (*p);
+			p := *p + 1;
+			c
+		};
+		in_input = function(s,pp,l) {
+			if *p == len then throw Eof;
+			var l = min l (len - *p);
+			String.blit s pp str (*p) l;
+			p := *p + l;
+			l
+		};
+		in_close = function() {
+		}
+	}
+}
+
 function file_output(f) {
 	{
 		out_write = file_write_char f;
@@ -62,6 +84,22 @@ function file_output(f) {
 function write_file(path,bin) {
 	var f = file_open(path,if bin then "wb" else "w");
 	file_output f
+}
+
+function write_string() {
+	var b = Buffer.create();
+	var o = {
+		out_write = Buffer.add_char b;
+		out_output = function(s,pp,l) {
+			Buffer.add_sub b s pp l;
+			l
+		};
+		out_close = function() {
+		};
+		out_flush = function() {
+		};
+	};
+	(o , function() { Buffer.string b })
 }
 
 var file_stdin : file = neko("@load('file_stdin',0)()");
@@ -85,6 +123,8 @@ function read_byte(i) {
 }
 
 function input(i,s,p,n) {
+	var len = String.length s;
+	if p < 0 || n < 0 || p > len || p + n > len then invalid_arg();
 	i.in_input s p n
 }
 
@@ -169,6 +209,8 @@ function write_byte(o : output, x : int) : void {
 }
 
 function output(o,s,p,n) {
+	var len = String.length s;
+	if p < 0 || n < 0 || p > len || p + n > len then invalid_arg();
 	o.out_output s p n
 }
 

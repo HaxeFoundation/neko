@@ -33,7 +33,7 @@ type module_context = {
 type context = {
 	gen : id_gen;
 	mutable mink : int;
-	mutable functions : (string * texpr ref * t * (string * t) list * expr * t * pos) list;
+	mutable functions : (bool * string * texpr ref * t * (string * t) list * expr * t * pos) list;
 	mutable opens : module_context list;
 	mutable curfunction : string;
 	tmptypes : (string, t * t list * (string,t) Hashtbl.t) Hashtbl.t;
@@ -428,7 +428,7 @@ let rec type_arg ctx h binds p = function
 		) nl;
 		aname , mk_tup ctx.gen tl
 
-let register_function ctx name pl e rt p =
+let register_function ctx isrec name pl e rt p =
 	let mink = !(ctx.gen) in
 	let pl = (match pl with [] -> [ATyped (ANamed "_",EType (None,[],"void"))] | _ -> pl) in
 	let expr = ref (mk (TConst TVoid) t_void p) in
@@ -449,8 +449,8 @@ let register_function ctx name pl e rt p =
 	) in
 	let ft = mk_fun ctx.gen (List.map snd el) rt in	
 	if ctx.functions = [] then ctx.mink <- mink;
-	ctx.functions <- (name,expr,ft,el,e,rt,p) :: ctx.functions;
-	add_local ctx name ft;
+	ctx.functions <- (isrec,name,expr,ft,el,e,rt,p) :: ctx.functions;
+	if isrec then add_local ctx name ft;
 	mk (TMut expr) (if name = "_" then ft else t_void) p
 
 let type_format ctx s p =
@@ -494,7 +494,7 @@ let rec type_functions ctx =
 	let l = ctx.functions in
 	let mink = ctx.mink in
 	ctx.functions <- [];
-	let l = List.map (fun (name,expr,ft,el,e,rt,p) ->
+	let l = List.map (fun (isrec,name,expr,ft,el,e,rt,p) ->
 		let locals = save_locals ctx in
 		let func = ctx.curfunction in
 		if name <> "_" then ctx.curfunction <- s_path ctx.current.path name;
@@ -507,6 +507,7 @@ let rec type_functions ctx =
 		let ft2 = mk_fun ctx.gen (List.map snd el) e.etype in
 		unify ctx ft ft2 p;		
 		expr := mk (TFunction (name,el,e)) ft2 p;
+		if not isrec && name <> "_" then add_local ctx name ft;
 		ft2
 	) (List.rev l) in
 	List.iter (polymorphize ctx.gen mink) l
@@ -625,8 +626,8 @@ and type_expr ctx (e,p) =
 		let e2 = type_expr ctx e2 in
 		unify ctx e2.etype t_void (pos e2);
 		mk (TWhile (e1,e2)) t_void p
-	| EFunction (name,pl,e,rt) ->
-		let r = register_function ctx name pl e rt p in
+	| EFunction (isrec,name,pl,e,rt) ->		
+		let r = register_function ctx isrec name pl e rt p in
 		type_functions ctx;
 		r
 	| EBinop (op,e1,e2) ->
@@ -776,8 +777,8 @@ and type_block ctx ((e,p) as x)  =
 		) in
 		unify ctx t e.etype (pos e);
 		mk (TVar (List.map fst vl,e)) t_void p
-	| EFunction (name,pl,e,rt) ->
-		register_function ctx name pl e rt p
+	| EFunction (true,name,pl,e,rt) ->
+		register_function ctx true name pl e rt p
 	| _ ->
 		type_functions ctx;
 		type_expr ctx x

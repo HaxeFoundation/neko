@@ -102,7 +102,7 @@ type expr_decl =
 	| EArray of expr * expr	
 	| EVar of (string * type_path option) list * expr 
 	| EIf of expr * expr * expr option
-	| EFunction of string option * arg list * expr * type_path option
+	| EFunction of bool * string option * arg list * expr * type_path option
 	| EBinop of string * expr * expr
 	| EUnop of string * expr
 	| ETypeAnnot of expr * type_path

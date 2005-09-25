@@ -206,7 +206,7 @@ function is_printable(c) {
 
 function escape(s) {
 	var b = Buffer.create();
-	function loop(i) {
+	function rec loop(i) {
 		if i == String.length s then
 			Buffer.string b
 		else {

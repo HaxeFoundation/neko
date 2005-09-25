@@ -1,9 +1,8 @@
-
 try {
-	var ch = IO.read_file "Bytecode.n" true;	
-	var data = Bytecode.read ch;
-	print data;
-	Bytecode.dump IO.stdout data
+	var ctx = Printer.create IO.stdout;	
+	var p = Ast.null_pos;
+	print Printer.print;
+	Printer.print ctx (Ast.EConst(Ast.Builtin "string"),p);	
 } catch {
-	e -> print ("Exception : " + string e)
+	e -> print ("Exception : " + string e + "\n")
 }

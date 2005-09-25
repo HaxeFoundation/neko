@@ -15,3 +15,4 @@ var create : int -> string = neko("$smake");
 var length : string -> int = neko("$ssize");
 var get : string -> int -> char = neko("$sget");
 var set : string -> int -> char -> void = neko("$sset");
+var blit : string -> int -> string -> int -> int -> void = neko("$sblit");

@@ -1,19 +1,19 @@
 
-function length(l) {
+function rec length(l) {
 	match l {
 	| [] -> 0
 	| _ :: l -> 1 + length l
 	}
 }
 
-function map(f,l) {
+function rec map(f,l) {
 	match l {
 	| [] -> []
 	| x :: l -> f(x) :: map f l
 	}
 }
 
-function iter(f,l) {
+function rec iter(f,l) {
 	match l {
 	| [] -> ()
 	| x :: l -> f x; iter f l

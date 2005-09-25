@@ -129,7 +129,13 @@ function error(x : string) {
 function ignore(x) {
 }
 
-{ /* break recursion */ };
+function fst((a,_)) {
+	a
+}
+
+function snd((_,a)) {
+	a
+}
 
 function ord(x:char) : int {
 	neko("x");

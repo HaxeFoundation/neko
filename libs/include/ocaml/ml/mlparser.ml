@@ -106,8 +106,8 @@ and expr = parser
 		(match s with parser
 		| [< '(Keyword Else,_); e2 = expr; s >] -> EIf (cond,e,Some e2) , punion p1 (pos e2)
 		| [< >] -> EIf (cond,e,None) , punion p1 (pos e))
-	| [< '(Keyword Function,p1); n = ident_opt; '(ParentOpen _,po); p = parameters_decl; t = type_opt; e = expr >] ->
-		EFunction (n,p,e,t) , punion p1 (pos e)
+	| [< '(Keyword Function,p1); r = function_rec; n = ident_opt; '(ParentOpen _,po); p = parameters_decl; t = type_opt; e = expr >] ->
+		EFunction (r,n,p,e,t) , punion p1 (pos e)
 	| [< '(Keyword Type,p1); pl = type_decl_parameters; '(Const (Ident tname),p2); d , p2 = type_declaration p2 >] ->
 		ETypeDecl (pl,tname,d) , punion p1 p2
 	| [< '(Keyword Exception,p1); '(Const (Constr ename),p2); t = type_opt; s >] ->
@@ -216,6 +216,10 @@ and parameters_decl_next acc = parser
 and type_opt = parser
 	| [< '(Binop ":",_); t , _ = type_path; >] -> Some t
 	| [< >] -> None
+
+and function_rec = parser
+	| [< '(Const (Ident "rec"),_); >] -> true
+	| [< >] -> false
 
 and ident_opt = parser
 	| [< '(Const (Ident name),_); >] -> Some name
