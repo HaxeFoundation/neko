@@ -215,7 +215,7 @@ and gen_type_printer ctx c t =
 and gen_type ctx name t p =
 	match t.texpr with
 	| TAbstract
-	| TMono
+	| TMono _
 	| TPoly
 	| TRecord _
 	| TTuple _

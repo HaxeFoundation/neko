@@ -25,7 +25,7 @@ type mutflag =
 
 type type_expr = 
 	| TAbstract
-	| TMono
+	| TMono of int
 	| TPoly
 	| TRecord of (string * mutflag * t) list
 	| TUnion of int * (string * t) list
@@ -136,9 +136,9 @@ let t_bool = {
 
 let t_string = abstract "string"
 
-let t_mono() = {
+let t_mono g = {
 	tid = -2;
-	texpr = TMono;
+	texpr = TMono (genid g);
 }
 
 let t_polymorph g = {
@@ -147,7 +147,7 @@ let t_polymorph g = {
 }
 
 let t_poly g name = 
-	let param = t_mono() in
+	let param = t_mono g in
 	{
 		tid = genid g;
 		texpr = TNamed ([name],[param], { tid = -1; texpr = TAbstract });
@@ -200,7 +200,7 @@ let s_mutable = function
 let rec s_type ?(ext=false) ?(h=s_context()) t = 
 	match t.texpr with
 	| TAbstract -> "<abstract>"
-	| TMono -> Printf.sprintf "'_%s" (poly_id (try
+	| TMono _ -> Printf.sprintf "'_%s" (poly_id (try
 			if t.tid <> -2 then assert false;
 			List.assq t h.pi_ml
 		with Not_found -> 
@@ -254,8 +254,8 @@ let rec duplicate g ?(h=Hashtbl.create 0) t =
 		Hashtbl.add h t.tid t2;
 		t2.texpr <- (match t.texpr with
 			| TAbstract -> TAbstract
-			| TMono -> assert false
-			| TPoly -> t2.tid <- -2; TMono
+			| TMono _ -> assert false
+			| TPoly -> t2.tid <- -2; TMono (genid g)
 			| TRecord tl -> TRecord (List.map (fun (n,m,t) -> n , m, duplicate g ~h t) tl)
 			| TUnion (n,tl) -> TUnion (n,List.map (fun (n,t) -> n , duplicate g ~h t) tl)
 			| TTuple tl -> TTuple (List.map (duplicate g ~h) tl)
@@ -264,16 +264,16 @@ let rec duplicate g ?(h=Hashtbl.create 0) t =
 			| TNamed (n,p,t) -> TNamed (n,List.map (duplicate g ~h) p,duplicate g ~h t));
 		t2
 
-let rec polymorphize g t =
+let rec polymorphize g mink t =
 	if t.tid = -1 then
 		()
 	else match t.texpr with
 	| TAbstract -> ()
-	| TMono -> t.texpr <- TPoly; t.tid <- genid g
+	| TMono k -> if k > mink then begin t.texpr <- TPoly; t.tid <- genid g end;
 	| TPoly -> ()
-	| TRecord fl -> List.iter (fun (_,_,t) -> polymorphize g t) fl
-	| TUnion (_,fl) -> List.iter (fun (_,t) -> polymorphize g t) fl
-	| TTuple tl -> List.iter (polymorphize g) tl
-	| TLink t -> polymorphize g t
-	| TFun (tl,t) -> List.iter (polymorphize g) tl; polymorphize g t
-	| TNamed (_,tl,t) -> List.iter (polymorphize g) tl
+	| TRecord fl -> List.iter (fun (_,_,t) -> polymorphize g mink t) fl
+	| TUnion (_,fl) -> List.iter (fun (_,t) -> polymorphize g mink t) fl
+	| TTuple tl -> List.iter (polymorphize g mink) tl
+	| TLink t -> polymorphize g mink t
+	| TFun (tl,t) -> List.iter (polymorphize g mink) tl; polymorphize g mink t
+	| TNamed (_,tl,t) -> List.iter (polymorphize g mink) tl
