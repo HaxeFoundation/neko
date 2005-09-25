@@ -64,9 +64,9 @@ function write_file(path,bin) {
 	file_output f
 }
 
-var file_stdin : file = neko("load('file_stdin',0)()");
-var file_stdout : file = neko("load('file_stdout',0)()");
-var file_stderr : file = neko("load('file_stderr',0)()");
+var file_stdin : file = neko("@load('file_stdin',0)()");
+var file_stdout : file = neko("@load('file_stdout',0)()");
+var file_stderr : file = neko("@load('file_stderr',0)()");
 
 var stdin : input = file_input file_stdin;
 var stdout : output = file_output file_stdout;
@@ -107,7 +107,16 @@ function read(i,n) {
 }
 
 function read_all(i : input) : string {
-	assert();
+	var b = Buffer.create();
+	var maxlen = 4096;	
+	try {
+		while true {
+			Buffer.add b (read i maxlen);
+		}
+		magic();
+	} catch {
+		Eof -> Buffer.string b
+	}
 }
 
 function read_i32(i) : int {
@@ -140,58 +149,74 @@ function read_i16(i) {
 		n
 }
 
-function close_in(ch) {
-	ch.in_close();
-	ch.in_read := function() { throw Closed };
-	ch.in_input := function(s,p,l) { throw Closed };
-	ch.in_close := function() { throw Closed };
+function close_in(i) {
+	i.in_close();
+	i.in_read := function() { throw Closed };
+	i.in_input := function(s,p,l) { throw Closed };
+	i.in_close := function() { throw Closed };
 }
 
 /* ----------------------------
 	OUTPUT API
 ------------------------------- */
 
-function write_char(ch : output, x : char) : void {
-	assert()
+function write_char(o : output, x : char) : void {
+	o.out_write x
 }
 
-function write_byte(ch : output, x : int) : void {
-	assert()
+function write_byte(o : output, x : int) : void {	
+	o.out_write (chr (x and 255))
 }
 
-function output(ch,s,p,n) {
-	ch.out_output s p n
+function output(o,s,p,n) {
+	o.out_output s p n
 }
 
-function write(ch : output,x : string) : void {
-	assert()
+function write(o : output,x : string) : void {
+	var p = &0;
+	var len = &(String.length x);
+	while *len > 0 {
+		var n = o.out_output x (*p) (*len);
+		if n == 0 then throw Blocked;
+		p := *p + n;
+		len := *len - n;
+	}
 }
 
-function write_i32(ch : output, x : int) : void {
-	assert()
+function write_i32(o : output, x : int) : void {
+	write_byte o x;
+	write_byte o (x >> 8);
+	write_byte o (x >> 16);
+	write_byte o (x >>> 24)
 }
 
-function write_ui16(ch : output, x : int) : void {
-	assert()
+function write_ui16(o : output, x : int) : void {
+	if x < 0 || x > 0xFFFF then invalid_arg();
+	write_byte o x;
+	write_byte o (x >> 8)
 }
 
-function write_i16(ch : output, x : int) : void {
-	assert()
+function write_i16(o : output, x : int) : void {
+	if x < -0x7FFF || x > 0x7FFF then invalid_arg();
+	if x < 0 then
+		write_ui16 o (65536 + x)
+	else
+		write_ui16 o x
 }
 
-function flush(ch) {
-	ch.out_flush();
+function flush(o) {
+	o.out_flush();
 }
 
-function close_out(ch) {
-	ch.out_close();
-	ch.out_flush := function() { throw Closed };
-	ch.out_write := function(_) { throw Closed };
-	ch.out_output := function(_,_,_) { throw Closed };
-	ch.out_close := function() { throw Closed };
+function close_out(o) {
+	o.out_close();
+	o.out_flush := function() { throw Closed };
+	o.out_write := function(_) { throw Closed };
+	o.out_output := function(_,_,_) { throw Closed };
+	o.out_close := function() { throw Closed };
 }
 
-function printf(ch : output, fmt : 'a format, p : 'a ) : void {
-	assert();
+function printf(o : output, fmt : 'a format, p : 'a ) : void {
+	write o (sprintf fmt p)
 }
 
