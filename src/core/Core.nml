@@ -38,6 +38,9 @@ val neko : string -> 'a
 ----- */
 
 neko("
+
+	@sprintf = $loader.loadprim('std2@sprintf',2);
+
 	@string = function(x) {
 		// constructor
 		if( $typeof(x[1]) == $tfunction )
@@ -126,7 +129,14 @@ function error(x : string) {
 function ignore(x) {
 }
 
+{ /* break recursion */ };
+
 function ord(x:char) : int {
+	neko("x");
+}
+
+function chr(x:int) : char {
+	if x < 0 || x > 255 then invalid_arg();
 	neko("x");
 }
 
@@ -158,13 +168,10 @@ function max(x,y) {
 	if x < y then y else x
 }
 
-function printf(fmt : 'a format, p : 'a ) : string {
-	var _ = assert();
-	magic();
-}
-
 function sprintf(fmt : 'a format, p : 'a ) : string {
-	var _ = assert();
-	magic();
+	neko("@sprintf(fmt,p)")
 }
 
+function printf(fmt : 'a format, p : 'a ) : void {
+	print (sprintf fmt p)
+}
