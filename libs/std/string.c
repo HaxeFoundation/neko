@@ -19,16 +19,7 @@
 /*																			*/
 /* ************************************************************************ */
 #include <neko.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
-#include <locale.h>
-
-#ifdef _WIN32
-#	include <direct.h>
-#else
-#	include <unistd.h>
-#endif
 
 static value string_split( value o, value s ) {
 	value l, first;
@@ -69,29 +60,138 @@ static value string_split( value o, value s ) {
 	return (first == NULL)?val_null:first;
 }
 
-static value set_locale(l) {
-	val_check(l,string);
-	return alloc_bool(setlocale(LC_TIME,val_string(l)) != NULL);
-}
+#define HEX			1
+#define HEX_SMALL	2
 
-static value get_cwd() {
-	char buf[256];
-	int l;
-	if( getcwd(buf,256) == NULL )
-		return val_null;
-	l = strlen(buf);
-	if( buf[l-1] != '/' && buf[l-1] != '\\' ) {
-		buf[l] = '/';
-		buf[l+1] = 0;
+static value sprintf( value fmt, value params ) {
+	char *last, *cur, *end;
+	int count = 0;
+	buffer b;
+	val_check(fmt,string);
+	b = alloc_buffer(NULL);
+	last = val_string(fmt);
+	cur = last;
+	end = cur + val_strlen(fmt);
+	while( cur != end ) {
+		if( *cur == '%' ) {
+			int width = 0, prec = 0, flags = 0;
+			buffer_append_sub(b,last,cur - last);
+			cur++;
+			while( *cur >= '0' && *cur <= '9' ) {
+				width = width * 10 + (*cur - '0');
+				cur++;
+			}			
+			if( *cur == '.' ) {
+				cur++;
+				while( *cur >= '0' && *cur <= '9' ) {
+					prec = prec * 10 + (*cur - '0');
+					cur++;
+				}
+			}
+			if( *cur == '%' ) {
+				buffer_append_sub(b,"%",1);
+				cur++;
+			} else {
+				value param;
+				if( count == 0 && !val_is_array(params) ) { // first ?
+					param = params;
+					count++;
+				} else if( !val_is_array(params) || val_array_size(params) <= count )
+					type_error();
+				else 
+					param = val_array_ptr(params)[count++];
+				switch( *cur ) {
+				case 'c':
+					{
+						int c;
+						char cc;
+						val_check(param,int);
+						c = val_int(param);
+						if( c < 0 || c > 255 )
+							type_error();
+						cc = (char)c;
+						buffer_append_sub(b,&cc,1);
+					}
+					break;
+				case 'x':
+					flags |= HEX_SMALL;
+				case 'X':
+					flags |= HEX;
+				case 'd':
+					{
+						char tmp[10];
+						int sign = 0;
+						int size = 0;
+						int tsize;
+						int n;
+						val_check(param,int);
+						n = val_int(param);
+						if( !(flags & HEX) && n < 0 ) {
+							sign++;
+							prec--;
+							n = -n;
+						} else if( n == 0 )
+							tmp[9-size++] = '0';
+						if( flags & HEX ) {
+							unsigned int nn = (unsigned int)n;
+							while( nn > 0 ) {
+								int k = nn&15;
+								if( k < 10 )
+									tmp[9-size++] = k + '0';
+								else
+									tmp[9-size++] = (k - 10) + ((flags & HEX_SMALL)?'a':'A');
+								nn = nn >> 4;
+							}
+						} else {
+							while( n > 0 ) {
+								tmp[9-size++] = (n % 10) + '0';
+								n = n / 10;
+							}
+						}
+						tsize = (size > prec)?size:prec + sign;
+						while( width > tsize ) {
+							width--;
+							buffer_append_sub(b," ",1);
+						}
+						if( sign )
+							buffer_append_sub(b,"-",1);
+						while( prec > size ) {
+							prec--;
+							buffer_append_sub(b,"0",1);
+						}
+						buffer_append_sub(b,tmp+10-size,size);
+					}
+					break;
+				case 's':
+					{
+						int size;
+						int tsize;
+						val_check(param,string);
+						size = val_strlen(param);
+						tsize = (size > prec)?size:prec;
+						while( width > tsize ) {
+							width--;
+							buffer_append_sub(b," ",1);
+						}
+						while( prec > size ) {
+							prec--;
+							buffer_append_sub(b," ",1);
+						}
+						buffer_append_sub(b,val_string(param),size);
+					}
+					break;
+				default:
+					type_error();
+					break;
+				}
+			}
+			cur++;
+			last = cur;
+		} else
+			cur++;
 	}
-	return alloc_string(buf);
-}
-
-static value sys_command( value cmd ) {
-	val_check(cmd,string);
-	if( val_strlen(cmd) == 0 )
-		return val_null;
-	return alloc_int( system(val_string(cmd)) );
+	buffer_append_sub(b,last,cur - last);
+	return buffer_to_string(b);
 }
 
 static value test() {
@@ -99,10 +199,8 @@ static value test() {
 	return val_null;
 }
 
+DEFINE_PRIM(sprintf,2);
 DEFINE_PRIM(string_split,2);
-DEFINE_PRIM(set_locale,1);
-DEFINE_PRIM(get_cwd,0);
-DEFINE_PRIM(sys_command,1);
 DEFINE_PRIM(test,0);
 
 /* ************************************************************************ */
