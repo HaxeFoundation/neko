@@ -70,7 +70,7 @@ and texpr_decl =
 	| TArray of texpr * texpr
 	| TVar of string list * texpr
 	| TIf of texpr * texpr * texpr option
-	| TFunction of string * (string * t) list * texpr
+	| TFunction of bool * string * (string * t) list * texpr
 	| TBinop of string * texpr * texpr
 	| TTupleDecl of texpr list
 	| TTypeDecl of t
