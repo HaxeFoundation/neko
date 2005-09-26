@@ -283,7 +283,8 @@ and gen_expr ctx e =
 		) vl) , p
 	| TIf (e,e1,e2) -> EIf (gen_expr ctx e, gen_expr ctx e1, match e2 with None -> None | Some e2 -> Some (gen_expr ctx e2)) , p
 	| TWhile (e1,e2) -> EWhile (gen_expr ctx e1 , gen_expr ctx e2 , NormalWhile) , p
-	| TFunction ("_",params,e) -> EFunction (List.map fst params,block (gen_expr ctx e)) , p
+	| TFunction (_,"_",params,e) -> EFunction (List.map fst params,block (gen_expr ctx e)) , p
+	| TFunction (false,name,params,e) -> EVars [name , Some (EFunction (List.map fst params,block (gen_expr ctx e)) , p)] , p
 	| TFunction _ -> EBlock [gen_functions ctx [e] p] , p
 	| TBinop (op,e1,e2) -> gen_binop ctx op e1 e2 p
 	| TTupleDecl tl -> array (List.map (gen_expr ctx) tl) p
@@ -322,9 +323,9 @@ and gen_expr ctx e =
 and gen_functions ctx fl p =
 	let ell = ref (EVars (List.map (fun e ->
 		match e.edecl with
-		| TFunction ("_",params,e) ->
+		| TFunction (_,"_",params,e) ->
 			"_" , Some (EFunction (List.map fst params,block (gen_expr ctx e)),p)
-		| TFunction (name,_,_) ->
+		| TFunction (_,name,_,_) ->
 			ctx.refvars <- PMap.add name () ctx.refvars;
 			name , Some (array [null] null_pos)
 		| _ -> assert false
@@ -332,7 +333,7 @@ and gen_functions ctx fl p =
 	List.iter (fun e ->
 		let p = pos e.epos in
 		match e.edecl with
-		| TFunction (name,params,e) ->
+		| TFunction (_,name,params,e) ->
 			if name <> "_" then begin
 				let e = gen_expr ctx e in
 				let e = EFunction (List.map fst params,block e) , p in
@@ -351,7 +352,7 @@ and gen_block ctx el p =
 	let ell = ref [] in
 	let rec loop fl = function
 		| [] -> if fl <> [] then ell := gen_functions ctx (List.rev fl) p :: !ell
-		| { edecl = TFunction (name,p,f) } as e :: l -> loop (e :: fl) l
+		| { edecl = TFunction (true,name,p,f) } as e :: l -> loop (e :: fl) l
 		| { edecl = TMut r } :: l -> loop fl (!r :: l)
 		| x :: l ->
 			if fl <> [] then ell := gen_functions ctx (List.rev fl) p :: !ell;
