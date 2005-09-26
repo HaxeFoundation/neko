@@ -505,9 +505,9 @@ let rec type_functions ctx =
 		restore_locals ctx locals;
 		ctx.curfunction <- func;
 		let ft2 = mk_fun ctx.gen (List.map snd el) e.etype in
-		unify ctx ft ft2 p;		
-		expr := mk (TFunction (name,el,e)) ft2 p;
-		if not isrec && name <> "_" then add_local ctx name ft;
+		unify ctx ft ft2 p;
+		expr := mk (TFunction (isrec,name,el,e)) ft2 p;
+		if not isrec then add_local ctx name ft;
 		ft2
 	) (List.rev l) in
 	List.iter (polymorphize ctx.gen mink) l
@@ -549,7 +549,7 @@ and type_expr ctx (e,p) =
 		let el = List.map (type_expr ctx) el in
 		(match etype false e with
 		| TFun (args,r) ->
-			let rec loop l tl r =
+			let rec loop acc expr l tl r =
 				match l , tl with
 				| e :: l , t :: tl ->
 					(match tlinks true t with 
@@ -558,7 +558,7 @@ and type_expr ctx (e,p) =
 						| TConst (TString s) ->
 							let tfmt = type_format ctx s e.epos in
 							unify ctx param tfmt e.epos;
-						| _ -> 
+						| _ ->
 							(match tlinks true e.etype with
 							| TNamed (["format"],[param2],_) ->
 								unify ctx param2 param e.epos
@@ -566,17 +566,17 @@ and type_expr ctx (e,p) =
 								error (Custom "Constant string required for format") e.epos))
 					| _ ->
 						unify ctx e.etype t (pos e));
-					loop l tl r
+					loop (e :: acc) expr l tl r
 				| [] , [] ->
-					mk (TCall (e,el)) r p
+					mk (TCall (expr,List.rev acc)) r p
 				| [] , tl ->
-					mk (TCall (e,el)) (mk_fun ctx.gen tl r) p
+					mk (TCall (expr,List.rev acc)) (mk_fun ctx.gen tl r) p
 				| el , [] ->
 					match tlinks false r with
-					| TFun (args,r) -> loop el args r
+					| TFun (args,r2) -> loop [] (mk (TCall (expr,List.rev acc)) r p) el args r2
 					| _ -> error (Custom "Too many arguments") p
 			in
-			loop el args r
+			loop [] e el args r
 		| _ ->
 			let r = t_mono ctx.gen in
 			let f = mk_fun ctx.gen (List.map (fun e -> e.etype) el) r in
