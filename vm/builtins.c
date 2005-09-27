@@ -528,14 +528,25 @@ static value builtin_string( value v ) {
 	return buffer_to_string(b);
 }
 
+static value builtin_eq( value a, value b ) {
+	return alloc_bool(a == b);
+}
+
+static value builtin_neq( value a, value b ) {
+	return alloc_bool(a != b);
+}
+
+#define NBUILTINS		43
+
 #define BUILTIN(name,nargs)	\
-	alloc_field(neko_builtins[NBUILTINS],val_id(#name),alloc_int(p)); \
+	alloc_field(neko_builtins[0],val_id(#name),alloc_int(p)); \
 	neko_builtins[p++] = alloc_function(builtin_##name,nargs,"$" #name)
 
 void neko_init_builtins() {
-	int p = 0;
+	int p = 1;
 	neko_builtins = alloc_root(NBUILTINS+1);
-	neko_builtins[NBUILTINS] = alloc_object(NULL);
+	neko_builtins[0] = alloc_object(NULL);
+
 	BUILTIN(print,VAR_ARGS);
 	
 	BUILTIN(array,VAR_ARGS);
@@ -570,6 +581,8 @@ void neko_init_builtins() {
 	BUILTIN(closure,VAR_ARGS);
 	BUILTIN(apply,VAR_ARGS);
 	BUILTIN(compare,2);
+	BUILTIN(eq,2);
+	BUILTIN(neq,2);
 	BUILTIN(not,1);
 	BUILTIN(throw,1);
 	BUILTIN(nargs,1);
@@ -584,7 +597,7 @@ void neko_init_builtins() {
 	BUILTIN(idiv,2);
 
 	//----- DONE ---------------
-	if( p != NBUILTINS )
+	if( p != NBUILTINS+1 )
 		*(char*)NULL = 0;
 }
 
