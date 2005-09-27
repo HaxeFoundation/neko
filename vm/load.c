@@ -87,8 +87,8 @@ static int read_string( reader r, readp p, char *buf ) {
 	return -1;
 }
 
-static int builtin_id( neko_module *m, field id ) {
-	value f = val_field(neko_builtins[NBUILTINS],id);
+static value get_builtin( neko_module *m, field id ) {
+	value f = val_field(*neko_builtins,id);
 	if( val_is_null(f) ) {
 		unsigned int i;
 		for(i=0;i<m->nfields;i++)
@@ -97,9 +97,9 @@ static int builtin_id( neko_module *m, field id ) {
 				val_buffer(b,m->fields[i]);
 				bfailure(b);
 			}
-		return 0;
+		failure("Builtin not found");		
 	}
-	return val_int(f);
+	return f;
 }
 
 #define UNKNOWN  ((unsigned char)-1)
@@ -304,12 +304,8 @@ static neko_module *neko_module_read( reader r, readp p, value loader ) {
 				m->code[i+1] = (int)loader;
 			else if( (field)itmp == id_exports )
 				m->code[i+1] = (int)m->exports;
-			else {
-				itmp = builtin_id(m,(field)itmp);
-				if(	itmp >= NBUILTINS )
-					ERROR();
-				m->code[i+1] = (int)neko_builtins[itmp];
-			}
+			else
+				m->code[i+1] = (int)get_builtin(m,(field)itmp);
 			break;
 		case Call:
 		case ObjCall:
