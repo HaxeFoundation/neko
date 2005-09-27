@@ -19,3 +19,47 @@ function rec iter(f,l) {
 	| x :: l -> f x; iter f l
 	}
 }
+
+function rec split(l) {
+	match l {
+	| [] -> ([] , [])
+	| (a,b) :: l -> 
+		var la , lb = split l;
+		(a :: la, b :: lb)
+	}
+}
+
+function rec exists(f,l) {
+	match l {
+	| [] -> false
+	| x :: l -> if f x then true else exists f l
+	}
+}
+
+function rev(l) {
+	function rec loop(l,acc) {
+		match l {
+		| [] -> acc
+		| x :: l -> loop(l,x :: acc)
+		}
+	};
+	loop l []
+}
+
+function array(l) {
+	match l {
+	| [] -> Array.create()
+	| x :: l ->
+		var a = Array.make (List.length l) x;
+		function rec loop(p,l) {
+			match l {
+			| [] -> ()
+			| x :: l ->
+				a.[p] := x;
+				loop (p + 1) l
+			}
+		};
+		loop 1 l;
+		a
+	}
+}
