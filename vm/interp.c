@@ -80,6 +80,7 @@ EXTERN neko_vm *neko_vm_alloc( neko_params *p ) {
 	vm->print = (p && p->printer)?p->printer:default_printer;
 	vm->custom = p?p->custom:NULL;
 	vm->spmax = vm->spmin + INIT_STACK_SIZE;
+	vm->ncalls = 0;
 	vm->sp = vm->spmax;
 	vm->csp = vm->spmin - 1;
 	vm->this = val_null;
@@ -670,10 +671,13 @@ end:
 value neko_interp( neko_vm *vm, int acc, int *pc, value env ) {
 	int *sp, *csp;
 	int *init_sp = (int*)(vm->spmax - vm->sp);
+	int old_ncalls = vm->ncalls;
 	jmp_buf old;
 	memcpy(&old,&vm->start,sizeof(jmp_buf));
 	if( setjmp(vm->start) ) {
+		vm->ncalls = old_ncalls;
 		acc = (int)vm->this;
+		
 		// if uncaught or outside init stack, reraise
 		if( vm->trap == 0 || vm->trap <= init_sp ) {
 			memcpy(&vm->start,&old,sizeof(jmp_buf));

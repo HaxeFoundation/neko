@@ -24,6 +24,8 @@
 #include "objtable.h"
 #include "vmcontext.h"
 
+#define MAXCALLS	350
+
 typedef value (*c_prim0)();
 typedef value (*c_prim1)(value);
 typedef value (*c_prim2)(value,value);
@@ -41,6 +43,9 @@ EXTERN value val_callEx( value this, value f, value *args, int nargs, value *exc
 	value old_this = vm->this;
 	value ret = val_null;
 	jmp_buf oldjmp;
+	int old_ncalls = vm->ncalls++;
+	if( old_ncalls > MAXCALLS )
+		failure("Stack Overflow");
 	if( nargs > CALL_MAX_ARGS )
 		failure("Too many arguments for a call");
 	if( this != NULL )
@@ -52,6 +57,7 @@ EXTERN value val_callEx( value this, value f, value *args, int nargs, value *exc
 			neko_process_trap(vm);
 			vm->this = old_this;
 			memcpy(&vm->start,&oldjmp,sizeof(jmp_buf));
+			vm->ncalls = old_ncalls;
 			return val_null;
 		}
 		neko_setup_trap(vm,0);
@@ -94,7 +100,7 @@ EXTERN value val_callEx( value this, value f, value *args, int nargs, value *exc
 					memcpy(&vm->start,&oldjmp,sizeof(jmp_buf));	
 				}
 				vm->this = old_this;
-				failure("OVERFLOW");
+				failure("Stack Overflow");
 			} else {
 				for(n=0;n<nargs;n++)
 					*--vm->sp = (unsigned int)args[n];
@@ -109,6 +115,7 @@ EXTERN value val_callEx( value this, value f, value *args, int nargs, value *exc
 		neko_process_trap(vm);
 		memcpy(&vm->start,&oldjmp,sizeof(jmp_buf));	
 	}
+	vm->ncalls = old_ncalls;
 	vm->this = old_this;
 	return ret;
 }

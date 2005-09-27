@@ -35,6 +35,7 @@ struct _neko_vm {
 	int *sp;
 	int *csp;
 	int *trap;
+	int ncalls;
 	value env;
 	value this;
 	printer print;
