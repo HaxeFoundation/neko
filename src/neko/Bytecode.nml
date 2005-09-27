@@ -94,7 +94,7 @@ var max_call_args = 5
 
 function hash_field(s) {
 	var acc = &0;
-	function loop(i) {
+	function rec loop(i) {
 		if i < String.length s then {
 			acc := 223 * *acc + ord(String.get s i);
 			loop (i + 1);
@@ -282,7 +282,7 @@ function write(ch,(globals,ops)) {
 
 function read_string(ch) {
 	var b = Buffer.create();
-	function loop() {
+	function rec loop() {
 		var c = IO.read_char ch;
 		if c == '\000' then
 			Buffer.string b
@@ -319,7 +319,7 @@ function read(ch) {
 			}
 		});
 		var ids = Hashtbl.create();
-		function loop(n) {
+		function rec loop(n) {
 			if n == 0 then
 				()
 			else {
