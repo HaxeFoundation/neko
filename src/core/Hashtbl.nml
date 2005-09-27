@@ -28,10 +28,10 @@ function length(h) {
 	h.size
 }
 
-function find_rec(k,r) {
+function rec find_rec(k,r) {
 	match r {
 	| Empty -> throw Not_found
-	| Cons (k2,d,r) -> if compare k k2 == 0 then d else find_rec k r
+	| Cons (k2,d,r) -> if k == k2 then d else find_rec k r
 	}
 }
 
@@ -44,7 +44,7 @@ function resize(h) {
 	var old_size = h.size;
 	var new_size = old_size << 1 + 1;
 	var new_data = Array.make new_size Empty;	
-	function insert(x) {
+	function rec insert(x) {
 		match x {
 		| Empty -> ()
 		| Cons (k,v,r) ->
@@ -73,7 +73,7 @@ function iter(f : 'a -> 'b -> void,h : ('a,'b) t) : void {
 	var i = &0;
 	var d = h.data;
 	var len = Array.length d;
-	function loop(b) {
+	function rec loop(b) {
 		match b {
 		| Empty -> ()
 		| Cons (k,d,r) ->
