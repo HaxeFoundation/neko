@@ -17,6 +17,7 @@ exception Invalid_argument : string;
 exception Assert_failure : (string,int);
 exception Error : string;
 exception Not_found;
+exception Exit;
 
 /* -----
 
@@ -97,6 +98,43 @@ neko("
 		return s;
 	}
 
+	@compare = function(a,b) {
+		if( $eq(a,b) )
+			return 0;
+		if( $typeof(a) == $tarray ) {
+			var l1 = $asize(a);
+			var l2 = $asize(b);
+			if( l1 != l2 )
+				return $compare(l1,l2);
+			var i = 0;
+			while i < l1 {
+				var k = @compare(a[i],b[i]);
+				if( k != 0 )
+					return k;
+				i = i + 1;
+			}
+			return 0;
+		}
+		if( $typeof(a) == $tobject ) {
+			var o = $objfields(a);
+			var i = 0;
+			var l = $asize(o);
+			while i <  l {
+				var v = $objget(b,o[i]);
+				if( v == null )
+					$throw('@compare');
+				var k = @compare($objget(a,o[i]),v);
+				if( k != 0 )
+					return k;
+				i = i + 1;
+			}
+			return 0;
+		}
+		return $compare(a,b);
+	}
+
+	$exports.@compare = @compare;
+
 	@empty = $array(null,function(_){ '[]' });
 	@empty[0] = @empty;
 	@cons = function(x,l) {
@@ -137,6 +175,12 @@ function snd((_,a)) {
 	a
 }
 
+function int(x:string) : int {
+	var i = neko("$int(x)");
+	if i == neko("null") then invalid_arg();
+	i
+}
+
 function ord(x:char) : int {
 	neko("x");
 }
@@ -163,7 +207,7 @@ function nprint(x) : void {
 }
 
 function compare(x : 'a, y : 'a) : int {
-	neko("$compare(x,y)");
+	neko("@compare(x,y)");
 }
 
 function min(x,y) {
