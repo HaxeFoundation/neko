@@ -191,15 +191,27 @@ let is_alias = function
 	| TFun _
 	| TNamed _ -> true
 
+let rec propagate k t =
+	match t.texpr with
+	| TAbstract
+	| TPoly -> ()
+	| TUnion _
+	| TRecord _ -> assert false
+	| TMono k2 -> if k < k2 then t.texpr <- TMono k	
+	| TTuple tl -> List.iter (propagate k) tl
+	| TLink t -> propagate k t
+	| TFun (tl,t) -> propagate k t; List.iter (propagate k) tl
+	| TNamed (_,tl,_) -> List.iter (propagate k) tl
+
 let rec unify ctx t1 t2 p =
 	if t1 == t2 then
 		()
 	else match t1.texpr , t2.texpr with
 	| TLink t , _ -> unify ctx t t2 p
 	| _ , TLink t -> unify ctx t1 t p
-	| TMono _ , t
+	| TMono k , t -> link ctx t1 t2 p; propagate k t2
+	| t , TMono k -> link ctx t2 t1 p; propagate k t1
 	| TPoly , t -> link ctx t1 t2 p
-	| t , TMono _
 	| t , TPoly -> link ctx t2 t1 p
 	| TNamed (n1,p1,_) , TNamed (n2,p2,_) when n1 = n2 ->
 		(try
@@ -357,7 +369,9 @@ let type_binop ctx op e1 e2 p =
 	| ">"
 	| ">="
 	| "=="
-	| "!=" ->
+	| "!="
+	| "==="
+	| "!==" ->
 		unify ctx e2.etype e1.etype (pos e2);
 		emk t_bool
 	| ":=" ->
@@ -429,7 +443,7 @@ let rec type_arg ctx h binds p = function
 		aname , mk_tup ctx.gen tl
 
 let register_function ctx isrec name pl e rt p =
-	let mink = !(ctx.gen) in
+	if ctx.functions = [] then ctx.mink <- !(ctx.gen);
 	let pl = (match pl with [] -> [ATyped (ANamed "_",EType (None,[],"void"))] | _ -> pl) in
 	let expr = ref (mk (TConst TVoid) t_void p) in
 	let h = Hashtbl.create 0 in
@@ -447,8 +461,7 @@ let register_function ctx isrec name pl e rt p =
 		| None -> t_mono ctx.gen
 		| Some rt -> type_type ~h ctx rt p
 	) in
-	let ft = mk_fun ctx.gen (List.map snd el) rt in	
-	if ctx.functions = [] then ctx.mink <- mink;
+	let ft = mk_fun ctx.gen (List.map snd el) rt in		
 	ctx.functions <- (isrec,name,expr,ft,el,e,rt,p) :: ctx.functions;
 	if isrec then add_local ctx name ft;
 	mk (TMut expr) (if name = "_" then ft else t_void) p
@@ -492,6 +505,7 @@ let type_format ctx s p =
 
 let rec type_functions ctx =
 	let l = ctx.functions in
+	if l <> [] then
 	let mink = ctx.mink in
 	ctx.functions <- [];
 	let l = List.map (fun (isrec,name,expr,ft,el,e,rt,p) ->
@@ -528,7 +542,7 @@ and type_expr ctx (e,p) =
 		) ([e] , e.etype) l in
 		type_functions ctx;
 		restore_locals ctx locals;
-		mk (TBlock (List.rev el)) t p	
+		mk (TBlock (List.rev el)) t p
 	| EApply (e,el) ->
 		type_expr ctx (ECall (e,el),p)
 	| ECall ((EConst (Ident "open"),_),[EConst (Constr modname),p]) ->
@@ -663,7 +677,7 @@ and type_expr ctx (e,p) =
 						t
 					) params in					
 					let t = {
-						tid = genid ctx.gen;
+						tid = -1;
 						texpr = TNamed (fullname,tl,t_abstract);
 					} in
 					Hashtbl.add ctx.current.types tname t;
@@ -804,6 +818,9 @@ and type_pattern (ctx:context) h ?(h2 = Hashtbl.create 0) set (pat,p) =
 			| Char c -> t_char
 			| Ident _ | Constr _ | Module _ ->
 				assert false) , pat
+		| PTuple [p] ->
+			let pt , pat = type_pattern ctx h ~h2 set p in
+			pt , fst pat
 		| PTuple pl -> 
 			let pl , patl = List.split (List.map (type_pattern ctx h ~h2 set) pl) in
 			mk_tup ctx.gen pl , PTuple patl
