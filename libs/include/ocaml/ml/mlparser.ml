@@ -38,9 +38,9 @@ let error_msg = function
 let error m p = raise (Error (m,p))
 
 let priority = function
-	| "=" | "+=" | "-=" | "*=" | "/=" | "|=" | "&=" | "^=" | ":=" -> -3
+	| "+=" | "-=" | "*=" | "/=" | "|=" | "&=" | "^=" | ":=" -> -3
 	| "&&" | "||" -> -2
-	| "==" | "!=" | ">" | "<" | "<=" | ">=" -> -1
+	| "==" | "!=" | ">" | "<" | "<=" | ">=" | "===" | "!==" | "<>" | "=" -> -1
 	| "+" | "-" -> 0
 	| "*" | "/" -> 1
 	| "or" | "and" | "xor" -> 2
@@ -99,7 +99,7 @@ and expr = parser
 	| [< '(BraceOpen,p1); e = block1; s >] ->
 		(match s with parser
 		| [< '(BraceClose,p2); s >] -> expr_next (e,punion p1 p2) s
-		| [< '(Eof,_) >] -> unclosed "{" p1)
+		| [< >] -> unclosed "{" p1)
 	| [< '(Keyword Var,p1); '(Const (Ident name),_); t = type_opt; l = vars; e = expr; s >] ->
 		EVar ((name,t) :: l,e) , punion p1 (pos e)
 	| [< '(Keyword If,p1); cond = expr; '(Keyword Then,_); e = expr; s >] ->
@@ -115,23 +115,23 @@ and expr = parser
 	| [< '(Keyword Match,p1); e = expr; '(BraceOpen,po); pl = patterns_begin; s >] ->
 		(match s with parser
 		| [< '(BraceClose,pe); >] -> EMatch (e,pl), punion p1 pe
-		| [< '(Eof,_) >] -> unclosed "{" po)
+		| [< >] -> unclosed "{" po)
 	| [< '(Keyword Try,p1); b = block; '(Keyword Catch,p2); '(BraceOpen,po); pl = patterns_begin; s >] ->
 		(match s with parser
 		| [< '(BraceClose,pe); >] -> ETry ((EBlock b,punion p1 p2),pl), punion p1 pe
-		| [< '(Eof,_) >] -> unclosed "{" po)
+		| [< >] -> unclosed "{" po)
 	| [< '(Keyword While,p1); e = expr; '(BraceOpen,po); b = block; s >] ->
 		(match s with parser
 		| [< '(BraceClose,pe); s >] -> EWhile (e,(EBlock b,punion po pe)) , punion po pe
-		| [< '(Eof,_) >] -> unclosed "{" po)
+		| [< >] -> unclosed "{" po)
 	| [< e = expr_short >] ->
 		e
 
 and expr_short = parser
-	| [< '(ParentOpen _,p1); pl = parameters; s >] ->	
+	| [< '(ParentOpen _,p1); pl = parameters; s >] ->
 		(match s with parser
 		| [< '(ParentClose,p2); s >] -> expr_next (ETupleDecl pl,punion p1 p2) s
-		| [< '(Eof,_) >] -> unclosed "(" p1)
+		| [< >] -> unclosed "(" p1)
 	| [< '(Binop op,p) when is_unop op; e = expr; s >] ->
 		expr_next (make_unop op e p) s
 	| [< '(Const (Constr n),p); e = expr_constr n p; s >] ->
@@ -147,14 +147,14 @@ and expr_next e = parser
 	| [< '(ParentOpen false,po); pl = parameters; s >] ->
 		(match s with parser
 		| [< '(ParentClose,p); s >] -> expr_next (ECall (e,pl),punion (pos e) p) s
-		| [< '(Eof,_) >] -> unclosed "(" po)
+		| [< >] -> unclosed "(" po)
 	| [< '(Dot,_); s >] ->
 		(match s with parser
 		| [< '(Const (Ident name),p); s >] -> expr_next (EField (e,name),punion (pos e) p) s
 		| [< '(BracketOpen,po); e2 = expr; s >] ->
 			(match s with parser
 			| [< '(BracketClose,p); s >] -> expr_next (EArray (e,e2),punion (pos e) p) s
-			| [< '(Eof,_) >] -> unclosed "[" po))
+			| [< >] -> unclosed "[" po))
 	| [< '(Binop op,_); e2 = expr; s >] ->
 		make_binop op e e2
 	| [< ep = expr_short >] ->
@@ -318,6 +318,7 @@ and pattern_decl = parser
 	| [< '(Const (Constr name),p1); l, name, p2 = pattern_mod_path name p1; p , p2 = pattern_opt p2 >] -> PConstr (l,name,p) , punion p1 p2
 	| [< '(Const (Ident i),p); >] -> PIdent i , p
 	| [< '(Const c,p); >] -> PConst c , p
+	| [< '(Binop "-",p1); '(Const (Int i),p2) >] -> PConst (Int (-i)) , punion p1 p2
 	| [< '(BracketOpen,p1); l = pattern_list; '(BracketClose,p2) >] -> make_list_pat (punion p1 p2) l
 
 and pattern_mod_path name p = parser
