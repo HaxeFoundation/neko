@@ -63,10 +63,10 @@ function init( size : int, f : int -> 'a ) : 'a array {
 		var a = $amake(size);
 		var i = 0;
 		while( i < size ) {
-			a[i] = f(i);
+			a[i] = $apply(f,i);
 			i = i + 1;
 		}
-		$array(a,to_string,size)
+		$array(a,string,size)
 	");
 }
 
@@ -93,3 +93,56 @@ function iteri( f : int -> 'a -> void, a : 'a array ) : void {
 		}
 	");
 }
+
+function map( f : 'a -> 'b, a : 'a array ) : 'b array {
+	neko("
+		var l = a[2];
+		var i = 0;
+		var a2 = $amake(l);
+		a = a[0];
+		while i < l {
+			a2[i] = $apply(f,a[i]);
+			i = i + 1;
+		}
+		$array(a2,string,l);
+	");
+}
+
+function sort( f : 'a -> 'a -> int, a : 'a array ) : void {
+	neko("
+		var l = a[2];
+		var i = 0;
+		a = a[0];
+		while( i < l ) {
+			var swap = false;
+			var j = 0;
+			var max = l - i - 1;
+			while( j < max ) {
+				if( f(a[j],a[j+1]) > 0 ) {
+					var tmp = a[j+1];
+					a[j+1] = a[j];
+					a[j] = tmp;
+					swap = true;
+				}
+				j = j + 1;
+			}
+			if( $not(swap) )
+				break;
+			i = i + 1;
+		}
+	");
+}
+
+function list( a : 'a array ) : 'a list {
+	neko("
+		var i = a[2];
+		var l = Core.@empty;
+		a = a[0];
+		while i > 0 {
+			i = i - 1;
+			l = Core.@cons(a[i],l);
+		}
+		l
+	");
+}
+
