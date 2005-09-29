@@ -36,21 +36,77 @@ function rec exists(f,l) {
 	}
 }
 
+function rec mem(v,l) {
+	match l {
+	| [] -> false
+	| x :: l -> if x == v then true else mem v l
+	}
+}
+
+function rec assoc(k,l) {
+	match l {
+	| [] -> throw Not_found
+	| (k2,v) :: l -> if k == k2 then v else assoc k l
+	}
+}
+
+function rec rev_rec(l,acc) {
+	match l {
+	| [] -> acc
+	| x :: l -> rev_rec l (x :: acc)
+	}
+}
+
 function rev(l) {
-	function rec loop(l,acc) {
-		match l {
+	rev_rec l []
+}
+
+function rec fold(f,acc,l) {
+	match l {
+    | [] -> acc
+	| x :: l -> fold f (f acc x) l
+	}
+}
+
+function rec append(l1,l2) {
+	match l1 {
+	| [] -> l2
+	| x :: l1 -> x :: append l1 l2
+	}
+}
+
+function rec concat(ll) {
+	function rec loop(ll,acc) {
+		match ll {
 		| [] -> acc
-		| x :: l -> loop(l,x :: acc)
+		| l :: ll ->
+			loop ll (append acc l)
 		}
 	};
-	loop l []
+	loop ll []
+}
+
+function rec chop(n,l) {
+	if n == 0 then
+		l
+	else match l {
+		| [] -> invalid_arg()
+		| _ :: l -> chop (n -1) l
+	}
+}
+
+function rec filter(f,l) {
+	match l {
+	| [] -> []
+	| x :: l ->	if f x then x :: filter f l else filter f l
+	}
 }
 
 function array(l) {
 	match l {
 	| [] -> Array.create()
 	| x :: l ->
-		var a = Array.make (List.length l) x;
+		var a = Array.make (1+ List.length l) x;
 		function rec loop(p,l) {
 			match l {
 			| [] -> ()
@@ -62,4 +118,10 @@ function array(l) {
 		loop 1 l;
 		a
 	}
+}
+
+function sort(cmp,l) {
+	var a = array l;
+	Array.sort cmp a;
+	Array.list a
 }
