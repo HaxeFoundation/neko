@@ -172,7 +172,7 @@ rule token = parse
 			mk lexbuf (CommentLine (String.sub s 2 ((String.length s)-n)))
 		}
 	| "->" { mk lexbuf Arrow }
-	| binop binop? | ">>>" | "or" | "and" | "xor" { mk lexbuf (Binop (lexeme lexbuf)) }
+	| binop binop? | ">>>" | "===" | "!==" | "or" | "and" | "xor" { mk lexbuf (Binop (lexeme lexbuf)) }
 	| ident { mk_ident lexbuf }
 	| modident { mk lexbuf (Const (Constr (lexeme lexbuf))) } 
 	| _ {
