@@ -17,11 +17,7 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-type pos {
-	pmin : int;
-	pmax : int;
-	pfile : string;
-}
+open Lexer
 
 type constant {
 	True;
@@ -102,16 +98,6 @@ type expr = (expr_decl , pos)
 function pos(_,x) { x }
 
 var var_args = -1;
-
-var null_pos = { pmin = -1; pmax = -1; pfile = "<null pos>" };
-
-function punion(p,p2) {
-	{
-		pfile = p.pfile;
-		pmin = min p.pmin p2.pmin;
-		pmax = max p.pmax p2.pmax;
-	}
-}
 
 function mk_call(v,args,p) {
 	(ECall v args , p)
