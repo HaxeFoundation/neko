@@ -1,0 +1,159 @@
+/*
+ *  Neko Compiler
+ *  Copyright (c)2005 Nicolas Cannasse
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+open Ast;
+
+type error_msg {
+	Invalid_character : char;
+	Unterminated_string;
+	Unclosed_comment;
+	Invalid_escaped_character : int;
+	Invalid_escape;
+}
+
+exception Error : (error_msg , Lexer.pos)
+
+function error_msg(msg) {
+	match msg {
+	| Invalid_character c when ord c > 32 && ord c < 128 -> sprintf "Invalid character '%c'" c
+	| Invalid_character c -> sprintf "Invalid character 0x%.2X" (ord c)
+	| Unterminated_string -> "Unterminated string"
+	| Unclosed_comment -> "Unclosed comment"
+	| Invalid_escaped_character n -> sprintf "Invalid escaped character %d" n
+	| Invalid_escape -> "Invalid escape sequence"
+	}
+}
+
+function error(l,msg) {
+	throw Error(msg,Lexer.curpos l)
+}
+
+var keywords = {
+	var h = Hashtbl.create();
+	List.iter (function(k) { Hashtbl.add h (s_keyword k) k })
+	[Var;While;Do;If;Else;Function;Return;Break;Continue;Try;Catch];
+	h
+}
+
+function mk(l,t) {
+	(t,Lexer.curpos l)
+}
+
+function mk_int(l) {
+	mk l Const(Int(int (Lexer.buffer l)))
+}
+
+function mk_float(l) {
+	mk l Const(Float(Lexer.buffer l))
+}
+
+function mk_ident(l) {
+	var s = Lexer.buffer l;
+	mk l (try Keyword (Hashtbl.find keywords s) catch { Not_found -> Const (Ident s) })
+}
+
+var ident = "[a-zA-Z_@][a-zA-Z0-9_@]*";
+var binop = "!=\\*/<>&|^%\\+:-";
+
+var expr = &Lexer.empty();
+var estring = &Lexer.empty();
+var ecomment = &Lexer.empty();
+
+function comment(l) {
+	Lexer.token l (*ecomment)
+}
+
+function str(l) {
+	Lexer.token l (*estring)
+};
+
+expr := Lexer.build [
+	(";", function(l) { mk l Semicolon });
+	(".", function(l) { mk l Dot });
+	(",", function(l) { mk l Comma });
+	("{", function(l) { mk l BraceOpen });
+	("}", function(l) { mk l BraceClose });
+	("(", function(l) { mk l ParentOpen });
+	(")", function(l) { mk l ParentClose });
+	("\\[", function(l) { mk l BracketOpen });
+	("]", function(l) { mk l BracketClose });
+	("=>", function(l) { mk l Arrow });
+	("[ \r\t\n]+", function(l) { Lexer.token l (*expr) });
+	("0x[0-9a-fA-F]+", mk_int);
+	("[0-9]+", mk_int);
+	("[0-9]+.[0-9]*", mk_float);
+	(".[0-9]+", mk_float);
+	("$"+ident, function(l) {
+		var s = Lexer.buffer l;
+		var s = String.sub s 1 (String.length s - 1);
+		mk l Const(Builtin s)
+	});
+	("true", function(l) { mk l (Const True) });
+	("false", function(l) { mk l (Const False) });
+	("null", function(l) { mk l (Const Null) });
+	("this", function(l) { mk l (Const This) });
+	(ident , function(l) { mk_ident l });
+	("\"", function(l) {
+		var p1 = Lexer.curpos l;
+		try str l catch { Exit -> throw Error(Unterminated_string,p1) };
+		var p2 = Lexer.curpos l;
+		(Const String("") , Lexer.punion p1 p2)
+	});
+	("/\\*", function(l) {
+		var p1 = Lexer.curpos l;
+		try comment l catch { Exit -> throw Error(Unclosed_comment,p1) };
+		var p2 = Lexer.curpos l;
+		(Comment("") , Lexer.punion p1 p2)
+	});
+	("//[^\n]*", function(l) {
+		var s = Lexer.buffer l;
+		var len = String.length s;
+		var n = (if String.get s (len - 1) == '\r' then 3 else 2);			
+		mk l CommentLine(String.sub s 0 (len - n))
+	});
+	(binop + binop + "?",function(l) { mk l (Binop (Lexer.buffer l)) });
+	(">>>",function(l) { mk l (Binop ">>>") });
+]
+	(function(l) { 
+		match Lexer.char l {
+		| None -> mk l Eof
+		| Some c -> error l (Invalid_character c)
+		}
+	});
+;
+
+ecomment := Lexer.build [
+	("\r", function(l) { comment l });
+	("\n", function(l) { comment l });
+	("\\*/", function(l) { });
+	("\\*", function(l) { comment l });
+	("[^*\n\r]+", function(l) { comment l });
+] (function(l) { throw Exit });
+
+estring := Lexer.build [
+	("\n", function(l) { str l });
+	("\\\"", function(l) { str l });
+	("\\\\", function(l) { str l });
+	("\\n", function(l) { str l });
+	("\\t", function(l) { str l });
+	("\\r", function(l) { str l });
+	("\\[0-9][0-9][0-9]", function(l) { str l });
+	("\\" , function(l) { error l Invalid_escape });
+	("\"" , function(l) { });
+	("[^\"\\\n]+", function(l) { str l });
+] (function(l) { throw Exit });

@@ -1,0 +1,247 @@
+
+/*
+	most of this code is taken from the ULex lexer by Alain Frish,
+	originaly written as an OCaml library.
+*/
+
+type charset = (int , int) list
+
+type node {
+	mutable id : int;
+	mutable trans : (charset , node) list;
+	mutable epsilon : node list;
+}
+
+type state = node list
+
+type tables = (int array array , int array)
+
+type t {
+	Empty;
+	Match : charset;
+	Star : t;
+	Plus : t;
+	Next : (t , t);
+	Choice : (t , t);
+}
+
+/* ------- charset ------ */
+
+var max_code = 255;
+
+var cempty = [];
+
+function is_empty(c) {
+	c == []
+}
+
+function rec cunion(c1,c2) {
+	match (c1 , c2) {
+	| ([] , _) -> c2
+	| (_ , []) -> c1
+	| (((i1,j1) as s1)::r1, (i2,j2)::r2) ->
+		if i1 <= i2 then
+			if j1 + 1 < i2 then s1::(cunion r1 c2)
+			else if (j1 < j2) then cunion r1 ((i1,j2)::r2)
+			else cunion c1 r2
+		else
+			cunion c2 c1
+	| _ -> assert()
+	}
+}
+
+function ccomplement(c) {
+	function rec loop(start,l) {
+		match l {
+		| [] -> if start <= max_code then [(start,max_code)] else []
+		| (i,j) :: l -> (start,i-1) :: (loop (j + 1) l)
+		}
+	};
+	match c {
+	| (-1,j) :: l -> loop (j + 1) l
+	| l -> loop (-1) l
+	}
+}
+
+function cinter(c1,c2) {
+	ccomplement (cunion (ccomplement c1) (ccomplement c2))
+}
+
+function cdiff(c1,c2) {
+	ccomplement (cunion (ccomplement c1) c2)
+}
+
+/* ------- nodes -------- */
+
+function node(g) {
+	{
+		id = g();
+		trans = [];
+		epsilon = [];
+	}
+}
+
+function rec add_node(state,node) {
+	if List.exists (function(k) { k === node }) state then
+		state
+	else
+		add_nodes (node::state) node.epsilon
+}
+
+function rec add_nodes(state,nodes) {
+	List.fold add_node state nodes
+}
+
+function nodes(nfa) {
+	var g = &0;
+	var gen = function() { g := *g + 1; *g };
+	function rec loop(n,final) {
+		match n {
+		| Empty ->
+			final
+		| Match c ->
+			var n = node gen;
+			n.trans := [(c,final)];
+			n
+		| Star a -> 
+			var n = node gen;
+			var an = loop a n;
+			n.epsilon := [an; final];
+			n
+		| Plus a ->
+			var n = node gen;
+			var an = loop a n;
+			n.epsilon := [an; final];
+			an
+		| Next (a,b) ->
+			loop a (loop b final)
+		| Choice (a,b) ->
+			var n = node gen;
+			n.epsilon := [loop a final; loop b final];
+			n
+		}		
+	};
+	Array.map (function(n) { var f = node gen; (loop n f,f) }) nfa
+}
+
+/* ------- NFA -> DFA -------- */
+
+function transitions(state : state) {
+	// Merge transition with the same target
+	function rec norm(l) {
+		match l {
+		| (t1,n1) :: (((t2,n2) :: q) as l) ->
+			if n1 === n2 then norm ((cunion t1 t2,n1) :: q) else (t1,n1) :: (norm l)
+		| _ -> l
+		}
+	};
+	var t = List.concat (List.map (function(n) { n.trans }) state);
+	var t = norm (List.sort (function((t1,n1),(t2,n2)) { n1.id - n2.id }) t);
+
+	// Split char sets so as to make them disjoint
+	function rec split((all,t),(c0,n0)) {
+		var l1 = List.map (function((c,ns)) { (cinter c c0, n0::ns) }) t;
+		var l2 = List.map (function((c,ns)) { (cdiff c c0, ns) }) t;		
+		var t = (cdiff c0 all, [n0]) :: List.append l1 l2;
+		(cunion all c0, List.filter (function((c,ns)) { !is_empty c }) t)
+	};
+	var _ , t = List.fold split (cempty,[]) t;
+
+	// Epsilon closure of targets
+	var t = List.map (function((t,ns)) { (t,add_nodes [] ns) }) t;
+
+	// Canonical ordering
+	var t = List.array t;
+	Array.sort (function((c1,ns1),(c2,ns2)) { compare c1 c2 }) t;
+	(Array.map fst t, Array.map snd t)
+}
+
+function determinize(nfa : t array) {
+	var nfa = nodes nfa;
+	var h = Hashtbl.create();
+	var parts = Hashtbl.create();
+	var state_counter = &0;
+	var part_counter = &0;
+	var lparts = &[];
+	var states = &[];
+	function get_part(p) {
+		try
+			Hashtbl.find parts p
+		catch {
+			Not_found ->
+				var pid = *part_counter;
+				part_counter := *part_counter + 1;
+				Hashtbl.add parts p pid;
+				lparts := p :: *lparts;
+				pid
+		}
+	};
+	function rec loop(state) {
+		var sid = List.map (function(s) { s.id }) state;
+		try
+			Hashtbl.find h sid
+		catch {
+			Not_found ->
+				var id = *state_counter;
+				state_counter := *state_counter + 1;
+				Hashtbl.add h sid id;
+				var part, targets = transitions state;
+				var part = get_part part;
+				var targets = Array.map loop targets;
+				var finals = Array.map (function((_,f)) { List.mem f state }) nfa;
+				states := (id, (part,targets,finals)) :: *states;
+				id
+		}
+	};
+	var init : node list ref = &[];
+	Array.iter (function((i,_)) { init := add_node (*init) i }) nfa;
+	ignore(loop (*init));
+	var dfa = Array.init (*state_counter) (function(id) { List.assoc id (*states) });
+	function loop(part) {
+		var seg = &[];
+		Array.iteri (function(i,c) {
+			List.iter (function((a,b)) { seg := (a,b,i) :: *seg }) c
+		}) part;		
+		List.sort (function((a1,_,_),(a2,_,_)) { compare a1 a2 }) (*seg);
+	};
+	var trans = List.array (List.map loop (List.rev (*lparts)));
+	(dfa , trans)
+}
+
+/* ---- DFA -> Tables ---- */
+// this expands memory but is better since all accesses are O(1)
+
+function make_trans(trans,tbl) {
+	var a = Array.make 256 (-1);
+	List.iter (function((min,max,n)) {
+		var i = &min;
+		while *i <= max {
+			a.[*i] := tbl.[n];
+			i := *i + 1;
+		}
+	}) trans;
+	a
+}
+
+function make_tables((dfa,trans)) {
+	function rec first(p,a) {
+		if p == Array.length a then
+			-1
+		else if a.[p] then 
+			p
+		else
+			first (p + 1) a
+	};
+	var exits = Array.map (function((_,_,states)) { first 0 states }) dfa;
+	var tbls = Array.map (function((tid,tbl,_)) {
+		make_trans trans.[tid] tbl
+	}) dfa;	
+	(tbls , exits)
+}
+
+
+/* ---- Regexp Parsing ---- */
+
+function parse( s : string ) : t {
+	assert()
+}

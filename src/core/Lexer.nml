@@ -1,0 +1,83 @@
+type pos {
+	psource : string;
+	pline : int;
+	pmin : int;
+	pmax : int;	
+}
+
+type t {
+	mutable input : IO.input;
+	mutable source : string;
+	mutable line : int;
+	mutable pos : int;
+}
+
+type 'a tables {
+	engine : LexEngine.tables;
+	cases : (t -> 'a) array;
+	def :  t -> 'a;
+}
+
+var null_pos = { pmin = -1; pmax = -1; pline = -1; psource = "<null>" };
+
+function punion(p,p2) {
+	{
+		psource = p.psource;
+		pline = p.pline;
+		pmin = min p.pmin p2.pmin;
+		pmax = max p.pmax p2.pmax;
+	}
+}
+
+function create() : t {
+	{
+		input = IO.read_string "";
+		source = "<null>";
+		line = 0;
+		pos = 0;
+	}
+}
+
+function input(l,source,input,line,pos) {
+	l.input := input;
+	l.source := source;
+	l.line := line;
+	l.pos := pos;
+}
+
+
+function curpos(l) {
+	{
+		psource = l.source;
+		pline = l.line;
+		pmin = l.pos;
+		pmax = l.pos;
+	}
+}
+
+function char(l) : char option {
+	assert();
+}
+
+function buffer(l) : string {
+	assert();
+}
+
+function token(l : t, t : 'a tables) : 'a {
+	assert();
+}
+
+function build(rules : (string,t -> 'a) list, def : t -> 'a ) : 'a tables {
+	var nfa = List.map (function((r,_)) { LexEngine.parse r }) rules;
+	var cases = List.array (List.map snd rules);
+	{
+		engine = LexEngine.make_tables (LexEngine.determinize (List.array nfa));
+		cases = cases;
+		def = def;
+	}
+}
+
+function empty() {
+	function empty_table(_) { invalid_arg() };
+	build [] empty_table;
+}
