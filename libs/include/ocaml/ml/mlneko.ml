@@ -90,6 +90,7 @@ let rec arity t =
 let rec gen_constant ctx c p =
 	(match c with
 	| TVoid -> EConst Null
+	| TInt n when n < 0 -> EBinop ("-",int 0, int (-n))
 	| TInt n -> EConst (Int n)
 	| TFloat s -> EConst (Float s)
 	| TChar c -> EConst (Int (int_of_char c))
@@ -219,7 +220,8 @@ and gen_type ctx name t p =
 	| TPoly
 	| TRecord _
 	| TTuple _
-	| TFun _ ->
+	| TFun _
+	| TNamed (_,_,{ texpr = TNamed _ }) ->
 		EBlock [] , p
 	| TLink t ->
 		gen_type ctx name t p
@@ -240,13 +242,23 @@ and gen_type ctx name t p =
 		EBlock ((EVars [name ^ "__string",Some printer],p) :: regs) , p
 
 and gen_binop ctx op e1 e2 p =
+	let core op =
+		let cmp = ECall ((EField (ident "Core","@compare"),p),[gen_expr ctx e1; gen_expr ctx e2]) , p in
+		EBinop (op , cmp , int 0) , p
+	in
 	let make op =
 		EBinop (op,gen_expr ctx e1,gen_expr ctx e2) , p
+	in
+	let builtin op =
+		ECall (builtin op,[gen_expr ctx e1; gen_expr ctx e2]) , p
 	in
 	match op with
 	| "and" -> make "&"
 	| "or" -> make "|"
 	| "xor" -> make "^"
+	| "==" | "!=" | ">" | "<" | ">=" | "<=" -> core op
+	| "===" -> builtin "eq"
+	| "!==" -> builtin "neq"
 	| ":=" ->
 		(match e1.edecl with
 		| TField _
