@@ -1,8 +1,13 @@
+open Ast;
+open Printer;
+open Bytecode;
+open LexEngine;
+
 try {
-	var ctx = Printer.create IO.stdout;	
-	var p = Ast.null_pos;
-	print Printer.print;
-	Printer.print ctx (Ast.EConst(Ast.Builtin "string"),p);	
+	var i = IO.read_file "Test.neko" false;
+	var lex = Lexer.create();
+	Lexer.input lex "Test.neko" i 0 0;
+	var t = Lexer.token lex (*Lex.expr);
 } catch {
-	e -> print ("Exception : " + string e + "\n")
+	e -> Core.print ("Exception : " + string e + "\n")
 }
