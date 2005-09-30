@@ -38,6 +38,11 @@ let gen_variable ctx =
 	ctx.counter <- ctx.counter + 1;
 	"v" ^ string_of_int c
 
+let module_name m =
+	"@" ^ String.concat "_" m
+
+let core = module_name ["Core"]
+
 let builtin name =
 	EConst (Builtin name) , Ast.null_pos
 
@@ -99,17 +104,12 @@ let rec gen_constant ctx c p =
 		if PMap.mem s ctx.refvars then EArray ((EConst (Ident s),null_pos),int 0) else EConst (Ident s)
 	| TConstr "true" | TModule (["Core"],TConstr "true") -> EConst True
 	| TConstr "false" | TModule (["Core"],TConstr "false") -> EConst False
-	| TConstr "[]" | TModule (["Core"],TConstr "[]") -> EField ((EConst (Ident "Core"),p),"@empty")
-	| TConstr "::" | TModule (["Core"],TConstr "::") -> EField ((EConst (Ident "Core"),p),"@cons")
+	| TConstr "[]" | TModule (["Core"],TConstr "[]") -> EField ((EConst (Ident core),p),"@empty")
+	| TConstr "::" | TModule (["Core"],TConstr "::") -> EField ((EConst (Ident core),p),"@cons")
 	| TConstr s -> EConst (Ident s)
 	| TModule ([],c) -> fst (gen_constant ctx c p)
-	| TModule (path,c) ->
-		let rec loop = function
-			| [] -> assert false
-			| [x] -> EConst (Ident x)
-			| x :: l -> EField ((loop l,Ast.null_pos) , x)
-		in
-		loop ((match c with TConstr x -> x | TIdent s -> s | _ -> assert false) :: List.rev path)
+	| TModule (m,c) ->		
+		EField ( (EConst (Ident (module_name m)),p) , (match c with TConstr x -> x | TIdent s -> s | _ -> assert false))
 	) , p
 
 let rec gen_match_rec ctx h p out fail m =
@@ -204,9 +204,8 @@ and gen_constructor ctx tname c t p =
 	let export = EBinop ("=", (EField (ident ctx.module_name,c),p) , field) , p in
 	ENext (val_type t , export) , p
 
-and gen_type_printer ctx c t =
-	let core = mk (TConst (TIdent "Core")) t_void Mlast.null_pos in
-	let printer = mk (TField (core,"@print_union")) t_void Mlast.null_pos in
+and gen_type_printer ctx c t =	
+	let printer = mk (TConst (TModule (["Core"],TIdent "@print_union"))) t_void Mlast.null_pos in
 	let e = mk (TCall (printer,[
 		mk (TConst (TString c)) t_string Mlast.null_pos;
 		mk (TConst (TIdent "v")) t_void Mlast.null_pos
@@ -243,7 +242,7 @@ and gen_type ctx name t p =
 
 and gen_binop ctx op e1 e2 p =
 	let core op =
-		let cmp = ECall ((EField (ident "Core","@compare"),p),[gen_expr ctx e1; gen_expr ctx e2]) , p in
+		let cmp = ECall ((EField (ident core,"@compare"),p),[gen_expr ctx e1; gen_expr ctx e2]) , p in
 		EBinop (op , cmp , int 0) , p
 	in
 	let make op =
@@ -303,7 +302,7 @@ and gen_expr ctx e =
 	| TTypeDecl t -> gen_type ctx "<assert>" t p
 	| TMut e -> gen_expr ctx (!e)
 	| TRecordDecl fl -> 
-		EObject (("__string", (EField((EConst (Ident "Core"),p),"@print_record"),p)) :: List.map (fun (s,e) -> s , gen_expr ctx e) fl) , p
+		EObject (("__string", (EField((EConst (Ident core),p),"@print_record"),p)) :: List.map (fun (s,e) -> s , gen_expr ctx e) fl) , p
 	| TListDecl el ->
 		(match el with
 		| [] -> array [] p
@@ -376,7 +375,7 @@ and gen_block ctx el p =
 	List.rev !ell
 
 let generate e deps idents m =
-	let m = String.concat "_" m in
+	let m = module_name m in
 	let ctx = {
 		module_name = m;
 		counter = 0;
@@ -384,10 +383,10 @@ let generate e deps idents m =
 	} in
 	if !verbose then print_endline ("Generating " ^ m ^ ".neko");
 	let init = EBinop ("=",ident m,builtin "exports"), null_pos in
-	let deps = List.map (fun (path,m) -> 
-		let file = (match path with [] -> m | l -> String.concat "/" l ^ "/" ^ m) in
+	let deps = List.map (fun m -> 
+		let file = String.concat "/" m in
 		let load = ECall ((EField (builtin "loader","loadmodule"),null_pos),[gen_constant ctx (TString file) null_pos;builtin "loader"]) , null_pos in
-		EBinop ("=", gen_constant ctx (TModule (path,TIdent m)) Ast.null_pos, load ) , null_pos
+		EBinop ("=", ident (module_name m), load ) , null_pos
 	) deps in
 	let exports = List.map (fun i ->
 		EBinop ("=", (EField (builtin "exports",i),null_pos) , ident i) , null_pos
