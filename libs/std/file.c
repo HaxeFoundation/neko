@@ -44,7 +44,7 @@ static value file_open( value name, value r ) {
 	fio *f;
 	val_check(name,string);
 	val_check(r,string);
-	f = (fio*)alloc_private(sizeof(fio));
+	f = (fio*)alloc(sizeof(fio));
 	f->name = alloc_string(val_string(name));
 	f->io = fopen(val_string(name),val_string(r));
 	if( f->io == NULL )
@@ -104,9 +104,10 @@ static value file_read( value o, value s, value pp, value n ) {
 	while( len > 0 ) {
 		int d = fread((char*)val_string(s)+p,1,len,f->io);
 		if( d <= 0 ) {
-			if( p == 0 )
+			int size = val_int(n) - len;
+			if( size == 0 )
 				file_error("file_read",f);
-			return alloc_int(val_int(n) - len);
+			return alloc_int(size);
 		}
 		p += d;
 		len -= d;
@@ -203,7 +204,7 @@ static value file_contents( value name ) {
 #define MAKE_STDIO(k) \
 	static value file_##k() { \
 		fio *f; \
-		f = (fio*)alloc_private(sizeof(fio)); \
+		f = (fio*)alloc(sizeof(fio)); \
 		f->name = alloc_string(#k); \
 		f->io = k; \
 		return alloc_abstract(k_file,f); \

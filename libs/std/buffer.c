@@ -62,10 +62,17 @@ static value buffer_string( value b ) {
 	return buffer_to_string( (buffer)val_data(b) );
 }
 
+static value buffer_reset( value b ) {
+	val_check_kind(b,k_buffer);
+	val_data(b) = alloc_buffer(NULL);
+	return val_true;
+}
+
 DEFINE_PRIM(buffer_alloc,0);
 DEFINE_PRIM(buffer_add,2);
 DEFINE_PRIM(buffer_add_char,2);
 DEFINE_PRIM(buffer_add_sub,4);
 DEFINE_PRIM(buffer_string,1);
+DEFINE_PRIM(buffer_reset,1);
 
 /* ************************************************************************ */
