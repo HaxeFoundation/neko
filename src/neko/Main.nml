@@ -1,13 +1,15 @@
-open Ast;
-open Printer;
-open Bytecode;
-open LexEngine;
+open Parser;
 
 try {
-	var i = IO.read_file "Test.neko" false;
-	var lex = Lexer.create();
-	Lexer.input lex "Test.neko" i 0 0;
-	var t = Lexer.token lex (*Lex.expr);
+	var i = IO.read_file "Bytecode.neko" false;
+	var lex = Lexer.create Buffer.create();	
+	Lexer.input lex "Bytecode.neko" i 1 0;
+	function rec loop() {
+		var t = Lexer.token lex (*Lex.expr);
+		if fst t != Ast.Eof then loop();
+	};	
+	loop();
+	IO.close_in i
 } catch {
 	e -> Core.print ("Exception : " + string e + "\n")
 }
