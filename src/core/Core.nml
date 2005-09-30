@@ -133,8 +133,6 @@ neko("
 			var l = $asize(o);
 			while i <  l {
 				var v = $objget(b,o[i]);
-				if( v == null )
-					$throw('@compare');
 				var k = @compare($objget(a,o[i]),v,$array(a,b,history));
 				if( k != 0 )
 					return k;
@@ -146,6 +144,20 @@ neko("
 	}
 
 	$exports.@compare = function(a,b) { @compare(a,b,null) };
+
+	$exports.@aget = function(a,i) {
+		if( i < 0 || i >= a[2] ) {
+			$exports.print($array(a,i));
+			$exports.invalid_arg('Array.get');
+		}
+		a[0][i]
+	}
+
+	$exports.@aset = function(a,i,v) {
+		if( i < 0 || i >= a[2] )
+			$exports.invalid_arg('Array.set');
+		a[0][i] = v;
+	}
 
 	@empty = $array(null,function(_){ '[]' });
 	@empty[0] = @empty;
