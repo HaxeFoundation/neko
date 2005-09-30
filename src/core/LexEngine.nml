@@ -30,6 +30,7 @@ type t {
 var max_code = 255;
 
 var cempty = [];
+var call = [(0,max_code)];
 
 function is_empty(c) {
 	c == []
@@ -135,16 +136,23 @@ function transitions(state : state) {
 		| _ -> l
 		}
 	};
+
 	var t = List.concat (List.map (function(n) { n.trans }) state);
-	var t = norm (List.sort (function((t1,n1),(t2,n2)) { n1.id - n2.id }) t);
+	var t = norm (List.sort (function((t1,n1),(t2,n2)) { 
+		n1.id - n2.id
+	}) t);
+
 
 	// Split char sets so as to make them disjoint
 	function rec split((all,t),(c0,n0)) {
-		var l1 = List.map (function((c,ns)) { (cinter c c0, n0::ns) }) t;
-		var l2 = List.map (function((c,ns)) { (cdiff c c0, ns) }) t;		
-		var t = (cdiff c0 all, [n0]) :: List.append l1 l2;
-		(cunion all c0, List.filter (function((c,ns)) { !is_empty c }) t)
+		var t = 
+			(cdiff c0 all, [n0]) ::
+			List.append
+				(List.map (function((c,ns)) { (cinter c c0, n0::ns) }) t)
+				(List.map (function((c,ns)) { (cdiff c c0, ns) }) t);
+		(cunion all c0,	List.filter (function((c,ns)) { !is_empty c }) t)
 	};
+
 	var _ , t = List.fold split (cempty,[]) t;
 
 	// Epsilon closure of targets
@@ -235,13 +243,114 @@ function make_tables((dfa,trans)) {
 	var exits = Array.map (function((_,_,states)) { first 0 states }) dfa;
 	var tbls = Array.map (function((tid,tbl,_)) {
 		make_trans trans.[tid] tbl
-	}) dfa;	
+	}) dfa;
 	(tbls , exits)
 }
 
 
 /* ---- Regexp Parsing ---- */
 
+exception InvalidRegexp : string
+
+function single(c) {
+	var n = ord c;
+	[(n,n)]
+}
+
+function group(chars) {
+	var chars = List.map (function((c1,c2)) { [(ord c1,ord c2)] }) chars;
+	List.fold cunion cempty chars
+}
+
+function invalid(s) {
+	throw InvalidRegexp(s)
+}
+
+function escaped(s,i) {
+	var c = String.get s (*i);
+	i := *i + 1;	
+	match c {
+	| '\\'
+	| '+'
+	| '*'
+	| '[' -> c
+	| _ -> invalid s
+	}
+}
+
+function rec plus(r) {
+	match r {
+	| Next (r1,r2) -> Next(r1,plus r2)
+	| _ -> Plus r
+	}
+}
+
+function rec star(r) {
+	match r {
+	| Next (r1,r2) -> Next(r1,star r2)
+	| _ -> Star r
+	}
+}
+
+function rec opt(r) {
+	match r {
+	| Next(r1,r2) -> Next(r1,opt r2)
+	| _ -> Choice(r,Empty)
+	}
+}
+
+function next(r,r2) {
+	match r {
+	| Empty -> r2
+	| _ -> Next r r2
+	}
+}
+
 function parse( s : string ) : t {
-	assert()
+	var i = &0;
+	var r = &Empty;
+	var l = String.length s;	
+	while *i < l {
+		var c = String.get s (*i);
+		i := *i + 1;
+		match c {
+		| '+' -> r := plus (*r)
+		| '*' -> r := star (*r)
+		| '?' -> r := opt (*r)
+		| '[' ->
+			var range = &None;
+			function rec loop(acc) {
+				var c = String.get s (*i);
+				i := *i + 1;
+				if c == ']' then {
+					if *range != None then invalid s;
+					acc
+				} else if c == '-' then {
+					if *range != None then invalid s;
+					match acc {
+					| [] -> loop ((c,c) :: acc)
+					| (x1,x2) :: l ->
+						if x1 != x2 then invalid s;
+						range := Some x1;
+						loop l
+					}
+				} else match *range {
+					| None -> loop ((c,c) :: acc)
+					| Some c2 -> 
+						range := None;
+						loop ((c2,c) :: acc)
+				}
+			};
+			var c = String.get s (*i);
+			var g = if c == '^' then {
+				i := *i + 1;
+				cdiff call (group (loop []))
+			} else
+				group (loop []);
+			r := next (*r) Match(g)
+		| '\\' -> r := next (*r) Match(single (escaped s i))
+		| _ -> r := next (*r) Match(single c)
+		}
+	};
+	*r
 }
