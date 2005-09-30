@@ -528,15 +528,14 @@ static value builtin_string( value v ) {
 	return buffer_to_string(b);
 }
 
-static value builtin_eq( value a, value b ) {
-	return alloc_bool(a == b);
+static value builtin_pcompare( value a, value b ) {
+	if( a > b )
+		return alloc_int(1);
+	else if( a < b )
+		return alloc_int(-1);
+	else
+		return alloc_int(0);
 }
-
-static value builtin_neq( value a, value b ) {
-	return alloc_bool(a != b);
-}
-
-#define NBUILTINS		43
 
 #define BUILTIN(name,nargs)	\
 	alloc_field(neko_builtins[0],val_id(#name),alloc_function(builtin_##name,nargs,"$" #name));	
@@ -579,8 +578,7 @@ void neko_init_builtins() {
 	BUILTIN(closure,VAR_ARGS);
 	BUILTIN(apply,VAR_ARGS);
 	BUILTIN(compare,2);
-	BUILTIN(eq,2);
-	BUILTIN(neq,2);
+	BUILTIN(pcompare,2);
 	BUILTIN(not,1);
 	BUILTIN(throw,1);
 	BUILTIN(nargs,1);
