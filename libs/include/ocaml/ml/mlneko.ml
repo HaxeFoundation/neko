@@ -257,8 +257,8 @@ and gen_binop ctx op e1 e2 p =
 	| "or" -> make "|"
 	| "xor" -> make "^"
 	| "==" | "!=" | ">" | "<" | ">=" | "<=" -> core op
-	| "===" -> builtin "eq"
-	| "!==" -> builtin "neq"
+	| "===" -> EBinop ("==", builtin "pcompare" , int 0) , p
+	| "!==" -> EBinop ("!=" , builtin "pcompare" , int 0) , p
 	| ":=" ->
 		(match e1.edecl with
 		| TField _
