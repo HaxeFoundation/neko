@@ -529,9 +529,11 @@ static value builtin_string( value v ) {
 }
 
 static value builtin_pcompare( value a, value b ) {
-	if( a > b )
+	int ia = (int)a;
+	int ib = (int)b;
+	if( ia > ib )
 		return alloc_int(1);
-	else if( a < b )
+	else if( ia < ib )
 		return alloc_int(-1);
 	else
 		return alloc_int(0);
