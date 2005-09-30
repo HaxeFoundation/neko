@@ -5,17 +5,25 @@ type pos {
 	pmax : int;	
 }
 
-type t {
+type 'a t {
+	mutable data : 'a;
+	mutable current : string;
+	mutable buffer : string;
+	mutable bin : int;
+	mutable bpos : int;	
+	mutable cin : int;
+	mutable cpos : int;
 	mutable input : IO.input;
 	mutable source : string;
 	mutable line : int;
 	mutable pos : int;
+	mutable carriage : bool;
 }
 
-type 'a tables {
+type ('a,'b) tables {
 	engine : LexEngine.tables;
-	cases : (t -> 'a) array;
-	def :  t -> 'a;
+	cases : ('b t -> 'a) array;
+	def :  'b t -> 'a;
 }
 
 var null_pos = { pmin = -1; pmax = -1; pline = -1; psource = "<null>" };
@@ -29,8 +37,16 @@ function punion(p,p2) {
 	}
 }
 
-function create() : t {
+function create(data) {
 	{
+		data = data;
+		carriage = false;
+		current = "";
+		buffer = "";
+		bin = 0;
+		bpos = 0;
+		cin = 0;
+		cpos = 0;
 		input = IO.read_string "";
 		source = "<null>";
 		line = 0;
@@ -38,7 +54,20 @@ function create() : t {
 	}
 }
 
+function data(l) {
+	l.data;
+}
+
+function set(l,data) {
+	l.data := data;
+}
+
 function input(l,source,input,line,pos) {
+	l.buffer := "";
+	l.bin := 0;
+	l.bpos := 0;
+	l.cin := 0;
+	l.cpos := 0;
 	l.input := input;
 	l.source := source;
 	l.line := line;
@@ -47,27 +76,94 @@ function input(l,source,input,line,pos) {
 
 
 function curpos(l) {
+	var p = l.bpos + l.pos;
 	{
 		psource = l.source;
 		pline = l.line;
-		pmin = l.pos;
-		pmax = l.pos;
+		pmin = p - max 1 (String.length l.current);
+		pmax = p - 1;
 	}
 }
 
+function current(l) : string {
+	l.current
+}
+
+function read(l) : char {
+	if l.bin == 0 then {
+		var str = IO.read_buf l.input 256;
+		var k = String.length str;
+		l.buffer := l.buffer + str;
+		l.bin := l.bin + k;
+		l.cin := l.cin + k;
+	};
+	var c = String.get l.buffer l.bpos;
+	l.bpos := l.bpos + 1;
+	l.bin := l.bin - 1;
+	c
+}
+
+function inc_line(l,c) {
+	if c == '\r' then
+		l.carriage := true
+	else if c == '\n' || l.carriage then {
+		l.carriage := false;
+		l.line := l.line + 1;
+	};
+}
+
 function char(l) : char option {
-	assert();
+	try {
+		var c = read l;
+		l.bpos := l.bpos - 1;
+		l.bin := l.bin + 1;
+		inc_line l c;
+		Some c
+	} catch {
+		IO.Eof -> None
+	}
 }
 
-function buffer(l) : string {
-	assert();
+function token(l,t) : 'a {
+	var tbl = fst t.engine;
+	var exits = snd t.engine;
+	function rec loop(n,k) {
+		var exit = exits.[k];
+		var res = tbl.[k].[ord read(l)];
+		if res == -1 then
+			(n , exit)
+		else {
+			match loop (n+1) res {
+			| (_,-1) -> (n , exit)
+			| e -> e
+			}
+		}	
+	};	
+	var k = try {
+		var n , k = loop 0 0;
+		l.cin := l.cin - n;
+		l.bin := l.cin;
+		l.current := String.sub l.buffer l.cpos n;
+		l.cpos := l.cpos + n;
+		l.bpos := l.cpos;
+		var i = &0;
+		while *i < n {
+			inc_line l (String.get l.current (*i));
+			i := *i + 1;
+		}
+		k
+	} catch {
+		IO.Eof ->
+			l.current := "";
+			-1
+	};
+	if k == -1 then
+		t.def(l)
+	else
+		t.cases.[k](l)
 }
 
-function token(l : t, t : 'a tables) : 'a {
-	assert();
-}
-
-function build(rules : (string,t -> 'a) list, def : t -> 'a ) : 'a tables {
+function build(rules,def) {
 	var nfa = List.map (function((r,_)) { LexEngine.parse r }) rules;
 	var cases = List.array (List.map snd rules);
 	{
