@@ -1,0 +1,75 @@
+/*
+ *  Neko Compiler
+ *  Copyright (c)2005 Nicolas Cannasse
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+open Lexer;
+open Ast;
+
+type error_msg {
+	Unexpected : token;
+	Unclosed : string;
+}
+
+exception Error : (error_msg , pos)
+
+function error_msg(m) {
+	match m {
+	| Unexpected t -> "Unexpected " + s_token t
+	| Unclosed s -> "Unclosed " + s
+	}
+}
+
+function error(m,p) {
+	throw Error(m,p)
+}
+
+function priority(x) {
+	match x {
+	| "=" | "+=" | "-=" | "*=" | "/=" | "|=" | "&=" | "^=" -> -3
+	| "&&" | "||" -> -2
+	| "==" | "!=" | ">" | "<" | "<=" | ">=" -> -1
+	| "+" | "-" -> 0
+	| "*" | "/" -> 1
+	| "|" | "&" | "^" -> 2
+	| "<<" | ">>" | "%" | ">>>" -> 3
+	| _ -> 4
+	}
+}
+
+function rec make_binop(op,e,e2) {
+	var v , p2 = e2;
+	match v {
+	| EBinop (_op,_e,_e2) when priority _op <= priority op ->
+		var _e = make_binop op e _e;
+		(EBinop(_op,_e,_e2) , punion (pos _e) (pos _e2))
+	| _ ->
+		(EBinop(op,e,e2) , punion (pos e) (pos e2))
+	}
+}
+
+
+function rec program(p) {
+	match p {
+	| [< e = expr p; p = program p >] -> e :: p
+	| [< (Semicolon,_); p = program p >] -> p
+	| [< (Eof,_) >] -> []
+	}
+}
+
+function rec expr(p) {
+	magic();
+}
