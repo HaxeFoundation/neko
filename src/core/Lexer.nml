@@ -8,7 +8,7 @@ type pos {
 type 'a t {
 	mutable data : 'a;
 	mutable current : string;
-	mutable buffer : string;
+	buffer : string;
 	mutable bin : int;
 	mutable bpos : int;	
 	mutable cin : int;
@@ -26,6 +26,7 @@ type ('a,'b) tables {
 	def :  'b t -> 'a;
 }
 
+var bufsize = 4096
 var null_pos = { pmin = -1; pmax = -1; pline = -1; psource = "<null>" };
 
 function punion(p,p2) {
@@ -42,7 +43,7 @@ function create(data) {
 		data = data;
 		carriage = false;
 		current = "";
-		buffer = "";
+		buffer = String.create bufsize;
 		bin = 0;
 		bpos = 0;
 		cin = 0;
@@ -63,7 +64,6 @@ function set(l,data) {
 }
 
 function input(l,source,input,line,pos) {
-	l.buffer := "";
 	l.bin := 0;
 	l.bpos := 0;
 	l.cin := 0;
@@ -91,9 +91,11 @@ function current(l) : string {
 
 function read(l) : char {
 	if l.bin == 0 then {
-		var str = IO.read_buf l.input 256;
-		var k = String.length str;
-		l.buffer := l.buffer + str;
+		var delta = l.bpos - l.cpos;
+		String.blit l.buffer 0 l.buffer l.cpos delta;
+		var k = IO.input l.input l.buffer delta (bufsize - delta);		
+		l.bpos := delta;
+		l.cpos := 0;
 		l.bin := l.bin + k;
 		l.cin := l.cin + k;
 	};
@@ -128,7 +130,7 @@ function token(l,t) : 'a {
 	var tbl = fst t.engine;
 	var exits = snd t.engine;
 	function rec loop(n,k) {
-		var res = tbl.[k].[ord read(l)];
+		var res = neko("tbl[0][k][0][read(l)]");
 		if res == -1 then
 			(n , exits.[k])
 		else {
