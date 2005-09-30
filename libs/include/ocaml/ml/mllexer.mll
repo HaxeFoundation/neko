@@ -171,6 +171,8 @@ rule token = parse
 			let n = (if s.[String.length s - 1] = '\r' then 3 else 2) in
 			mk lexbuf (CommentLine (String.sub s 2 ((String.length s)-n)))
 		}
+	| "[<" { mk lexbuf StreamOpen }
+	| ">]" { mk lexbuf StreamClose }
 	| "->" { mk lexbuf Arrow }
 	| binop binop? | ">>>" | "===" | "!==" | "or" | "and" | "xor" { mk lexbuf (Binop (lexeme lexbuf)) }
 	| ident { mk_ident lexbuf }

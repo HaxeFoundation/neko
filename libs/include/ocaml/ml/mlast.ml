@@ -60,6 +60,8 @@ type token =
 	| BracketClose
 	| Arrow
 	| Vertical
+	| StreamOpen
+	| StreamClose
 	| Const of constant
 	| Keyword of keyword
 	| Binop of string
@@ -78,6 +80,11 @@ type type_decl =
 	| ERecord of (string * bool * type_path) list
 	| EUnion of (string * type_path option) list
 
+type arg =
+	| ATyped of arg * type_path
+	| ANamed of string
+	| ATuple of arg list
+
 type pattern_decl =
 	| PIdent of string
 	| PConst of constant
@@ -86,15 +93,16 @@ type pattern_decl =
 	| PConstr of string list * string * pattern option
 	| PAlias of string * pattern
 	| PTyped of pattern * type_path
+	| PStream of stream_item list
 
 and pattern = pattern_decl * pos
 
-type arg =
-	| ATyped of arg * type_path
-	| ANamed of string
-	| ATuple of arg list
+and stream_item =
+	| SPattern of pattern
+	| SExpr of string * expr
+	| SMagicExpr of string * int
 
-type expr_decl =
+and expr_decl =
 	| EConst of constant
 	| EBlock of expr list
 	| EField of expr * string
@@ -187,6 +195,8 @@ let s_token = function
 	| ParentClose -> ")"
 	| BracketOpen -> "["
 	| BracketClose -> "]"
+	| StreamOpen -> "[<"
+	| StreamClose -> ">]"
 	| Arrow -> "->"
 	| Vertical -> "|"
 	| Const c -> s_constant c

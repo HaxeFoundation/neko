@@ -874,6 +874,23 @@ and type_pattern (ctx:context) h ?(h2 = Hashtbl.create 0) set (pat,p) =
 			let pt , pat = type_pattern ctx h ~h2 set pat in
 			unify ctx pt (type_type ~h:h2 ctx t p) p;
 			pt , PTyped (pat,t)
+		| PStream l ->
+			let t , polyt = t_poly ctx.gen "parser" in			
+			let l = List.map (fun s ->
+				match s with
+				| SPattern pat ->
+					let t , p = type_pattern ctx h ~h2 set pat in
+					unify ctx t polyt (snd p);
+					SPattern p 
+				| SExpr (v,e) ->
+					let e = type_expr ctx e in
+					let t = pvar v in
+					unify ctx t e.etype e.epos;
+					SMagicExpr(v,Obj.magic e)
+				| SMagicExpr _ ->
+					assert false
+			) l in		
+			t , PStream l
 	) in	
 	pt , (pat,p)
 	
