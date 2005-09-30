@@ -20,6 +20,10 @@
 open Ast
 open Mltype
 
+type comparison =
+	| Native
+	| Structural	
+
 type context = {
 	module_name : string;
 	mutable counter : int;
@@ -91,6 +95,14 @@ let rec arity t =
 	| TTuple tl -> List.length tl
 	| TLink t -> arity t
 	| _ -> 1
+
+let comparison t =
+	match tlinks true t with
+	| TNamed (["int"],[],_)
+	| TNamed (["char"],[],_)
+	| TNamed (["float"],[],_)
+	| TNamed (["string"],[],_) -> Native
+	| _ -> Structural
 
 let rec gen_constant ctx c p =
 	(match c with
@@ -255,7 +267,10 @@ and gen_binop ctx op e1 e2 p =
 	| "and" -> make "&"
 	| "or" -> make "|"
 	| "xor" -> make "^"
-	| "==" | "!=" | ">" | "<" | ">=" | "<=" -> compare op
+	| "==" | "!=" | ">" | "<" | ">=" | "<=" -> 
+		(match comparison e1.etype with
+		| Structural -> compare op
+		| Native -> make op)
 	| "===" -> EBinop ("==", builtin "pcompare" , int 0) , p
 	| "!==" -> EBinop ("!=" , builtin "pcompare" , int 0) , p
 	| ":=" ->
