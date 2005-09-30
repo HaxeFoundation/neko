@@ -936,17 +936,10 @@ let modules ctx =
 		match m.expr with 
 		| None -> ()
 		| Some e -> 		
-			let deps = ref (if m.path = ["Core"] then [] else [[],"Core"]) in
+			let deps = ref (if m.path = ["Core"] then [] else [["Core"]]) in
 			let idents = ref [] in
 			Hashtbl.iter (fun _ m ->
-				let rec loop = function
-					| [] -> assert false
-					| [x] -> [] , x
-					| p :: l -> 
-						let path, x = loop l in
-						p :: path , x
-				in
-				deps := loop m.path :: !deps
+				deps := m.path :: !deps
 			) m.deps;
 			PMap.iter (fun i t ->
 				idents := i :: !idents
