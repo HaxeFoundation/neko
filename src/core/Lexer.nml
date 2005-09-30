@@ -128,13 +128,12 @@ function token(l,t) : 'a {
 	var tbl = fst t.engine;
 	var exits = snd t.engine;
 	function rec loop(n,k) {
-		var exit = exits.[k];
 		var res = tbl.[k].[ord read(l)];
 		if res == -1 then
-			(n , exit)
+			(n , exits.[k])
 		else {
 			match loop (n+1) res {
-			| (_,-1) -> (n , exit)
+			| (_,-1) -> (n , exits.[k])
 			| e -> e
 			}
 		}	
