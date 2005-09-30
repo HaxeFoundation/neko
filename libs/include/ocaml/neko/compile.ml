@@ -604,6 +604,8 @@ and compile ctx (e,p) =
 		write ctx (Pop 1);
 		ctx.locals <- locals;
 		jend()
+	| EBinop ("-",(EConst (Int 0),_),(EConst (Int i),_)) ->
+		compile ctx (EConst (Int (-i)),p)
 	| EBinop (op,e1,e2) -> 
 		compile_binop ctx op e1 e2 p
 	| EReturn None ->
