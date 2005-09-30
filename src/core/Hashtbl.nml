@@ -41,7 +41,7 @@ function find(h,k) {
 
 function resize(h) {
 	var old_data = h.data;
-	var old_size = h.size;
+	var old_size = Array.length old_data;
 	var new_size = old_size << 1 + 1;
 	var new_data = Array.make new_size Empty;	
 	function rec insert(x) {
