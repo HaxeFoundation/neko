@@ -6,7 +6,7 @@ function string( a : 'a array ) : string {
 		var l = a[2];
 		var i = 0;
 		while i < l {
-			s = s + Core.string(items[i]);
+			s = s + @Core.string(items[i]);
 			i = i + 1;
 			if i < l
 				s = s + ', ';
@@ -136,11 +136,11 @@ function sort( f : 'a -> 'a -> int, a : 'a array ) : void {
 function list( a : 'a array ) : 'a list {
 	neko("
 		var i = a[2];
-		var l = Core.@empty;
+		var l = @Core.@empty;
 		a = a[0];
 		while i > 0 {
 			i = i - 1;
-			l = Core.@cons(a[i],l);
+			l = @Core.@cons(a[i],l);
 		}
 		l
 	");
