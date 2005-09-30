@@ -72,6 +72,7 @@ static void default_printer( const char *s, int len ) {
 		len -= p;
 		s += p;
 	}
+	fflush(stdout);
 }
 
 EXTERN neko_vm *neko_vm_alloc( neko_params *p ) {
