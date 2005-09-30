@@ -39,8 +39,8 @@ var file_flush : file -> void = neko("@load('file_flush',1)");
 
 function file_input(f) {
 	{
-		in_read = function() { file_read_char(f) };
-		in_input = file_read f;
+		in_read = function() { try file_read_char(f) catch { _ -> throw Eof } };
+		in_input = function(s,p,l) { try file_read f s p l catch { _ -> throw Eof } };
 		in_close = function() { file_close(f) };
 	}
 }
@@ -128,7 +128,7 @@ function input(i,s,p,n) {
 	i.in_input s p n
 }
 
-function read(i,n) {	
+function read(i,n) {
 	if n < 0 then invalid_arg();
 	if n == 0 then
 		""
@@ -138,11 +138,35 @@ function read(i,n) {
 		var len = &n;
 		while *len > 0 {
 			var n = i.in_input s (*p) (*len);
-			if n == 0 then throw Blocked; 
+			if n == 0 then throw Blocked;
 			p := *p + n;
 			len := *len - n;
 		};
 		s
+	}
+}
+
+function read_buf(i,n) {
+	if n < 0 then invalid_arg();
+	if n == 0 then
+		""
+	else {
+		var s = String.create n;
+		var p = &0;
+		var len = &n;
+		try {
+			while *len > 0 {
+				var n = i.in_input s (*p) (*len);
+				if n == 0 then throw (if *p == 0 then Blocked else Eof);			
+				p := *p + n;
+				len := *len - n;
+			};
+			s
+		} catch {
+			Eof -> 
+				if *p == 0 then throw Eof;				
+				String.sub s 0 (*p)
+		}
 	}
 }
 
