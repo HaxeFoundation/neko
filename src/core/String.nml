@@ -24,8 +24,8 @@ function set(s : string, n : int, c : char) : void {
 	if neko("$sset(s,n,c) == null") then invalid_arg();
 }
 
-function blit(s : string, p : int, s2 : string, p2 : int, l : int ) : void {
-	if neko("$sblit(s,p,s2,p2,l) == null") then invalid_arg();
+function blit(dst : string, p : int, src : string, p2 : int, l : int ) : void {
+	if neko("$sblit(dst,p,src,p2,l) == null") then invalid_arg();
 }
 
 function sub(s : string, p : int, l : int ) : string {
