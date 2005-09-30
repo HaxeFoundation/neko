@@ -13,8 +13,24 @@ function make(size : int, c : char) : string {
 
 var create : int -> string = neko("$smake");
 var length : string -> int = neko("$ssize");
-var get : string -> int -> char = neko("$sget");
-var set : string -> int -> char -> void = neko("$sset");
-var blit : string -> int -> string -> int -> int -> void = neko("$sblit");
-var sub : string -> int -> int -> string = neko("$ssub");
+
+function get(s : string,n : int) : char {
+	var c = neko("$sget(s,n)");
+	if c == neko("null") then invalid_arg();
+	c
+}
+
+function set(s : string, n : int, c : char) : void {
+	if neko("$sset(s,n,c) == null") then invalid_arg();
+}
+
+function blit(s : string, p : int, s2 : string, p2 : int, l : int ) : void {
+	if neko("$sblit(s,p,s2,p2,l) == null") then invalid_arg();
+}
+
+function sub(s : string, p : int, l : int ) : string {
+	var s = neko("$ssub(s,p,l)");
+	if s == neko("null") then invalid_arg();
+	s
+}
 
