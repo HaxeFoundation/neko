@@ -95,7 +95,7 @@ type expr_decl {
 
 type expr = (expr_decl , pos)
 
-function pos(_,x) { x }
+function pos((_,x)) { x }
 
 var var_args = -1;
 
