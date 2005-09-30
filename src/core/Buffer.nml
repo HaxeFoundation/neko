@@ -8,6 +8,7 @@ neko("
 	@buffer_add_sub = $loader.loadprim('std2@buffer_add_sub',4);
 	@buffer_add_char = $loader.loadprim('std2@buffer_add_char',2);
 	@buffer_string = $loader.loadprim('std2@buffer_string',1);
+	@buffer_reset = $loader.loadprim('std2@buffer_reset',1);
 
 ");
 
@@ -16,8 +17,13 @@ function create() : buffer {
 }
 
 function add(b:buffer,x : 'a) : void {
-	neko("@buffer_add")(b,x);
+	neko("@buffer_add(b,x)");
 }
+
+function reset(b:buffer) : void {
+	neko("@buffer_reset(b)");
+}
+
 
 var string : buffer -> string = neko("@buffer_string");
 var add_sub : buffer -> string -> int -> int -> void = neko("@buffer_add_sub");
