@@ -241,7 +241,7 @@ and gen_type ctx name t p =
 		EBlock ((EVars [name ^ "__string",Some printer],p) :: regs) , p
 
 and gen_binop ctx op e1 e2 p =
-	let core op =
+	let compare op =
 		let cmp = ECall ((EField (ident core,"@compare"),p),[gen_expr ctx e1; gen_expr ctx e2]) , p in
 		EBinop (op , cmp , int 0) , p
 	in
@@ -255,13 +255,14 @@ and gen_binop ctx op e1 e2 p =
 	| "and" -> make "&"
 	| "or" -> make "|"
 	| "xor" -> make "^"
-	| "==" | "!=" | ">" | "<" | ">=" | "<=" -> core op
+	| "==" | "!=" | ">" | "<" | ">=" | "<=" -> compare op
 	| "===" -> EBinop ("==", builtin "pcompare" , int 0) , p
 	| "!==" -> EBinop ("!=" , builtin "pcompare" , int 0) , p
 	| ":=" ->
 		(match e1.edecl with
-		| TField _
-		| TArray _ -> make "="
+		| TField _ -> make "="
+		| TArray (a,i) ->
+			ECall ((EField (ident core,"@aset"),p),[gen_expr ctx a; gen_expr ctx i; gen_expr ctx e2]) , p
 		| _ ->
 			EBinop ("=",(EArray (gen_expr ctx e1,int 0),pos e1.epos),gen_expr ctx e2) , p)
 	| _ -> 
@@ -281,7 +282,8 @@ and gen_expr ctx e =
 		Parser.parse (Lexing.from_function (fun s p -> try IO.input ch s 0 p with IO.No_more_input -> 0)) file
 	| TCall (f,el) -> call e.etype (gen_expr ctx f) (List.map (gen_expr ctx) el) p
 	| TField (e,s) -> EField (gen_expr ctx e, s) , p
-	| TArray (e1,e2) -> EArray ((EArray (gen_expr ctx e1,int 0),p),gen_expr ctx e2) , p
+	| TArray (e1,e2) -> 
+		ECall ((EField (ident core,"@aget"),p),[gen_expr ctx e1;gen_expr ctx e2]) , p
 	| TVar ([v],e) ->
 		ctx.refvars <- PMap.remove v ctx.refvars;
 		EVars [v , Some (gen_expr ctx e)] , p
