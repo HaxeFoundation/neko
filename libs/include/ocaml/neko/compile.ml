@@ -232,6 +232,12 @@ let rec scan_labels ctx supported e =
 			ctx.stack <- ctx.stack + 1;
 		) el;
 		ctx.stack <- ctx.stack - List.length el
+	| EObject fl ->
+		ctx.stack <- ctx.stack + 2;
+		List.iter (fun (s,e) ->
+			scan_labels ctx supported e
+		) fl;
+		ctx.stack <- ctx.stack - 2;	
 	| EConst _
 	| EContinue 
 	| EBreak _
@@ -242,9 +248,8 @@ let rec scan_labels ctx supported e =
 	| ENext _ ->
 		Ast.iter (scan_labels ctx supported) e
 	| EBinop _
-	| EObject _
 	| EArray _
-	| EField _ ->		
+	| EField _ ->
 		Ast.iter (scan_labels ctx false) e
 
 let compile_constant ctx c p =
