@@ -748,11 +748,13 @@ and type_expr ctx (e,p) =
 		type_unop ctx op (type_expr ctx e) p
 	| EMatch (e,cl) ->
 		let e = type_expr ctx e in
-		let m , t = type_match ctx e.etype cl p true in
-		mk (TMatch (e,m)) t p
+		let is_stream = List.for_all (fun (l,_,_) -> List.for_all (fun (p,_) -> match p with PStream _ -> true | _ -> false) l) cl in
+		let partial , m , t = type_match ctx e.etype cl p in
+		if not is_stream && partial then error (Custom "This matching is not complete") p;
+		mk (TMatch (e,m,is_stream)) t p
 	| ETry (e,cl) ->
 		let e = type_expr ctx e in
-		let m , t = type_match ctx t_error cl p false in
+		let _ , m , t = type_match ctx t_error cl p in
 		unify ctx t e.etype p;
 		mk (TTry (e,m)) t p
 	| ETupleGet (e,n) ->
@@ -874,8 +876,8 @@ and type_pattern (ctx:context) h ?(h2 = Hashtbl.create 0) set (pat,p) =
 			let pt , pat = type_pattern ctx h ~h2 set pat in
 			unify ctx pt (type_type ~h:h2 ctx t p) p;
 			pt , PTyped (pat,t)
-		| PStream l ->
-			let t , polyt = t_poly ctx.gen "parser" in			
+		| PStream (l,k) ->
+			let t , polyt = t_poly ctx.gen "stream" in			
 			let l = List.map (fun s ->
 				match s with
 				| SPattern pat ->
@@ -890,11 +892,11 @@ and type_pattern (ctx:context) h ?(h2 = Hashtbl.create 0) set (pat,p) =
 				| SMagicExpr _ ->
 					assert false
 			) l in		
-			t , PStream l
+			t , PStream (l,k)
 	) in	
 	pt , (pat,p)
 	
-and type_match ctx t cl p complete =
+and type_match ctx t cl p =
 	let ret = t_mono ctx.gen in
 	let cl = List.map (fun (pl,wh,pe) ->
 		let first = ref true in
@@ -930,10 +932,10 @@ and type_match ctx t cl p complete =
 	) cl in
 	Mlmatch.fully_matched_ref := (fun cl ->
 		match cl with
-		| TModule(path,TConstr c) :: l ->			
+		| TModule(path,TConstr c) :: l ->
 			let path , ut , t = get_constr ctx path c null_pos in
 			if ut == t_error then
-				not complete
+				false
 			else
 			(match tlinks false ut with
 			| TUnion (n,_) ->
@@ -943,9 +945,10 @@ and type_match ctx t cl p complete =
 		| TVoid :: _ ->
 			true
 		| _ ->
-			not complete
+			false
 	);	
-	Mlmatch.make cl p , ret
+	let partial , m = Mlmatch.make cl p in
+	partial , m , ret
 
 let modules ctx =
 	let h = Hashtbl.create 0 in
@@ -953,7 +956,7 @@ let modules ctx =
 		match m.expr with 
 		| None -> ()
 		| Some e -> 		
-			let deps = ref (if m.path = ["Core"] then [] else [["Core"]]) in
+			let deps = ref (if m.path = ["Core"] || Hashtbl.mem m.deps ["Core"] then [] else [["Core"]]) in
 			let idents = ref [] in
 			Hashtbl.iter (fun _ m ->
 				deps := m.path :: !deps

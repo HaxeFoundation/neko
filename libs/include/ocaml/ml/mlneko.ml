@@ -137,9 +137,17 @@ let rec gen_match_rec ctx h p out fail m =
 		EBlock [gen_rec label m1; ELabel label, p; gen_rec fail m2] , p
 	| MRoot ->
 		assert false
-	| MExecute e ->
-		let out = call t_void (builtin "goto") [ident out] p in
-		EBlock [gen_expr ctx e;out] , p
+	| MExecute (e,b) ->
+		if not b then
+			gen_expr ctx e
+		else 
+			let out = call t_void (builtin "goto") [ident out] p in
+			EBlock [gen_expr ctx e;out] , p
+	| MConstants (m,[TIdent v,m1]) ->
+		EBlock [
+			EVars [v, Some (gen_rec fail m)] , p;
+			gen_rec fail m1
+		] , p
 	| MConstants (m,cl) ->
 		let e = gen_rec fail m in
 		let v = gen_variable ctx in
@@ -161,6 +169,11 @@ let rec gen_match_rec ctx h p out fail m =
 		EArray (gen_rec fail m, int (n + 2)) , p
 	| MSwitch (m,[TVoid,m1]) ->
 		gen_rec fail m1
+	| MSwitch (m,(TVoid,m1) :: l) ->
+		ENext (
+			gen_rec fail m1,
+			gen_rec fail (MSwitch (m,l))
+		) , p
 	| MSwitch (m,cl) ->
 		let e = gen_rec fail m in
 		let v = gen_variable ctx in
@@ -186,16 +199,29 @@ let rec gen_match_rec ctx h p out fail m =
 		let m = gen_rec fail m in
 		let fail = gen_rec fail MFailure in
 		EIf (gen_expr ctx e,m,Some fail) , p
+	| MToken (m,n) ->
+		call t_void (EField (ident core,"stream_token"),p) [gen_rec fail m; int n] p		
+	| MJunk (m,n,m2) ->
+		EBlock [
+			call t_void (EField (ident core,"stream_junk"),p) [gen_rec fail m; int n] p;		
+			gen_rec fail m2
+		] , p
 
-and gen_matching ctx v m p out =
+and gen_matching ctx v m p stream out =
 	let h = Hashtbl.create 0 in
+	let label = (if stream then gen_label ctx else "<assert>") in
 	Hashtbl.add h MRoot v;
-	gen_match_rec ctx h p out "<assert>" m
+	let e = gen_match_rec ctx h p out label m in
+	if stream then begin
+		let exc = ECall (builtin "throw",[EField ((EConst (Ident core),p),"Stream_error") , p]) , p in
+		EBlock [e; ELabel label , p; exc] , p
+	end else
+		e
 
-and gen_match ctx e m p =
+and gen_match ctx e m stream p =
 	let out = gen_label ctx in 
 	let v = gen_variable ctx in
-	let m = gen_matching ctx v m p out in
+	let m = gen_matching ctx v m p stream out in
 	let m = ENext ((EVars [v,Some e],p),m) , p in
 	EBlock [m; ELabel out , p] , p
 
@@ -246,8 +272,8 @@ and gen_type ctx name t p =
 	| TUnion (_,constrs) ->
 		let cmatch = gen_match ctx (ident "v") (MSwitch (MRoot,List.map (fun (c,t) ->
 			let e = gen_type_printer ctx c t in
-			TConstr c , MExecute e
-		) constrs)) p in
+			TConstr c , MExecute (e,true)
+		) constrs)) false p in
 		let printer = EFunction (["v"], cmatch) , p in
 		let regs = List.map (fun (c,t) -> gen_constructor ctx name c t p) constrs in
 		EBlock ((EVars [name ^ "__string",Some printer],p) :: regs) , p
@@ -332,8 +358,8 @@ and gen_expr ctx e =
 		| "!" -> call t_void (builtin "not") [gen_expr ctx e] p
 		| "&" -> array [gen_expr ctx e] p
 		| _ -> assert false)
-	| TMatch (e,m) ->
-		gen_match ctx (gen_expr ctx e) m p
+	| TMatch (e,m,stream) ->
+		gen_match ctx (gen_expr ctx e) m stream p
 	| TTupleGet (e,n) ->
 		EArray (gen_expr ctx e,int n) , p
 	| TErrorDecl (e,t) ->
@@ -343,7 +369,7 @@ and gen_expr ctx e =
 		ENext (printer , gen_constructor ctx e e t p) , p
 	| TTry (e,m) ->
 		let out = gen_label ctx in
-		let matching = gen_matching ctx "@exc" m p out in
+		let matching = gen_matching ctx "@exc" m p false out in
 		let reraise = call t_void (builtin "throw") [ident "@exc"] p in
 		let handle = EBlock [matching;reraise;ELabel out , p] , p in
 		ETry (gen_expr ctx e,"@exc",handle) , p

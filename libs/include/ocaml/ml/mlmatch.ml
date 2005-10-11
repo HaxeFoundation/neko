@@ -46,11 +46,71 @@ let error msg p =
 	assert false
 
 let failure = MFailure
-let handle l1 l2 = MHandle (l1,l2)
-let exec e = MExecute e
+let handle l1 l2 = if l2 = MFailure then l1 else if l1 = MFailure then l2 else MHandle (l1,l2)
+let exec e = MExecute (e,true)
 let cond path lambdas = MConstants (path,lambdas)
 let switch path lambdas = MSwitch (path,lambdas)
 let ewhen e e2 = MWhen (e,e2)
+
+let rec bind v p = function
+	| MBind (v2,p2,m) -> MBind (v2,p2,bind v p m)
+	| act -> if v = "_" then act else MBind (v,p,act)
+
+let rec junk p k = function
+	| MBind (v,m,m2) -> MBind (v,m,junk p k m2)
+	| act -> if k = 0 then act else MJunk (p,k,act)
+
+let rec stream_pattern (p,pos) =
+	(match p with
+	| PIdent i -> PConst (Ident i)
+	| PConst c -> PConst c
+	| PTuple pl -> PTuple (List.map stream_pattern pl)
+	| PRecord pr -> PRecord (List.map (fun (s,p) -> s , stream_pattern p) pr)
+	| PConstr (path,name,param) -> PConstr (path,name,match param with None -> None | Some p -> Some (stream_pattern p))
+	| PAlias (s,p) -> PAlias (s,stream_pattern p)
+	| PTyped (p,t) -> PTyped (stream_pattern p,t)
+	| PStream (s,k) -> PStream (s,k)) , pos
+
+let rec s_tconstant = function
+	| TVoid -> "void"
+	| TInt n -> string_of_int n
+	| TFloat s -> s
+	| TChar c -> "'" ^ escape_char c ^ "'"
+	| TString s -> "\"" ^ s ^ "\""
+	| TIdent s -> s
+	| TConstr s -> s
+	| TModule ([],c) -> s_tconstant c
+	| TModule (sl,c) -> String.concat "." sl ^ "." ^ s_tconstant c
+
+let delta tab = tab ^ "  "
+
+let rec match_to_string ?(tab="") = function
+	| MRoot ->
+		Printf.sprintf "%sRoot" tab
+	| MFailure ->
+		Printf.sprintf "%sFailure" tab
+	| MHandle (op1,op2) ->
+		Printf.sprintf "%sHandle\n%s\n%s" tab (match_to_string ~tab:(delta tab) op1) (match_to_string ~tab:(delta tab) op2)
+	| MExecute (e,b) -> 
+		Printf.sprintf "%sExecute %b(%d,%d)" tab b e.epos.pmin e.epos.pmax 
+	| MSwitch (op,cl)
+	| MConstants (op,cl) as m ->
+		Printf.sprintf "%s%s\n%s [\n%s\n%s]" tab (match m with MSwitch _ -> "Switch" | _ -> "Consts") 
+			(match_to_string ~tab:(delta tab) op) 
+			(String.concat "\n" (List.map (fun (c,o) -> match_to_string ~tab:(delta tab) o ^ " <= " ^ s_tconstant c) cl))
+			tab
+	| MTuple (op,n) ->
+		Printf.sprintf "%sTuple %d\n%s" tab n (match_to_string ~tab:(delta tab) op)
+	| MField (op,n) ->
+		Printf.sprintf "%sField %d\n%s" tab n (match_to_string ~tab:(delta tab) op)
+	| MBind (v,e,n) ->
+		Printf.sprintf "%sBind %s\n%s\n%s" tab v (match_to_string ~tab:(delta tab) e) (match_to_string ~tab:(delta tab) n)
+	| MWhen (e,p) ->
+		Printf.sprintf "%sWhen (%d,%d)\n%s" tab e.epos.pmin e.epos.pmax (match_to_string ~tab:(delta tab) p)
+	| MToken (m,n) ->
+		Printf.sprintf "%sToken %d\n%s" tab n (match_to_string ~tab:(delta tab) m)		
+	| MJunk (m,n,m2) ->
+		Printf.sprintf "%sJunk %d\n%s\n%s" tab n (match_to_string ~tab:(delta tab) m) (match_to_string ~tab:(delta tab) m2)
 
 let rec have_when = function
 	| MWhen _ -> true
@@ -62,6 +122,7 @@ let t_const = function
 	| String s -> TString s
 	| Float f -> TFloat f
 	| Char c -> TChar c
+	| Ident i -> TIdent i
 	| _ -> assert false
 
 let total p1 p2 =
@@ -91,6 +152,9 @@ let make_constant_match path cas =
 	| [] -> assert false
 	| _ :: pathl -> [cas] , pathl
 
+let make_token_match path cas =
+	[cas] , path
+
 let make_construct_match tuple nargs pathl cas =
 	match pathl with
 	| [] -> assert false
@@ -112,6 +176,9 @@ let add_to_division make_match divlist key cas =
 	with Not_found ->
 		(key , ref (make_match cas)) :: divlist
 
+let always_add make_match divlist cas =
+	(TVoid , ref (make_match cas)) :: divlist
+
 let lines_of_matching = fst
 
 let fully_matched cl =
@@ -131,10 +198,10 @@ let split_matching (m:matching) =
 			| ((PTyped (p,_),_) :: l , act) :: rest ->
 				split_rec ((p :: l, act) :: rest)
 			| ((PAlias (var,p),_) :: l , act) :: rest ->
-				split_rec ((p :: l, MBind (var,curpath,act)) :: rest)
+				split_rec ((p :: l, bind var curpath act) :: rest)
 			| ((PIdent var,_) :: l , act) :: rest ->
 				let vars , others = split_rec rest in
-				add_to_match vars (l, (if var = "_" then act else MBind (var,curpath,act))) , others
+				add_to_match vars (l, bind var curpath act) , others
 			| casel ->
 				([] , endpathl) , (casel , pathl)
 		in
@@ -153,7 +220,7 @@ let divide_matching (m:matching) =
 			| ((PTyped (p,_),_) :: l , act) :: rest ->
 				divide_rec ((p :: l , act) :: rest)
 			| ((PAlias (var,p),_) :: l, act) :: rest ->
-				divide_rec ((p :: l , MBind (var,curpath,act)) :: rest)
+				divide_rec ((p :: l , bind var curpath act) :: rest)
 			| ((PConst c,_) :: l, act) :: rest ->
 				let constant , constrs, others = divide_rec rest in
 				add_to_division (make_constant_match pathl) constant (t_const c) (l, act), constrs , others
@@ -166,7 +233,16 @@ let divide_matching (m:matching) =
 				constants , add_to_division (make_constant_match pathl) constrs TVoid (l, act), others
 			| ((PTuple args,_) :: l,act) :: rest ->
 				let constants , constrs, others = divide_rec rest in
-				constants , add_to_division (make_construct_match true (List.length args) pathl) constrs TVoid (args @ l,act) , others			
+				constants , add_to_division (make_construct_match true (List.length args) pathl) constrs TVoid (args @ l,act) , others
+			| ((PStream ((SPattern p :: sl),k),pp) :: l,act) :: rest ->
+				let constants , constrs, others = divide_rec rest in
+				constants , always_add (make_token_match ((MToken (curpath,k)) :: pathl)) constrs (stream_pattern p :: (PStream (sl,k+1),pp) :: l, act) , others
+			| ((PStream ((SMagicExpr (v,e) :: sl),k),pp) :: l,act) :: rest ->
+				let constants , constrs, others = divide_rec rest in
+				constants , always_add (make_token_match (junk curpath k (MExecute (Obj.magic e,false)) :: pathl)) constrs ((PConst (Ident v),pp) :: (PStream (sl,0),pp) :: l, act) , others
+			| ((PStream ([],k),pp) :: l,act) :: rest ->
+				let constants , constrs, others = divide_rec rest in
+				constants , always_add (make_constant_match pathl) constrs (l, junk curpath k act) , others
 			| casel ->
 				[] , [] , (casel,pathl)
 		in
@@ -187,7 +263,7 @@ and conquer_matching (m:matching) =
 	| ([],action) :: rest , k ->
 		if have_when action then
 			let a , p , r = conquer_matching (rest,k) in
-			MHandle (action,a) , p , r
+			handle action a , p , r
 		else
 			action , Total, rest
 	| _ , [] -> 
@@ -230,6 +306,4 @@ let make (cases : (pattern list * texpr option * texpr) list) p =
 	| [] -> ()
 	| ([] , _ ) :: _ -> error "Some pattern are never matched" p
 	| ((_,p) :: _ , _) :: _ -> error "This pattern is never matched" p);
-	(match partial with
-	| Total -> lambda
-	| _ -> error "This matching is not complete" p)
+	partial <> Total , lambda

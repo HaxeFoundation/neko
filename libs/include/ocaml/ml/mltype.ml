@@ -53,10 +53,12 @@ and match_op =
 	| MRoot
 	| MFailure
 	| MHandle of match_op * match_op
-	| MExecute of texpr
+	| MExecute of texpr * bool
 	| MConstants of match_op * (tconstant * match_op) list
 	| MField of match_op * int
 	| MTuple of match_op * int
+	| MToken of match_op * int
+	| MJunk of match_op * int * match_op
 	| MSwitch of match_op * (tconstant * match_op) list
 	| MBind of string * match_op * match_op
 	| MWhen of texpr * match_op
@@ -78,7 +80,7 @@ and texpr_decl =
 	| TRecordDecl of (string * texpr) list
 	| TListDecl of texpr list
 	| TUnop of string * texpr
-	| TMatch of texpr * match_op
+	| TMatch of texpr * match_op * bool
 	| TTry of texpr * match_op
 	| TTupleGet of texpr * int
 	| TErrorDecl of string * t
