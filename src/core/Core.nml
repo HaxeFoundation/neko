@@ -7,6 +7,7 @@ type error;
 type 'a array;
 type 'a ref;
 type 'a format;
+type 'a stream;
 
 type 'a option {
 	None;
@@ -16,6 +17,7 @@ type 'a option {
 exception Invalid_argument : string;
 exception Assert_failure : (string,int);
 exception Error : string;
+exception Stream_error;
 exception Not_found;
 exception Exit;
 
@@ -54,7 +56,7 @@ neko("
 			while i < l {
 				s = s + @string(x[i]);
 				i = i + 1;
-				if i < l 
+				if i < l
 					s = s + ', ';
 			}
 			s = s + ')';
@@ -166,6 +168,7 @@ neko("
 	}
 	$exports.@cons = @cons;
 	$exports.@empty = @empty;
+
 ");
 
 function magic(x) {
@@ -173,7 +176,7 @@ function magic(x) {
 }
 
 function throw(x : error) : 'a {
-	neko("$throw(x)");	
+	neko("$throw(x)");
 }
 
 function assert(file,line) {
@@ -249,3 +252,44 @@ function sprintf(fmt : 'a format, p : 'a ) : string {
 function printf(fmt : 'a format, p : 'a ) : void {
 	print (sprintf fmt p)
 }
+
+function stream(f) {
+	neko("{
+		get => f,
+		cache => $array()
+	}");
+}
+
+function stream_token( s : 'a stream, x : int ) : 'a {
+	neko("
+		$print('token ',s,x,'\n');
+		var tmp = s.cache[x];
+		if( tmp != null )
+			return tmp;
+		var n = $asize(s.cache);
+		var c = $amake(x + 1);
+		$ablit(c,0,s.cache,0,n);
+		while n <= x {
+			c[n] = s.get(null);
+			n = n + 1;
+		}
+		s.cache = c;
+		return c[x];
+	");
+}
+
+function stream_junk( s : 'a stream, x : int ) : void {
+	neko("
+		$print('junk ',s,x,'\n');
+		var c = $asize(s.cache);
+		if( c >= x )
+			s.cache = $asub(s.cache,x,c - x);
+		else {
+			s.cache = $array();
+			x = x - c;
+			while x > 0
+				s.get(null);
+		}
+	");
+}
+
