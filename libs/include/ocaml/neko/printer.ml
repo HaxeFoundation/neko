@@ -183,6 +183,9 @@ and level_expr ?(closed=false) ctx (e,p) =
 	| EBlock _ -> 
 		if ctx.tabs then print ctx " ";
 		print_ast ctx (e,p)
+	| ENext _ ->
+		if ctx.tabs then print ctx " ";
+		print_ast ctx (EBlock [(e,p)],p)
 	| EParenthesis e ->
 		if ctx.tabs then print ctx " ";
 		print ctx "{";
