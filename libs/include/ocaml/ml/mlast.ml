@@ -93,7 +93,7 @@ type pattern_decl =
 	| PConstr of string list * string * pattern option
 	| PAlias of string * pattern
 	| PTyped of pattern * type_path
-	| PStream of stream_item list
+	| PStream of stream_item list * int
 
 and pattern = pattern_decl * pos
 

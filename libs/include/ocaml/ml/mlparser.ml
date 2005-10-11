@@ -320,7 +320,7 @@ and pattern_decl = parser
 	| [< '(Const c,p); >] -> PConst c , p
 	| [< '(Binop "-",p1); '(Const (Int i),p2) >] -> PConst (Int (-i)) , punion p1 p2
 	| [< '(BracketOpen,p1); l = pattern_list; '(BracketClose,p2) >] -> make_list_pat (punion p1 p2) l
-	| [< '(StreamOpen,p1); l = stream_list; '(StreamClose,p2) >] -> PStream l , punion p1 p2
+	| [< '(StreamOpen,p1); l = stream_list; '(StreamClose,p2) >] -> PStream (l,0) , punion p1 p2
 
 and pattern_mod_path name p = parser
 	| [< '(Dot,_); '(Const (Constr n),p); l, n, p = pattern_mod_path n p >] -> name :: l , n , p
