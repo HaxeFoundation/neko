@@ -799,8 +799,8 @@ and type_block ctx ((e,p) as x)  =
 		type_functions ctx;
 		type_expr ctx x
 
-and type_pattern (ctx:context) h ?(h2 = Hashtbl.create 0) set (pat,p) =
-	let pvar s =
+and type_pattern (ctx:context) h ?(h2 = Hashtbl.create 0) set add (pat,p) =
+	let pvar add s =
 		if SSet.mem s !set then error (Custom "This variable is several time in the pattern") p;
 		set := SSet.add s !set;
 		try
@@ -809,6 +809,7 @@ and type_pattern (ctx:context) h ?(h2 = Hashtbl.create 0) set (pat,p) =
 			Not_found ->
 				let t = t_mono ctx.gen in
 				Hashtbl.add h s t;
+				if add then add_local ctx s t;
 				t
 	in
 	let pt , pat = (match pat with
@@ -821,10 +822,10 @@ and type_pattern (ctx:context) h ?(h2 = Hashtbl.create 0) set (pat,p) =
 			| Ident _ | Constr _ | Module _ ->
 				assert false) , pat
 		| PTuple [p] ->
-			let pt , pat = type_pattern ctx h ~h2 set p in
+			let pt , pat = type_pattern ctx h ~h2 set add p in
 			pt , fst pat
 		| PTuple pl -> 
-			let pl , patl = List.split (List.map (type_pattern ctx h ~h2 set) pl) in
+			let pl , patl = List.split (List.map (type_pattern ctx h ~h2 set add) pl) in
 			mk_tup ctx.gen pl , PTuple patl
 		| PRecord fl ->
 			let s = (try fst (List.hd fl) with _ -> assert false) in
@@ -832,7 +833,7 @@ and type_pattern (ctx:context) h ?(h2 = Hashtbl.create 0) set (pat,p) =
 			let fl = (match tlinks false r with
 			| TRecord rl ->
 				List.map (fun (f,pat) ->
-					let pt , pat = type_pattern ctx h ~h2 set pat in
+					let pt , pat = type_pattern ctx h ~h2 set add pat in
 					let t = (try 
 						let _ , _ , t = List.find (fun (f2,_,_) -> f = f2 ) rl in t 
 					with Not_found ->
@@ -846,12 +847,12 @@ and type_pattern (ctx:context) h ?(h2 = Hashtbl.create 0) set (pat,p) =
 			) in
 			r , PRecord fl
 		| PIdent s ->
-			(if s = "_" then t_mono ctx.gen else pvar s) , pat
+			(if s = "_" then t_mono ctx.gen else pvar add s) , pat
 		| PConstr (path,s,param) ->			
 			let tparam , param = (match param with
 				| None -> None , None 
 				| Some ((_,p) as param) -> 
-					let t , pat = type_pattern ctx h ~h2 set param in
+					let t , pat = type_pattern ctx h ~h2 set add param in
 					Some (p,t) , Some pat
 			) in
 			let path , ut , t = get_constr ctx path s p in
@@ -868,30 +869,38 @@ and type_pattern (ctx:context) h ?(h2 = Hashtbl.create 0) set (pat,p) =
 					unify ctx t t2 p;					
 					ut , PConstr (path,s,param));
 		| PAlias (s,pat) ->
-			let pt , pat = type_pattern ctx h ~h2 set pat in
-			let t = pvar s in
+			let pt , pat = type_pattern ctx h ~h2 set false pat in
+			let t = pvar false s in
 			unify ctx pt t (snd pat);
 			t , PAlias (s,pat)
 		| PTyped (pat,t) ->
-			let pt , pat = type_pattern ctx h ~h2 set pat in
+			let pt , pat = type_pattern ctx h ~h2 set add pat in
 			unify ctx pt (type_type ~h:h2 ctx t p) p;
 			pt , PTyped (pat,t)
 		| PStream (l,k) ->
-			let t , polyt = t_poly ctx.gen "stream" in			
+			let t , polyt = t_poly ctx.gen "stream" in
+			let locals = save_locals ctx in
 			let l = List.map (fun s ->
 				match s with
 				| SPattern pat ->
-					let t , p = type_pattern ctx h ~h2 set pat in
+					let t , p = type_pattern ctx h ~h2 set true pat in
 					unify ctx t polyt (snd p);
 					SPattern p 
-				| SExpr (v,e) ->
+				| SExpr ([v],e) ->
 					let e = type_expr ctx e in
-					let t = pvar v in
+					let t = pvar true v in
 					unify ctx t e.etype e.epos;
-					SMagicExpr(v,Obj.magic e)
+					SMagicExpr((PIdent v,e.epos),Obj.magic e)
+				| SExpr (vl,e) ->
+					let e = type_expr ctx e in
+					let tl = List.map (pvar true) vl in
+					unify ctx (mk_tup ctx.gen tl) e.etype e.epos;
+					let tup = PTuple (List.map (fun v -> PIdent v, e.epos) vl) in
+					SMagicExpr((tup,e.epos),Obj.magic e)
 				| SMagicExpr _ ->
 					assert false
-			) l in		
+			) l in
+			restore_locals ctx locals;
 			t , PStream (l,k)
 	) in	
 	pt , (pat,p)
@@ -904,7 +913,7 @@ and type_match ctx t cl p =
 		let mainset = ref SSet.empty in
 		let pl = List.map (fun pat ->
 			let set = ref SSet.empty in
-			let pt , pat = type_pattern ctx h set pat in
+			let pt , pat = type_pattern ctx h set false pat in
 			if !first then begin
 				first := false;
 				mainset := !set;

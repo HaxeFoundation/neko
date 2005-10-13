@@ -45,8 +45,6 @@ let gen_variable ctx =
 let module_name m =
 	"@" ^ String.concat "_" m
 
-let core = module_name ["Core"]
-
 let builtin name =
 	EConst (Builtin name) , Ast.null_pos
 
@@ -58,6 +56,9 @@ let int n =
 
 let null =
 	EConst Null , Ast.null_pos
+
+let core s p =
+	EField ((EConst (Ident (module_name ["Core"])),p),s) , p
 
 let pos (p : Mlast.pos) = 
 	{
@@ -116,36 +117,63 @@ let rec gen_constant ctx c p =
 		if PMap.mem s ctx.refvars then EArray ((EConst (Ident s),null_pos),int 0) else EConst (Ident s)
 	| TConstr "true" | TModule (["Core"],TConstr "true") -> EConst True
 	| TConstr "false" | TModule (["Core"],TConstr "false") -> EConst False
-	| TConstr "[]" | TModule (["Core"],TConstr "[]") -> EField ((EConst (Ident core),p),"@empty")
-	| TConstr "::" | TModule (["Core"],TConstr "::") -> EField ((EConst (Ident core),p),"@cons")
+	| TConstr "[]" | TModule (["Core"],TConstr "[]") -> fst (core "@empty" p)
+	| TConstr "::" | TModule (["Core"],TConstr "::") -> fst (core "@cons" p)
 	| TConstr s -> EConst (Ident s)
 	| TModule ([],c) -> fst (gen_constant ctx c p)
 	| TModule (m,c) ->		
 		EField ( (EConst (Ident (module_name m)),p) , (match c with TConstr x -> x | TIdent s -> s | _ -> assert false))
 	) , p
 
-let rec gen_match_rec ctx h p out fail m =
+type match_context = {
+	ctx : context;
+	h : (match_op , string) Hashtbl.t;
+	out : string;
+	pos : Ast.pos;
+	mutable next : string;
+	mutable first : bool;
+}
+
+let no_label = "<assert>"
+
+let rec gen_match_rec mctx fail m =
 	try
-		ident (Hashtbl.find h m)
+		ident (Hashtbl.find mctx.h m)
 	with Not_found ->
-	let gen_rec = gen_match_rec ctx h p out in
+	let p = mctx.pos in
+	let ctx = mctx.ctx in
+	let gen_rec = gen_match_rec mctx in
 	match m with
 	| MFailure ->
-		call t_void (builtin "goto") [ident fail] p
+		let label = if mctx.first then mctx.next else fail in
+		if label = no_label then
+			EBlock [] , p
+		else
+			call t_void (builtin "goto") [ident label] p
 	| MHandle (m1,m2) -> 
 		let label = gen_label ctx in
-		EBlock [gen_rec label m1; ELabel label, p; gen_rec fail m2] , p
+		let m1 = gen_rec label m1 in
+		let m2 = gen_rec fail m2 in
+		EBlock [m1; ELabel label, p; m2] , p
 	| MRoot ->
 		assert false
 	| MExecute (e,b) ->
-		if not b then
-			gen_expr ctx e
-		else 
-			let out = call t_void (builtin "goto") [ident out] p in
+		if not b then begin
+			let ematch = EBinop ("==" , ident "@exc" , core "Stream_matching" p) , p in
+			let reraise = EIf ( ematch , gen_rec fail MFailure, Some(ECall (builtin "throw", [ident "@exc"]) , p) ) , p in
+			mctx.first <- false;
+			match e.edecl with
+			| TConst _ -> gen_expr ctx e 
+			| _ -> ETry (gen_expr ctx e, "@exc" , reraise ) , p
+		end else begin
+			mctx.first <- true;
+			let out = call t_void (builtin "goto") [ident mctx.out] p in
 			EBlock [gen_expr ctx e;out] , p
+		end;
 	| MConstants (m,[TIdent v,m1]) ->
+		let m = gen_rec fail m in
 		EBlock [
-			EVars [v, Some (gen_rec fail m)] , p;
+			EVars [v, Some m] , p;
 			gen_rec fail m1
 		] , p
 	| MConstants (m,cl) ->
@@ -154,67 +182,75 @@ let rec gen_match_rec ctx h p out fail m =
 		let exec = List.fold_right (fun (c,m) acc ->
 			let test = EBinop ("==", ident v, gen_constant ctx c p) , p in
 			let exec = gen_rec fail m in
-			Some (EIf (test, exec, acc) , p)
-		) cl None in
-		(match exec with
-		| None -> assert false
-		| Some exec ->
-			EBlock [
-				EVars [v, Some e] , p;
-				exec
-			] , p)
+			EIf (test, exec, Some acc) , p
+		) cl (gen_rec fail MFailure) in
+		EBlock [
+			EVars [v, Some e] , p;
+			exec
+		] , p
 	| MTuple (m,n) ->
 		EArray (gen_rec fail m, int n) , p
 	| MField (m,n) ->
 		EArray (gen_rec fail m, int (n + 2)) , p
-	| MSwitch (m,[TVoid,m1]) ->
-		gen_rec fail m1
-	| MSwitch (m,(TVoid,m1) :: l) ->
-		ENext (
-			gen_rec fail m1,
-			gen_rec fail (MSwitch (m,l))
-		) , p
+	| MNext (m1,m2) ->
+		let old = mctx.next in
+		let label = gen_label ctx in
+		mctx.next <- label;
+		let m1 = gen_rec fail m1 in
+		mctx.next <- old;
+		let m2 = gen_rec fail m2 in
+		EBlock [m1; ELabel label, p; m2] , p
 	| MSwitch (m,cl) ->
 		let e = gen_rec fail m in
 		let v = gen_variable ctx in
 		let exec = List.fold_right (fun (c,m) acc ->
 			let test = EBinop ("==", ident v, gen_constant ctx c p) , p in
 			let exec = gen_rec fail m in
-			Some (EIf (test, exec, acc) , p)
-		) cl None in
-		(match exec with
-		| None -> assert false
-		| Some exec ->
-			EBlock [
-				EVars [v, Some (EArray (e,int 0),p)] , p;
-				exec;
-			] , p)
+			EIf (test, exec, Some acc) , p
+		) cl (gen_rec fail MFailure) in
+		EBlock [
+			EVars [v, Some (EArray (e,int 0),p)] , p;
+			exec;
+		] , p
 	| MBind (v,m1,m2) ->
 		let e1 = gen_rec fail m1 in
-		Hashtbl.add h m1 v;
+		Hashtbl.add mctx.h m1 v;
 		let e2 = gen_rec fail m2 in
-		Hashtbl.remove h m1;
+		Hashtbl.remove mctx.h m1;
 		EBlock [(EVars [v, Some e1] , p); e2] , p
 	| MWhen (e,m) ->
+		let e = gen_expr ctx e in
 		let m = gen_rec fail m in
 		let fail = gen_rec fail MFailure in
-		EIf (gen_expr ctx e,m,Some fail) , p
+		EIf (e,m,Some fail) , p
 	| MToken (m,n) ->
-		call t_void (EField (ident core,"stream_token"),p) [gen_rec fail m; int n] p		
+		call t_void (core "stream_token" p) [gen_rec fail m; int n] p		
 	| MJunk (m,n,m2) ->
+		let m = gen_rec fail m in
+		mctx.first <- false;
 		EBlock [
-			call t_void (EField (ident core,"stream_junk"),p) [gen_rec fail m; int n] p;		
+			call t_void (core "stream_junk" p) [m; int n] p;		
 			gen_rec fail m2
 		] , p
 
 and gen_matching ctx v m p stream out =
-	let h = Hashtbl.create 0 in
-	let label = (if stream then gen_label ctx else "<assert>") in
-	Hashtbl.add h MRoot v;
-	let e = gen_match_rec ctx h p out label m in
+	let mctx = {
+		ctx = ctx;
+		h = Hashtbl.create 0;
+		pos = p;
+		out = out;
+		first = stream;
+		next = no_label;
+	} in
+	let label = (if stream then gen_label ctx else no_label) in
+	Hashtbl.add mctx.h MRoot v;	
+	let e = gen_match_rec mctx label m in
 	if stream then begin
-		let exc = ECall (builtin "throw",[EField ((EConst (Ident core),p),"Stream_error") , p]) , p in
-		EBlock [e; ELabel label , p; exc] , p
+		let vpos = gen_variable ctx in
+		let stream_pos = ECall (core "stream_pos" p, [ident v]) , p in
+		let test = EBinop ("==", ident vpos , stream_pos) , p in
+		let exc = ECall (builtin "throw",[EIf (test, core "Stream_matching" p , Some (core "Stream_error" p)) , p]) , p in
+		EBlock [EVars [vpos , Some stream_pos] , p; e; ELabel label , p; exc] , p
 	end else
 		e
 
@@ -280,7 +316,7 @@ and gen_type ctx name t p =
 
 and gen_binop ctx op e1 e2 p =
 	let compare op =
-		let cmp = ECall ((EField (ident core,"@compare"),p),[gen_expr ctx e1; gen_expr ctx e2]) , p in
+		let cmp = ECall (core "@compare" p,[gen_expr ctx e1; gen_expr ctx e2]) , p in
 		EBinop (op , cmp , int 0) , p
 	in
 	let make op =
@@ -303,7 +339,7 @@ and gen_binop ctx op e1 e2 p =
 		(match e1.edecl with
 		| TField _ -> make "="
 		| TArray (a,i) ->
-			ECall ((EField (ident core,"@aset"),p),[gen_expr ctx a; gen_expr ctx i; gen_expr ctx e2]) , p
+			ECall (core "@aset" p,[gen_expr ctx a; gen_expr ctx i; gen_expr ctx e2]) , p
 		| _ ->
 			EBinop ("=",(EArray (gen_expr ctx e1,int 0),pos e1.epos),gen_expr ctx e2) , p)
 	| _ -> 
@@ -324,7 +360,7 @@ and gen_expr ctx e =
 	| TCall (f,el) -> call e.etype (gen_expr ctx f) (List.map (gen_expr ctx) el) p
 	| TField (e,s) -> EField (gen_expr ctx e, s) , p
 	| TArray (e1,e2) -> 
-		ECall ((EField (ident core,"@aget"),p),[gen_expr ctx e1;gen_expr ctx e2]) , p
+		ECall (core "@aget" p,[gen_expr ctx e1;gen_expr ctx e2]) , p
 	| TVar ([v],e) ->
 		ctx.refvars <- PMap.remove v ctx.refvars;
 		EVars [v , Some (gen_expr ctx e)] , p
@@ -345,7 +381,7 @@ and gen_expr ctx e =
 	| TTypeDecl t -> gen_type ctx "<assert>" t p
 	| TMut e -> gen_expr ctx (!e)
 	| TRecordDecl fl -> 
-		EObject (("__string", (EField((EConst (Ident core),p),"@print_record"),p)) :: List.map (fun (s,e) -> s , gen_expr ctx e) fl) , p
+		EObject (("__string", core "@print_record" p) :: List.map (fun (s,e) -> s , gen_expr ctx e) fl) , p
 	| TListDecl el ->
 		(match el with
 		| [] -> array [] p

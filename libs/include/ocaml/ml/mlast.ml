@@ -99,8 +99,8 @@ and pattern = pattern_decl * pos
 
 and stream_item =
 	| SPattern of pattern
-	| SExpr of string * expr
-	| SMagicExpr of string * int
+	| SExpr of string list * expr
+	| SMagicExpr of pattern * int
 
 and expr_decl =
 	| EConst of constant

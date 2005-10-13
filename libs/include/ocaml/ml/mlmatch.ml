@@ -49,7 +49,12 @@ let failure = MFailure
 let handle l1 l2 = if l2 = MFailure then l1 else if l1 = MFailure then l2 else MHandle (l1,l2)
 let exec e = MExecute (e,true)
 let cond path lambdas = MConstants (path,lambdas)
-let switch path lambdas = MSwitch (path,lambdas)
+let rec switch path lambdas =
+	match lambdas with
+	| [TVoid,m1] -> m1
+	| (TVoid,m1) :: l -> MNext (m1, switch path l)
+	| _ -> 	MSwitch (path,lambdas)
+
 let ewhen e e2 = MWhen (e,e2)
 
 let rec bind v p = function
@@ -70,47 +75,6 @@ let rec stream_pattern (p,pos) =
 	| PAlias (s,p) -> PAlias (s,stream_pattern p)
 	| PTyped (p,t) -> PTyped (stream_pattern p,t)
 	| PStream (s,k) -> PStream (s,k)) , pos
-
-let rec s_tconstant = function
-	| TVoid -> "void"
-	| TInt n -> string_of_int n
-	| TFloat s -> s
-	| TChar c -> "'" ^ escape_char c ^ "'"
-	| TString s -> "\"" ^ s ^ "\""
-	| TIdent s -> s
-	| TConstr s -> s
-	| TModule ([],c) -> s_tconstant c
-	| TModule (sl,c) -> String.concat "." sl ^ "." ^ s_tconstant c
-
-let delta tab = tab ^ "  "
-
-let rec match_to_string ?(tab="") = function
-	| MRoot ->
-		Printf.sprintf "%sRoot" tab
-	| MFailure ->
-		Printf.sprintf "%sFailure" tab
-	| MHandle (op1,op2) ->
-		Printf.sprintf "%sHandle\n%s\n%s" tab (match_to_string ~tab:(delta tab) op1) (match_to_string ~tab:(delta tab) op2)
-	| MExecute (e,b) -> 
-		Printf.sprintf "%sExecute %b(%d,%d)" tab b e.epos.pmin e.epos.pmax 
-	| MSwitch (op,cl)
-	| MConstants (op,cl) as m ->
-		Printf.sprintf "%s%s\n%s [\n%s\n%s]" tab (match m with MSwitch _ -> "Switch" | _ -> "Consts") 
-			(match_to_string ~tab:(delta tab) op) 
-			(String.concat "\n" (List.map (fun (c,o) -> match_to_string ~tab:(delta tab) o ^ " <= " ^ s_tconstant c) cl))
-			tab
-	| MTuple (op,n) ->
-		Printf.sprintf "%sTuple %d\n%s" tab n (match_to_string ~tab:(delta tab) op)
-	| MField (op,n) ->
-		Printf.sprintf "%sField %d\n%s" tab n (match_to_string ~tab:(delta tab) op)
-	| MBind (v,e,n) ->
-		Printf.sprintf "%sBind %s\n%s\n%s" tab v (match_to_string ~tab:(delta tab) e) (match_to_string ~tab:(delta tab) n)
-	| MWhen (e,p) ->
-		Printf.sprintf "%sWhen (%d,%d)\n%s" tab e.epos.pmin e.epos.pmax (match_to_string ~tab:(delta tab) p)
-	| MToken (m,n) ->
-		Printf.sprintf "%sToken %d\n%s" tab n (match_to_string ~tab:(delta tab) m)		
-	| MJunk (m,n,m2) ->
-		Printf.sprintf "%sJunk %d\n%s\n%s" tab n (match_to_string ~tab:(delta tab) m) (match_to_string ~tab:(delta tab) m2)
 
 let rec have_when = function
 	| MWhen _ -> true
@@ -237,9 +201,13 @@ let divide_matching (m:matching) =
 			| ((PStream ((SPattern p :: sl),k),pp) :: l,act) :: rest ->
 				let constants , constrs, others = divide_rec rest in
 				constants , always_add (make_token_match ((MToken (curpath,k)) :: pathl)) constrs (stream_pattern p :: (PStream (sl,k+1),pp) :: l, act) , others
-			| ((PStream ((SMagicExpr (v,e) :: sl),k),pp) :: l,act) :: rest ->
+			| ((PStream ((SMagicExpr ((PTuple _,_) as p,e) :: sl),k),pp) :: l,act) :: rest ->
 				let constants , constrs, others = divide_rec rest in
-				constants , always_add (make_token_match (junk curpath k (MExecute (Obj.magic e,false)) :: pathl)) constrs ((PConst (Ident v),pp) :: (PStream (sl,0),pp) :: l, act) , others
+				let bind = MExecute (mk (TConst (TIdent "@tmp")) t_void pp,false) in
+				constants , always_add (make_token_match (junk curpath k (MExecute (Obj.magic e,false)) :: bind :: pathl)) constrs ((PConst (Ident "@tmp"),pp) :: stream_pattern p :: (PStream (sl,0),pp) :: l, act) , others
+			| ((PStream ((SMagicExpr (p,e) :: sl),k),pp) :: l,act) :: rest ->
+				let constants , constrs, others = divide_rec rest in
+				constants , always_add (make_token_match (junk curpath k (MExecute (Obj.magic e,false)) :: pathl)) constrs (stream_pattern p :: (PStream (sl,0),pp) :: l, act) , others
 			| ((PStream ([],k),pp) :: l,act) :: rest ->
 				let constants , constrs, others = divide_rec rest in
 				constants , always_add (make_constant_match pathl) constrs (l, junk curpath k act) , others

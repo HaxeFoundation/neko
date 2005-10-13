@@ -329,10 +329,14 @@ and pattern_mod_path name p = parser
 and stream_list = parser
 	| [< '(Const (Ident v),p1); s >] ->
 		(match s with parser
-		| [< '(Binop "=",_); e = expr; s >] -> SExpr(v,e) :: stream_next s
+		| [< l = stream_ident_list; e = expr; s >] -> SExpr (v :: l,e) :: stream_next s
 		| [< >] -> SPattern (PIdent v,p1) :: stream_next s)
 	| [< p = pattern; l = stream_next >] -> SPattern p :: l
 	| [< >] -> []
+
+and stream_ident_list = parser
+	| [< '(Comma,_); '(Const (Ident v),_); l = stream_ident_list >] -> v :: l
+	| [< '(Binop "=",_) >] -> []
 
 and stream_next = parser
 	| [< '(Semicolon,_); l = stream_list >] -> l
