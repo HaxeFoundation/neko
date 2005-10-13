@@ -50,26 +50,191 @@ function priority(x) {
 	}
 }
 
+function mk(t,p) {
+	(t,p)
+}
+
 function rec make_binop(op,e,e2) {
 	var v , p2 = e2;
 	match v {
 	| EBinop (_op,_e,_e2) when priority _op <= priority op ->
 		var _e = make_binop op e _e;
-		(EBinop(_op,_e,_e2) , punion (pos _e) (pos _e2))
+		mk EBinop(_op,_e,_e2) punion(pos _e,pos _e2)
 	| _ ->
-		(EBinop(op,e,e2) , punion (pos e) (pos e2))
+		mk EBinop(op,e,e2) punion(pos e,pos e2)
 	}
 }
 
 
-function rec program(p) {
-	match p {
-	| [< e = expr p; p = program p >] -> e :: p
-	| [< (Semicolon,_); p = program p >] -> p
+function rec program(s) {
+	match s {
+	| [< e = expr s; p = program s >] -> e :: p
+	| [< (Semicolon,_); p = program s >] -> p
 	| [< (Eof,_) >] -> []
 	}
 }
 
-function rec expr(p) {
-	magic();
+function rec expr(s) {
+	match s {
+	| [< (Const ((Ident k) as i),p) >] ->
+		match s {
+		| [< (Binop ":",p2) >] -> mk ELabel(k) punion(p,p2)
+		| [< >] -> expr_next (EConst i,p) s
+		}
+	| [< (Const c,p) >] ->
+		expr_next (EConst c,p) s
+	| [< (BraceOpen,p1); e = block1 s >] ->
+		match s {
+		| [< (BraceClose,p2) >] -> expr_next (e,punion p1 p2) s
+		| [< >] -> error (Unclosed "{") p1
+		}
+	| [< (ParentOpen,p1); e = expr s >] ->
+		match s {
+		| [< (ParentClose,p2) >] -> expr_next (EParenthesis e,punion p1 p2) s
+		| [< >] -> error (Unclosed "(") p1
+		}
+	| [< (Keyword Var,p1); v , p2 = variables p1 s >] ->		
+		expr_next (EVars v,punion p1 p2) s
+	| [< (Keyword While,p1); cond = expr s; e = expr s >] ->
+		expr_next (EWhile cond e NormalWhile, punion p1 (pos e)) s
+	| [< (Keyword Do,p1); e = expr s; (Keyword While,_); cond = expr s >] ->
+		expr_next (EWhile cond e DoWhile, punion p1 (pos cond)) s
+	| [< (Keyword If,p1); cond = expr s; e = expr s >] ->
+		function rec loop() {
+			match s {
+			| [< (Keyword Else,_); e2 = expr s >] -> expr_next (EIf cond e Some(e2),punion p1 (pos e2)) s
+			| [< (Semicolon,_) >] -> loop()
+			| [< >] -> expr_next (EIf cond e None,punion p1 (pos e)) s
+			}
+		};
+		loop()
+	| [< (Keyword Function,p1); (ParentOpen,po); p = parameter_names s >] ->
+		match s {
+		| [< (ParentClose,_); e = expr s >] -> expr_next (EFunction p e,punion p1 (pos e)) s
+		| [< >] -> error (Unclosed "(") po
+		}
+	| [< (Keyword Return,p1) >] ->
+		match s {
+		| [< e = expr s >] -> expr_next (EReturn (Some e), punion p1 (pos e)) s
+		| [< (Semicolon,_) >] -> expr_next (EReturn None,p1) s
+		}
+	| [< (Keyword Break,p1) >] ->
+		match s {
+		| [< e = expr s >] -> expr_next (EBreak (Some e), punion p1 (pos e)) s
+		| [< (Semicolon,_) >] -> expr_next (EBreak None,p1) s
+		}
+	| [< (Keyword Continue,p1) >] ->
+		expr_next (EContinue,p1) s
+	| [< (Keyword Try,p1); e = expr s; (Keyword Catch,_); (Const (Ident name),_); e2 = expr s >] ->
+		expr_next (ETry e name e2,punion p1 (pos e2)) s
+	}
+}
+
+function rec expr_next(e,s) {
+	match s {
+	| [< (Dot,_); (Const (Ident name),p) >] ->
+		expr_next (EField e name,punion (pos e) p) s
+	| [< (ParentOpen,po); pl = parameters s >] ->
+		match s {
+		| [< (ParentClose,p) >] -> expr_next (ECall e pl,punion (pos e) p) s
+		| [< >] -> error (Unclosed "(") po
+		}
+	| [< (BracketOpen,po); e2 = expr s >] ->
+		match s {
+		| [< (BracketClose,p) >] -> expr_next (EArray e e2,punion (pos e) p) s
+		| [< >] -> error (Unclosed "[") po
+		}
+	| [< (Binop op,_); e2 = expr s >] ->
+		make_binop op e e2
+	| [< >] -> 
+		e
+	}
+}
+
+function rec block1(s) {
+	match s {
+	| [< (Const (Ident name),p) >] ->
+		match s {
+		| [< (Arrow,_); e = expr s; l = object_fields s >] -> EObject ((name,e) :: l)
+		| [< (Binop ":",p2); b = block s >] -> EBlock ( (ELabel name, punion p p2) :: b )
+		| [< e = expr_next (EConst (Ident name),p) s; b = block s >] -> EBlock (e :: b)
+		}
+	| [< b = block s >] ->
+		EBlock b
+	}
+}
+
+function rec block(s) {
+	match s {
+	| [< e = expr s; b = block s >] -> e :: b
+	| [< (Semicolon,_); b = block s >] -> b
+	| [< >] -> []
+	}
+}
+
+function rec object_fields(s) {
+	match s {
+	| [< (Const (Ident name),_); (Arrow,_); e = expr s; l = object_fields s >] -> (name,e) :: l
+	| [< (Comma,_); l = object_fields s >] -> l
+	| [< >] -> []
+	}
+}
+
+function rec parameter_names(s) {
+	match s {
+	| [< (Const (Ident name),_); p = parameter_names s >] -> name :: p
+	| [< (Comma,_); p = parameter_names s >] -> p
+	| [< >] -> []
+	}
+}
+
+function rec parameters(s) {
+	match s {
+	| [< e = expr s; p = parameters_next s >] -> e :: p
+	| [< >] -> []
+	}
+}
+
+function rec parameters_next(s) {
+	match s {
+	| [< (Comma,_); p = parameters s >] -> p
+	| [< >] -> []
+	}
+}
+
+function rec variables(sp,s) {
+	match s {
+	| [< (Const (Ident name),p) >] ->
+		match s {
+		| [< (Binop "=",_); e = expr s; v , p = variables_next (pos e) s >] -> ((name, Some e) :: v , p)
+		| [< v , p = variables_next p s >] -> ((name, None) :: v , p)
+		}
+	}
+}
+
+function rec variables_next(sp,s) {
+	match s {
+	| [< (Comma,p); v = variables p s >] -> v
+	| [< >] -> ([] , sp)
+	}
+}
+
+function parse(lexer) {
+	var last = &(Eof,null_pos);
+	function rec next_token() {
+		var t , p = Lexer.token lexer (*Lex.expr);
+		match t {
+		| Comment s | CommentLine s -> 
+			next_token()
+		| _ ->
+			last := (t,p);
+			(t,p)
+		}
+	}
+	try {
+		var p = program (stream next_token);		
+		(EBlock p,null_pos)
+	} catch {
+		| Stream_error -> error Unexpected(fst(*last)) snd(*last)
+	}
 }
