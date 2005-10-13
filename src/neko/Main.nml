@@ -1,14 +1,8 @@
-open Parser;
-
 try {
 	var i = IO.read_file "Bytecode.neko" false;
-	var lex = Lexer.create Buffer.create();	
+	var lex = Lexer.create Buffer.create();
 	Lexer.input lex "Bytecode.neko" i 1 0;
-	function rec loop() {
-		var t = Lexer.token lex (*Lex.expr);
-		if fst t != Ast.Eof then loop();
-	};	
-	loop();
+	var e = Parser.parse lex;
 	IO.close_in i
 } catch {
 	e -> Core.print ("Exception : " + string e + "\n")
