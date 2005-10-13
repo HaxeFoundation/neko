@@ -146,3 +146,15 @@ function list( a : 'a array ) : 'a list {
 	");
 }
 
+function append( src : 'a array, dst : 'a array ) : void {
+	neko("
+		var l = src[2];
+		var i = 0;
+		src = src[0];
+		while i < l {
+			add(dst,src[i]);
+			i = i + 1;
+		}
+	");
+}
+
