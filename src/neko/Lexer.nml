@@ -148,7 +148,10 @@ ecomment := Lexer.build [
 ] (function(l) { throw Exit });
 
 estring := Lexer.build [
-	("\\\\\"", function(l) { str l });
+	("\\\\\"", function(l) {
+		Buffer.add_char (Lexer.data l) '"';
+		str l
+	});
 	("\\\\", function(l) {
 		Buffer.add_char (Lexer.data l) '\\';
 		str l
