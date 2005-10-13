@@ -54,7 +54,7 @@ function resize(h) {
 		}
 	};
 	var i = &0;
-	while *i < old_size - 1 {
+	while *i < old_size {
 		insert old_data.[*i];
 		i := *i + 1;
 	}
