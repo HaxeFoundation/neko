@@ -1,0 +1,218 @@
+/*
+ * Map - Polymorphic maps
+ * Copyright (C) 1996-2003 Xavier Leroy, Nicolas Cannasse, Markus Mottl
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version,
+ * with the special exception on linking described in file LICENSE.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+
+type ('k, 'v) map {
+	Empty;
+	Node : (('k, 'v) map , 'k , 'v , ('k, 'v) map , int);
+}
+
+type ('k, 'v) t {
+	cmp : 'k -> 'k -> int;
+	map : ('k, 'v) map;
+}
+
+function height(m) {
+	match m {
+	| Node (_, _, _, _, h) -> h
+	| Empty -> 0
+	}
+}
+
+function make(l,k,v,r) {
+	Node(l, k, v, r, max (height l) (height r) + 1)
+}
+
+function bal(l,k,v,r) {
+	var hl = height l;
+	var hr = height r;
+	if hl > hr + 2 then
+		match l {
+		| Node (ll,lk,lv,lr,_) ->
+			if height ll >= height lr then make ll lk lv (make lr k v r)
+			else match lr {
+				| Node (lrl,lrk,lrv,lrr,_) ->
+					make (make ll lk lv lrl) lrk lrv (make lrr k v r)
+				| Empty -> assert()
+			}
+		| Empty -> assert()
+		}
+	else if hr > hl + 2 then
+		match r {
+		| Node (rl,rk,rv,rr,_) ->
+			if height rr >= height rl then make (make l k v rl) rk rv rr
+			else match rl {
+				| Node (rll, rlk, rlv, rlr, _) ->
+					make (make l k v rll) rlk rlv (make rlr rk rv rr)
+				| Empty -> assert()
+			}
+		| Empty -> assert()
+		}
+	else Node(l, k, v, r, max hl hr + 1)
+}
+
+function rec min_binding(m) {
+	match m {
+	| Node (Empty, k, v, _, _) -> (k, v)
+	| Node (l, _, _, _, _) -> min_binding l
+	| Empty -> throw Not_found
+	}
+}
+
+function rec remove_min_binding(m) {
+	match m {
+	| Node (Empty, _, _, r, _) -> r
+	| Node (l, k, v, r, _) -> bal (remove_min_binding l) k v r
+	| Empty -> invalid_arg()
+	}
+}
+
+function merge(t1,t2) {
+	match (t1, t2) {
+	| (Empty, _) -> t2
+	| (_, Empty) -> t1
+	| _ ->
+		var k, v = min_binding t2;
+		bal t1 k v (remove_min_binding t2)
+	}
+}
+
+function create(cmp) {
+	{
+		cmp = cmp;
+		map = Empty;
+	}
+}
+
+var empty = { cmp = compare; map = Empty };
+
+function is_empty(m) {
+	m.map == Empty
+}
+
+function add(m,x,d) {
+	var cmp = m.cmp;
+	function rec loop(m) {
+		match m {
+		| Node (l, k, v, r, h) ->
+			var c = cmp x k;
+			if c == 0 then Node(l, x, d, r, h)
+			else if c < 0 then {
+				var nl = loop l;
+				bal nl k v r;
+			} else {
+				var nr = loop r;
+				bal l k v nr
+			}
+		| Empty ->
+			Node(Empty, x, d, Empty, 1)
+		}
+	};
+	{
+		cmp = cmp;
+		map = loop m.map;
+	}
+}
+
+function find(m,x) {
+	var cmp = m.cmp;
+	function rec loop(m) {
+		match m {
+		| Node (l, k, v, r, _) ->
+			var c = cmp x k;
+			if c < 0 then loop l
+			else if c > 0 then loop r
+			else v
+		| Empty -> 
+			throw Not_found
+		}
+	};
+	loop m.map
+}
+
+function remove(m,x) {
+	var cmp = m.cmp;
+	function rec loop(m) {
+		match m {
+		| Node(l, k, v, r, _) ->
+			var c = cmp x k;
+			if c == 0 then merge l r else
+			if c < 0 then bal (loop l) k v r else bal l k v (loop r)
+		| Empty -> Empty
+		}
+	};
+	{
+		cmp = cmp;
+		map = loop m.map;
+	}
+}
+
+function exists(m,x) {
+	var cmp = m.cmp;
+	function rec loop(m) {
+		match m {
+		| Node (l, k, v, r, _) ->
+			var c = cmp x k;
+			c == 0 || loop (if c < 0 then l else r)
+		| Empty -> false
+		}
+	};
+	loop m.map
+}
+
+function iter(f,m) {
+	function rec loop(m) {
+		match m {
+		| Empty -> ()
+		| Node (l, k, v, r, _) ->
+			loop l;
+			f k v;
+			loop r
+		}
+	};
+	loop m.map
+}
+
+function map(f,m) {
+	function rec loop(m) {
+		match m {
+		| Empty -> Empty
+		| Node (l, k, v, r, h) -> 
+			var l = loop l;
+			var r = loop r;
+			Node(l, k, f v, r, h)
+		}
+	};
+	{
+		cmp = m.cmp;
+		map = loop m.map;
+	}
+}
+
+function fold(f,m,acc) {
+	function rec loop(acc,m) {
+		match m {
+		| Empty -> acc
+		| Node (l, k, v, r, _) ->
+			loop (f (loop acc l) v) r
+		}
+	};
+	loop acc m.map
+}
+
