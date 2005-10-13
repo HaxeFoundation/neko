@@ -18,6 +18,7 @@ exception Invalid_argument : string;
 exception Assert_failure : (string,int);
 exception Error : string;
 exception Stream_error;
+exception Stream_matching;
 exception Not_found;
 exception Exit;
 
@@ -256,13 +257,14 @@ function printf(fmt : 'a format, p : 'a ) : void {
 function stream(f) {
 	neko("{
 		get => f,
+		pos => 0,
 		cache => $array()
 	}");
 }
 
 function stream_token( s : 'a stream, x : int ) : 'a {
+	if x < 0 then invalid_arg();
 	neko("
-		$print('token ',s,x,'\n');
 		var tmp = s.cache[x];
 		if( tmp != null )
 			return tmp;
@@ -279,17 +281,23 @@ function stream_token( s : 'a stream, x : int ) : 'a {
 }
 
 function stream_junk( s : 'a stream, x : int ) : void {
+	if x < 0 then invalid_arg();
 	neko("
-		$print('junk ',s,x,'\n');
 		var c = $asize(s.cache);
+		s.pos = s.pos + x;
 		if( c >= x )
 			s.cache = $asub(s.cache,x,c - x);
 		else {
 			s.cache = $array();
 			x = x - c;
-			while x > 0
+			while x > 0 {
 				s.get(null);
+				x = x - 1;
+			}
 		}
 	");
 }
 
+function stream_pos( s : 'a stream ) : int {
+	neko("s.pos");
+}
