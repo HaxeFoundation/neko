@@ -28,15 +28,24 @@ function length(h) {
 	h.size
 }
 
-function rec find_rec(k,r) {
-	match r {
-	| Empty -> throw Not_found
-	| Cons (k2,d,r) -> if k == k2 then d else find_rec k r
-	}
+function find(h,k) {
+	function rec loop(k,r) {
+		match r {
+		| Empty -> throw Not_found
+		| Cons (k2,d,r) -> if k == k2 then d else loop k r
+		}
+	};
+	loop k (h.data.[hash(k) % Array.length h.data])
 }
 
-function find(h,k) {
-	find_rec k (h.data.[hash(k) % Array.length h.data])
+function exists(h,k) {
+	function rec loop(k,r) {
+		match r {
+		| Empty -> false
+		| Cons (k2,d,r) -> k == k2 || loop k r
+		}
+	};
+	loop k (h.data.[hash(k) % Array.length h.data])
 }
 
 function resize(h) {
