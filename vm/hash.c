@@ -86,7 +86,7 @@ static void hash_rec( value v, int *h, vlist *l ) {
 		}
 		break;
 	default:
-		HBIG((int)v);
+		HBIG((int)(int_val)v);
 		break;
 	}
 }
