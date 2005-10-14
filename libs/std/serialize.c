@@ -194,11 +194,17 @@ void serialize_rec( sbuffer *b, value o ) {
 			write_char(b,'L');
 			m = (neko_module*)((vfunction*)o)->module;
 			serialize_rec(b,m->name);
-			write_int(b,(int*)((vfunction*)o)->addr - m->code);
+			write_int(b,(int)((int_val*)((vfunction*)o)->addr - m->code));
 			write_int(b,((vfunction*)o)->nargs);
 			serialize_rec(b,((vfunction*)o)->env);
 		}
 		break;
+	case VAL_ABSTRACT:
+		if( val_is_kind(o,k_int32) ) {
+			write_char(b,'I');
+			write_int(b,val_int32(o));
+			break;
+		}
 	default:
 		failure("Cannot Serialize Abstract");
 		break;
@@ -246,6 +252,8 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 		return val_false;
 	case 'i':
 		return alloc_int(read_int(b));
+	case 'I':
+		return alloc_int32(read_int(b));
 	case 'f':
 		{
 			double d;
