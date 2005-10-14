@@ -21,6 +21,14 @@
 #ifndef _NEKO_H
 #define _NEKO_H
 
+#ifdef _WIN32
+#include <basetsd.h>
+typedef INT_PTR		int_val;
+#else
+#include <stdint.h>
+typedef intptr_t int_val;
+#endif
+
 #ifndef NULL
 #	define NULL			0
 #endif
@@ -43,13 +51,12 @@ struct _value {
 	val_type t;
 };
 
-struct _field;
 struct _objtable;
 struct _bufffer;
 struct _vkind;
+typedef int field;
 typedef struct _vkind *vkind;
 typedef struct _value *value;
-typedef struct _field *field;
 typedef struct _objtable* objtable;
 typedef struct _buffer *buffer;
 typedef double tfloat;
@@ -92,7 +99,7 @@ typedef struct {
 
 #define val_tag(v)			(*(val_type*)v)
 #define val_is_null(v)		(v == val_null)
-#define val_is_int(v)		((((int)(v)) & 1) != 0)
+#define val_is_int(v)		((((int)(int_val)(v)) & 1) != 0)
 #define val_is_bool(v)		(v == val_true || v == val_false)
 #define val_is_number(v)	(val_is_int(v) || val_tag(v) == VAL_FLOAT)
 #define val_is_float(v)		(!val_is_int(v) && val_tag(v) == VAL_FLOAT)
@@ -109,7 +116,7 @@ typedef struct {
 #define val_kind(v)			((vabstract*)v)->kind
 
 #define val_type(v)			(val_is_int(v) ? VAL_INT : (val_tag(v)&7))
-#define val_int(v)			(((int)(v)) >> 1)
+#define val_int(v)			(((int)(int_val)(v)) >> 1)
 #define val_float(v)		(CONV_FLOAT ((vfloat*)(v))->f)
 #define val_bool(v)			(v == val_true)
 #define val_number(v)		(val_is_int(v)?val_int(v):val_float(v))
@@ -121,7 +128,7 @@ typedef struct {
 #define val_array_size(v)	(val_tag(v) >> 3)
 #define val_array_ptr(v)	(&((varray*)(v))->ptr)
 #define val_fun_nargs(v)	((vfunction*)(v))->nargs
-#define alloc_int(v)		((value)(((v) << 1) | 1))
+#define alloc_int(v)		((value)(int_val)((((int)v) << 1) | 1))
 #define alloc_bool(b)		((b)?val_true:val_false)
 
 #define max_array_size		((1 << 29) - 1)
@@ -160,6 +167,13 @@ typedef struct {
 #	endif
 #endif
 
+EXTERN vkind k_int32;
+#define alloc_int32(i) alloc_abstract(k_int32, (value)(int_val)(i))
+#define need_32_bits(i) ( ((unsigned int)(i)) & (1 << 30) )
+#define alloc_best_int(i) (need_32_bits(i) ? alloc_int32(i) : alloc_int(i))
+#define val_int32(v) (val_is_int(v)?val_int(v):(int)(int_val)val_data(v))
+#define val_is_int32(v) (val_is_int(v) || val_is_kind(v,k_int32))
+
 #define type_error()		return NULL
 #define failure(msg)		_neko_failure(alloc_string(msg),__FILE__,__LINE__)
 #define bfailure(buf)		_neko_failure(buffer_to_string(b),__FILE__,__LINE__)
@@ -171,7 +185,7 @@ typedef struct {
 #define VAR_ARGS (-1)
 #define DEFINE_PRIM_MULT(func) C_FUNCTION_BEGIN EXPORT void *func##__MULT() { return &func; } C_FUNCTION_END
 #define DEFINE_PRIM(func,nargs) C_FUNCTION_BEGIN EXPORT void *func##__##nargs() { return &func; } C_FUNCTION_END
-#define DEFINE_KIND(name) int __kind_##name = 0; vkind name = (vkind)&__kind_##name;
+#define DEFINE_KIND(name) int_val __kind_##name = 0; vkind name = (vkind)&__kind_##name;
 #define DEFINE_ENTRY_POINT(name) C_FUNCTION_BEGIN void name(); EXPORT void *__neko_entry_point() { return &name; } C_FUNCTION_END
 
 #ifdef HEADER_IMPORTS
@@ -228,7 +242,7 @@ C_FUNCTION_BEGIN
 
 	EXTERN value alloc_string( const char *str );
 	EXTERN value alloc_empty_string( unsigned int size );
-	EXTERN value copy_string( const char *str, unsigned int size );
+	EXTERN value copy_string( const char *str, int_val size );
 
 	EXTERN value val_this();
 	EXTERN field val_id( const char *str );
@@ -260,7 +274,7 @@ C_FUNCTION_BEGIN
 
 	EXTERN buffer alloc_buffer( const char *init );
 	EXTERN void buffer_append( buffer b, const char *s );
-	EXTERN void buffer_append_sub( buffer b, const char *s, int len );
+	EXTERN void buffer_append_sub( buffer b, const char *s, int_val len );
 	EXTERN value buffer_to_string( buffer b );
 	EXTERN void val_buffer( buffer b, value v );
 
