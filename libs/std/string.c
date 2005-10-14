@@ -180,6 +180,12 @@ static value sprintf( value fmt, value params ) {
 						buffer_append_sub(b,val_string(param),size);
 					}
 					break;
+				case 'b':
+					{
+						val_check(param,bool);
+						buffer_append_sub(b,val_bool(param)?"true":"false",val_bool(param)?4:5);
+					}
+					break;
 				default:
 					type_error();
 					break;
