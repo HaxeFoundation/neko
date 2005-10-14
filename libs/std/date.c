@@ -23,10 +23,6 @@
 #include <stdio.h>
 #include <memory.h>
 
-DEFINE_KIND(k_date);
-
-#define val_date(o)		((time_t*)val_data(o))
-
 extern field id_h;
 extern field id_m;
 extern field id_s;
@@ -34,15 +30,14 @@ extern field id_y;
 extern field id_d;
 
 static value date_now() {
-	value o = alloc_abstract(k_date,alloc_private(sizeof(time_t)));
-	*val_date(o) = time(NULL);
-	return o;
+	int t = (int)time(NULL);
+	return alloc_int32(t);
 }
 
 static value date_new( value s ) {
-	value o = alloc_abstract(k_date,alloc_private(sizeof(time_t)));
+	int o;
 	if( val_is_null(s) )
-		*val_date(o) = time(NULL);
+		o = (int)time(NULL);
 	else {
 		struct tm t;
 		bool recal = true;
@@ -55,7 +50,7 @@ static value date_new( value s ) {
 			break;
 		case 8:
 			sscanf(val_string(s),"%2d:%2d:%2d",&t.tm_hour,&t.tm_min,&t.tm_sec);
-			*val_date(o) = t.tm_sec + t.tm_min * 60 + t.tm_hour * 60 * 60;
+			o = t.tm_sec + t.tm_min * 60 + t.tm_hour * 60 * 60;
 			recal = false;
 			break;
 		case 10:
@@ -71,61 +66,69 @@ static value date_new( value s ) {
 		if( recal ) {
 			t.tm_year -= 1900;
 			t.tm_mon--;
-			*val_date(o) = mktime(&t);
+			o = (int)mktime(&t);
 		}
 	}
-	return o;
+	return alloc_int32(o);
 }
 
 static value date_format( value o, value fmt ) {
 	char buf[128];
 	struct tm *t;
-	val_check_kind(o,k_date);
+	time_t d;
+	val_check(o,int32);
 	if( val_is_null(fmt) )
 		fmt = alloc_string("%Y-%m-%d %H:%M:%S");
 	val_check(fmt,string);	
-	t = localtime(val_date(o));
+	d = val_int32(o);
+	t = localtime(&d);
 	if( t == NULL )
-		return alloc_string("(date before 1970)");
+		type_error();
 	strftime(buf,127,val_string(fmt),t);
 	return alloc_string(buf);
 }
 
 static value date_set_hour( value o, value h, value m, value s ) {
 	struct tm *t;
-	val_check_kind(o,k_date);
+	time_t d;
+	val_check(o,int32);
 	val_check(h,int);
 	val_check(m,int);
 	val_check(s,int);
-	t = localtime(val_date(o));
+	d = val_int32(o);
+	t = localtime(&d);
 	t->tm_hour = val_int(h);
 	t->tm_min = val_int(m);
 	t->tm_sec = val_int(s);
-	*val_date(o) = mktime(t);
-	return val_true;
+	d = mktime(t);
+	return alloc_int32(d);
 }
 
 static value date_set_day( value o, value y, value m, value d ) {
 	struct tm *t;
-	val_check_kind(o,k_date);
+	time_t date;
+	val_check(o,int32);
 	val_check(y,int);
 	val_check(m,int);
 	val_check(d,int);
-	t = localtime(val_date(o));
+	date = val_int32(o);
+	t = localtime(&date);
 	t->tm_year = val_int(y) - 1900;
 	t->tm_mon = val_int(m) - 1;
 	t->tm_mday = val_int(d);
-	*val_date(o) = mktime(t);
-	return val_true;
+	date = mktime(t);
+	return alloc_int32(date);
 }
 
 static value date_get_day( value o ) {
 	value r;
 	struct tm *t;
-	val_check_kind(o,k_date);
-	t = localtime(val_date(o));
+	time_t d;
+	val_check(o,int32);
+	d = val_int32(o);
+	t = localtime(&d);
 	if( t == NULL )
-		return val_null;
+		type_error();
 	r = alloc_object(NULL);
 	alloc_field(r,id_y,alloc_int(t->tm_year + 1900));
 	alloc_field(r,id_m,alloc_int(t->tm_mon + 1));
@@ -136,60 +139,17 @@ static value date_get_day( value o ) {
 static value date_get_hour( value o ) {
 	value r;
 	struct tm *t;
-	val_check_kind(o,k_date);
-	t = localtime(val_date(o));
+	time_t d;
+	val_check(o,int32);
+	d = val_int32(o);
+	t = localtime(&d);
 	if( t == NULL )
-		return val_null;
+		type_error();
 	r = alloc_object(NULL);
 	alloc_field(r,id_h,alloc_int(t->tm_hour));
 	alloc_field(r,id_m,alloc_int(t->tm_min));
 	alloc_field(r,id_s,alloc_int(t->tm_sec));
 	return r;
-}
-
-static value date_compare( value o, value d ) {
-	int r;
-	val_check_kind(o,k_date);
-	val_check_kind(d,k_date);
-	r = *val_date(o) - *val_date(d);
-	return alloc_int( (r == 0)? 0 : ((r < 0) ? -1 : 1) );
-}
-
-static value date_sub( value o, value d ) {
-	value r;
-	val_check_kind(o,k_date);
-	val_check_kind(d,k_date);
-	r = alloc_abstract(k_date,alloc_private(sizeof(time_t)));	
-	*val_date(r) = *val_date(o) - *val_date(d);
-	return r;
-}
-
-static value date_add( value o, value d ) {
-	value r;
-	val_check_kind(o,k_date);
-	val_check_kind(d,k_date);
-	r = alloc_abstract(k_date,alloc_private(sizeof(time_t)));	
-	*val_date(r) = *val_date(o) + *val_date(d);
-	return r;
-}
-
-static value date_delta( value o, value d ) {
-	val_check_kind(o,k_date);
-	val_check(d,int);
-	*val_date(o) = *val_date(o) + val_int(d);
-	return val_true;
-}
-
-static value date_get_time( value o ) {
-	val_check_kind(o,k_date);
-	return alloc_int( (int)*val_date(o) );
-}
-
-static value date_set_time( value o, value v ) {
-	val_check_kind(o,k_date);
-	val_check(v,int);
-	*val_date(o) = (time_t)val_int(v);
-	return v;
 }
 
 DEFINE_PRIM(date_now,0);
@@ -199,11 +159,5 @@ DEFINE_PRIM(date_set_hour,4);
 DEFINE_PRIM(date_set_day,4);
 DEFINE_PRIM(date_get_hour,1);
 DEFINE_PRIM(date_get_day,1);
-DEFINE_PRIM(date_compare,2);
-DEFINE_PRIM(date_sub,2);
-DEFINE_PRIM(date_add,2);
-DEFINE_PRIM(date_delta,2);
-DEFINE_PRIM(date_get_time,1);
-DEFINE_PRIM(date_set_time,2);
 
 /* ************************************************************************ */
