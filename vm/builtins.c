@@ -270,14 +270,14 @@ static value builtin_objget( value o, value f ) {
 	if( !val_is_object(o) )
 		return val_null; // keep dot-access semantics
 	val_check(f,int);
-	return val_field(o,(field)val_int(f));
+	return val_field(o,val_int(f));
 }
 
 static value builtin_objset( value o, value f, value v ) {
 	if( !val_is_object(o) )
 		return val_null; // keep dot-access semantics
 	val_check(f,int);
-	alloc_field(o,(field)val_int(f),v);
+	alloc_field(o,val_int(f),v);
 	return v;
 }
 
@@ -286,17 +286,17 @@ static value builtin_objcall( value o, value f, value args ) {
 		return val_null; // keep dot-access semantics
 	val_check(f,int);
 	val_check(args,array);
-	return val_ocallN(o,(field)val_int(f),val_array_ptr(args),val_array_size(args));
+	return val_ocallN(o,val_int(f),val_array_ptr(args),val_array_size(args));
 }
 
 static value builtin_objfield( value o, value f ) {
-	return alloc_bool( val_is_object(o) && val_is_int(f) && otable_find(((vobject*)o)->table, (field)val_int(f)) != NULL );
+	return alloc_bool( val_is_object(o) && val_is_int(f) && otable_find(((vobject*)o)->table, val_int(f)) != NULL );
 }
 
 static value builtin_objremove( value o, value f ) {
 	val_check(o,object);
 	val_check(f,int);
-	return alloc_bool( otable_remove(((vobject*)o)->table,(field)val_int(f)) );
+	return alloc_bool( otable_remove(((vobject*)o)->table,val_int(f)) );
 }
 
 static void builtin_objfields_rec( value d, field id, void *a ) {
@@ -322,7 +322,7 @@ static value builtin_hash( value f ) {
 
 static value builtin_field( value f ) {
 	val_check(f,int);
-	return val_field_name((field)val_int(f));
+	return val_field_name(val_int(f));
 }
 
 static value builtin_int( value f ) {
@@ -529,8 +529,8 @@ static value builtin_string( value v ) {
 }
 
 static value builtin_pcompare( value a, value b ) {
-	int ia = (int)a;
-	int ib = (int)b;
+	int_val ia = (int_val)a;
+	int_val ib = (int_val)b;
 	if( ia > ib )
 		return alloc_int(1);
 	else if( ia < ib )

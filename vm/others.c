@@ -26,6 +26,8 @@
 
 #define C(x,y)	((x << 8) | y)
 
+DEFINE_KIND(k_int32);
+
 extern _context *neko_fields_context;
 extern field id_compare;
 extern field id_string;
@@ -102,8 +104,9 @@ EXTERN buffer alloc_buffer( const char *init ) {
 	return b;
 }
 
-EXTERN void buffer_append_sub( buffer b, const char *s, int len ) {	
+EXTERN void buffer_append_sub( buffer b, const char *s, int_val _len ) {	
 	stringitem it;
+	int len = (int)_len;
 	if( s == NULL || len <= 0 )
 		return;
 	b->totlen += len;
@@ -241,20 +244,20 @@ value append_strings( value s1, value s2 ) {
 
 int neko_stack_expand( int *sp, int *csp, neko_vm *vm ) {
 	int i;
-	int size = (((int)vm->spmax - (int)vm->spmin) / sizeof(int)) << 1;
-	int *nsp;
+	int size = (int)((((int_val)vm->spmax - (int_val)vm->spmin) / sizeof(int_val)) << 1);
+	int_val *nsp;
 	if( size > MAX_STACK_SIZE )
 		return 0;
-	nsp = (int*)alloc(size * sizeof(int));
+	nsp = (int_val*)alloc(size * sizeof(int_val));
 	
 	// csp size
-	i = ((int)(csp + 1) - (int)vm->spmin) / sizeof(int);
-	memcpy(nsp,vm->spmin,sizeof(int) * i);
+	i = (int)(((int_val)(csp + 1) - (int_val)vm->spmin) / sizeof(int_val));
+	memcpy(nsp,vm->spmin,sizeof(int_val) * i);
 	vm->csp = nsp + i - 1;
 	
 	// sp size
-	i = ((int)vm->spmax - (int)sp) / sizeof(int);
-	memcpy(nsp+size-i,sp,sizeof(int) * i);
+	i = (int)(((int_val)vm->spmax - (int_val)sp) / sizeof(int_val));
+	memcpy(nsp+size-i,sp,sizeof(int_val) * i);
 	vm->sp = nsp + size - i;
 	vm->spmin = nsp;
 	vm->spmax = nsp + size;
@@ -271,7 +274,7 @@ EXTERN field val_id( const char *name ) {
 		acc = alloc_int(223 * val_int(acc) + *((unsigned char*)name));
 		name++;
 	}
-	f = (field)val_int(acc);
+	f = val_int(acc);
 	data = (objtable*)context_get(neko_fields_context);
 	if( data == NULL ) {
 		data = (objtable*)alloc_root(1);
@@ -280,7 +283,7 @@ EXTERN field val_id( const char *name ) {
 	}
 	fdata = otable_find(*data,f);
 	if( fdata != NULL ) {
-		if( scmp(val_string(*fdata),val_strlen(*fdata),oname,name - oname) != 0 ) {
+		if( scmp(val_string(*fdata),val_strlen(*fdata),oname,(int)(name - oname)) != 0 ) {
 			buffer b = alloc_buffer("Field conflict between ");
 			val_buffer(b,*fdata);
 			buffer_append(b," and ");

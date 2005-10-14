@@ -32,8 +32,8 @@
 #endif
 #include "gc/gc.h"
 
-static int op_last = Last;
-int *callback_return = &op_last;
+static int_val op_last = Last;
+int_val *callback_return = &op_last;
 value *neko_builtins = NULL;
 _context *neko_fields_context = NULL;
 _context *neko_vm_context = NULL;
@@ -144,7 +144,7 @@ value alloc_module_function( void *m, int pos, int nargs ) {
 		failure("alloc_module_function");
 	v = (vfunction*)GC_MALLOC(sizeof(vfunction));
 	v->t = VAL_FUNCTION;
-	v->addr = (void*)pos;
+	v->addr = (void*)(int_val)pos;
 	v->nargs = nargs;
 	v->env = alloc_array(0);
 	v->module = m;
@@ -164,8 +164,8 @@ EXTERN value alloc_object( value cpy ) {
 	return (value)v;
 }
 
-EXTERN value copy_string( const char *str, unsigned int strlen ) {
-	value v = alloc_empty_string(strlen);
+EXTERN value copy_string( const char *str, int_val strlen ) {
+	value v = alloc_empty_string((unsigned int)strlen);
 	char *c = (char*)val_string(v);
 	memcpy(c,str,strlen);
 	return v;
@@ -209,11 +209,11 @@ EXTERN value *alloc_root( unsigned int size ) {
 	if( roots_context == NULL )
 		roots_context = context_new();
 	if( context_get(roots_context) == NULL )
-		context_set(roots_context,(void*)++thread_count);
+		context_set(roots_context,(void*)(int_val)++thread_count);
 	r->v = v;
 	r->size = size;
 	r->next = roots;
-	r->thread = (int)context_get(roots_context);
+	r->thread = (int)(int_val)context_get(roots_context);
 	roots = r;
 #endif
 	return v;

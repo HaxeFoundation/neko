@@ -79,7 +79,7 @@ static value file_write( value o, value s, value pp, value n ) {
 	if( p < 0 || len < 0 || p > val_strlen(s) || p + len > val_strlen(s) )
 		type_error();
 	while( len > 0 ) {
-		int d = fwrite(val_string(s)+p,1,len,f->io);
+		int d = (int)fwrite(val_string(s)+p,1,len,f->io);
 		if( d <= 0 )
 			file_error("file_write",f);
 		p += d;
@@ -102,7 +102,7 @@ static value file_read( value o, value s, value pp, value n ) {
 	if( p < 0 || len < 0 || p > val_strlen(s) || p + len > val_strlen(s) )
 		type_error();
 	while( len > 0 ) {
-		int d = fread((char*)val_string(s)+p,1,len,f->io);
+		int d = (int)fread((char*)val_string(s)+p,1,len,f->io);
 		if( d <= 0 ) {
 			int size = val_int(n) - len;
 			if( size == 0 )
@@ -191,7 +191,7 @@ static value file_contents( value name ) {
 	s = alloc_empty_string(len);
 	p = 0;
 	while( len > 0 ) {
-		int d = fread((char*)val_string(s)+p,1,len,f.io);
+		int d = (int)fread((char*)val_string(s)+p,1,len,f.io);
 		if( d <= 0 )
 			file_error("file_contents",&f);
 		p += d;

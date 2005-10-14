@@ -30,11 +30,11 @@ typedef void (*printer)( const char *, int );
 #define MAX_STACK_SIZE	(1 << 18)
 
 struct _neko_vm {
-	int *spmin;
-	int *spmax;
-	int *sp;
-	int *csp;
-	int *trap;
+	int_val *spmin;
+	int_val *spmax;
+	int_val *sp;
+	int_val *csp;
+	int_val trap;
 	int ncalls;
 	value env;
 	value this;
@@ -49,12 +49,12 @@ typedef struct _neko_vm neko_vm;
 #define neko_vm_def
 #endif
 
-extern int *callback_return;
+extern int_val *callback_return;
 extern _context *neko_vm_context;
 
 #define NEKO_VM()	((neko_vm*)context_get(neko_vm_context))
 
-extern value neko_interp( neko_vm *vm, int acc, int *pc, value env );
+extern value neko_interp( neko_vm *vm, int_val acc, int_val *pc, value env );
 
 #endif
 /* ************************************************************************ */

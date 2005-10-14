@@ -34,9 +34,9 @@ typedef value (*c_prim4)(value,value,value,value);
 typedef value (*c_prim5)(value,value,value,value,value);
 typedef value (*c_primN)(value*,int);
 
-extern void neko_setup_trap( neko_vm *vm, int where );
+extern void neko_setup_trap( neko_vm *vm, int_val where );
 extern void neko_process_trap( neko_vm *vm );
-extern int neko_stack_expand( int *sp, int *csp, neko_vm *vm );
+extern int neko_stack_expand( int_val *sp, int_val *csp, neko_vm *vm );
 
 EXTERN value val_callEx( value this, value f, value *args, int nargs, value *exc ) {
 	neko_vm *vm = NEKO_VM();
@@ -103,11 +103,11 @@ EXTERN value val_callEx( value this, value f, value *args, int nargs, value *exc
 				failure("Stack Overflow");
 			} else {
 				for(n=0;n<nargs;n++)
-					*--vm->sp = (unsigned int)args[n];
-				*++vm->csp = (int)callback_return;
+					*--vm->sp = (int_val)args[n];
+				*++vm->csp = (int_val)callback_return;
 				*++vm->csp = 0;
-				*++vm->csp = (int)vm->this;
-				ret = neko_interp(vm,(int)val_null,(int*)((vfunction*)f)->addr,((vfunction*)f)->env);
+				*++vm->csp = (int_val)vm->this;
+				ret = neko_interp(vm,(int_val)val_null,(int_val*)((vfunction*)f)->addr,((vfunction*)f)->env);
 			}
 		}
 	}
