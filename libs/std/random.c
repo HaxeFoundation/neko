@@ -52,14 +52,12 @@ static const unsigned long init_seeds[] = {
 };
 
 #ifdef _WIN32
-struct timeval {
-    long tv_sec;
-    long tv_usec;
-};
+#include <windows.h>
 
 static int gettimeofday( struct timeval *t, struct timezone *tz ) {
-	t->tv_sec = time(NULL);
-	t->tv_usec = 0;
+	DWORD d = GetTickCount();
+	t->tv_sec = d / 1000;
+	t->tv_usec = (d % 1000) * 1000;
 	return 0;
 }
 #endif
