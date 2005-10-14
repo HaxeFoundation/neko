@@ -22,7 +22,7 @@
 
 DEFINE_KIND(k_buffer);
 
-static value buffer_alloc() {
+static value buffer_new() {
 	buffer b = alloc_buffer(NULL);
 	return alloc_abstract(k_buffer,b);
 }
@@ -68,7 +68,7 @@ static value buffer_reset( value b ) {
 	return val_true;
 }
 
-DEFINE_PRIM(buffer_alloc,0);
+DEFINE_PRIM(buffer_new,0);
 DEFINE_PRIM(buffer_add,2);
 DEFINE_PRIM(buffer_add_char,2);
 DEFINE_PRIM(buffer_add_sub,4);
