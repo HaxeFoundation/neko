@@ -3,6 +3,7 @@
 
 std = $loader.loadmodule("mtypes/std",$loader);
 String = std.String;
+Array = std.Array;
 Int32 = std.Int32;
 
 // ----------------------------------------------------------------------
@@ -243,6 +244,17 @@ Sys.command = function(cmd) {
 
 Sys.setCwd = function(cwd) {
 	set_cwd(cwd.@s);
+}
+
+Sys.args = function() {
+	var a = $args();
+	var s = $asize(a);
+	var i = 0;
+	while( i < s ) {
+		a[i] = String.new(a[i]);
+		i = i + 1;
+	}
+	return Array.new1(a);
 }
 
 $exports.Sys = Sys;
