@@ -1,0 +1,16 @@
+
+function without_extension(s) {	
+	match List.rev (String.split s ".") {
+	| [] -> assert()
+	| [x] -> x
+	| ext :: l -> String.concat "." (List.rev l)
+	}
+}
+
+var array_dependency = Array.make
+
+function args() : string array {
+	neko("
+		@Array.@make($args())
+	");
+}
