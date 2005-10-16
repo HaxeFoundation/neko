@@ -18,6 +18,7 @@
 /*  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 /*																			*/
 /* ************************************************************************ */
+#include <neko.h>
 #include "mod_neko.h"
 
 #define PARSE_HEADER(start,cursor) \
@@ -34,10 +35,10 @@
 
 #define HEADERS_NOT_SENT(msg) \
 	if( c->headers_sent ) { \
-		request_print("Cannot set ",-1); \
-		request_print(msg,-1); \
-		request_print(" <b>Headers already sent</b>.<br/>",-1); \
-		return val_null; \
+		buffer b = alloc_buffer("Cannot set "); \
+		buffer_append(b,msg); \
+		buffer_append(b," : Headers already sent"); \
+		bfailure(b); \
 	}
 
 static value url_decode( value v ) {
