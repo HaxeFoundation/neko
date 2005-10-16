@@ -12,6 +12,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "neko", "neko\neko.vcproj", 
 	ProjectSection(ProjectDependencies) = postProject
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "src", "src\src.vcproj", "{9DA7F2FB-E47C-4EF3-BBEA-9F76DD549B2B}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfiguration) = preSolution
 		Debug = Debug
@@ -30,6 +34,10 @@ Global
 		{59B84580-C217-4013-88B0-67D0FB93BA40}.Debug.Build.0 = Debug|Win32
 		{59B84580-C217-4013-88B0-67D0FB93BA40}.Release.ActiveCfg = Release|Win32
 		{59B84580-C217-4013-88B0-67D0FB93BA40}.Release.Build.0 = Release|Win32
+		{9DA7F2FB-E47C-4EF3-BBEA-9F76DD549B2B}.Debug.ActiveCfg = Debug|Win32
+		{9DA7F2FB-E47C-4EF3-BBEA-9F76DD549B2B}.Debug.Build.0 = Debug|Win32
+		{9DA7F2FB-E47C-4EF3-BBEA-9F76DD549B2B}.Release.ActiveCfg = Release|Win32
+		{9DA7F2FB-E47C-4EF3-BBEA-9F76DD549B2B}.Release.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 	EndGlobalSection
