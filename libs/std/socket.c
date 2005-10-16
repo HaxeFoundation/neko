@@ -55,7 +55,7 @@ static value socket_new( value udp ) {
 	else
 		s = socket(AF_INET,SOCK_STREAM,0);
 	if( s == INVALID_SOCKET )
-		type_error();
+		neko_error();
 	return alloc_abstract(k_socket,(value)(int_val)s);
 }
 
@@ -73,10 +73,10 @@ static value socket_send_char( value o, value v ) {
 	val_check(v,int);
 	c = val_int(v);
 	if( c < 0 || c > 255 )
-		type_error();
+		neko_error();
 	cc = (unsigned char)c;
 	if( send(val_sock(o),&cc,1,0) == SOCKET_ERROR )
-		type_error();
+		neko_error();
 	return val_true;
 }
 
@@ -90,10 +90,10 @@ static value socket_send( value o, value data, value pos, value len ) {
 	l = val_int(len);
 	dlen = val_strlen(data);
 	if( p < 0 || l < 0 || p > dlen || p + l > dlen )
-		type_error();
+		neko_error();
 	dlen = send(val_sock(o), val_string(data) + p , l, 0);
 	if( dlen == SOCKET_ERROR )
-		type_error();
+		neko_error();
 	return alloc_int(dlen);
 }
 
@@ -107,10 +107,10 @@ static value socket_recv( value o, value data, value pos, value len ) {
 	l = val_int(len);
 	dlen = val_strlen(data);
 	if( p < 0 || l < 0 || p > dlen || p + l > dlen )
-		type_error();
+		neko_error();
 	dlen = recv(val_sock(o), val_string(data) + p , l, 0);
 	if( dlen == SOCKET_ERROR )
-		type_error();
+		neko_error();
 	return alloc_int(dlen);
 }
 
@@ -118,7 +118,7 @@ static value socket_recv_char( value o ) {
 	unsigned char cc;
 	val_check_kind(o,k_socket);
 	if( recv(val_sock(o),&cc,1,0) <= 0 )
-		type_error();
+		neko_error();
 	return alloc_int(cc);
 }
 
@@ -133,7 +133,7 @@ static value socket_write( value o, value data ) {
 	while( datalen > 0 ) {
 		slen = send(val_sock(o),cdata,datalen,0);
 		if( slen == SOCKET_ERROR )
-			type_error();
+			neko_error();
 		cdata += slen;
 		datalen -= slen;
 	}
@@ -149,7 +149,7 @@ static value socket_read( value o ) {
 	while( true ) {
 		len = recv(val_sock(o),buf,256,0);
 		if( len == SOCKET_ERROR )
-			type_error();
+			neko_error();
 		if( len == 0 )
 			break;
 		buffer_append_sub(b,buf,len);
@@ -164,7 +164,7 @@ static value host_resolve( value host ) {
 	if( ip == INADDR_NONE ) {
 		struct hostent *h = gethostbyname(val_string(host));
 		if( h == 0 )
-			type_error();
+			neko_error();
 		ip = *((unsigned int*)h->h_addr);
 	}
 	return alloc_int32(ip);
@@ -180,7 +180,7 @@ static value host_to_string( value ip ) {
 static value host_local() {
 	char buf[256];
 	if( gethostname(buf,256) == SOCKET_ERROR )
-		type_error();
+		neko_error();
 	return alloc_string(buf);
 }
 
@@ -193,7 +193,7 @@ static value socket_connect( value o, value host, value port ) {
 	addr.sin_port = htons(val_int(port));
 	*(int*)&addr.sin_addr.s_addr = val_int32(host);
 	if( connect(val_sock(o),(struct sockaddr*)&addr,sizeof(addr)) <= 0 )
-		type_error();
+		neko_error();
 	return val_true;
 }
 
@@ -201,7 +201,7 @@ static value socket_listen( value o, value n ) {
 	val_check_kind(o,k_socket);
 	val_check(n,int);
 	if( listen(val_sock(o),val_int(n)) == SOCKET_ERROR )
-		type_error();
+		neko_error();
 	return val_true;
 }
 
@@ -251,7 +251,7 @@ static value socket_select( value rs, value ws, value es, value timeout ) {
 	wa = make_socket_array(ws,&wx);
 	ea = make_socket_array(es,&ex);
 	if( ra == &INVALID || wa == &INVALID || ea == &INVALID )
-		type_error();
+		neko_error();
 	if( val_is_null(timeout) )
 		tt = NULL;
 	else {
@@ -262,7 +262,7 @@ static value socket_select( value rs, value ws, value es, value timeout ) {
 		tt = &tval;
 	}
 	if( select(0,ra,wa,ea,tt) == SOCKET_ERROR )
-		type_error();
+		neko_error();
 	r = alloc_array(3);
 	val_array_ptr(r)[0] = make_array_result(rs,ra);
 	val_array_ptr(r)[1] = make_array_result(ws,wa);
@@ -279,7 +279,7 @@ static value socket_bind( value o, value host, value port ) {
 	addr.sin_port = htons(val_int(port));
 	*(int*)&addr.sin_addr.s_addr = val_int32(host);
 	if( bind(val_sock(o),(struct sockaddr*)&addr,sizeof(addr)) == SOCKET_ERROR )
-		type_error();
+		neko_error();
 	return val_true;
 }
 
@@ -290,7 +290,7 @@ static value socket_accept( value o ) {
 	val_check_kind(o,k_socket);
 	s = accept(val_sock(o),(struct sockaddr*)&addr,&addrlen);
 	if( s == INVALID_SOCKET )
-		type_error();
+		neko_error();
 	return alloc_abstract(k_socket,(value)(int_val)s);
 }
 
@@ -300,7 +300,7 @@ static value socket_peer( value o ) {
 	value ret;
 	val_check_kind(o,k_socket);
 	if( getpeername(val_sock(o),(struct sockaddr*)&addr,&addrlen) == SOCKET_ERROR )
-		type_error();
+		neko_error();
 	ret = alloc_array(2);
 	val_array_ptr(ret)[0] = alloc_int32(*(int*)&addr.sin_addr);
 	val_array_ptr(ret)[1] = alloc_int(addr.sin_port);
@@ -313,11 +313,21 @@ static value socket_host( value o ) {
 	value ret;
 	val_check_kind(o,k_socket);
 	if( getpeername(val_sock(o),(struct sockaddr*)&addr,&addrlen) == SOCKET_ERROR )
-		type_error();
+		neko_error();
 	ret = alloc_array(2);
 	val_array_ptr(ret)[0] = alloc_int32(*(int*)&addr.sin_addr);
 	val_array_ptr(ret)[1] = alloc_int(addr.sin_port);
 	return ret;
+}
+
+static value socket_set_timeout( value o, value t ) {
+	int time;
+	val_check_kind(o,k_socket);
+	val_check(t,int);
+	time = val_int(t);
+	setsockopt(val_sock(o),SOL_SOCKET,SO_SNDTIMEO,(char*)&time,sizeof(int));
+	setsockopt(val_sock(o),SOL_SOCKET,SO_RCVTIMEO,(char*)&time,sizeof(int));
+	return val_true;
 }
 
 DEFINE_PRIM(socket_new,0);
@@ -335,6 +345,7 @@ DEFINE_PRIM(socket_bind,3);
 DEFINE_PRIM(socket_accept,1);
 DEFINE_PRIM(socket_peer,1);
 DEFINE_PRIM(socket_host,1);
+DEFINE_PRIM(socket_set_timeout,2);
 
 DEFINE_PRIM(host_local,0);
 DEFINE_PRIM(host_resolve,1);
