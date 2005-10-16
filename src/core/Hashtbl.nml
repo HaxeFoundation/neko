@@ -10,7 +10,7 @@ type ('a,'b) t {
 }
 
 neko("
-	@hash = $loader.loadprim('std2@hash',1);
+	@hash = $loader.loadprim('std@hash',1);
 ");
 
 function hash(x:'a) : int {

@@ -25,7 +25,7 @@ exception Blocked;
 
 neko("
 	 @load = function(name,nargs) {
-		 return $loader.loadprim('std2@'+name,nargs);
+		 return $loader.loadprim('std@'+name,nargs);
 	 }
 ");
 
