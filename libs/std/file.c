@@ -61,7 +61,7 @@ static value file_close( value o ) {
 	return val_true;
 }
 
-static value file_path( value o ) {
+static value file_name( value o ) {
 	val_check_kind(o,k_file);
 	return alloc_string(val_string(val_file(o)->name));
 }
@@ -77,7 +77,7 @@ static value file_write( value o, value s, value pp, value n ) {
 	p = val_int(pp);
 	len = val_int(n);
 	if( p < 0 || len < 0 || p > val_strlen(s) || p + len > val_strlen(s) )
-		type_error();
+		neko_error();
 	while( len > 0 ) {
 		int d = (int)fwrite(val_string(s)+p,1,len,f->io);
 		if( d <= 0 )
@@ -100,7 +100,7 @@ static value file_read( value o, value s, value pp, value n ) {
 	p = val_int(pp);
 	len = val_int(n);
 	if( p < 0 || len < 0 || p > val_strlen(s) || p + len > val_strlen(s) )
-		type_error();
+		neko_error();
 	while( len > 0 ) {
 		int d = (int)fread((char*)val_string(s)+p,1,len,f->io);
 		if( d <= 0 ) {
@@ -121,7 +121,7 @@ static value file_write_char( value o, value c ) {
 	val_check(c,int);
 	val_check_kind(o,k_file);
 	if( val_int(c) < 0 || val_int(c) > 255 )
-		type_error();
+		neko_error();
 	cc = (char)val_int(c);
 	f = val_file(o);
 	if( fwrite(&cc,1,1,f->io) != 1 )
@@ -192,8 +192,10 @@ static value file_contents( value name ) {
 	p = 0;
 	while( len > 0 ) {
 		int d = (int)fread((char*)val_string(s)+p,1,len,f.io);
-		if( d <= 0 )
+		if( d <= 0 ) {
+			fclose(f.io);
 			file_error("file_contents",&f);
+		}
 		p += d;
 		len -= d;
 	}	
@@ -217,7 +219,7 @@ MAKE_STDIO(stderr);
 
 DEFINE_PRIM(file_open,2);
 DEFINE_PRIM(file_close,1);
-DEFINE_PRIM(file_path,1);
+DEFINE_PRIM(file_name,1);
 DEFINE_PRIM(file_write,4);
 DEFINE_PRIM(file_read,4);
 DEFINE_PRIM(file_write_char,2);
