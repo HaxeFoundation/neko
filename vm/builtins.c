@@ -48,7 +48,7 @@ static value builtin_print( value *args, int nargs ) {
 
 static value builtin_new( value o ) {
 	if( !val_is_null(o) && !val_is_object(o) )
-		type_error();
+		neko_error();
 	return alloc_object(o);
 }
 
@@ -193,7 +193,7 @@ static value builtin_throw( value v ) {
 
 static value builtin_nargs( value f ) {
 	if( !val_is_function(f) )
-		type_error();
+		neko_error();
 	return alloc_int( val_fun_nargs(f) );
 }
 
@@ -380,7 +380,7 @@ static value builtin_typeof( value v ) {
 	case VAL_ABSTRACT:
 		return alloc_int(8);
 	default:
-		type_error();
+		neko_error();
 	}
 }
 
@@ -416,7 +416,7 @@ static value builtin_closure( value *args, int nargs ) {
 		failure("Invalid closure arguments number");
 	f = args[0];
 	if( !val_is_function(f) )
-		type_error();
+		neko_error();
 	fargs = val_fun_nargs(f);
 	if( fargs != VAR_ARGS && fargs < nargs-2 )
 		failure("Invalid closure arguments number");
@@ -472,10 +472,10 @@ static value builtin_apply( value *args, int nargs ) {
 	nargs--;
 	args++;
 	if( nargs < 0 )
-		type_error();
+		neko_error();
 	f = args[-1];
 	if( !val_is_function(f) )
-		type_error();
+		neko_error();
 	fargs = val_fun_nargs(f);
 	if( fargs == VAR_ARGS )
 		return val_callN(f,args,nargs);
@@ -484,7 +484,7 @@ static value builtin_apply( value *args, int nargs ) {
 	if( fargs == nargs )
 		return val_callN(f,args,nargs);
 	if( nargs > fargs )
-		type_error();
+		neko_error();
 	env = alloc_array(fargs + 1);
 	val_array_ptr(env)[0] = f;
 	for(i=0;i<nargs;i++)
