@@ -97,10 +97,10 @@ typedef struct {
 	void *data;
 } vabstract;
 
-#define val_tag(v)			(*(val_type*)v)
-#define val_is_null(v)		(v == val_null)
+#define val_tag(v)			(*(val_type*)(v))
+#define val_is_null(v)		((v) == val_null)
 #define val_is_int(v)		((((int)(int_val)(v)) & 1) != 0)
-#define val_is_bool(v)		(v == val_true || v == val_false)
+#define val_is_bool(v)		((v) == val_true || (v) == val_false)
 #define val_is_number(v)	(val_is_int(v) || val_tag(v) == VAL_FLOAT)
 #define val_is_float(v)		(!val_is_int(v) && val_tag(v) == VAL_FLOAT)
 #define val_is_string(v)	(!val_is_int(v) && (val_tag(v)&7) == VAL_STRING)
@@ -109,16 +109,16 @@ typedef struct {
 #define val_is_array(v)		(!val_is_int(v) && (val_tag(v)&7) == VAL_ARRAY)
 #define val_is_abstract(v)  (!val_is_int(v) && val_tag(v) == VAL_ABSTRACT)
 #define val_is_kind(v,t)	(val_is_abstract(v) && val_kind(v) == (t))
-#define val_check_kind(v,t)	if( !val_is_kind(v,t) ) type_error();
-#define val_check_function(f,n) if( !val_is_function(f) || (val_fun_nargs(f) != n && val_fun_nargs(f) != VAR_ARGS) ) type_error();
-#define val_check(v,t)		if( !val_is_##t(v) ) type_error();
-#define val_data(v)			((vabstract*)v)->data
-#define val_kind(v)			((vabstract*)v)->kind
+#define val_check_kind(v,t)	if( !val_is_kind(v,t) ) neko_error();
+#define val_check_function(f,n) if( !val_is_function(f) || (val_fun_nargs(f) != (n) && val_fun_nargs(f) != VAR_ARGS) ) neko_error();
+#define val_check(v,t)		if( !val_is_##t(v) ) neko_error();
+#define val_data(v)			((vabstract*)(v))->data
+#define val_kind(v)			((vabstract*)(v))->kind
 
 #define val_type(v)			(val_is_int(v) ? VAL_INT : (val_tag(v)&7))
 #define val_int(v)			(((int)(int_val)(v)) >> 1)
 #define val_float(v)		(CONV_FLOAT ((vfloat*)(v))->f)
-#define val_bool(v)			(v == val_true)
+#define val_bool(v)			((v) == val_true)
 #define val_number(v)		(val_is_int(v)?val_int(v):val_float(v))
 #define val_string(v)		(&((vstring*)(v))->c)
 #define val_strlen(v)		(val_tag(v) >> 3)
@@ -128,7 +128,7 @@ typedef struct {
 #define val_array_size(v)	(val_tag(v) >> 3)
 #define val_array_ptr(v)	(&((varray*)(v))->ptr)
 #define val_fun_nargs(v)	((vfunction*)(v))->nargs
-#define alloc_int(v)		((value)(int_val)((((int)v) << 1) | 1))
+#define alloc_int(v)		((value)(int_val)((((int)(v)) << 1) | 1))
 #define alloc_bool(b)		((b)?val_true:val_false)
 
 #define max_array_size		((1 << 29) - 1)
@@ -174,7 +174,7 @@ EXTERN vkind k_int32;
 #define val_int32(v) (val_is_int(v)?val_int(v):(int)(int_val)val_data(v))
 #define val_is_int32(v) (val_is_int(v) || val_is_kind(v,k_int32))
 
-#define type_error()		return NULL
+#define neko_error()		return NULL
 #define failure(msg)		_neko_failure(alloc_string(msg),__FILE__,__LINE__)
 #define bfailure(buf)		_neko_failure(buffer_to_string(b),__FILE__,__LINE__)
 
