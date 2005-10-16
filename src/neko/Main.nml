@@ -1,14 +1,25 @@
-try {
-	var file = "Dummy.neko";
+
+function compile(file) {
 	var i = IO.read_file file false;
 	var lex = Lexer.create Buffer.create();
 	Lexer.input lex file i 1 0;
 	var ast = Parser.parse lex;
 	IO.close_in i;
 	var code = Compile.compile ast;
-	var o = IO.write_file (file+".n") true;
+	var o = IO.write_file (Sys.without_extension file + ".n") true;
 	Bytecode.write o code;
 	IO.close_out o
+}
+
+try {
+	var i = &1;
+	var args = Sys.args();	
+	while *i < Array.length args {
+		var file = args.[*i];
+		print ("Compiling " + file + "\n");
+		compile file;
+		i := *i + 1;
+	}
 } catch {
 	e -> Core.print ("Exception : " + string e + "\n")
 }
