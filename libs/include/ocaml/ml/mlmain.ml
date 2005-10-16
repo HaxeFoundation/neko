@@ -22,7 +22,7 @@ let nekoml file ch out =
 	Mltyper.verbose := !Plugin.verbose;
 	Mlneko.verbose := !Plugin.verbose;
 	let modname = [String.capitalize (Filename.chop_extension (Filename.basename file))] in
-	let ctx = Mltyper.context ["";Filename.dirname file ^ "/"] in
+	let ctx = Mltyper.context ((Filename.dirname file ^ "/") :: !Plugin.paths) in
 	ignore(Mltyper.load_module ctx modname Mlast.null_pos);
 	Hashtbl.iter (fun m (e,deps,idents) ->
 		let e = Mlneko.generate e deps idents m in
