@@ -97,7 +97,7 @@ static value sprintf( value fmt, value params ) {
 					param = params;
 					count++;
 				} else if( !val_is_array(params) || val_array_size(params) <= count )
-					type_error();
+					neko_error();
 				else 
 					param = val_array_ptr(params)[count++];
 				switch( *cur ) {
@@ -108,7 +108,7 @@ static value sprintf( value fmt, value params ) {
 						val_check(param,int);
 						c = val_int(param);
 						if( c < 0 || c > 255 )
-							type_error();
+							neko_error();
 						cc = (char)c;
 						buffer_append_sub(b,&cc,1);
 					}
@@ -187,7 +187,7 @@ static value sprintf( value fmt, value params ) {
 					}
 					break;
 				default:
-					type_error();
+					neko_error();
 					break;
 				}
 			}

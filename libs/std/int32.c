@@ -30,7 +30,7 @@ static value int32_to_int( value v ) {
 	val_check(v,int32);
 	i = val_int32(v);
 	if( need_32_bits(i) )
-		type_error();
+		neko_error();
 	return alloc_int(i);
 }
 
@@ -75,7 +75,7 @@ static value int32_compare( value v1, value v2 ) {
 		val_check(v2,int32); \
 		d = val_int32(v2); \
 		if( d == 0 ) \
-			type_error(); \
+			neko_error(); \
 		r = val_int32(v1) op d; \
 		return alloc_best_int(r); \
 	} \

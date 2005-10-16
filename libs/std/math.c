@@ -54,7 +54,7 @@ static value math_abs( value n ) {
 	case VAL_FLOAT:
 		return alloc_float( fabs(val_float(n)) ); 
 	default:
-		type_error();
+		neko_error();
 	}
 }
 
@@ -65,7 +65,7 @@ static value math_ceil( value n ) {
 	case VAL_FLOAT:
 		return alloc_int( (int)ceil(val_float(n)) );
 	default:
-		type_error();
+		neko_error();
 	}
 }
 
@@ -76,7 +76,7 @@ static value math_floor( value n ) {
 	case VAL_FLOAT:
 		return alloc_int( (int)floor(val_float(n)) );
 	default:
-		type_error();
+		neko_error();
 	}
 }
 
@@ -93,7 +93,7 @@ static value math_round( value n ) {
 		}
 		break;
 	default:
-		type_error();
+		neko_error();
 	}
 }
 

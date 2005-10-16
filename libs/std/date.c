@@ -83,7 +83,7 @@ static value date_format( value o, value fmt ) {
 	d = val_int32(o);
 	t = localtime(&d);
 	if( t == NULL )
-		type_error();
+		neko_error();
 	strftime(buf,127,val_string(fmt),t);
 	return alloc_string(buf);
 }
@@ -128,7 +128,7 @@ static value date_get_day( value o ) {
 	d = val_int32(o);
 	t = localtime(&d);
 	if( t == NULL )
-		type_error();
+		neko_error();
 	r = alloc_object(NULL);
 	alloc_field(r,id_y,alloc_int(t->tm_year + 1900));
 	alloc_field(r,id_m,alloc_int(t->tm_mon + 1));
@@ -144,7 +144,7 @@ static value date_get_hour( value o ) {
 	d = val_int32(o);
 	t = localtime(&d);
 	if( t == NULL )
-		type_error();
+		neko_error();
 	r = alloc_object(NULL);
 	alloc_field(r,id_h,alloc_int(t->tm_hour));
 	alloc_field(r,id_m,alloc_int(t->tm_min));
