@@ -20,6 +20,8 @@
 /* ************************************************************************ */
 #include <neko.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <time.h>
 typedef int SOCKET;
 #include <mysql.h>
 
@@ -31,6 +33,7 @@ DEFINE_KIND(k_result);
 
 static void error( MYSQL *m, const char *msg ) {
 	buffer b = alloc_buffer(msg);
+	buffer_append(b," ");
 	buffer_append(b,mysql_error(m));
 	bfailure(b);
 }
@@ -43,7 +46,9 @@ typedef enum {
 	CONV_INT,
 	CONV_STRING,
 	CONV_FLOAT,
-	CONV_BINARY
+	CONV_BINARY,
+	CONV_DATE,
+	CONV_DATETIME
 } CONV;
 
 typedef struct {
@@ -52,6 +57,7 @@ typedef struct {
 	CONV *fields_convs;
 	field *fields_ids;
 	MYSQL_ROW current;
+	value conv_date;
 } result;
 
 static field current_id;
@@ -59,6 +65,15 @@ static field current_id;
 static void free_result( value o ) {
 	result *r = RESULT(o);
 	mysql_free_result(r->r);
+}
+
+static value result_set_conv_date( value o, value c ) {
+	val_check_function(c,1);
+	if( val_is_int(o) )
+		return val_true;
+	val_check_kind(o,k_result);
+	RESULT(o)->conv_date = c;
+	return val_true;
 }
 
 static value result_get_length( value o ) {
@@ -107,6 +122,33 @@ static value result_next( value o ) {
 					}
 					v = copy_string(row[i],lengths[i]);
 					break;
+				case CONV_DATE:
+					if( r->conv_date == NULL )
+						v = alloc_string(row[i]);
+					else {
+						struct tm t;
+						sscanf(row[i],"%4d-%2d-%2d",&t.tm_year,&t.tm_mon,&t.tm_mday);
+						t.tm_hour = 0;
+						t.tm_min = 0;
+						t.tm_sec = 0;
+						t.tm_isdst = -1;
+						t.tm_year -= 1900;
+						t.tm_mon--;						
+						v = val_call1(r->conv_date,alloc_int32((int)mktime(&t)));
+					}
+					break;
+				case CONV_DATETIME:
+					if( r->conv_date == NULL )
+						v = alloc_string(row[i]);
+					else {
+						struct tm t;
+						sscanf(row[i],"%4d-%2d-%2d %2d:%2d:%2d",&t.tm_year,&t.tm_mon,&t.tm_mday,&t.tm_hour,&t.tm_min,&t.tm_sec);
+						t.tm_isdst = -1;
+						t.tm_year -= 1900;
+						t.tm_mon--;
+						v = val_call1(r->conv_date,alloc_int32((int)mktime(&t)));
+					}
+					break;
 				default:
 					v = val_null;
 					break;
@@ -124,11 +166,11 @@ static value result_get( value o, value n ) {
 	val_check(n,int);
 	r = RESULT(o);
 	if( val_int(n) < 0 || val_int(n) >= r->nfields )
-		return val_null;
+		neko_error();
 	if( !r->current ) {
 		result_next(o);
 		if( !r->current )
-			return val_null;
+			neko_error();
 	}
 	s = r->current[val_int(n)];
 	return alloc_string( s?s:"" );
@@ -141,11 +183,11 @@ static value result_get_int( value o, value n ) {
 	val_check(n,int);
 	r = RESULT(o);
 	if( val_int(n) < 0 || val_int(n) >= r->nfields )
-		return val_null;
+		neko_error();
 	if( !r->current ) {
 		result_next(o);
 		if( !r->current )
-			return val_null;
+			neko_error();
 	}
 	s = r->current[val_int(n)];
 	return alloc_int( s?atoi(s):0 );
@@ -158,11 +200,11 @@ static value result_get_float( value o, value n ) {
 	val_check(n,int);
 	r = RESULT(o);
 	if( val_int(n) < 0 || val_int(n) >= r->nfields )
-		return val_null;
+		neko_error();
 	if( !r->current ) {
 		result_next(o);
 		if( !r->current )
-			return val_null;
+			neko_error();
 	}
 	s = r->current[val_int(n)];
 	return alloc_float( s?atof(s):0 );
@@ -171,7 +213,9 @@ static value result_get_float( value o, value n ) {
 static CONV convert_type( enum enum_field_types t ) {
 	switch( t ) {
 	case FIELD_TYPE_TINY:
+	case FIELD_TYPE_SHORT:
 	case FIELD_TYPE_LONG:
+	case FIELD_TYPE_INT24:
 		return CONV_INT;
 	case FIELD_TYPE_LONGLONG:
 	case FIELD_TYPE_DECIMAL:
@@ -180,6 +224,10 @@ static CONV convert_type( enum enum_field_types t ) {
 		return CONV_FLOAT;
 	case FIELD_TYPE_BLOB:
 		return CONV_BINARY;
+	case FIELD_TYPE_DATETIME:
+		return CONV_DATETIME;
+	case FIELD_TYPE_DATE:
+		return CONV_DATE;
 	default:
 		return CONV_STRING;
 	}
@@ -192,6 +240,7 @@ static value alloc_result( MYSQL_RES *r ) {
 	int i,j;
 	MYSQL_FIELD *fields = mysql_fetch_fields(r);
 	res->r = r;
+	res->conv_date = NULL;
 	res->current = NULL;
 	res->nfields = num_fields;
 	res->fields_ids = (field*)alloc_private(sizeof(field)*num_fields);
@@ -233,10 +282,8 @@ static value close( value o ) {
 static value selectDB( value o, value db ) {
 	val_check_kind(o,k_connection);
 	val_check(db,string);
-	if( mysql_select_db(MYSQLDATA(o),val_string(db)) != 0 ) {
-		error(MYSQLDATA(o),"Failed to select database :");
-		return val_false;
-	}
+	if( mysql_select_db(MYSQLDATA(o),val_string(db)) != 0 )
+		error(MYSQLDATA(o),"Failed to select database :");	
 	return val_true;
 }
 
@@ -289,7 +336,7 @@ static value connect( value params  ) {
 	val_check(user,string);
 	val_check(pass,string);	
 	if( !val_is_string(socket) && !val_is_null(socket) )
-		type_error();
+		neko_error();
 	{
 		MYSQL *m = mysql_init(NULL);
 		value v;
@@ -326,5 +373,6 @@ DEFINE_PRIM(result_next,1);
 DEFINE_PRIM(result_get,2);
 DEFINE_PRIM(result_get_int,2);
 DEFINE_PRIM(result_get_float,2);
+DEFINE_PRIM(result_set_conv_date,2);
 
 /* ************************************************************************ */
