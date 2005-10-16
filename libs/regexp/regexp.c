@@ -136,7 +136,7 @@ static value regexp_matched( value o, value n ) {
 	val_check(n,int);
 	m = val_int(n);
 	if( m < 0 || m > d->nmatchs || d->str == NULL )
-		return val_null;
+		neko_error();
 	{
 		int start = d->matchs[m*2];
 		int len = d->matchs[m*2+1] - start;
@@ -154,7 +154,7 @@ static value regexp_matched_pos( value o, value n ) {
 	val_check(n,int);
 	m = val_int(n);
 	if( m < 0 || m > d->nmatchs || val_is_null(d->str) )
-		return val_null;
+		neko_error();
 	{
 		int start = d->matchs[m*2];
 		int len = d->matchs[m*2+1] - start;
