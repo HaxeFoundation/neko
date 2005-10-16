@@ -665,7 +665,7 @@ function rec compile(ctx,(e,p)) {
 		}
 		write ctx (Ret (ctx.stack - ctx.limit - ctx.ntraps * trap_stack_delta));
 	| EBreak e ->
-		if ctx.ntraps == 0 then assert();
+		if ctx.ntraps != 0 then assert();
 		match e {
 		| None -> ()
 		| Some e -> compile ctx e
@@ -673,7 +673,7 @@ function rec compile(ctx,(e,p)) {
 		if ctx.loop_limit != ctx.stack then Array.add ctx.ops (Pop (ctx.stack - ctx.loop_limit));
 		ctx.breaks := (jmp ctx , p) :: ctx.breaks
 	| EContinue ->
-		if ctx.ntraps == 0 then assert();
+		if ctx.ntraps != 0 then assert();
 		if ctx.loop_limit != ctx.stack then Array.add ctx.ops (Pop (ctx.stack - ctx.loop_limit));
 		ctx.continues := (jmp ctx , p) :: ctx.continues
 	| EFunction (params,e) ->
