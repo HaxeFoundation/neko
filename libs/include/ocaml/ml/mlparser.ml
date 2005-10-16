@@ -98,7 +98,7 @@ let rec program = parser
 and expr = parser	
 	| [< '(BraceOpen,p1); e = block1; s >] ->
 		(match s with parser
-		| [< '(BraceClose,p2); s >] -> expr_next (e,punion p1 p2) s
+		| [< '(BraceClose,p2); s >] -> e , punion p1 p2
 		| [< >] -> unclosed "{" p1)
 	| [< '(Keyword Var,p1); '(Const (Ident name),_); t = type_opt; l = vars; e = expr; s >] ->
 		EVar ((name,t) :: l,e) , punion p1 (pos e)
