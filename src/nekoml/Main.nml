@@ -1,0 +1,22 @@
+
+function compile(file) {
+	var i = IO.read_file file false;
+	var lex = Lexer.create Buffer.create();
+	Lexer.input lex file i 1 0;	
+	var ast = Nekoml.Parser.parse lex;
+	print ast;
+	IO.close_in i;
+}
+
+try {
+	var i = &1;
+	var args = Sys.args();	
+	while *i < Array.length args {
+		var file = args.[*i];
+		print ("Compiling " + file + "\n");
+		compile file;
+		i := *i + 1;
+	}
+} catch {
+	e -> Core.print ("Exception : " + string e + "\n")
+}

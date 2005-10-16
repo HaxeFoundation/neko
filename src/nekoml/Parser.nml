@@ -1,0 +1,587 @@
+/*
+ *  NekoML Compiler
+ *  Copyright (c)2005 Nicolas Cannasse
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+ 
+open Nekoml.Ast
+
+type error_msg {
+	Unexpected : token;
+	Unclosed : string;
+}
+
+exception Error : (error_msg , pos)
+
+function error_msg(msg) {
+	match msg {
+	| Unexpected t -> "Unexpected " + s_token t
+	| Unclosed s -> "Unclosed " + s
+	}
+}
+
+var punion = Lexer.punion;
+
+function error(m,p) {
+	throw Error(m,p)
+}
+
+function priority(op) {
+	match op {
+	| "+=" | "-=" | "*=" | "/=" | "|=" | "&=" | "^=" | ":=" -> -3
+	| "&&" | "||" -> -2
+	| "==" | "!=" | ">" | "<" | "<=" | ">=" | "===" | "!==" | "<>" | "=" -> -1
+	| "+" | "-" -> 0
+	| "*" | "/" -> 1
+	| "or" | "and" | "xor" -> 2
+	| "<<" | ">>" | "%" | ">>>" -> 3
+	| _ -> 4
+	}
+}
+
+function can_swap(_op,op) {
+	var p1 = priority _op;
+	var p2 = priority op;
+	if p1 < p2 then
+		true
+	else if p1 == p2 then
+		op != "::"
+	else
+		false
+}
+
+function rec make_binop(op,e,e2) {
+	var v , p2 = e2;
+	match v {
+	| EBinop (_op,_e,_e2) when can_swap _op op ->
+		var _e = make_binop op e _e;
+		(EBinop _op _e _e2 , punion (pos _e) (pos _e2))
+	| _ ->
+		(EBinop op e e2 , punion (pos e) (pos e2))
+	}
+}
+
+function rec make_unop(op,e,p1) {
+	var v , p2 = e;
+	match v {
+	| EBinop (bop,e,e2) -> ( EBinop bop (make_unop op e p1) e2 , punion p1 p2)
+	| _ -> (EUnop op e, punion p1 p2)
+	}
+}
+
+function rec make_list_pat(p,l) {
+	match l {
+	| [] -> (PConstr [] "[]" None , p)
+	| x :: l ->
+		var p = snd x;
+		var params = (PTuple [x;make_list_pat p l] , p);
+		(PConstr [] "::" Some(params) , p)
+	}
+}
+
+function rec make_list(p,l) {
+	match l {
+	| [] -> (EConst Constr("[]") , p)
+	| x :: l ->
+		var p = snd x;
+		(ECall (EConst Constr("::"), p) [x;make_list p l] , p)
+	}
+}
+
+function is_unop(op) {
+	match op {
+	| "-" | "*" | "!" | "&" -> true
+	| _ -> false
+	}
+}
+
+function unclosed(s,p) {
+	error (Unclosed s) p
+}
+
+function mk(e,p) {
+	(e,p)
+}
+
+function rec program(s) {
+	match s {
+	| [< e = expr s; p = program s >] -> e :: p
+	| [< (Semicolon,_); p = program s >] -> p
+	| [< (Eof,_) >] -> []
+	}
+}
+
+function rec expr(s) {
+	match s {
+	| [< (BraceOpen,p1); e = block1 s >] ->
+		match s {
+		| [< (BraceClose,p2) >] -> mk e punion(p1,p2)
+		| [< >] -> unclosed "{" p1
+		}
+	| [< (Keyword Var,p1); (Const (Ident name),_); t = type_opt s; l = vars s; e = expr s >] ->
+		mk EVar((name,t) :: l,e) punion(p1,pos e)
+	| [< (Keyword If,p1); cond = expr s; (Keyword Then,_); e = expr s >] ->
+		match s {
+		| [< (Keyword Else,_); e2 = expr s >] -> mk EIf(cond,e,Some e2) punion(p1,pos e2)
+		| [< >] -> mk EIf(cond,e,None) punion(p1,pos e)
+		}
+	| [< (Keyword Function,p1); r = function_rec s; n = ident_opt s; (ParentOpen _,po); p = parameters_decl s; t = type_opt s; e = expr s >] ->
+		mk EFunction(r,n,p,e,t) punion(p1,pos e)
+	| [< (Keyword Type,p1); pl = type_decl_parameters s; (Const (Ident tname),p2); d , p3 = type_declaration p2 s >] ->
+		mk ETypeDecl(pl,tname,d) punion(p1,p3)
+	| [< (Keyword Exception,p1); (Const (Constr ename),p2); t = type_opt s >] ->
+		mk EErrorDecl(ename,t) punion(p1,p2)
+	| [< (Keyword Match,p1); e = expr s; (BraceOpen,po); pl = patterns_begin s >] ->
+		match s {
+		| [< (BraceClose,pe) >] -> mk EMatch(e,pl) punion(p1,pe)
+		| [< >] -> unclosed "{" po
+		}
+	| [< (Keyword Try,p1); b = block s; (Keyword Catch,p2); (BraceOpen,po); pl = patterns_begin s >] ->
+		match s {
+		| [< (BraceClose,pe); >] -> mk ETry((EBlock b,punion p1 p2),pl) punion(p1,pe)
+		| [< >] -> unclosed "{" po
+		}
+	| [< (Keyword While,p1); e = expr s; (BraceOpen,po); b = block s >] ->
+		match s {
+		| [< (BraceClose,pe) >] -> mk EWhile(e,(EBlock b,punion po pe)) punion(po,pe)
+		| [< >] -> unclosed "{" po
+		}
+	| [< e = expr_short s >] ->
+		e
+	}
+}
+
+function rec expr_short(s) {
+	match s {
+	| [< (ParentOpen _,p1); pl = parameters s >] ->
+		match s {
+		| [< (ParentClose,p2) >] -> expr_next (ETupleDecl pl,punion p1 p2) s
+		| [< >] -> unclosed "(" p1
+		}
+//	| [< (Binop op,p) when is_unop op; e = expr >] ->
+//		expr_next (make_unop op e p) s
+	| [< (Const (Constr n),p); e = expr_constr n p s >] ->
+		expr_next e s
+	| [< (Const c,p) >] ->
+		expr_next (EConst c,p) s
+	| [< (BracketOpen,p1); b = block s; (BracketClose,p2) >] ->
+		expr_next (make_list (punion p1 p2) b) s
+	}
+}
+
+function rec expr_next(e,s) {
+	match s {
+	| [< (Binop ":",_); t , p = type_path s >] ->
+		expr_next (ETypeAnnot e t,punion (pos e) p) s
+	| [< (ParentOpen false,po); pl = parameters s >] ->
+		match s {
+		| [< (ParentClose,p) >] -> expr_next (ECall e pl,punion (pos e) p) s
+		| [< >] -> unclosed "(" po
+		}
+	| [< (Dot,_) >] ->
+		match s {
+		| [< (Const (Ident name),p) >] -> expr_next (EField e name,punion (pos e) p) s
+		| [< (BracketOpen,po); e2 = expr s >] ->
+			match s {
+			| [< (BracketClose,p) >] -> expr_next (EArray e e2,punion (pos e) p) s
+			| [< >] -> unclosed "[" po
+			}
+		}
+	| [< (Binop op,_); e2 = expr s >] ->
+		make_binop op e e2
+	| [< ep = expr_short s >] ->
+		function rec loop(ep) {
+			var p = pos ep;
+			match fst ep {
+			| EApply (e2,l) -> mk EApply(e,e2 :: l) punion(pos e,p)
+			| EBinop (op,e1,e2)  -> mk EBinop(op,loop e1,e2) punion(pos e,p)
+			| _ -> mk EApply(e,[ep]) punion(pos e,pos ep)
+			}
+		}
+		loop ep
+	| [< >] ->
+		e
+	}
+}
+
+function rec expr_constr(n,p,s) {
+	match s {
+	| [< (Dot,_); e , p2 = expr_constr2 s >] -> 
+		match e {
+		| EConst ((Ident _) as c)
+		| EConst ((Constr _) as c) -> mk EConst(Module [n] c) punion(p,p2)
+		| EConst (Module (l,c)) -> mk EConst(Module (n :: l) c) punion(p,p2)
+		| _ -> assert()
+		}
+	| [< >] -> mk EConst(Constr n) p
+	}
+}
+		
+function rec expr_constr2(s) {
+	match s {
+	| [< (Const (Ident n),p) >] -> mk EConst(Ident n) p
+	| [< (Const (Constr n),p); e = expr_constr n p s >] -> e
+	}
+}
+
+function rec block1(s) {
+	match s {
+	| [< (Const (Ident name),p) >] ->
+		match s {
+		| [< (Binop "=",_); e = expr s; l = record_fields s >] -> ERecordDecl ((name,e) :: l)
+		| [< e = expr_next (EConst (Ident name),p) s; b = block s >] -> EBlock (e :: b)
+		}
+	| [< b = block s >] ->
+		EBlock b
+	}
+}
+
+function rec record_fields(s) {
+	match s {
+	| [< (Const (Ident name),_); (Binop "=",_); e = expr s; l = record_fields s >] -> (name,e) :: l
+	| [< (Semicolon,_); l = record_fields s >] -> l
+	| [< >] -> []
+	}
+}
+
+function rec vars(s) {
+	match s {
+	| [< (Binop "=",_) >] -> []
+	| [< (Comma,_); (Const (Ident name),_); t = type_opt s; l = vars s >] -> (name,t) :: l
+	}
+}
+
+function rec block(s) {
+	match s {
+	| [< e = expr s; b = block s >] -> e :: b
+	| [< (Semicolon,_); b = block s >] -> b
+	| [< >] -> []
+	}
+}
+
+function rec parameters_decl(s) {
+	match s {
+	| [< (Const (Ident name),_) >] -> parameters_decl_next (ANamed name) s
+	| [< (ParentOpen _,_); l = parameters_decl s >] -> parameters_decl_next (ATuple l) s
+	| [< (ParentClose,_) >] -> []
+	}
+}
+
+function rec parameters_decl_next(acc,s) {
+	match s {
+	| [< (Comma,_); p = parameters_decl s >] -> acc :: p
+	| [< (Binop ":",_); t , _ = type_path s >] -> parameters_decl_next ATyped(acc,t) s
+	| [< (ParentClose,_) >] -> [acc]
+	}
+}
+
+function rec type_opt(s) {
+	match s {
+	| [< (Binop ":",_); t , _ = type_path s >] -> Some t
+	| [< >] -> None
+	}
+}
+
+function rec function_rec(s) {
+	match s {
+	| [< (Const (Ident "rec"),_) >] -> true
+	| [< >] -> false
+	}
+}
+
+function rec ident_opt(s) {
+	match s {
+	| [< (Const (Ident name),_) >] -> Some name
+	| [< >] -> None
+	}
+}
+
+function rec parameters(s) {
+	match s {
+	| [< e = expr s; p = parameters_next s >] -> e :: p
+	| [< >] -> []
+	}
+}
+
+function rec parameters_next(s) {
+	match s {
+	| [< (Comma,_); p = parameters s >] -> p
+	| [< >] -> []
+	}
+}
+
+function rec type_path(s) {
+	match s {
+	| [< (Const (Ident tname),p) >] ->
+		type_path_next EType(None,[],tname) p s
+	| [< (Const (Constr m),p); (Dot,_); l = type_path_mod s; (Const (Ident tname),_) >] -> 
+		type_path_next EType(None,m :: l,tname) p s
+	| [< (Quote,_); (Const (Ident a),p) >] ->
+		type_path_next (EPoly a) p s
+	| [< (ParentOpen _,_); t , p = type_path s; l , p2 = type_path_list_next p s; (ParentClose,_) >] ->
+		type_path_next (ETuple (t :: l)) p2 s
+	}
+}
+
+function rec type_path_list(p,s) {
+	match s {
+	| [< t , p = type_path s; l , p2 = type_path_list_next p s >] -> mk (t :: l) p2
+	}
+}
+
+function rec type_path_list_next(p,s) {
+	match s {
+	| [< (Comma,_); t = type_path_list p s >] -> t
+	| [< >] -> ([] , p)
+	}
+}
+
+function rec type_path_next(t,p,s) {
+	match s {
+	| [< (Arrow,_); t2 , p = type_path s >] ->
+		mk EArrow(t,t2) p
+	| [< (Const (Ident tname),p) >] ->
+		type_path_next EType(Some t,[],tname) p s
+	| [< (Const (Constr m),p); (Dot,_); l = type_path_mod s; (Const (Ident tname),_) >] ->
+		type_path_next EType(Some t,m :: l,tname) p s
+	| [< >] ->
+		(t , p)
+	}
+}
+
+function rec type_path_mod(s) {
+	match s {
+	| [< (Const (Constr m),_); (Dot,_); l = type_path_mod s >] -> m :: l
+	| [< >] -> []
+	}
+}
+
+function rec type_decl_parameters(s) {
+	match s {
+	| [< (Quote,_); (Const (Ident a),_); >] -> [a]
+	| [< (ParentOpen _,_); l = type_decl_plist s; (ParentClose,_); >] -> l
+	| [< >] -> []
+	}
+}
+
+function rec type_decl_plist(s) {
+	match s {
+	| [< (Quote,_); (Const (Ident a),_); l = type_decl_plist_next s >] -> a :: l
+	}
+}
+
+function rec type_decl_plist_next(s) {
+	match s {
+	| [< (Comma,_); l = type_decl_plist s >] -> l
+	| [< >] -> []
+	}
+}
+
+function rec type_declaration(p,s) {
+	match s {
+	| [< (BraceOpen,_) >] ->
+		match s {
+		| [< el , p = record_declaration false s >] -> mk ERecord(el) p
+		| [< el , p = union_declaration s >] -> mk EUnion(el) p
+		}
+	| [< (Binop "=",_); t , p = type_path s >] -> mk EAlias(t) p
+	| [< >] -> mk EAbstract p
+	}
+}
+
+function rec record_declaration(mut,s) {
+	match s {
+	| [< (BraceClose,p) >] -> mk [] p
+	| [< (Const (Ident "mutable"),_); l = record_declaration true s >] -> l
+	| [< (Semicolon,_); l = record_declaration false s >] -> l 
+	| [< (Const (Ident name),_); (Binop ":",_); t , _ = type_path s; l , p = record_declaration false s >] ->
+		mk ((name,mut,t) :: l) p
+	}
+}
+
+function rec union_declaration(s) {
+	match s {
+	| [< (BraceClose,p) >] -> mk [] p
+	| [< (Semicolon,_); l = union_declaration s >] -> l 
+	| [< (Const (Constr name),_); t = type_opt s; l , p = union_declaration s >] -> mk ((name,t) :: l) p
+	}
+}
+
+function rec patterns_begin(s) {
+	match s {
+	| [< (Vertical,_); l = patterns s >] -> l
+	| [< l = patterns s >] -> l
+	}
+}
+
+function rec patterns(s) {
+	match s {
+	| [< p = pattern s; pl = pattern_next s; w = when_clause s; (Arrow,pa); b = block s; l = patterns_begin s >] ->
+		var pat = (p :: pl,w,match b { [e] -> e | _ -> mk EBlock(b) pa });
+		pat :: l
+	| [< >] -> []
+	}
+}
+
+function rec pattern_next(s) {
+	match s {
+	| [< (Vertical,_); p = pattern s; l = pattern_next s >] -> p :: l
+	| [< >] -> []
+	}
+}
+
+function rec pattern(s) {
+	match s {
+	| [< d , p = pattern_decl s >] ->
+		match s {
+		| [< (Const (Ident "as"),_); (Const (Ident v),p2) >] ->
+			mk PAlias(v,(d,p)) punion(p,p2)
+		| [< (Binop "::",_); d2 , p2 = pattern s >] ->
+			mk PConstr([],"::",Some (PTuple [(d,p);(d2,p2)] , punion p p2)) punion(p,p2)
+		| [< t = type_opt s >] ->
+			match t {
+			| None -> mk d p
+			| Some t -> mk PTyped((d,p),t) p
+			}
+		}
+	}
+}
+
+function rec pattern_decl(s) {
+	match s {
+	| [< (ParentOpen _,p1); pl = pattern_tuple s; (ParentClose,p2) >] ->
+		mk PTuple(pl) punion(p1,p2)
+	| [< (BraceOpen,p1); (Const (Ident name),_); (Binop "=",_); p = pattern s; pl = pattern_record s; (BraceClose,p2) >] ->
+		mk PRecord((name,p) :: pl) punion(p1,p2)
+	| [< (Const (Constr name),p1); l, name2, p2 = pattern_mod_path name p1 s; p , p3 = pattern_opt p2 s >] -> 
+		mk PConstr(l,name2,p) punion(p1,p3)
+	| [< (Const (Ident i),p); >] ->
+		mk PIdent(i) p
+	| [< (Const c,p); >] ->
+		mk PConst(c) p
+	| [< (Binop "-",p1); (Const (Int i),p2) >] ->
+		mk PConst(Int (-i)) punion(p1,p2)
+	| [< (BracketOpen,p1); l = pattern_list s; (BracketClose,p2) >] ->
+		make_list_pat (punion p1 p2) l
+	| [< (StreamOpen,p1); l = stream_list s; (StreamClose,p2) >] ->
+		mk PStream(l,0) punion(p1,p2)
+	}
+}
+
+function rec pattern_mod_path(name,p,s) {
+	match s {
+	| [< (Dot,_); (Const (Constr n),p); l, n2, p2 = pattern_mod_path n p s >] -> (name :: l , n2 , p2)
+	| [< >] -> ([], name, p)
+	}
+}
+
+function rec stream_list(s) {
+	match s {
+	| [< (Const (Ident v),p1) >] ->
+		match s {
+		| [< l = stream_ident_list s; e = expr s >] -> SExpr(v :: l,e) :: stream_next s
+		| [< >] -> SPattern (PIdent v,p1) :: stream_next s
+		}
+	| [< p = pattern s; l = stream_next s >] -> SPattern p :: l
+	| [< >] -> []
+	}
+}
+
+function rec stream_ident_list(s) {
+	match s {
+	| [< (Comma,_); (Const (Ident v),_); l = stream_ident_list s >] -> v :: l
+	| [< (Binop "=",_) >] -> []
+	}
+}
+
+function rec stream_next(s) {
+	match s {
+	| [< (Semicolon,_); l = stream_list s >] -> l
+	| [< >] -> []
+	}
+}
+
+function rec pattern_list(s) {
+	match s {
+	| [< p = pattern s; l = pattern_list_next s >] -> p :: l
+	| [< >] -> []
+	}
+}
+
+function rec pattern_list_next(s) {
+	match s {
+	| [< (Semicolon,_); l = pattern_list s >] -> l
+	| [< >] -> []
+	}
+}
+
+function rec pattern_tuple(s) {
+	match s {
+	| [< p = pattern s; l = pattern_tuple_next s >] -> p :: l
+	| [< >] -> []
+	}
+}
+
+function rec pattern_tuple_next(s) {
+	match s {
+	| [< (Comma,_); l = pattern_tuple s >] -> l
+	| [< >] -> []
+	}
+}
+
+function rec pattern_record(s) {
+	match s {
+	| [< (Const (Ident name),_); (Binop "=",_); p = pattern s; l = pattern_record s >] -> (name,p) :: l
+	| [< (Semicolon,_); l = pattern_record s >] -> l
+	| [< >] -> []
+	}
+}
+
+function rec pattern_opt(p,s) {
+	match s {
+	| [< p = pattern s >] -> (Some p , snd p)
+	| [< >] -> (None , p)
+	}
+}
+
+function rec when_clause(s) {
+	match s {
+	| [< (Keyword When,_); e = expr s >] -> Some e
+	| [< >] -> None
+	}
+}
+
+function parse(lex) {
+	var last = &(Eof,Lexer.null_pos);
+	function rec next_token() {
+		var t = Lexer.token lex (*Nekoml.Lexer.token);
+		match fst t {
+		| Comment s | CommentLine s ->
+			next_token()
+		| _ ->
+			last := t;
+			Some t
+		}
+	};
+	try {
+		var p = program (stream next_token);
+		mk EBlock(p) Lexer.null_pos
+	} catch {
+		| Stream_error
+		| Stream_matching ->
+			error Unexpected(fst (*last)) snd(*last)
+	}
+}
