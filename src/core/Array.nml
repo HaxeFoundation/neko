@@ -14,7 +14,14 @@ function string( a : 'a array ) : string {
 		s = s + ']';
 		s
 	");
-}
+};
+
+neko("
+	@make = function(a) {
+		$array(a,string,$asize(a));
+	};
+	$exports.@make = @make;
+");
 
 function length( a : 'a array ) : int {
 	neko("a[2]");
