@@ -26,6 +26,8 @@ type ('a,'b) tables {
 	def :  'b t -> 'a;
 }
 
+exception Invalid_rule : string
+
 var bufsize = 4096
 var null_pos = { pmin = -1; pmax = -1; pline = -1; psource = "<null>" };
 
@@ -165,7 +167,7 @@ function token(l,t) : 'a {
 }
 
 function build(rules,def) {
-	var nfa = List.map (function((r,_)) { LexEngine.parse r }) rules;
+	var nfa = List.map (function((r,_)) { try LexEngine.parse r catch { _ -> throw Invalid_rule(r) } }) rules;
 	var cases = List.array (List.map snd rules);
 	{
 		engine = LexEngine.make_tables (LexEngine.determinize (List.array nfa));
