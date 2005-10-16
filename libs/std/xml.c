@@ -29,6 +29,8 @@
 
 DEFINE_KIND(k_xml);
 
+#define ERROR(msg)	xml_error(xml,p,line,msg);
+
 // -------------- parsing --------------------------
 
 typedef enum {
@@ -45,31 +47,48 @@ typedef enum {
 	CHILDS,
 	CLOSE,
 	WAIT_END,
+	WAIT_END_RET,
 	PCDATA,
 	COMMENT
 } STATE;
 
-typedef struct {
-	value fxml;
-	value fpcdata;
-	value fcomment;
-	value fdone;
-} functions;
+extern field id_pcdata;
+extern field id_xml;
+extern field id_done;
+extern field id_comment;
+
+static void xml_error( const char *xml, const char *p, int *line, const char *msg ) {
+	buffer b = alloc_buffer("Xml parse error : ");
+	int l = (int)strlen(p);
+	int nchars = 30;
+	buffer_append(b,msg);
+	buffer_append(b," at line ");
+	val_buffer(b,alloc_int(*line));
+	buffer_append(b," : ");
+	if( p != xml )
+		buffer_append(b,"...");
+	buffer_append_sub(b,p,(l < nchars)?l:nchars);
+	if( l > nchars )
+		buffer_append(b,"...");
+	if( l == 0 )
+		buffer_append(b,"<eof>");
+	bfailure(b);
+}
 
 static bool is_valid_char( int c ) {
 	return ( c >= 'a' && c <= 'z' ) || ( c >= 'A' && c <= 'Z' ) || ( c >= '0' && c <= '9' ) || c == ':' || c == '.' || c == '_' || c == '-';
 }
 
-static value do_parse_xml( const char **lp, functions *f, value parent, const char *parentname ) {
-	STATE state = IGNORE_SPACES;
+static void do_parse_xml( const char *xml, const char **lp, int *line, value callb, const char *parentname ) {
+	STATE state = BEGIN;
 	STATE next = BEGIN;	
 	field aname;
-	value cur;
 	value attribs;
 	value nodename;
 	const char *start;
 	const char *p = *lp;
 	char c = *p;
+	int nsubs = 0;
 	while( true ) {
 		switch( state ) {
 		case IGNORE_SPACES:
@@ -98,9 +117,8 @@ static value do_parse_xml( const char **lp, functions *f, value parent, const ch
 			break;
 		case PCDATA:
 			if( c == '<' ) {
-				if( val_is_null(parent) )
-					return NULL;
-				val_call2(f->fpcdata,parent,copy_string(start,p-start));
+				val_ocall1(callb,id_pcdata,copy_string(start,p-start));
+				nsubs++;
 				state = IGNORE_SPACES;
 				next = BEGIN_NODE;
 			}
@@ -108,12 +126,13 @@ static value do_parse_xml( const char **lp, functions *f, value parent, const ch
 		case BEGIN_NODE:
 			switch( c ) {
 			case '!':
+			case '?':
 				state = COMMENT;
-				start = p + 1;
+				start = p;
 				break;
 			case '/':
-				if( parent == NULL )
-					return NULL;
+				if( parentname == NULL )
+					ERROR("Expected node name");
 				start = p + 1;
 				state = IGNORE_SPACES;
 				next = CLOSE;
@@ -127,7 +146,7 @@ static value do_parse_xml( const char **lp, functions *f, value parent, const ch
 		case TAG_NAME:
 			if( !is_valid_char(c) ) {
 				if( p == start )
-					return NULL;
+					ERROR("Expected node name");
 				nodename = copy_string(start,p-start);
 				attribs = alloc_object(NULL);
 				state = IGNORE_SPACES;
@@ -139,12 +158,13 @@ static value do_parse_xml( const char **lp, functions *f, value parent, const ch
 			switch( c ) {
 			case '/':
 				state = WAIT_END;
-				cur = val_call3(f->fxml,parent,nodename,attribs);
+				nsubs++;
+				val_ocall2(callb,id_xml,nodename,attribs);
 				break;
 			case '>':
-				state = IGNORE_SPACES;
-				next = CHILDS;
-				cur = val_call3(f->fxml,parent,nodename,attribs);
+				state = CHILDS;
+				nsubs++;
+				val_ocall2(callb,id_xml,nodename,attribs);
 				break;
 			default:
 				state = ATTRIB_NAME;
@@ -156,9 +176,11 @@ static value do_parse_xml( const char **lp, functions *f, value parent, const ch
 			if( !is_valid_char(c) ) {
 				value tmp;
 				if( start == p )
-					return NULL;
+					ERROR("Expected attribute name");
 				tmp = copy_string(start,p-start);
 				aname = val_id(val_string(tmp));
+				if( !val_is_null(val_field(attribs,aname)) )
+					ERROR("Duplicate attribute");				
 				state = IGNORE_SPACES;
 				next = EQUALS;
 				continue;
@@ -171,7 +193,7 @@ static value do_parse_xml( const char **lp, functions *f, value parent, const ch
 				next = ATTVAL_BEGIN;
 				break;
 			default:
-				return NULL;
+				ERROR("Expected =");
 			}
 			break;
 		case ATTVAL_BEGIN:
@@ -182,7 +204,7 @@ static value do_parse_xml( const char **lp, functions *f, value parent, const ch
 				start = p;
 				break;
 			default:
-				return NULL;
+				ERROR("Expected \"");
 			}
 			break;
 		case ATTRIB_VAL:
@@ -195,80 +217,91 @@ static value do_parse_xml( const char **lp, functions *f, value parent, const ch
 			break;
 		case CHILDS:
 			*lp = p;
-			while( true ) {
-				value x = do_parse_xml(lp,f,cur,val_string(nodename));
-				if( x == NULL )
-					return NULL;
-				if( x == cur ) {
-					val_call1(f->fdone,cur);
-					return cur;
-				}
-			}
+			do_parse_xml(xml,lp,line,callb,val_string(nodename));
+			p = *lp;
+			start = p;
+			state = BEGIN;
 			break;
 		case WAIT_END:
 			switch( c ) {
 			case '>': 
-				*lp = p+1;
-				val_call1(f->fdone,cur);
-				return cur;
+				val_ocall0(callb,id_done);
+				state = BEGIN;
+				break;
 			default :
-				return NULL;
+				ERROR("Expected >");
+			}
+			break;
+		case WAIT_END_RET:
+			switch( c ) {
+			case '>': 
+				if( nsubs == 0 )
+					val_ocall1(callb,id_pcdata,alloc_string(""));
+				val_ocall0(callb,id_done);
+				*lp = p;
+				return;
+			default :
+				ERROR("Expected >");
 			}
 			break;
 		case CLOSE:
 			if( !is_valid_char(c) ) {
-				if( c != '>' )
-					return NULL;
 				if( start == p )
-					return NULL;
+					ERROR("Expected node name");
 				{
 					value v = copy_string(start,p - start);
-					if( strcmpi(parentname,val_string(v)) != 0 )
-						return NULL;
+					if( strcmpi(parentname,val_string(v)) != 0 ) {
+						buffer b = alloc_buffer("Expected </");
+						buffer_append(b,parentname);
+						buffer_append(b,">");
+						ERROR(val_string(buffer_to_string(b)));
+					}
 				}
-				*lp = p+1;
-				return parent;
+				state = IGNORE_SPACES;
+				next = WAIT_END_RET;
+				continue;
 			}
 			break;
 		case COMMENT:
 			if( c == '>' ) {
-				val_call2(f->fcomment,parent,copy_string(start,p-start));
-				state = IGNORE_SPACES;
-				next = BEGIN;
+				val_ocall1(callb,id_comment,copy_string(start,p-start));
+				state = BEGIN;
 			}
 			break;
 		}
 		c = *++p;
-		if( c == 0 )
-			return NULL;
+		if( c == '\n' )
+			(*line)++;
+		if( c == 0 ) {
+			if( state == BEGIN ) {
+				start = p;
+				state = PCDATA;
+			}
+			if( parentname == NULL && state == PCDATA ) {
+				if( p != start || nsubs == 0 )
+					val_ocall1(callb,id_pcdata,copy_string(start,p-start));
+				return;
+			}
+			ERROR("Unexpected end");
+		}
 	}
 }
 
 // ----------------------------------------------
 
-static value parse_xml( value str, value fxml, value fpcdata, value fcomment, value fdone ) {
+static value parse_xml( value str, value callb ) {
 	const char *p;
-	functions f;
-	value v;
+	int line = 0;
 	val_check(str,string);
-	val_check_function(fxml,3);
-	val_check_function(fpcdata,2);
-	val_check_function(fcomment,2);
-	val_check_function(fdone,1);
-	f.fxml = fxml;
-	f.fpcdata = fpcdata;
-	f.fcomment = fcomment;
-	f.fdone = fdone;
+	val_check(callb,object);
 	p = val_string(str);
 	// skip BOM
 	if( p[0] == (char)0xEF && p[1] == (char)0xBB && p[2] == (char)0xBF )
-		p += 3;
-	v = do_parse_xml(&p,&f,val_null,NULL);
-	if( v == NULL )
-		type_error();
-	return v;
+		p += 3;	
+	do_parse_xml(p,&p,&line,callb,NULL);
+	return val_true;
 }
 
-DEFINE_PRIM(parse_xml,3);
+DEFINE_PRIM(parse_xml,2);
 
 /* ************************************************************************ */
