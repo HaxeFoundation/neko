@@ -43,7 +43,7 @@ val neko : string -> 'a
 
 neko("
 
-	@sprintf = $loader.loadprim('std2@sprintf',2);
+	@sprintf = $loader.loadprim('std@sprintf',2);
 
 	@string = function(x) {
 		// constructor
@@ -149,10 +149,8 @@ neko("
 	$exports.@compare = function(a,b) { @compare(a,b,null) };
 
 	$exports.@aget = function(a,i) {
-		if( i < 0 || i >= a[2] ) {
-			$exports.print($array(a,i));
+		if( i < 0 || i >= a[2] )
 			$exports.invalid_arg('Array.get');
-		}
 		a[0][i]
 	}
 
@@ -169,7 +167,6 @@ neko("
 	}
 	$exports.@cons = @cons;
 	$exports.@empty = @empty;
-
 ");
 
 function magic(x) {
