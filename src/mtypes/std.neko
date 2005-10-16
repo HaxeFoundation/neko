@@ -1,4 +1,3 @@
-
 // ----------------------------------------------------------------------
 // List
 
@@ -428,43 +427,6 @@ Hash.new = function() {
 $exports.Hash = Hash;
 
 // ----------------------------------------------------------------------
-// StringBuf
-
-buffer_alloc = $loader.loadprim("std@buffer_alloc",0);
-buffer_add = $loader.loadprim("std@buffer_add",2);
-buffer_add_sub = $loader.loadprim("std@buffer_add_sub",4);
-buffer_string = $loader.loadprim("std@buffer_string",1);
-
-StringBuf = $new(null);
-
-StringBuf.new = function() {
-	var b = $new(@StringBuf);
-	b.@b = buffer_alloc();
-	return b;
-}
-
-@StringBuf = $new(null);
-@StringBuf.@b = null;
-
-@StringBuf.add = function(s) {
-	buffer_add(this.@b,s);
-}
-
-@StringBuf.addSub = function(s,p,l) {
-	buffer_add_sub(this.@b,s,p,l);
-}
-
-@StringBuf.__string = function() {
-	return buffer_string(this.@b);
-}
-
-@StringBuf.toString = function() {
-	return String.new(this.__string());
-}
-
-$exports.StringBuf = StringBuf;
-
-// ----------------------------------------------------------------------
 // String
 
 string_split = $loader.loadprim("std@string_split",2);
@@ -536,107 +498,73 @@ String.new = function(s) {
 
 $exports.String = String;
 
+// ----------------------------------------------------------------------
+// Int32
+
+Int32 = $new(null);
+
+Int32.of_int = $loader.loadprim("std@int32_new",1);
+Int32.to_int = $loader.loadprim("std@int32_to_int",1);
+Int32.add = $loader.loadprim("std@int32_add",2);
+Int32.sub = $loader.loadprim("std@int32_sub",2);
+Int32.mul = $loader.loadprim("std@int32_mul",2);
+Int32.div = $loader.loadprim("std@int32_div",2);
+Int32.mod = $loader.loadprim("std@int32_mod",2);
+Int32.shl = $loader.loadprim("std@int32_shl",2);
+Int32.shr = $loader.loadprim("std@int32_shr",2);
+Int32.ushr = $loader.loadprim("std@int32_ushr",2);
+Int32.and = $loader.loadprim("std@int32_and",2);
+Int32.xor = $loader.loadprim("std@int32_xor",2);
+Int32.or = $loader.loadprim("std@int32_or",2);
+Int32.neg = $loader.loadprim("std@int32_neg",1);
+Int32.complement = $loader.loadprim("std@int32_complement",1);
+Int32.compare = $loader.loadprim("std@int32_compare",2);
+
+$exports.Int32 = Int32;
 
 // ----------------------------------------------------------------------
-// Date
+// StringBuf
 
-date_new = $loader.loadprim("std@date_new",1);
-date_now = $loader.loadprim("std@date_now",0);
-date_set_hour = $loader.loadprim("std@date_set_hour",4);
-date_set_day = $loader.loadprim("std@date_set_day",4);
-date_get_hour = $loader.loadprim("std@date_get_hour",1);
-date_get_day = $loader.loadprim("std@date_get_day",1);
-date_format = $loader.loadprim("std@date_format",2);
-date_sub = $loader.loadprim("std@date_sub",2);
-date_add = $loader.loadprim("std@date_add",2);
-date_delta = $loader.loadprim("std@date_delta",2);
-date_compare = $loader.loadprim("std@date_compare",2);
-date_set_time = $loader.loadprim("std@date_set_time",2);
-date_get_time = $loader.loadprim("std@date_get_time",1);
+buffer_new = $loader.loadprim("std@buffer_new",0);
+buffer_add = $loader.loadprim("std@buffer_add",2);
+buffer_add_sub = $loader.loadprim("std@buffer_add_sub",4);
+buffer_string = $loader.loadprim("std@buffer_string",1);
 
-Date = $new(null);
+StringBuf = $new(null);
 
-Date.new = function(f) {
-	var o = $new(@Date);
-	o.@d = date_new(f.@s);
-	return o;
+StringBuf.new = function() {
+	var b = $new(@StringBuf);
+	b.@b = buffer_new();
+	return b;
 }
 
-Date.now = function() {
-	var o = $new(@Date);
-	o.@d = date_now();
-	return o;
+@StringBuf = $new(null);
+@StringBuf.@b = null;
+
+@StringBuf.add = function(s) {
+	buffer_add(this.@b,s);
 }
 
-Date.new1 = function(d) {
-	var o = $new(@Date);
-	o.@d = d;
-	return o;
+@StringBuf.addSub = function(s,p,l) {
+	buffer_add_sub(this.@b,s,p,l);
 }
 
-@Date = $new(null);
-@Date.@d = null;
-
-@Date.setTime = function(h,m,s) {
-	date_set_hour(this.@d,h,m,s);
-};
-
-@Date.setDay = function(y,m,d) {
-	date_set_day(this.@d,y,m,d);
+@StringBuf.__string = function() {
+	return buffer_string(this.@b);
 }
 
-@Date.getTime = function() {
-	return date_get_hour(this.@d);
-}
-
-@Date.getDay = function() {
-	return date_get_day(this.@d);
-}
-
-@Date.format = function(fmt) {
-	return String.new(date_format(this.@d,fmt.@s));
-}
-
-@Date.sub = function(d) {
-	return Date.new1(date_sub(this.@d,d.@d));
-}
-
-@Date.add = function(d) {
-	return Date.new1(date_add(this.@d,d.@d));
-}
-
-@Date.delta = function(d) {
-	date_delta(this.@d,d);
-}
-
-@Date.compare = function(d) {
-	return date_compare(this.@d,d.@d);
-}
-
-@Date.toString = function() {
+@StringBuf.toString = function() {
 	return String.new(this.__string());
 }
 
-@Date.__string = function() {
-	return date_format(this.@d,null);
-}
-
-@Date.get_time = function() {
-	return date_get_time(this.@d);
-}
-
-@Date.set_time = function(t) {
-	return date_set_time(this.@d,t);
-}
-
-$exports.Date = Date;
+$exports.StringBuf = StringBuf;
 
 // ----------------------------------------------------------------------
 // Xml
 
-parse_xml = $loader.loadprim("std@parse_xml",3);
+parse_xml = $loader.loadprim("std@parse_xml",2);
 
-fxml = function(parent,name,att) {
+fxml = function(name,att) {
 	var o = $new(@Xml);
 	var f = $objfields(att);
 
@@ -647,75 +575,143 @@ fxml = function(parent,name,att) {
 		i = i + 1;
 	}
 	o.att = att;
-	o.text = String.new("");
 	o.node = String.new(name);
-	o.@childs = List.new();
-	parent.@childs.add(o);
-	return o;
+	o.children = List.new();
+	o.parent = this.cur;
+	this.cur.children.add(o);
+	this.cur = o;
 }
 
-fpcdata = function(parent,data) {
-	parent.text = String.new(data);
+fpcdata = function(text) {
+	var o = $new(@Xml);
+	o.text = String.new(text);
+	o.parent = this.cur;
+	this.cur.children.add(o);
+}
+
+fcomment = function(comment) {
+}
+
+fdone = function() {
+	this.cur = this.cur.parent;
 }
 
 Xml = $new(null);
 
 Xml.new = function(s) {
-	return parse_xml(s.@s,fxml,fpcdata);
+	var doc = $new(@Xml);
+	doc.children = List.new();
+	parse_xml(s.@s,{
+		cur => doc,
+		xml => fxml,
+		pcdata => fpcdata,
+		comment => fcomment,
+		done => fdone
+	});
+	return doc;
 }
 
 @Xml = $new(null);
 @Xml.att = null;
+@Xml.parent = null;
 @Xml.text = null;
 @Xml.node = null;
-@Xml.@childs = null;
-@Xml.childs = function() {
-	return this.@childs;
+@Xml.children = null;
+
+@Xml.get = function(name) {
+	if( this.att == null )
+		$throw(String.new("Xml.get"));
+	return $objget(this.att,$hash(name.@s));
+}
+
+@Xml.set = function(name,val) {
+	if( this.att == null )
+		$throw(String.new("Xml.set"));
+	return $objset(this.att,$hash(name.@s),val);
+}
+
+@Xml.nodes = function() {
+	if( this.children == null )
+		$throw(String.new("Xml.nodes"));
+	var s = this.children.h;
+	var l = List.new();
+	while( s != null ) {
+		var x = s[0];
+		if( x.node != null )
+			l.add(x);
+		s = s[1];
+	}
+	return l;
+}
+
+@Xml.firstChild = function() {
+	return this.children.first()
+}
+
+@Xml.firstNode = function() {
+	if( this.node != null )
+		return this;
+	var s = this.children.h;
+	while( s != null ) {
+		if( s[0].node != null )
+			return s[0];
+		s = s[1];
+	}
+	return null;
+}
+
+@Xml.toString = function() {
+	return String.new(this.__string());
+}
+
+xml_string_rec = function(x,b) {
+	if( x.text != null ) {
+		buffer_add(b,x.text);
+		return;
+	}
+	var s = x.children.h;
+	if( x.node != null ) {
+		buffer_add(b,"<");
+		buffer_add(b,x.node);
+		var a = x.att;
+		var f = $objfields(a);
+		var n = $asize(f);
+		var i = 0;
+		while( i < n ) {
+			buffer_add(b," ");
+			buffer_add(b,$field(f[i]));
+			buffer_add(b,"=\"");
+			buffer_add(b,$objget(a,f[i]));
+			buffer_add(b,"\"");
+			i = i + 1;
+		}
+		if( s == null ) {
+			buffer_add(b,"/>");
+			return;
+		}
+		buffer_add(b,">");
+		while( s != null ) {
+			xml_string_rec(s[0],b);
+			s = s[1];
+		}
+		buffer_add(b,"</");
+		buffer_add(b,x.node);
+		buffer_add(b,">");
+		return;
+	}
+	while( s != null ) {
+		xml_string_rec(s[0],b);
+		s = s[1];
+	}
+}
+
+@Xml.__string = function() {
+	var b = buffer_new();
+	xml_string_rec(this,b);
+	return buffer_string(b);
 }
 
 $exports.Xml = Xml;
-
-// ----------------------------------------------------------------------
-// Socket
-
-socket_new = $loader.loadprim("std@socket_new",0);
-socket_connect = $loader.loadprim("std@socket_connect",3);
-socket_send = $loader.loadprim("std@socket_send",2);
-socket_receive = $loader.loadprim("std@socket_receive",1);
-socket_close = $loader.loadprim("std@socket_close",1);
-socket_set_timeout = $loader.loadprim("std@socket_set_timeout",2);
-
-Socket = $new(null);
-Socket.new = function() {
-	var o = $new(@Socket);
-	o.@s = socket_new();
-	return o;
-}
-
-@Socket = $new(null);
-@Socket.@s = null;
-
-@Socket.connect = function(host,port) {
-	return socket_connect(this.@s,host.@s,port);
-}
-
-@Socket.send = function(data) {
-	return socket_send(this.@s,data.@s);
-}
-
-@Socket.receive = function() {
-	return String.new(socket_receive(this.@s));
-}
-
-@Socket.close = function() {
-	return socket_close(this.@s);
-}
-
-@Socket.set_timeout = function(t) {
-	return socket_set_timeout(this.@s,t);
-}
-
-$exports.Socket = Socket;
 
 // ----------------------------------------------------------------------
 // Math
@@ -740,84 +736,6 @@ Math.round = $loader.loadprim("std@math_round",1);
 Math.PI = $loader.loadprim("std@math_pi",0)();
 
 $exports.Math = Math;
-
-// ----------------------------------------------------------------------
-// File
-
-getcwd = $new(null);
-getcwd.ref = $loader.loadprim("std@get_cwd",0);
-$exports.getcwd = getcwd;
-
-file_new = $loader.loadprim("std@file_new",2);
-file_contents = $loader.loadprim("std@file_contents",1);
-file_open = $loader.loadprim("std@file_open",2);
-file_close = $loader.loadprim("std@file_close",1);
-file_exists = $loader.loadprim("std@file_exists",1);
-file_delete = $loader.loadprim("std@file_delete",1);
-file_read = $loader.loadprim("std@file_read",2);
-file_write = $loader.loadprim("std@file_write",2);
-file_path = $loader.loadprim("std@file_path",1);
-
-File = $new(null);
-
-File.new = function(name) {
-	var o = $new(@File);
-	o.@f = file_new(getcwd.ref(),name.@s);
-	return o;
-}
-
-@File = $new(null);
-@File.@f = null;
-
-@File.contents = function() {
-	return String.new(file_contents(this.@f));
-}
-
-@File.create = function() {
-	return file_open(this.@f,"wb");
-}
-
-@File.open = function() {
-	return file_open(this.@f,"rb");
-}
-
-@File.append = function() {
-	return file_open(this.@f,"ab");
-}
-
-@File.close = function() {
-	return file_close(this.@f);
-}
-
-@File.exists = function() {
-	return file_exists(this.@f);
-}
-
-@File.delete = function() {
-	return file_delete(this.@f);
-}
-
-@File.read = function(n) {
-	return String.new(file_read(this.@f,n));
-}
-
-@File.write = function(s) {
-	return file_write(this.@f,s.@s);
-}
-
-@File.toString = function() {
-	return String.new(this.__string());
-}
-
-@File.__string = function() {
-	return "#file:"+file_path(this.@f);
-}
-
-@File.fullPath = function() {
-	return String.new(file_path(this.@f));
-}
-
-$exports.File = File;
 
 // ----------------------------------------------------------------------
 // Random
@@ -851,17 +769,13 @@ Random.new = function() {
 	return random_float(this.@r);
 }
 
-@Random.random = @Random.int;
-
 $exports.Random = Random;
 
 // ----------------------------------------------------------------------
 // Std
 
-set_locale = $loader.loadprim("std@set_locale",1);
 serialize = $loader.loadprim("std@serialize",1);
 unserialize = $loader.loadprim("std@unserialize",2);
-sys_command = $loader.loadprim("std@sys_command",1);
 
 Std = $new(null);
 Std.print = $print;
@@ -906,18 +820,6 @@ Std.random = function(m) {
 
 Std.rnd = function() {
 	return random_float(std_rnd);
-}
-
-Std.setLocale = function(l) {
-	return set_locale(l.@s);
-}
-
-Std.system = function(cmd) {
-	return sys_command(cmd.@s);
-}
-
-Std.abort = function() {
-	$throw("aborted");
 }
 
 Std.serialize = function(o) {

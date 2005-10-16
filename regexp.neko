@@ -1,5 +1,5 @@
 
-Std = $loader.loadmodule("std",$loader);
+Std = $loader.loadmodule("mtypes/std",$loader);
 String = Std.String;
 
 regexp_new = $loader.loadprim("regexp@regexp_new",1);

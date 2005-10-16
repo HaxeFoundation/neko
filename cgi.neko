@@ -1,42 +1,51 @@
-std = $loader.loadmodule("std",$loader);
+std = $loader.loadmodule("mtypes/std",$loader);
 String = std.String;
 Hash = std.Hash;
 
-set_main = $loader.loadprim("mod_neko@cgi_set_main",1);
+get_env = $loader.loadprim("std@get_env",1);
 
-std.Std.setMain = function(f) {
-	if( f == null )
-		set_main(null);
-	else
-		set_main(function() {
-			try {
-				f();
-			} catch e {
-				if( e != "aborted" ) $throw(e);
-			}
-		});
+if( get_env("MOD_NEKO") != null ) {
+
+	set_main = $loader.loadprim("mod_neko@cgi_set_main",1);
+	get_host_name = $loader.loadprim("mod_neko@get_host_name",0);
+	get_client_ip = $loader.loadprim("mod_neko@get_client_ip",0);
+	get_content_type = $loader.loadprim("mod_neko@get_content_type",0);
+	set_content_type = $loader.loadprim("mod_neko@set_content_type",1);
+	get_uri = $loader.loadprim("mod_neko@get_uri",0);
+	redirect = $loader.loadprim("mod_neko@redirect",1);
+	set_header = $loader.loadprim("mod_neko@set_header",2);
+	get_client_header = $loader.loadprim("mod_neko@get_client_header",1);
+	get_params_string = $loader.loadprim("mod_neko@get_params_string",0);
+	get_post_data = $loader.loadprim("mod_neko@get_post_data",0);
+	get_params = $loader.loadprim("mod_neko@get_params",0);
+	get_cookies = $loader.loadprim("mod_neko@get_cookies",0);
+	set_cookie = $loader.loadprim("mod_neko@set_cookie",2);
+	url_encode = $loader.loadprim("mod_neko@url_encode",1);
+	url_decode = $loader.loadprim("mod_neko@url_decode",1);
+	get_cwd = $loader.loadprim("mod_neko@cgi_get_cwd",0);
+
+	// change local dir
+	set_cwd = $loader.loadprim("std@set_cwd",1);
+	set_cwd(get_cwd());
+
+} else {
+
+	var content_type = $array("text/html");
+
+	get_host_name = function() { return "localhost" };
+	get_client_ip = function() { return "127.0.0.1" };
+	get_content_type = function() { return content_type[0] };
+	set_content_type = function(v) { content_type[0] = v };
+
+	$throw("module Cgi without Mod_neko loaded is not supported");
+
 }
 
-get_host_name = $loader.loadprim("mod_neko@get_host_name",0);
-get_client_ip = $loader.loadprim("mod_neko@get_client_ip",0);
-get_content_type = $loader.loadprim("mod_neko@get_content_type",0);
-set_content_type = $loader.loadprim("mod_neko@set_content_type",1);
-get_uri = $loader.loadprim("mod_neko@get_uri",0);
-redirect = $loader.loadprim("mod_neko@redirect",1);
-set_header = $loader.loadprim("mod_neko@set_header",2);
-get_client_header = $loader.loadprim("mod_neko@get_client_header",1);
-get_params_string = $loader.loadprim("mod_neko@get_params_string",0);
-get_post_data = $loader.loadprim("mod_neko@get_post_data",0);
-get_params = $loader.loadprim("mod_neko@get_params",0);
-get_cookies = $loader.loadprim("mod_neko@get_cookies",0);
-set_cookie = $loader.loadprim("mod_neko@set_cookie",2);
-
-url_encode = $loader.loadprim("mod_neko@url_encode",1);
-url_decode = $loader.loadprim("mod_neko@url_decode",1);
-
-std.getcwd.ref = $loader.loadprim("mod_neko@cgi_get_cwd",0);
-
 Cgi = $new(null);
+
+Cgi.getCwd = get_cwd;
+
+Cgi.setMain = set_main;
 
 Cgi.getHostName = function() {
 	return String.new(get_host_name());

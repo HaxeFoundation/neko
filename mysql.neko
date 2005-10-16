@@ -1,8 +1,9 @@
-std = $loader.loadmodule("std",$loader);
+std = $loader.loadmodule("mtypes/std",$loader);
+sys = $loader.loadmodule("mtypes/sys",$loader);
 
-Std = std.Std;
 String = std.String;
 List = std.List;
+Date = sys.Date;
 
 sql_connect = $loader.loadprim("mysql@connect",1);
 sql_select_db = $loader.loadprim("mysql@selectDB",2);
@@ -16,6 +17,7 @@ result_next = $loader.loadprim("mysql@result_next",1);
 result_get = $loader.loadprim("mysql@result_get",2);
 result_get_int = $loader.loadprim("mysql@result_get_int",2);
 result_get_float = $loader.loadprim("mysql@result_get_float",2);
+result_set_conv_date = $loader.loadprim("mysql@result_set_conv_date",2);
 
 Sql = $new(null);
 
@@ -43,8 +45,7 @@ Sql.connect = function(params) {
 
 @Connection.request = function(s) {
 	var r = sql_request(this.@c,s.@s);
-	if( r == null )
-		return null;
+	result_set_conv_date(r,function(d) { return Date.new1(d) });
 	var o = $new(@Result);
 	o.@r = r;
 	return o;
