@@ -33,7 +33,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="../../bin/neko.lib ws2_32.lib"
-				OutputFile="../../bin/std2.ndll"
+				OutputFile="../../bin/std.ndll"
 				LinkIncremental="2"
 				GenerateDebugInformation="TRUE"
 				ProgramDatabaseFile="$(OutDir)/std.pdb"
@@ -82,7 +82,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="../../bin/neko.lib ws2_32.lib msvcrt60.lib"
-				OutputFile="../../bin/std2.ndll"
+				OutputFile="../../bin/std.ndll"
 				LinkIncremental="1"
 				IgnoreDefaultLibraryNames="MSVCRT"
 				GenerateDebugInformation="TRUE"
@@ -148,6 +148,9 @@
 		</File>
 		<File
 			RelativePath=".\socket.c">
+		</File>
+		<File
+			RelativePath=".\sys.c">
 		</File>
 		<File
 			RelativePath=".\xml.c">
