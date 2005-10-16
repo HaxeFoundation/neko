@@ -811,6 +811,19 @@ Std.fields = function(o) {
 
 Std.setField = $objset;
 Std.field = $objget;
+Std.haveField = $objfield;
+Std.typeof = $typeof;
+
+Std.types = {
+	tnull => $tnull,
+	tint => $tint,
+	tfloat => $tfloat,
+	tbool => $tbool,
+	tobject => $tobject,
+	tarray => $tarray,
+	tfunction => $tfunction,
+	tabstract => $tabstract
+};
 
 std_rnd = random_new();
 
