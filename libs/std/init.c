@@ -27,6 +27,10 @@ field id_y;
 field id_d;
 field id_module;
 field id_loadmodule;
+field id_done;
+field id_comment;
+field id_xml;
+field id_pcdata;
 
 DEFINE_ENTRY_POINT(std_main);
 
@@ -38,6 +42,10 @@ void std_main() {
 	id_d = val_id("d");
 	id_loadmodule = val_id("loadmodule");
 	id_module = val_id("__module");
+	id_done = val_id("done");
+	id_comment = val_id("comment");
+	id_xml = val_id("xml");
+	id_pcdata = val_id("pcdata");
 }
 
 /* ************************************************************************ */
