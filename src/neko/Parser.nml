@@ -17,7 +17,7 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 open Lexer;
-open Ast;
+open Neko.Ast;
 
 type error_msg {
 	Unexpected : token;
@@ -222,7 +222,7 @@ function rec variables_next(sp,s) {
 function parse(lexer) {
 	var last = &(Eof,null_pos);
 	function rec next_token() {
-		var t , p = Lexer.token lexer (*Lex.expr);
+		var t , p = Lexer.token lexer (*Neko.Lexer.expr);
 		match t {
 		| Comment s | CommentLine s -> 
 			next_token()

@@ -186,32 +186,6 @@ function iter(f,(e,p)) {
 	}
 }
 
-function is_printable(c) {
-	c >= '\032' && c <= '\126'
-}
-
-function escape(s) {
-	var b = Buffer.create();
-	function rec loop(i) {
-		if i == String.length s then
-			Buffer.string b
-		else {
-			match String.get s i {
-			| '\n' -> Buffer.add b "\\n"
-			| '\t' -> Buffer.add b "\\t"
-			| '\r' -> Buffer.add b "\\r"
-			| '\\' -> Buffer.add b "\\\\"
-			| '"' -> Buffer.add b "\\\""
-			| c when !is_printable c -> Buffer.add b (sprintf "\\%.3d" (ord c))
-			| c -> Buffer.add_char b c
-			};
-			loop (i+1)
-		}
-	};
-	loop(0);
-}
-
-
 function s_constant(x) {
 	match x {
 	| True -> "true"
@@ -220,7 +194,7 @@ function s_constant(x) {
 	| This -> "this"
 	| Int i -> string i
 	| Float s -> s
-	| String s -> "\"" + escape s + "\""
+	| String s -> "\"" + String.escape s + "\""
 	| Builtin s -> "$" + s
 	| Ident s -> s
 	}

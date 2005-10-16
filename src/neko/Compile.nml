@@ -17,8 +17,8 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-open Ast;
-open Bytecode;
+open Neko.Ast;
+open Neko.Bytecode;
 
 type label {
 	lname : string;
@@ -197,7 +197,7 @@ function rec scan_labels(ctx,supported,e) {
 		ctx.ntraps := ntraps
 	| EBlock _ ->
 		var old = ctx.stack;
-		Ast.iter (scan_labels ctx supported) e;
+		Neko.Ast.iter (scan_labels ctx supported) e;
 		ctx.stack := old
 	| EVars l ->
 		List.iter (function((_,e)) {
@@ -247,7 +247,7 @@ function rec scan_labels(ctx,supported,e) {
 		scan_labels ctx supported e1;
 		ctx.stack := ctx.stack - (if ext then 2 else 1);
 	| ECall ((EConst (Builtin x),_),el) when x != "array" && x != "apply" ->
-		Ast.iter (scan_labels ctx false) e
+		Neko.Ast.iter (scan_labels ctx false) e
 	| ECall(_,el) ->
 		List.iter (function(e) {
 			scan_labels ctx supported e;
@@ -268,12 +268,12 @@ function rec scan_labels(ctx,supported,e) {
 	| EWhile _
 	| EParenthesis _
 	| ENext _ ->
-		Ast.iter (scan_labels ctx supported) e
+		Neko.Ast.iter (scan_labels ctx supported) e
 	| EBinop (_,_,_)
 	| EArray _
 	| EField _ 
 		->
-		Ast.iter (scan_labels ctx false) e
+		Neko.Ast.iter (scan_labels ctx false) e
 	}
 }
 
