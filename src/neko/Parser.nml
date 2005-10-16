@@ -222,19 +222,20 @@ function rec variables_next(sp,s) {
 function parse(lexer) {
 	var last = &(Eof,null_pos);
 	function rec next_token() {
-		var t , p = Lexer.token lexer (*Neko.Lexer.expr);
-		match t {
+		var t = Lexer.token lexer (*Neko.Lexer.expr);
+		match fst t {
 		| Comment s | CommentLine s -> 
 			next_token()
 		| _ ->
-			last := (t,p);
-			(t,p)
+			last := t;
+			t
 		}
 	}
 	try {
 		var p = program (stream next_token);		
 		(EBlock p,null_pos)
 	} catch {
+		| Stream_matching
 		| Stream_error -> error Unexpected(fst(*last)) snd(*last)
 	}
 }
