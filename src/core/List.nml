@@ -1,4 +1,14 @@
 
+neko("
+	@make = function(s) {
+		if( s == null )
+			return @Core.@empty;
+		return @Core.@cons(s[0],@make(s[1]));
+	}
+
+	$exports.@make = @make;
+");
+
 function rec length(l) {
 	match l {
 	| [] -> 0
