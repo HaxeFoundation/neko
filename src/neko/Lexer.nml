@@ -16,7 +16,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
-open Ast;
+open Neko.Ast;
 
 type error_msg {
 	Invalid_character : char;
@@ -127,7 +127,7 @@ expr := Lexer.build [
 	("//[^\r\n]*\n?", function(l) {
 		var s = Lexer.current l;
 		var len = String.length s;
-		var n = (if String.get s (len - 1) == '\r' then 3 else 2);			
+		var n = (if String.get s (len - 1) == '\r' then 3 else 2);
 		mk l CommentLine(String.sub s 0 (len - n))
 	});
 	(binop + binop + "?",function(l) { mk l (Binop (Lexer.current l)) });
