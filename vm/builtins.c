@@ -539,6 +539,10 @@ static value builtin_pcompare( value a, value b ) {
 		return alloc_int(0);
 }
 
+static value builtin_args() {
+	return NEKO_VM()->args;
+}
+
 #define BUILTIN(name,nargs)	\
 	alloc_field(neko_builtins[0],val_id(#name),alloc_function(builtin_##name,nargs,"$" #name));	
 
@@ -547,6 +551,7 @@ void neko_init_builtins() {
 	neko_builtins[0] = alloc_object(NULL);
 
 	BUILTIN(print,VAR_ARGS);
+	BUILTIN(args,0);
 	
 	BUILTIN(array,VAR_ARGS);
 	BUILTIN(amake,1);

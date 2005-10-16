@@ -118,6 +118,8 @@ static int neko_handler_rec( request_rec *r ) {
 
 	params.custom = &ctx;
 	params.printer = request_print;
+	params.args = &r->args;
+	params.nargs = 1;
 
 	vm = neko_vm_alloc(&params);
 	neko_vm_select(vm);

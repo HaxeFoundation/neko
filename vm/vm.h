@@ -40,8 +40,9 @@ struct _neko_vm {
 	value this;
 	printer print;
 	jmp_buf start;
-	char tmp[100];
+	value args;
 	void *custom;
+	char tmp[100];
 };
 
 #ifndef neko_vm_def

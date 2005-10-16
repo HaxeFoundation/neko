@@ -45,10 +45,15 @@ static int execute( neko_vm *vm, char *file ) {
 
 int main( int argc, char *argv[] ) {
 	neko_vm *vm;
+	neko_params p;
 	int r;
 	_CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_DELAY_FREE_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
 	neko_global_init();
-	vm = neko_vm_alloc(NULL);
+	p.args = argv + 1;
+	p.nargs = argc - 1;
+	p.custom = NULL;
+	p.printer = NULL;
+	vm = neko_vm_alloc(&p);
 	if( argc == 1 ) {
 		printf("Usage : nekovm.exe <file>\n");
 		r = 1;
