@@ -3,17 +3,17 @@ type buffer;
 
 neko("
 
-	@buffer_alloc = $loader.loadprim('std2@buffer_alloc',0);
-	@buffer_add = $loader.loadprim('std2@buffer_add',2);
-	@buffer_add_sub = $loader.loadprim('std2@buffer_add_sub',4);
-	@buffer_add_char = $loader.loadprim('std2@buffer_add_char',2);
-	@buffer_string = $loader.loadprim('std2@buffer_string',1);
-	@buffer_reset = $loader.loadprim('std2@buffer_reset',1);
+	@buffer_new = $loader.loadprim('std@buffer_new',0);
+	@buffer_add = $loader.loadprim('std@buffer_add',2);
+	@buffer_add_sub = $loader.loadprim('std@buffer_add_sub',4);
+	@buffer_add_char = $loader.loadprim('std@buffer_add_char',2);
+	@buffer_string = $loader.loadprim('std@buffer_string',1);
+	@buffer_reset = $loader.loadprim('std@buffer_reset',1);
 
 ");
 
 function create() : buffer {
-	neko("@buffer_alloc()");
+	neko("@buffer_new()");
 }
 
 function add(b:buffer,x : 'a) : void {
