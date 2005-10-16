@@ -137,9 +137,23 @@ static int neko_handler_rec( request_rec *r ) {
 
 	if( exc != NULL ) {
 		buffer b = alloc_buffer(NULL);
+		value v;
+		const char *p, *start;
 		val_buffer(b,exc);
 		send_headers(&ctx);
-		ap_rprintf(r,"Uncaught exception - %s\n",val_string(buffer_to_string(b)));
+		v = buffer_to_string(b);
+		p = val_string(v);
+		start = p;
+		ap_rprintf(r,"Uncaught exception - ");
+		while( *p ) {
+			if( *p == '<' || *p == '>' ) {
+				ap_rwrite(start,p - start,r);
+				ap_rwrite((*p == '<')?"&lt;":"&gt;",4, r);
+				start = p + 1;
+			}
+			p++;
+		}
+		ap_rwrite(start,p - start,r);
 		return OK;
 	}
 
@@ -155,6 +169,7 @@ static int neko_handler( request_rec *r ) {
 
 static void neko_init(server_rec *s, pool *p) {
 	cache_root = context_new();
+	putenv("MOD_NEKO=1");
 	neko_global_init();
 }
 
