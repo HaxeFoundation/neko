@@ -545,6 +545,9 @@ and type_expr ctx (e,p) =
 		mk (TBlock (List.rev el)) t p
 	| EApply (e,el) ->
 		type_expr ctx (ECall (e,el),p)
+	| ECall ((EConst (Ident "open"),_),[EConst (Module (m,Constr modname)),p]) ->
+		ctx.opens <- get_module ctx (m @ [modname]) p :: ctx.opens;
+		mk (TConst TVoid) t_void p
 	| ECall ((EConst (Ident "open"),_),[EConst (Constr modname),p]) ->
 		ctx.opens <- get_module ctx [modname] p :: ctx.opens;
 		mk (TConst TVoid) t_void p
