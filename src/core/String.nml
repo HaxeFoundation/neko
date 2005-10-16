@@ -1,4 +1,8 @@
 
+neko("
+	 @string_split = $loader.loadprim('std@string_split',2);
+");
+
 function make(size : int, c : char) : string {
 	neko("
 		var s = $smake(size);
@@ -34,3 +38,27 @@ function sub(s : string, p : int, l : int ) : string {
 	s
 }
 
+var list_depency = List.iter
+
+function split( s : string, sub : string ) : string list {
+	neko("
+		var l = @string_split(s,sub);
+		return @List.@make(l);
+	");
+}
+
+function concat( sep : string, s : string list ) : string {
+	var b = Buffer.create();
+	function rec loop(l) {
+		match l {
+		| [] -> ()
+		| [x] -> Buffer.add b x
+		| x :: l -> 
+			Buffer.add b x;
+			Buffer.add b sep;
+			loop l
+		}
+	};
+	loop(s);
+	Buffer.string b
+}
