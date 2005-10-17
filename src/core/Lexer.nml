@@ -27,7 +27,8 @@ type pos {
 type 'a t {
 	mutable data : 'a;
 	mutable current : string;
-	buffer : string;
+	mutable buffer : string;
+	mutable bsize : int;
 	mutable bin : int;
 	mutable bpos : int;	
 	mutable cin : int;
@@ -47,7 +48,6 @@ type ('a,'b) tables {
 
 exception Invalid_rule : string
 
-var bufsize = 4096
 var null_pos = { pmin = -1; pmax = -1; pline = -1; psource = "<null>" };
 
 function punion(p,p2) {
@@ -60,11 +60,13 @@ function punion(p,p2) {
 }
 
 function create(data) {
+	var bufsize = 4096;
 	{
 		data = data;
 		carriage = false;
 		current = "";
 		buffer = String.create bufsize;
+		bsize = bufsize;
 		bin = 0;
 		bpos = 0;
 		cin = 0;
@@ -112,13 +114,21 @@ function current(l) : string {
 
 function read(l) : char {
 	if l.bin == 0 then {
+		if l.cpos == 0 then {
+			var buf = String.create (l.bsize * 2);
+			String.blit buf l.bsize l.buffer 0 l.bsize;
+			l.cpos := l.cpos + l.bsize;
+			l.bpos := l.bpos + l.bsize;
+			l.buffer := buf;
+			l.bsize := l.bsize * 2;
+		}
 		var delta = l.bpos - l.cpos;
 		String.blit l.buffer 0 l.buffer l.cpos delta;
-		var k = IO.input l.input l.buffer delta (bufsize - delta);		
+		var k = IO.input l.input l.buffer delta (l.bsize - delta);		
 		l.bpos := delta;
 		l.cpos := 0;
 		l.bin := l.bin + k;
-		l.cin := l.cin + k;
+		l.cin := l.cin + k;		
 	};
 	var c = String.get l.buffer l.bpos;
 	l.bpos := l.bpos + 1;
@@ -150,35 +160,44 @@ function char(l) : char option {
 function token(l,t) : 'a {
 	var tbl = fst t.engine;
 	var exits = snd t.engine;
+	var last = &(0,-1,-1);
 	function rec loop(n,k) {
-		var res = neko("tbl[0][k][0][read(l)]");
-		if res == -1 then
-			(n , exits.[k])
-		else {
-			match loop (n+1) res {
-			| (_,-1) -> (n , exits.[k])
-			| e -> e
-			}
-		}	
+		var c = read(l);
+		var res = neko("tbl[0][k][0][c]");
+		var e = exits.[k];
+		if e != -1 then last := (n,e,res);
+		if res == -1 then throw Exit;
+		loop (n+1) res
 	};	
-	var k = try {
-		var n , k = loop 0 0;
-		l.cin := l.cin - n;
-		l.bin := l.cin;
-		l.current := String.sub l.buffer l.cpos n;
-		l.cpos := l.cpos + n;
-		l.bpos := l.cpos;
-		var i = &0;
-		while *i < n {
-			inc_line l (String.get l.current (*i));
-			i := *i + 1;
-		}
-		k
-	} catch {
-		IO.Eof ->
+	function process() {
+		var n , k, _ = *last;
+		if k == -1 then {
 			l.current := "";
-			-1
+			-1;
+		} else {
+			l.cin := l.cin - n;
+			l.bin := l.cin;
+			l.current := String.sub l.buffer l.cpos n;
+			l.cpos := l.cpos + n;
+			l.bpos := l.cpos;
+			var i = &0;
+			while *i < n {
+				inc_line l (String.get l.current (*i));
+				i := *i + 1;
+			}
+			k
+		}
 	};
+	var k = try {
+		loop 0 0;
+		assert();
+	} catch {
+		| IO.Eof ->
+			var n , _ , res = *last;
+			if res != -1 then last := (n+1,exits.[res],-1);
+			process();
+		| Exit -> process()
+	}
 	if k == -1 then
 		t.def(l)
 	else
