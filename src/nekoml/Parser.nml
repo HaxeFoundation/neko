@@ -16,7 +16,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
- 
+
 open Nekoml.Ast
 
 type error_msg {
@@ -126,10 +126,10 @@ function rec program(s) {
 
 function rec expr(s) {
 	match s {
-	| [< (BraceOpen,p1); e = block1 s >] ->
+	| [< (BraceOpen,p1); e = block1 s; (BraceClose,p2) >] -> 
 		match s {
 		| [< (BraceClose,p2) >] -> mk e punion(p1,p2)
-		| [< >] -> unclosed "{" p1
+		| [< (Eof,_) >] -> unclosed "{" p1
 		}
 	| [< (Keyword Var,p1); (Const (Ident name),_); t = type_opt s; l = vars s; e = expr s >] ->
 		mk EVar((name,t) :: l,e) punion(p1,pos e)
@@ -147,17 +147,17 @@ function rec expr(s) {
 	| [< (Keyword Match,p1); e = expr s; (BraceOpen,po); pl = patterns_begin s >] ->
 		match s {
 		| [< (BraceClose,pe) >] -> mk EMatch(e,pl) punion(p1,pe)
-		| [< >] -> unclosed "{" po
+		| [< (Eof,_) >] -> unclosed "{" po
 		}
 	| [< (Keyword Try,p1); b = block s; (Keyword Catch,p2); (BraceOpen,po); pl = patterns_begin s >] ->
 		match s {
 		| [< (BraceClose,pe); >] -> mk ETry((EBlock b,punion p1 p2),pl) punion(p1,pe)
-		| [< >] -> unclosed "{" po
+		| [< (Eof,_) >] -> unclosed "{" po
 		}
 	| [< (Keyword While,p1); e = expr s; (BraceOpen,po); b = block s >] ->
 		match s {
 		| [< (BraceClose,pe) >] -> mk EWhile(e,(EBlock b,punion po pe)) punion(po,pe)
-		| [< >] -> unclosed "{" po
+		| [< (Eof,_) >] -> unclosed "{" po
 		}
 	| [< e = expr_short s >] ->
 		e
@@ -169,7 +169,7 @@ function rec expr_short(s) {
 	| [< (ParentOpen _,p1); pl = parameters s >] ->
 		match s {
 		| [< (ParentClose,p2) >] -> expr_next (ETupleDecl pl,punion p1 p2) s
-		| [< >] -> unclosed "(" p1
+		| [< (Eof,_) >] -> unclosed "(" p1
 		}
 //	| [< (Binop op,p) when is_unop op; e = expr >] ->
 //		expr_next (make_unop op e p) s
@@ -189,7 +189,7 @@ function rec expr_next(e,s) {
 	| [< (ParentOpen false,po); pl = parameters s >] ->
 		match s {
 		| [< (ParentClose,p) >] -> expr_next (ECall e pl,punion (pos e) p) s
-		| [< >] -> unclosed "(" po
+		| [< (Eof,_) >] -> unclosed "(" po
 		}
 	| [< (Dot,_) >] ->
 		match s {
@@ -197,7 +197,7 @@ function rec expr_next(e,s) {
 		| [< (BracketOpen,po); e2 = expr s >] ->
 			match s {
 			| [< (BracketClose,p) >] -> expr_next (EArray e e2,punion (pos e) p) s
-			| [< >] -> unclosed "[" po
+			| [< (Eof,_) >] -> unclosed "[" po
 			}
 		}
 	| [< (Binop op,_); e2 = expr s >] ->
@@ -219,7 +219,7 @@ function rec expr_next(e,s) {
 
 function rec expr_constr(n,p,s) {
 	match s {
-	| [< (Dot,_); e , p2 = expr_constr2 s >] -> 
+	| [< (Dot,_); e , p2 = expr_constr2 s >] ->
 		match e {
 		| EConst ((Ident _) as c)
 		| EConst ((Constr _) as c) -> mk EConst(Module [n] c) punion(p,p2)
@@ -229,7 +229,7 @@ function rec expr_constr(n,p,s) {
 	| [< >] -> mk EConst(Constr n) p
 	}
 }
-		
+
 function rec expr_constr2(s) {
 	match s {
 	| [< (Const (Ident n),p) >] -> mk EConst(Ident n) p
@@ -327,7 +327,7 @@ function rec type_path(s) {
 	match s {
 	| [< (Const (Ident tname),p) >] ->
 		type_path_next EType(None,[],tname) p s
-	| [< (Const (Constr m),p); (Dot,_); l = type_path_mod s; (Const (Ident tname),_) >] -> 
+	| [< (Const (Constr m),p); (Dot,_); l = type_path_mod s; (Const (Ident tname),_) >] ->
 		type_path_next EType(None,m :: l,tname) p s
 	| [< (Quote,_); (Const (Ident a),p) >] ->
 		type_path_next (EPoly a) p s
@@ -406,7 +406,7 @@ function rec record_declaration(mut,s) {
 	match s {
 	| [< (BraceClose,p) >] -> mk [] p
 	| [< (Const (Ident "mutable"),_); l = record_declaration true s >] -> l
-	| [< (Semicolon,_); l = record_declaration false s >] -> l 
+	| [< (Semicolon,_); l = record_declaration false s >] -> l
 	| [< (Const (Ident name),_); (Binop ":",_); t , _ = type_path s; l , p = record_declaration false s >] ->
 		mk ((name,mut,t) :: l) p
 	}
@@ -415,7 +415,7 @@ function rec record_declaration(mut,s) {
 function rec union_declaration(s) {
 	match s {
 	| [< (BraceClose,p) >] -> mk [] p
-	| [< (Semicolon,_); l = union_declaration s >] -> l 
+	| [< (Semicolon,_); l = union_declaration s >] -> l
 	| [< (Const (Constr name),_); t = type_opt s; l , p = union_declaration s >] -> mk ((name,t) :: l) p
 	}
 }
@@ -466,7 +466,7 @@ function rec pattern_decl(s) {
 		mk PTuple(pl) punion(p1,p2)
 	| [< (BraceOpen,p1); (Const (Ident name),_); (Binop "=",_); p = pattern s; pl = pattern_record s; (BraceClose,p2) >] ->
 		mk PRecord((name,p) :: pl) punion(p1,p2)
-	| [< (Const (Constr name),p1); l, name2, p2 = pattern_mod_path name p1 s; p , p3 = pattern_opt p2 s >] -> 
+	| [< (Const (Constr name),p1); l, name2, p2 = pattern_mod_path name p1 s; p , p3 = pattern_opt p2 s >] ->
 		mk PConstr(l,name2,p) punion(p1,p3)
 	| [< (Const (Ident i),p); >] ->
 		mk PIdent(i) p
@@ -573,7 +573,7 @@ function parse(lex) {
 			next_token()
 		| _ ->
 			last := t;
-			Some t
+			t
 		}
 	};
 	try {
