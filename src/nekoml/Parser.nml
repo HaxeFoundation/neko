@@ -126,7 +126,7 @@ function rec program(s) {
 
 function rec expr(s) {
 	match s {
-	| [< (BraceOpen,p1); e = block1 s; (BraceClose,p2) >] -> 
+	| [< (BraceOpen,p1); e = block1 s >] ->
 		match s {
 		| [< (BraceClose,p2) >] -> mk e punion(p1,p2)
 		| [< (Eof,_) >] -> unclosed "{" p1
@@ -171,8 +171,11 @@ function rec expr_short(s) {
 		| [< (ParentClose,p2) >] -> expr_next (ETupleDecl pl,punion p1 p2) s
 		| [< (Eof,_) >] -> unclosed "(" p1
 		}
-//	| [< (Binop op,p) when is_unop op; e = expr >] ->
-//		expr_next (make_unop op e p) s
+	| [< (Binop op,p) >] ->
+		if ! is_unop op then throw Stream_error;
+		match s {
+		| [< e = expr s >] -> expr_next (make_unop op e p) s
+		}
 	| [< (Const (Constr n),p); e = expr_constr n p s >] ->
 		expr_next e s
 	| [< (Const c,p) >] ->
