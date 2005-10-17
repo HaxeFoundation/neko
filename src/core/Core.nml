@@ -270,7 +270,7 @@ function printf(fmt : 'a format, p : 'a ) : void {
 	print (sprintf fmt p)
 }
 
-function stream(f) {
+function stream(f : void -> 'a ) : 'a stream {
 	neko("{
 		get => f,
 		pos => 0,
