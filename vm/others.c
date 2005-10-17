@@ -246,8 +246,13 @@ int neko_stack_expand( int *sp, int *csp, neko_vm *vm ) {
 	int i;
 	int size = (int)((((int_val)vm->spmax - (int_val)vm->spmin) / sizeof(int_val)) << 1);
 	int_val *nsp;
-	if( size > MAX_STACK_SIZE )
+
+	if( size > MAX_STACK_SIZE ) {
+		vm->sp = sp;
+		vm->csp = csp;
 		return 0;
+	}
+
 	nsp = (int_val*)alloc(size * sizeof(int_val));
 	
 	// csp size
