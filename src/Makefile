@@ -5,6 +5,6 @@ all:
 	(cd nekoml; neko *.neko)
 
 clean:
-	rm -rf *.n *.neko
+	rm -rf *.n *.neko neko/*.neko neko/*.n nekoml/*.neko nekoml/*.n
 
 again: clean all
