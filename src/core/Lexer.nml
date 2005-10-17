@@ -162,13 +162,18 @@ function token(l,t) : 'a {
 	var exits = snd t.engine;
 	var last = &(0,-1,-1);
 	function rec loop(n,k) {
-		var c = read(l);
-		var res = neko("tbl[0][k][0][c]");
+		var res = neko("tbl[0][k][0][read(l)]");
 		var e = exits.[k];
 		if e != -1 then last := (n,e,res);
 		if res == -1 then throw Exit;
 		loop (n+1) res
 	};	
+	function loop_first(n,k) {
+		var res = neko("tbl[0][k][0][read(l)]");
+		last := (n,exits.[k],res);
+		if res == -1 then throw Exit;
+		loop (n+1) res
+	};
 	function process() {
 		var n , k, _ = *last;
 		if k == -1 then {
@@ -189,7 +194,7 @@ function token(l,t) : 'a {
 		}
 	};
 	var k = try {
-		loop 0 0;
+		loop_first 0 0;
 		assert();
 	} catch {
 		| IO.Eof ->
