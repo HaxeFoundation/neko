@@ -145,7 +145,7 @@ let rec gen_match_rec mctx fail m =
 	let gen_rec = gen_match_rec mctx in
 	match m with
 	| MFailure ->
-		let label = if mctx.first then mctx.next else fail in
+		let label = if mctx.first && mctx.next <> no_label then mctx.next else fail in
 		if label = no_label then
 			EBlock [] , p
 		else
