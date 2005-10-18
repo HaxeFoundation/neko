@@ -46,8 +46,6 @@ EXTERN value val_callEx( value this, value f, value *args, int nargs, value *exc
 	int old_ncalls = vm->ncalls++;
 	if( old_ncalls > MAXCALLS )
 		failure("Stack Overflow");
-	if( nargs > CALL_MAX_ARGS )
-		failure("Too many arguments for a call");
 	if( this != NULL )
 		vm->this = this;
 	if( exc ) {
@@ -64,6 +62,8 @@ EXTERN value val_callEx( value this, value f, value *args, int nargs, value *exc
 	}
 	if( val_tag(f) == VAL_PRIMITIVE ) {
 		value old_env = vm->env;
+		if( nargs > CALL_MAX_ARGS )
+			failure("Too many arguments for a call");
 		vm->env = ((vfunction *)f)->env;
 		if( nargs == ((vfunction*)f)->nargs ) {
 			switch( nargs ) {
