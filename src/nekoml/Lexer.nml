@@ -132,7 +132,7 @@ token := Lexer.build [
 	("'\\\\\\\\'", function(l) { mk l Const(Char '\\') });
 	("'\\\\\"'", function(l) { mk l Const(Char '"') });
 	("'[^\\]'", function(l) { mk l Const(Char (String.get Lexer.current(l) 1)) });
-	("'\\[0-9][0-9][0-9]'", function(l) {
+	("'\\\\[0-9][0-9][0-9]'", function(l) {
 		var s = String.sub (Lexer.current l) 2 3;
 		var n = int s;
 		if n > 255 then error l Invalid_escaped_character(n);
