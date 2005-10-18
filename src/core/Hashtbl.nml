@@ -96,6 +96,41 @@ function add(h : ('a,'b) t, k : 'a, v : 'b) : void {
 	if h.size > Array.length h.data << 1 then resize h
 }
 
+function remove(h,k) {
+	function rec loop(b) {
+		match b {
+		| Empty ->
+			Empty
+		| Cons(k2, i, next) ->
+			if k == k2 then {
+				h.size := h.size - 1;
+				next
+			} else
+				Cons(k2, i, loop next)
+		}
+	}
+	var p = hash(k) % Array.length(h.data);
+	h.data.[p] := loop h.data.[p];
+}
+
+function replace(h,k,v) {
+	function rec loop(b) {
+		match b {
+		| Empty ->
+			h.size := h.size + 1;
+			Cons(k , v, Empty)
+		| Cons(k2, i, next) ->
+			if k == k2 then
+				Cons(k , v, next)
+			else
+				Cons(k2, i, loop next)
+		}
+	}
+	var p = hash(k) % Array.length(h.data);
+	h.data.[p] := loop h.data.[p];
+}
+
+
 function iter(f : 'a -> 'b -> void,h : ('a,'b) t) : void {
 	var i = &0;
 	var d = h.data;
