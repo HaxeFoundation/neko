@@ -132,6 +132,12 @@ let make_construct_match tuple nargs pathl cas =
 		in
 		[cas] , make_path 0
 
+let make_record_match args pathl cas =
+	match pathl with
+	| [] -> assert false
+	| path :: pathl ->
+		[cas] , List.fold_left (fun acc (f,_) -> MRecordField (path,f) :: acc) pathl (List.rev args)
+
 let add_to_division make_match divlist key cas =
 	try
 		let matchref = List.assoc key divlist in
@@ -198,6 +204,9 @@ let divide_matching (m:matching) =
 			| ((PTuple args,_) :: l,act) :: rest ->
 				let constants , constrs, others = divide_rec rest in
 				constants , add_to_division (make_construct_match true (List.length args) pathl) constrs TVoid (args @ l,act) , others
+			| ((PRecord args,_) :: l,act) :: rest ->
+				let constants , constrs, others = divide_rec rest in
+				constants , always_add (make_record_match args pathl) constrs (List.map snd args @ l,act) , others
 			| ((PStream ((SPattern p :: sl),k),pp) :: l,act) :: rest ->
 				let constants , constrs, others = divide_rec rest in
 				constants , always_add (make_token_match ((MToken (curpath,k)) :: pathl)) constrs (stream_pattern p :: (PStream (sl,k+1),pp) :: l, act) , others
