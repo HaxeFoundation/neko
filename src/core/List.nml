@@ -34,6 +34,20 @@ function rec length(l) {
 	}
 }
 
+function hd(l) {
+	match l {
+	| [] -> invalid_arg()
+	| x :: _ -> x
+	}
+}
+
+function tl(l) {
+	match l {
+	| [] -> invalid_arg()
+	| _ :: l -> l
+	}
+}
+
 function rec map(f,l) {
 	match l {
 	| [] -> []
@@ -45,6 +59,23 @@ function rec iter(f,l) {
 	match l {
 	| [] -> ()
 	| x :: l -> f x; iter f l
+	}
+}
+
+function rec iter2(f,l1,l2) {
+	match l1 {
+	| [] -> 
+		match l2 {
+		| [] -> ()
+		| _ -> invalid_arg()
+		}
+	| x1 :: l1 -> 
+		match l2 {
+		| [] -> invalid_arg()
+		| x2 :: l2 ->
+			f x1 x2;
+			iter2 f l1 l2
+		}
 	}
 }
 
@@ -75,6 +106,13 @@ function rec assoc(k,l) {
 	match l {
 	| [] -> throw Not_found
 	| (k2,v) :: l -> if k == k2 then v else assoc k l
+	}
+}
+
+function rec find(f,l) {
+	match l {
+	| [] -> throw Not_found
+	| k :: l -> if f k then k else find f l
 	}
 }
 
@@ -121,6 +159,34 @@ function rec chop(n,l) {
 		| [] -> invalid_arg()
 		| _ :: l -> chop (n -1) l
 	}
+}
+
+function rec all(f,l) {
+	match l {
+	| [] -> true
+	| x :: l ->
+		if f x then all(f,l) else false
+	}
+}
+
+function rec none(f,l) {
+	match l {
+	| [] -> true
+	| x :: l ->
+		if f x then false else none(f,l)
+	}
+}
+
+function nth(l,n) {
+	function rec loop(l,n) {
+		match l {
+		| [] -> invalid_arg()
+		| x :: l ->
+			if n == 0 then x else loop l (n-1)
+		}
+	}
+	if n < 0 then invalid_arg();
+	loop l n
 }
 
 function rec filter(f,l) {
