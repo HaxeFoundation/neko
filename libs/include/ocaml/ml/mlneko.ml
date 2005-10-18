@@ -77,10 +77,15 @@ let call ret f args p =
 	match f with
 	| EConst (Builtin _) , _ -> ECall (f,args) , p
 	| _ ->
-		if is_fun ret then
-			ECall ((EConst (Builtin "apply"),p),f :: args) , p
-		else
-			ECall (f,args) , p
+		match args with
+		| a :: b :: c :: d :: x :: l -> 
+			let app = ECall ((EConst (Builtin "apply"),p),[f;a;b;c;d]) , p in
+			ECall (app,x :: l) , p
+		| _ ->
+			if is_fun ret then
+				ECall ((EConst (Builtin "apply"),p),f :: args) , p
+			else
+				ECall (f,args) , p
 
 let array args p =
 	ECall ((EConst (Builtin "array"),p),args) , p
@@ -188,6 +193,8 @@ let rec gen_match_rec mctx fail m =
 			EVars [v, Some e] , p;
 			exec
 		] , p
+	| MRecordField (m,f) ->
+		EField (gen_rec fail m, f) , p
 	| MTuple (m,n) ->
 		EArray (gen_rec fail m, int n) , p
 	| MField (m,n) ->
