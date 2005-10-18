@@ -1,0 +1,303 @@
+/*
+ *  NekoML Standard Library
+ *  Copyright (c)2005 Nicolas Cannasse
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+/*
+	This is very similar to PMap except that it does only store one value
+*/
+
+type 'a set {
+	Empty;
+	Node : ('a set, 'a ,'a set, int);
+}
+
+type 'a t {
+	cmp : 'a -> 'a -> int;
+	set : 'a set;
+}
+
+/* -------- tools ----------- */
+
+function height(s) {
+	match s {
+	| Empty -> 0
+	| Node(_, _, _, h) -> h
+	}
+}
+
+function make(l,v,r) {
+	Node(l, v, r, max (height l) (height r) + 1)
+}
+
+function bal(l,v,r) {
+	var hl = height l;
+	var hr = height r;
+	if hl > hr + 2 then
+		match l {
+		| Node (ll,lv,lr,_) ->
+			if height ll >= height lr then
+				make ll lv (make lr v r)
+			else match lr {
+				| Node (lrl,lrv,lrr,_) ->
+					make (make ll lv lrl) lrv (make lrr v r)
+				| Empty -> assert()
+			}
+		| Empty -> assert()
+		}
+	else if hr > hl + 2 then
+		match r {
+		| Node (rl,rv,rr,_) ->
+			if height rr >= height rl then
+				make (make l v rl) rv rr
+			else match rl {
+				| Node (rll, rlv, rlr, _) ->
+					make (make l v rll) rlv (make rlr rv rr)
+				| Empty -> assert()
+			}
+		| Empty -> assert()
+		}
+	else
+		Node l v r (max hl hr + 1)
+}
+
+
+function rec remove_min_elt(s) {
+	match s {
+	| Empty -> assert()
+	| Node(Empty, v, r, _) -> r
+	| Node(l, v, r, _) -> bal (remove_min_elt l) v r
+	}
+}
+
+function rec min_elt(s) {
+	match s {
+	| Empty -> throw Not_found
+	| Node(Empty, v, r, _) -> v
+	| Node(l, v, r, _) -> min_elt l
+	}
+}
+
+function merge(t1,t2) {
+	match (t1, t2) {
+    | (Empty, t) -> t
+	| (t, Empty) -> t
+	| _ -> bal t1 (min_elt t2) (remove_min_elt t2)
+	}
+}
+
+function rec add_loop(cmp,x,s) {
+	match s {
+	| Empty ->
+		Node(Empty,x,Empty,1)
+	| Node(l, v, r, _) ->
+		var c = cmp x v;
+		if c == 0 then
+			s
+		else if c < 0 then
+			bal (add_loop cmp x l) v r
+		else
+			bal l v (add_loop cmp x r)
+	}
+}
+
+function rec join(cmp,l,v,r) {
+	match (l, r) {
+	| (Empty, _) -> add_loop cmp v r
+	| (_, Empty) -> add_loop cmp v l
+	| (Node(ll, lv, lr, lh), Node(rl, rv, rr, rh)) ->
+		if lh > rh + 2 then bal ll lv (join cmp lr v r) else
+		if rh > lh + 2 then bal (join cmp l v rl) rv rr else
+        make l v r
+	| _ -> assert()
+	}
+}
+
+function concat(cmp,t1,t2) {
+	match (t1, t2) {
+	| (Empty, t) -> t
+	| (t, Empty) -> t
+	| _ ->
+		join cmp t1 (min_elt t2) (remove_min_elt t2)
+	}
+}
+
+function rec split(cmp,x,s) {
+	match s {
+	| Empty ->
+		(Empty, false, Empty)
+	| Node(l, v, r, _) ->
+		var c = cmp x v;
+		if c == 0 then
+			(l, true, r)
+		else if c < 0 then {
+			var ll, pres, rl = split cmp x l;
+			(ll, pres, join cmp rl v r)
+		} else {
+			var lr, pres, rr = split cmp x r;
+			(join cmp l v lr, pres, rr)
+		}
+	}
+}
+
+
+/* ---------- api ----------- */
+
+function rec add(set : 'a t, x : 'a) {
+	{
+		cmp = set.cmp;
+		set = add_loop set.cmp x set.set;
+	}
+}
+
+function create(cmp) {
+	{
+		cmp = cmp;
+		set = Empty;
+	}
+}
+
+function empty() {
+	{
+		cmp = compare;
+		set = Empty;
+	}
+}
+
+function is_empty(s) {
+	match s.set {
+	| Empty -> true
+	| _ -> false
+	}
+}
+
+function exists(set,x) {
+	function rec loop(s) {
+		match s {
+		| Empty -> false
+		| Node(l, v, r, _) ->
+			var c = set.cmp x v;
+			c == 0 || loop (if c < 0 then l else r)
+		}
+	}
+	loop set.set
+}
+
+function remove(set,x) {
+	function rec loop(s) {
+		match s {
+		| Empty -> Empty
+		| Node(l, v, r, _) ->
+			var c = set.cmp x v;
+			if c == 0 then merge l r else
+			if c < 0 then bal (loop l) v r else bal l v (loop r)
+		}
+	}
+	{
+		cmp = set.cmp;
+		set = loop set.set;
+	}
+}
+
+function union(set1,set2) {
+	var cmp = set1.cmp;
+	function rec loop(s1,s2) {
+		match (s1, s2) {
+		| (Empty, t2) -> t2
+		| (t1, Empty) -> t1
+		| (Node(l1, v1, r1, h1), Node(l2, v2, r2, h2)) ->
+			if h1 >= h2 then
+				if h2 == 1 then
+					add_loop cmp v2 s1
+				else {
+					var l2, _, r2 = split cmp v1 s2;
+					join cmp (loop l1 l2) v1 (loop r1 r2)
+				}
+			else
+				if h1 == 1 then
+					add_loop cmp v1 s2
+				else {
+					var l1, _, r1 = split cmp v2 s1;
+					join cmp (loop l1 l2) v2 (loop r1 r2)
+				}
+		| _ ->
+			assert()
+		}
+	}
+	{
+		cmp = cmp;
+		set = loop set1.set set2.set;
+	}
+}
+
+function inter(set1,set2) {
+	var cmp = set1.cmp;
+	function rec loop(s1,s2) {
+		match (s1, s2) {
+		| (Empty, t2) -> Empty
+		| (t1, Empty) -> Empty
+		| (Node(l1, v1, r1, _), t2) ->
+			match split cmp v1 t2 {
+			| (l2, false, r2) ->
+				concat cmp (loop l1 l2) (loop r1 r2)
+			| (l2, true, r2) ->
+				join cmp (loop l1 l2) v1 (loop r1 r2)
+			}
+		| _ ->
+			assert()
+		}
+	}
+	{
+		cmp = cmp;
+		set = loop set1.set set2.set;
+	}
+}
+
+function diff(set1,set2) {
+	var cmp = set1.cmp;
+	function rec loop(s1,s2) {
+		match (s1, s2) {
+		| (Empty, t2) -> Empty
+		| (t1, Empty) -> t1
+		| (Node(l1, v1, r1, _), t2) ->
+			match split cmp v1 t2 {
+			| (l2, false, r2) ->
+				join cmp (loop l1 l2) v1 (loop r1 r2)
+			| (l2, true, r2) ->
+				concat cmp (loop l1 l2) (loop r1 r2)
+			}
+		| _ ->
+			assert()
+		}
+	}
+	{
+		cmp = cmp;
+		set = loop set1.set set2.set;
+	}
+}
+
+function iter(f,set) {
+	function rec loop(s) {
+		match s {
+		| Empty -> ()
+		| Node(l, v, r, _) ->
+			loop l;
+			f v;
+			loop r
+		}
+	}
+	loop set.set
+}

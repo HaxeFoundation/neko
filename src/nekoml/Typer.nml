@@ -1,0 +1,1193 @@
+/*
+ *  NekoML Compiler
+ *  Copyright (c)2005 Nicolas Cannasse
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+ 
+open Nekoml.Ast;
+open Nekoml.Type;
+
+type module_context {
+	path : string list;
+	types : (string,t) Hashtbl.t;
+	constrs : (string, (t, t)) Hashtbl.t;
+	records : (string, (t, t, mutflag)) Hashtbl.t;
+	deps : (string list, module_context) Hashtbl.t;
+	mutable expr : texpr option;
+	mutable idents : (string,t) Map.t;
+}
+
+type context {
+	gen : id_gen;
+	mutable mink : int;
+	mutable functions : (bool, string, texpr ref, t, (string, t) list, expr, t, pos) list;
+	mutable opens : module_context list;
+	mutable curfunction : string;
+	tmptypes : (string, (t, t list, (string,t) Hashtbl.t)) Hashtbl.t;
+	current : module_context;
+	modules : (string list, module_context) Hashtbl.t;
+	classpath : string list;
+}
+
+type error_msg {
+	Cannot_unify : (t, t);
+	Have_no_field : (t, string);
+	Stack : (error_msg, error_msg);
+	Unknown_field : string;
+	Module_not_loaded : module_context;
+	Custom : string;
+}
+
+exception Error : (error_msg , pos);
+
+function rec error_msg_loop(h,m) {
+	match m {
+	| Cannot_unify (t1,t2) -> "Cannot unify " + s_type false h t1 + " and " + s_type false h t2
+	| Have_no_field (t,f) -> s_type false h t + " have no field " + f
+	| Stack (m1,m2) -> error_msg_loop h m1 + "\n  " + error_msg_loop h m2
+	| Unknown_field s -> "Unknown field " + s
+	| Module_not_loaded m -> "Module " + String.concat "." m.path + " require an interface"
+	| Custom s -> s
+	}
+}
+
+function error_msg(m) {
+	error_msg_loop s_context() m
+}
+
+function error(m,p) {
+	throw Error(m,p);
+}
+
+var verbose = &false;
+
+var load_module_ref = &(function(_,_,_) { assert() });
+
+function add_local(ctx,v,t) {
+	if v != "_" then ctx.current.idents := Map.add ctx.current.idents v t
+}
+
+function save_locals(ctx) {
+	ctx.current.idents
+}
+
+function restore_locals(ctx,l) {
+	ctx.current.idents := l
+}
+
+function get_module(ctx,path,p) {
+	match path {
+	| [] -> ctx.current
+	| _ ->
+		var m = try
+			Hashtbl.find ctx.modules path
+		catch { Not_found -> (*load_module_ref) ctx path p };
+		if m != ctx.current then {
+			if m.expr == None then error (Module_not_loaded m) p;
+			Hashtbl.replace ctx.current.deps m.path m;
+		};
+		m
+	}
+}
+
+function get_type(ctx,path,name,p) {
+	function rec loop(l) {
+		match l {
+		| [] -> error Custom("Unknown type " + s_path path name) p
+		| m :: l ->
+			try {
+				Hashtbl.find m.types name
+			} catch {
+				Not_found -> loop l
+			}
+		}
+	}	
+	match path {
+	| [] ->
+		loop (ctx.current :: ctx.opens);
+	| _ ->
+		loop [get_module ctx path p]
+	}
+}
+
+function get_constr(ctx,path,name,p) {
+	function rec loop(l) {
+		match l {
+		| [] -> error Custom("Unknown constructor " + s_path path name) p
+		| m :: l ->
+			try  {
+				var t1, t2 = Hashtbl.find m.constrs name;
+				(if m == ctx.current then [] else m.path , t1, t2)
+			} catch {
+				Not_found -> loop l
+			}
+		}
+	};
+	match path {
+	| [] ->
+		loop (ctx.current :: ctx.opens)
+	| _ ->
+		loop [get_module ctx path p]
+	}
+}
+
+function get_ident(ctx,path,name,p) {
+	function rec loop(l) {
+		match l {
+		| [] -> error Custom("Unknown identifier " + s_path path name) p
+		| m :: l ->
+			try
+				(if m == ctx.current then [] else m.path , Map.find m.idents name)
+			catch {
+				Not_found -> loop l
+			}
+		}
+	}
+	match path {
+	| [] ->
+		loop (ctx.current :: ctx.opens)
+	| _ ->
+		loop [get_module ctx path p]
+	}
+}
+
+function get_record(ctx,f,p) {
+	function rec loop(l) {
+		match l {
+		| [] -> error (Unknown_field f) p
+		| m :: l ->
+			try
+				Hashtbl.find m.records f
+			catch {
+				Not_found -> loop l
+			}
+		}
+	}
+	var rt , ft , mut = loop (ctx.current :: ctx.opens);
+	var h = Hashtbl.create();
+	(duplicate ctx.gen h rt, duplicate ctx.gen h ft, mut)
+}
+
+function rec is_recursive(t1,t2) {
+	if t1 == t2 then
+		true
+	else match t2.texpr {
+	| TAbstract
+	| TMono _
+	| TPoly ->
+		false
+	| TRecord _
+	| TUnion _ ->
+		assert()
+	| TTuple tl -> List.exists (is_recursive t1) tl
+	| TLink t -> is_recursive t1 t
+	| TFun (tl,t) -> List.exists (is_recursive t1) tl || is_recursive t1 t
+	| TNamed (_,p,t) -> List.exists (is_recursive t1) p
+	}
+}
+
+function link(ctx,t1,t2,p) {
+	if is_recursive t1 t2 then error Cannot_unify(t1,t2) p;
+	t1.texpr := TLink t2;
+	if t1.tid < 0 then {
+		if t2.tid == -1 then t1.tid := -1 else t1.tid := genid ctx.gen;
+	} else
+		if t2.tid == -1 then t1.tid := -1
+}
+
+function unify_stack(t1,t2,e) {
+	match e {
+	| Error ((Cannot_unify _) as e, p) -> error (Stack e Cannot_unify(t1,t2)) p
+	| e -> throw e
+	}
+}
+
+function is_alias(t) {
+	match t {
+	| TAbstract 
+	| TRecord _
+	| TUnion _ -> false
+	| TMono _
+	| TPoly
+	| TTuple _
+	| TLink _
+	| TFun _
+	| TNamed _ -> true
+	}
+}
+
+function rec propagate(k,t) {
+	match t.texpr {
+	| TAbstract
+	| TPoly -> ()
+	| TUnion _
+	| TRecord _ -> assert()
+	| TMono k2 -> if k < k2 then t.texpr := TMono k	
+	| TTuple tl -> List.iter (propagate k) tl
+	| TLink t -> propagate k t
+	| TFun (tl,t) -> propagate k t; List.iter (propagate k) tl
+	| TNamed (_,tl,_) -> List.iter (propagate k) tl
+	}
+}
+
+function rec unify(ctx,t1,t2,p) {
+	if t1 == t2 then
+		()
+	else match (t1.texpr , t2.texpr) {
+	| (TLink t , _) -> unify ctx t t2 p
+	| (_ , TLink t) -> unify ctx t1 t p
+	| (TMono k , t) -> link ctx t1 t2 p; propagate k t2
+	| (t , TMono k) -> link ctx t2 t1 p; propagate k t1
+	| (TPoly , t) -> link ctx t1 t2 p
+	| (t , TPoly) -> link ctx t2 t1 p
+	| (TNamed (n1,p1,_) , TNamed (n2,p2,_)) when n1 == n2 ->
+		try
+			List.iter2 (function(p1,p2) { unify ctx p1 p2 p }) p1 p2
+		catch {	e -> unify_stack t1 t2 e }
+	| (TNamed (_,_,t1) , _) when is_alias t1.texpr ->
+		try
+			unify ctx t1 t2 p
+		catch {	e -> unify_stack t1 t2 e }
+	| (_ , TNamed (_,_,t2)) when is_alias t2.texpr ->
+		try
+			unify ctx t1 t2 p
+		catch {	e -> unify_stack t1 t2 e }
+	| (TFun (tl1,r1) , TFun (tl2,r2)) when List.length tl1 == List.length tl2 -> 
+		try
+			List.iter2 (function(t1,t2) { unify ctx t1 t2 p }) tl1 tl2; 
+			unify ctx r1 r2 p;
+		catch {	e -> unify_stack t1 t2 e }
+	| (TTuple tl1 , TTuple tl2) when List.length tl1 == List.length tl2 ->
+		try
+			List.iter2 (function(t1,t2) { unify ctx t1 t2 p }) tl1 tl2
+		catch {	e -> unify_stack t1 t2 e }
+	| _ ->
+		error Cannot_unify(t1,t2) p
+	}
+}
+
+function rec type_type(allow,h,ctx,t,p) {
+	match t {
+	| ETuple [] ->
+		assert()
+	| ETuple [t] ->
+		type_type allow h ctx t p
+	| ETuple el ->
+		mk_tup ctx.gen (List.map (function(t) { type_type allow h ctx t p }) el)
+	| EPoly s ->
+		try
+			Hashtbl.find h s
+		catch {
+			Not_found ->
+				if !allow then error Custom("Unbound type variable '" + s) p;
+				var t = t_mono ctx.gen;
+				Hashtbl.add h s t;
+				t
+		}
+	| EType (param,path,name) ->
+		var param = match param { None -> None | Some t -> Some (type_type allow h ctx t p) };
+		var t = get_type ctx path name p;
+		match t.texpr {
+		| TNamed (_,params,t2) ->
+			var tl = match (params, param) {
+				| ([] , None) -> []
+				| ([x] , Some t) -> [t]
+				| (l , Some { texpr = TTuple tl }) when List.length tl == List.length l -> tl
+				| _ -> error Custom("Invalid number of type parameters for " + s_path path name) p
+			};
+			var h = Hashtbl.create();
+			var t = duplicate ctx.gen h t;
+			var params = List.map (duplicate ctx.gen h) params;
+			List.iter2 (function(pa,t) { unify ctx pa t p }) params tl;
+			t
+		| _ -> 
+			assert()
+		}
+	| EArrow _ ->
+		function rec loop(params,t) {
+			match t {
+			| EArrow (ta,tb) ->
+				var ta = type_type allow h ctx ta p;
+				loop (ta :: params) tb
+			| _ ->
+				var t = type_type allow h ctx t p;
+				mk_fun ctx.gen (List.rev params) t
+			}
+		};		
+		loop [] t
+	}
+}
+
+function rec type_constant(ctx,path,c,p) {
+	match c {
+	| Int i -> mk TConst(TInt i) t_int p
+	| Float s -> mk TConst(TFloat s) t_float p
+	| String s -> mk TConst(TString s) t_string p
+	| Char c -> mk TConst(TChar c) t_char p
+	| Ident s ->
+		var path , t = get_ident ctx path s p;
+		var t = duplicate ctx.gen Hashtbl.create() t;
+		mk TConst(TModule path TIdent(s)) t p
+	| Constr s ->
+		var path , ut , t = get_constr ctx path s p;
+		var t = duplicate ctx.gen Hashtbl.create() (match t.texpr {
+			| TAbstract -> ut
+			| TTuple tl -> mk_fun ctx.gen tl ut
+			| _ -> mk_fun ctx.gen [t] ut
+		});
+		mk TConst(TModule path TConstr(s)) t p
+	| Module (path,c) ->
+		type_constant ctx path c p
+	}
+}
+
+type addable {
+	NInt;
+	NFloat;
+	NString;
+	NNan;
+}
+
+function addable(str,e) {
+	match etype true e {
+	| TNamed (["int"],_,_) -> NInt
+	| TNamed (["float"],_,_) -> NFloat
+	| TNamed (["string"],_,_) when str -> NString
+	| _ -> NNan
+	}
+}
+
+function type_binop(ctx,op,e1,e2,p) {
+	function emk(t) { mk TBinop(op,e1,e2) t p };
+	match op {
+	| "%"
+	| "+"
+	| "-"
+	| "/"
+	| "*" ->
+		var str = (op == "+");
+		match (addable str e1, addable str e2) {
+		| (NInt , NInt) -> emk t_int
+		| (NFloat , NFloat)
+		| (NInt , NFloat)
+		| (NFloat , NInt) -> emk t_float
+		| (NInt , NString)
+		| (NFloat , NString)
+		| (NString , NInt)
+		| (NString , NFloat)
+		| (NString , NString) -> emk t_string
+		| (NInt , NNan)
+		| (NFloat , NNan)
+		| (NString , NNan) ->
+			unify ctx e2.etype e1.etype (pos e2);
+			emk e1.etype
+		| (NNan , NInt)
+		| (NNan , NFloat)
+		| (NNan , NString) ->
+			unify ctx e1.etype e2.etype (pos e1);
+			emk e2.etype
+		| (NNan , NNan) ->
+			unify ctx e1.etype t_int (pos e1);
+			unify ctx e2.etype t_int (pos e2);
+			emk t_int
+		}
+	| ">>"
+	| ">>>"
+	| "<<"
+	| "and"
+	| "or"
+	| "xor" ->
+		unify ctx e1.etype t_int (pos e1);
+		unify ctx e2.etype t_int (pos e2);
+		emk t_int
+	| "&&"
+	| "||" ->
+		unify ctx e1.etype t_bool (pos e1);
+		unify ctx e2.etype t_bool (pos e2);
+		emk t_bool
+	| "<"
+	| "<="
+	| ">"
+	| ">="
+	| "=="
+	| "!="
+	| "==="
+	| "!==" ->
+		unify ctx e2.etype e1.etype (pos e2);
+		emk t_bool
+	| ":=" ->
+		match e1.edecl {
+		| TArray _ ->
+			unify ctx e2.etype e1.etype (pos e2);
+			emk t_void
+		| TField (e,f) ->
+			match tlinks false e.etype {
+			| TRecord fl ->
+				var _ , mut , _ = try List.find (function((f2,_,_)) { f2 == f }) fl catch { Not_found -> assert() };
+				if mut == Immutable then error Custom("Field " + f + " is not mutable") pos(e1);
+				unify ctx e2.etype e1.etype (pos e2);
+				emk t_void
+			| _ -> assert();
+			}
+		| _ ->
+			var t , pt = t_poly ctx.gen "ref";
+			unify ctx e2.etype pt (pos e2);
+			unify ctx e1.etype t (pos e1);
+			emk t_void
+		}
+	| "::" ->
+		var t , pt = t_poly ctx.gen "list";
+		unify ctx e1.etype pt (pos e1);
+		unify ctx e2.etype t (pos e2);
+		var c = mk TConst(TConstr "::") t_mono(ctx.gen) p;
+		mk (TCall c [e1;e2]) t p
+	| _ ->
+		error Custom("Invalid operation " + op) p
+	}
+}
+
+function type_unop(ctx,op,e,p) {
+	function emk(t) { mk TUnop(op,e) t p };
+	match op {
+	| "&" ->
+		var p , pt = t_poly ctx.gen "ref";
+		unify ctx e.etype pt (pos e);
+		emk p
+	| "*" ->
+		var p , pt = t_poly ctx.gen "ref";
+		unify ctx e.etype p (pos e);
+		emk pt
+	| "!" -> 
+		unify ctx e.etype t_bool (pos e);
+		emk t_bool 
+	| "-" ->
+		match addable false e {
+		| NInt -> emk t_int
+		| NFloat -> emk t_float
+		| _ ->
+			unify ctx e.etype t_int (pos e);
+			emk t_int
+		}
+	| _ ->
+		assert()
+	}
+}
+
+function rec type_arg(ctx,h,binds,p,a) {
+	match a {
+	| ATyped (a,t) -> 
+		var n , ta = type_arg ctx h binds p a;
+		unify ctx ta (type_type true h ctx t p) p;
+		(n , ta)
+	| ANamed s ->
+		(s , t_mono ctx.gen)
+	| ATuple al ->
+		var aname = "@t" + string (genid ctx.gen);
+		var nl , tl = List.split (List.map (type_arg ctx h binds p) al);
+		var k = &0;
+		List.iter (function(n) {
+			if n == "_" then binds := (aname,*k,n) :: *binds;
+			k := *k + 1;
+		}) nl;
+		(aname , mk_tup ctx.gen tl)
+	}
+}
+
+function register_function(ctx,isrec,name,pl,e,rt,p) {
+	if ctx.functions == [] then ctx.mink := *ctx.gen;
+	var pl = match pl { 
+		| [] -> [ATyped (ANamed "_") EType(None,[],"void")]
+		| _ -> pl
+	};
+	var expr = &(mk (TConst TVoid) t_void p);
+	var h = Hashtbl.create();
+	var binds = &[];
+	var el = List.map (type_arg ctx h binds p) pl;
+	var name = match name { None -> "_" | Some n -> n };
+	var e = match List.rev (*binds) {
+		| [] -> e
+		| l ->
+			var b = List.fold (function(acc,(v,n,v2)) {
+				var tget = ETupleGet (EConst Ident(v),p) n;
+				(EVar [(v2,None)] (tget,p) , p) :: acc
+			}) [e] l;
+			(EBlock b , p)
+	};
+	var rt = match rt {
+		| None -> t_mono ctx.gen
+		| Some rt -> type_type true h ctx rt p
+	};
+	var ft = mk_fun ctx.gen (List.map snd el) rt;
+	ctx.functions := (isrec,name,expr,ft,el,e,rt,p) :: ctx.functions;
+	if isrec then add_local ctx name ft;
+	mk (TMut expr) (if name == "_" then ft else t_void) p
+}
+
+
+function type_format(ctx,s,p) {
+	var types = &[];
+	var percent = &false;
+	var i = &0;
+	var l = String.length s - 1;
+	while *i < l {	
+		var c = String.get s (*i);
+		if *percent then {
+			percent := false;
+			match c {
+			| '%' -> 
+				()
+			| 'x' | 'X' | 'd' ->
+				types := t_int :: *types
+			| 'f' ->
+				types := t_float :: *types
+			| 's' ->
+				types := t_string :: *types
+			| 'b' ->
+				types := t_bool :: *types
+			| 'c' ->
+				types := t_char :: *types
+			| '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '.' ->
+				percent := true
+			| _ ->
+				error (Custom "Invalid % sequence") p
+			}
+		} else
+			match c {
+			| '%' -> 
+				percent := true
+			| _ ->
+				()
+			}
+	};
+	if *percent then error (Custom "Invalid % sequence") p;
+	match *types {
+	| [] -> t_void
+	| [x] -> x
+	| l -> mk_tup ctx.gen (List.rev l)
+	}
+}
+
+function rec type_functions(ctx) {
+	var l = ctx.functions;
+	if l != [] then {
+	var mink = ctx.mink;
+	ctx.functions := [];
+	var l = List.map (function((isrec,name,expr,ft,el,e,rt,p)) {
+		var locals = save_locals ctx;
+		var func = ctx.curfunction;
+		if name != "_" then ctx.curfunction := s_path ctx.current.path name;
+		List.iter (function((p,pt)) {
+			add_local ctx p pt
+		}) el;
+		var e = type_expr ctx e;
+		restore_locals ctx locals;
+		ctx.curfunction := func;
+		var ft2 = mk_fun ctx.gen (List.map snd el) e.etype;
+		unify ctx ft ft2 p;
+		expr := mk TFunction(isrec,name,el,e) ft2 p;
+		if !isrec then add_local ctx name ft;
+		ft2
+	}) (List.rev l);
+	List.iter (polymorphize ctx.gen mink) l
+	}
+}
+
+function rec type_expr(ctx,(e,p)) {
+	match e {
+	| EConst c ->
+		type_constant ctx [] c p
+	| EBlock [] -> 
+		mk TConst(TVoid) t_void p
+	| EBlock (e :: l) ->
+		var locals = save_locals ctx;
+		var e = type_block ctx e;
+		var el , t = List.fold (function((l,t),e) {
+			unify ctx t t_void (List.hd l).epos;
+			var e = type_block ctx e;
+			(e :: l , e.etype)
+		}) ([e] , e.etype) l;
+		type_functions ctx;
+		restore_locals ctx locals;
+		mk TBlock(List.rev el) t p
+	| EApply (e,el) ->
+		type_expr ctx (ECall e el,p)
+	| ECall ((EConst (Ident "open"),_),[(EConst (Module (m,Constr modname)),p)]) ->
+		ctx.opens := get_module ctx (List.append m [modname]) p :: ctx.opens;
+		mk (TConst TVoid) t_void p
+	| ECall ((EConst (Ident "open"),_),[(EConst (Constr modname),p)]) ->
+		ctx.opens := get_module ctx [modname] p :: ctx.opens;
+		mk (TConst TVoid) t_void p
+	| ECall ((EConst (Ident "assert"),_) as a,[]) ->		
+		type_expr ctx (ECall a [(EConst (String p.psource),p);(EConst (Int p.pline),p)], p)
+	| ECall ((EConst (Ident "invalid_arg"),_) as a,[]) ->
+		type_expr ctx (ECall a [(EConst (String ctx.curfunction),p)], p)
+	| ECall ((EConst (Constr "TYPE"),_),[e]) ->
+		var e = type_expr ctx e;
+		printf "%s:(%d): type : %s\n" (p.psource,p.pline,s_type true s_context() e.etype);
+		mk (TParenthesis e) t_void p
+	| ECall (e,el) ->
+		var e = type_expr ctx e;
+		var el = match el { [] -> [(ETupleDecl [],p)] | _ -> el };
+		var el = List.map (type_expr ctx) el;
+		match etype false e {
+		| TFun (args,r) ->
+			function rec loop(acc,expr,l,tl,r) {
+				match (l , tl) {
+				| (e :: l , t :: tl) ->
+					match tlinks true t {
+					| TNamed (["format"],[param],_) ->
+						match e.edecl {
+						| TConst (TString s) ->
+							var tfmt = type_format ctx s e.epos;
+							unify ctx param tfmt e.epos;
+						| _ ->
+							match tlinks true e.etype {
+							| TNamed (["format"],[param2],_) ->
+								unify ctx param2 param e.epos
+							| _ ->
+								error Custom("Constant string required for format") e.epos
+							}
+						}
+					| _ ->
+						unify ctx e.etype t (pos e)
+					}
+					loop (e :: acc) expr l tl r
+				| ([] , []) ->
+					mk TCall(expr,List.rev acc) r p
+				| ([] , tl) ->
+					mk TCall(expr,List.rev acc) (mk_fun ctx.gen tl r) p
+				| (el , []) ->
+					match tlinks false r {
+					| TFun (args,r2) -> loop [] (mk TCall(expr,List.rev acc) r p) el args r2
+					| _ -> error Custom("Too many arguments") p
+					}
+				| _ ->
+					assert()
+				}
+			}
+			loop [] e el args r
+		| _ ->
+			var r = t_mono ctx.gen;
+			var f = mk_fun ctx.gen (List.map (function(e) { e.etype }) el) r;
+			unify ctx e.etype f p;
+			mk TCall(e,el) r p
+		}
+	| EField (e,s) ->
+		var e = type_expr ctx e;
+		var t = match etype false e {
+		| TRecord fl ->
+			try {
+				var _ , _ , t = List.find (function((s2,_,_)) { s == s2 }) fl;
+				t
+			} catch {
+				Not_found -> error Have_no_field(e.etype,s) p
+			}
+		| _ ->
+			var r , t , _ = get_record ctx s p;
+			unify ctx e.etype r (pos e);
+			t
+		};
+		mk TField(e,s) t p
+	| EArray (e,ei) ->
+		var e = type_expr ctx e;
+		var ei = type_expr ctx ei;
+		unify ctx ei.etype t_int (pos ei);
+		var t , pt = t_poly ctx.gen "array";
+		unify ctx e.etype t (pos e);
+		mk TArray(e,ei) pt p
+	| EVar _ ->
+		error Custom("Variable declaration not allowed outside a block") p
+	| EIf (e,e1,None) ->
+		var e = type_expr ctx e;
+		unify ctx e.etype t_bool (pos e);
+		var e1 = type_expr ctx e1;
+		unify ctx e1.etype t_void (pos e1);
+		mk TIf(e,e1,None) t_void p
+	| EIf (e,e1,Some e2) ->
+		var e = type_expr ctx e;
+		unify ctx e.etype t_bool (pos e);
+		var e1 = type_expr ctx e1;
+		var e2 = type_expr ctx e2;
+		unify ctx e2.etype e1.etype (pos e2);
+		mk TIf(e,e1,Some e2) e1.etype p
+	| EWhile (e1,e2) ->
+		var e1 = type_expr ctx e1;
+		unify ctx e1.etype t_bool (pos e1);
+		var e2 = type_expr ctx e2;
+		unify ctx e2.etype t_void (pos e2);
+		mk TWhile(e1,e2) t_void p
+	| EFunction (isrec,name,pl,e,rt) ->		
+		var r = register_function ctx isrec name pl e rt p;
+		type_functions ctx;
+		r
+	| EBinop (op,e1,e2) ->
+		type_binop ctx op (type_expr ctx e1) (type_expr ctx e2) p
+	| ETypeAnnot (e,t) ->
+		var e = type_expr ctx e;
+		var t = type_type true Hashtbl.create() ctx t p;
+		unify ctx e.etype t (pos e);
+		mk e.edecl t p
+	| ETupleDecl [] ->
+		mk TConst(TVoid) t_void p
+	| ETupleDecl [e] ->
+		var e = type_expr ctx e;
+		mk TParenthesis(e) e.etype (pos e)
+	| ETupleDecl el ->
+		var el = List.map (type_expr ctx) el;
+		mk TTupleDecl(el) (mk_tup ctx.gen (List.map (function(e) { e.etype }) el)) p
+	| ETypeDecl (params,tname,decl) ->
+		var fullname = match ctx.current.path { ["Core"] -> [tname] | p -> List.append p [tname]};
+		var t , tl , h = try {
+			var t , tl , h = Hashtbl.find ctx.tmptypes tname;
+			if decl != EAbstract then Hashtbl.remove ctx.tmptypes tname;
+			if List.length tl != List.length params then error Custom("Invalid number of parameters for type " + tname) p;
+			(t , tl , h)
+		} catch {
+			Not_found ->
+				if Hashtbl.exists ctx.current.types tname then error Custom("Invalid type redefinition of type " + tname) p;
+				var h = Hashtbl.create();
+				var tl = List.map (function(p) {
+					var t = t_mono ctx.gen;
+					Hashtbl.add h p t;
+					t
+				}) params;
+				var t = {
+					tid = -1;
+					texpr = TNamed fullname tl t_abstract;
+				};
+				Hashtbl.add ctx.current.types tname t;
+				if decl == EAbstract then Hashtbl.add ctx.tmptypes tname (t,tl,h);
+				(t , tl , h)
+		};
+		var t2 = match decl {
+			| EAbstract -> t_abstract
+			| EAlias t -> type_type false h ctx t p
+			| ERecord fields ->
+				var fields = List.map (function((f,m,ft)) {
+					var ft = type_type false h ctx ft p;
+					var m = (if m then Mutable else Immutable);
+					Hashtbl.add ctx.current.records f (t,ft,m);
+					(f , m , ft)
+				}) fields;
+				mk_record ctx.gen fields
+			| EUnion constr ->
+				var constr = List.map (function((c,ft)) {
+					var ft = match ft {
+						| None -> t_abstract
+						| Some ft -> type_type false h ctx ft p
+					};
+					Hashtbl.add ctx.current.constrs c (t,ft);
+					(c , ft)
+				}) constr;
+				mk_union ctx.gen constr
+		};
+		t.tid := if t2.tid == -1 && params == [] then -1 else genid ctx.gen;
+		t.texpr := TNamed fullname tl t2;
+		polymorphize ctx.gen 0 t;
+		mk TTypeDecl(t) t_void p
+	| ERecordDecl fl ->
+		var s , _ = try List.hd fl catch { _ -> assert() };
+		var r , _ , _ = get_record ctx s p;
+		var fll = match tlinks false r {
+			| TRecord fl -> fl
+			| _ -> assert()
+		};
+		var fl2 = &fll;
+		function rec loop(f,l) {
+			match l {
+			| [] -> 
+				if List.exists (function((f2,_,_)) { f == f2 }) fll then
+					error Custom("Duplicate declaration for field " + f) p
+				else
+					error Have_no_field(r,f) p
+			| (f2,_,ft) :: l when f == f2 -> 
+				(ft , l)
+			| x :: l -> 
+				var t , l = loop f l;
+				(t , x :: l)
+			}
+		}
+		var el = List.map (function((f,e)) {
+			var ft , fl2b = loop f (*fl2);
+			fl2 := fl2b;
+			var e = type_expr ctx e;
+			unify ctx e.etype ft (pos e);
+			(f , e)
+		}) fl;
+		List.iter (function((f,_,_)) {
+			error Custom("Missing field " + f + " in record declaration") p;
+		}) (*fl2);
+		mk (TRecordDecl el) r p
+	| EErrorDecl (name,t) ->
+		var t = match t { None -> t_abstract | Some t -> type_type false Hashtbl.create() ctx t p };
+		Hashtbl.add ctx.current.constrs name (t_error,t);
+		mk TErrorDecl(name,t) t_void p
+	| EUnop (op,e) ->
+		type_unop ctx op (type_expr ctx e) p
+	| EMatch (e,cl) ->
+		var e = type_expr ctx e;
+		var is_stream = List.all (function((l,_,_)) { List.all (function((p,_)) { match p { PStream _ -> true | _ -> false }}) l}) cl;
+		var partial , m , t = type_match ctx e.etype cl p;
+		if !is_stream && partial then error Custom("This matching is not complete") p;
+		mk TMatch(e,m,is_stream) t p
+	| ETry (e,cl) ->
+		var e = type_expr ctx e;
+		var _ , m , t = type_match ctx t_error cl p;
+		unify ctx t e.etype p;
+		mk TTry(e,m) t p
+	| ETupleGet (e,n) ->
+		var e = type_expr ctx e;
+		function try_unify(et) {
+			var t = Array.init (n + 1) (function(_) { t_mono ctx.gen });
+			unify ctx et (mk_tup ctx.gen (Array.list t)) p;
+			t.[n]
+		}
+		function rec loop(et) {
+			match et.texpr {
+			| TLink et -> loop et
+			| TTuple l -> try List.nth l n catch { _ -> try_unify et }
+			| _ -> try_unify et
+			}
+		}
+		mk TTupleGet(e,n) (loop e.etype) p
+	}
+}
+
+function rec type_block(ctx,x) {
+	var e , p = x;
+	match e {
+	| EVar (vl,e) ->
+		type_functions ctx;
+		var e = type_expr ctx e;
+		function make(v,t) {
+			var t = match t {
+				| None -> t_mono ctx.gen
+				| Some t -> type_type true Hashtbl.create() ctx t p
+			}
+			add_local ctx v t;
+			t
+		}
+		var t = match vl {
+			| [] -> assert()
+			| [(v,t)] -> make v t
+			| _ -> 
+				mk_tup ctx.gen (List.map (function((v,t)) { make v t }) vl)
+		}
+		unify ctx t e.etype (pos e);
+		mk TVar(List.map fst vl,e) t_void p
+	| EFunction (true,name,pl,e,rt) ->
+		register_function ctx true name pl e rt p
+	| _ ->
+		type_functions ctx;
+		type_expr ctx x
+	}
+}
+
+// ctx h ?(h2 = Hashtbl.create 0)
+function rec type_pattern(ctx,h,h2,set,add,(pat,p)) {
+	function pvar(add,s) {
+		if Set.exists (*set) s then error Custom("This variable is several time in the pattern") p;
+		set := Set.add (*set) s;
+		try
+			Hashtbl.find h s
+		catch {	Not_found ->
+			var t = t_mono ctx.gen;
+			Hashtbl.add h s t;
+			if add then add_local ctx s t;
+			t
+		}
+	}
+	var pt , pat = match pat {
+		| PConst c ->
+			(match c {
+			| Int n -> t_int
+			| Float s -> t_float
+			| String s -> t_string
+			| Char c -> t_char
+			| Ident _ | Constr _ | Module _ ->
+				assert()
+			} , pat)
+		| PTuple [p] ->
+			var pt , pat = type_pattern ctx h h2 set add p;
+			(pt , fst pat)
+		| PTuple pl -> 
+			var pl , patl = List.split (List.map (type_pattern ctx h h2 set add) pl);
+			(mk_tup ctx.gen pl , PTuple patl)
+		| PRecord fl ->
+			var s = try fst (List.hd fl) catch { _ -> assert() };
+			var r , _ , _ = get_record ctx s p;
+			var fl = match tlinks false r {
+			| TRecord rl ->
+				List.map (function((f,pat)) {
+					var pt , pat = type_pattern ctx h h2 set add pat;
+					var t = try {
+						var _ , _ , t = List.find (function((f2,_,_)) { f == f2 }) rl;
+						t
+					} catch { Not_found ->
+						error Have_no_field(r,f) p
+					};
+					unify ctx pt t (snd pat);
+					(f , pat)
+				}) fl 
+			| _ ->
+				assert()
+			};
+			(r , PRecord fl)
+		| PIdent s ->
+			(if s == "_" then t_mono ctx.gen else pvar add s , pat)
+		| PConstr (path,s,param) ->			
+			var tparam , param = match param {
+				| None -> (None , None )
+				| Some ((_,p) as param) -> 
+					var t , pat = type_pattern ctx h h2 set add param;
+					(Some (p,t) , Some pat)
+			}
+			var path , ut , t = get_constr ctx path s p;
+			match (t.texpr , tparam) {
+			| (TAbstract , None) -> (duplicate ctx.gen Hashtbl.create() ut , PConstr path s param)
+			| (TAbstract , Some _) -> error Custom("Constructor does not take parameters") p
+			| (_ , None) -> error Custom("Constructor require parameters") p
+			| (_ , Some (p,pt)) ->
+				match pt {
+				| { texpr = TTuple [t2] } | t2 -> 
+					var h = Hashtbl.create();
+					var ut = duplicate ctx.gen h ut;
+					var t = duplicate ctx.gen h t;
+					unify ctx t t2 p;
+					(ut , PConstr path s param)
+				}
+			}
+		| PAlias (s,pat) ->
+			var pt , pat = type_pattern ctx h h2 set false pat;
+			var t = pvar false s;
+			unify ctx pt t (snd pat);
+			(t , PAlias s pat)
+		| PTyped (pat,t) ->
+			var pt , pat = type_pattern ctx h h2 set add pat;
+			unify ctx pt (type_type true h2 ctx t p) p;
+			(pt , PTyped pat t)
+		| PStream (l,k) ->
+			var t , polyt = t_poly ctx.gen "stream";
+			var locals = save_locals ctx;
+			var l = List.map (function(s) {
+				match s {
+				| SPattern pat ->
+					var t , p = type_pattern ctx h h2 set true pat;
+					unify ctx t polyt (snd p);
+					SPattern p 
+				| SExpr ([v],e) ->
+					var e = type_expr ctx e;
+					var t = pvar true v;
+					unify ctx t e.etype e.epos;
+					SMagicExpr (PIdent v,e.epos) magic(e)
+				| SExpr (vl,e) ->
+					var e = type_expr ctx e;
+					var tl = List.map (pvar true) vl;
+					unify ctx (mk_tup ctx.gen tl) e.etype e.epos;
+					var tup = PTuple (List.map (function(v) { (PIdent v, e.epos) }) vl);
+					SMagicExpr (tup,e.epos) magic(e)
+				| SMagicExpr _ ->
+					assert()
+				}
+			}) l;
+			restore_locals ctx locals;
+			(t , PStream l k)
+	}
+	(pt , (pat,p))
+}
+
+function rec type_match(ctx,t,cl,p) {
+	var ret = t_mono ctx.gen;
+	var cl = List.map (function((pl,wh,pe)) {
+		var first = &true;
+		var h = Hashtbl.create();
+		var mainset = &Set.empty();
+		var pl = List.map (function(pat) {
+			var set = &Set.empty();
+			var pt , pat = type_pattern ctx h Hashtbl.create() set false pat;
+			if *first then {
+				first := false;
+				mainset := *set;
+			} else {
+				var s1 = Set.diff (*set) (*mainset);
+				var s2 = Set.diff (*mainset) (*set);
+				Set.iter (function(s) { error Custom("Variable " + s + " must occur in all patterns") p }) (Set.union s1 s2);
+			}
+			unify ctx pt t p;
+			pat 
+		}) pl;
+		var locals = save_locals ctx;
+		Hashtbl.iter (function(v,t) { add_local ctx v t }) h;
+		var wh = match wh {
+			| None -> None
+			| Some e -> 
+				var e = type_expr ctx e;
+				unify ctx e.etype t_bool e.epos;
+				Some e
+		}
+		var pe = type_expr ctx pe;
+		unify ctx pe.etype ret (pos pe);
+		restore_locals ctx locals;
+		(pl , wh , pe)
+	}) cl;
+/*	Mlmatch.fully_matched_ref := (function(cl) {
+		match cl {
+		| (TModule(path,TConstr c)) :: l ->
+			var path , ut , t = get_constr ctx path c Lexer.null_pos;
+			if ut == t_error then
+				false
+			else match tlinks false ut {
+			| TUnion (n,_) ->
+				n == List.length cl
+			| _ ->
+				assert()
+			}
+		| TVoid :: _ ->
+			true
+		| _ ->
+			false
+		}
+	});
+	var partial , m = Mlmatch.make cl p;
+	(partial , m , ret)*/
+	assert()
+}
+
+function modules(ctx) {
+	var h = Hashtbl.create();
+	Hashtbl.iter (function(p,m) {
+		match m.expr { 
+		| None -> ()
+		| Some e -> 		
+			var deps = &(if m.path == ["Core"] || Hashtbl.exists m.deps ["Core"] then [] else [["Core"]]);
+			var idents = &[];
+			Hashtbl.iter (function(_,m) {
+				deps := m.path :: *deps
+			}) m.deps;
+			Map.iter (function(i,t) {
+				idents := i :: *idents
+			}) m.idents;
+			Hashtbl.add h p (e,*deps,*idents)
+		}
+	}) ctx.modules;
+	h
+}
+
+function open_file(ctx,file,p) {
+	function rec loop(l) {		
+		match l {
+		| [] -> error Custom("File not found " + file) p
+		| pp :: l ->
+			try {
+				var f = pp + file;
+				(f , IO.read_file f false)
+			} catch { _ -> loop l }
+		}
+	}
+	loop ctx.classpath
+}
+
+function load_module(ctx,m,p) {
+	try
+		Hashtbl.find ctx.modules m
+	catch {
+		Not_found ->	
+			var file , ch = open_file ctx (String.concat "/" m + ".nml") p;
+			var is_core , core = try
+				(false , Hashtbl.find ctx.modules ["Core"])
+			catch { Not_found ->
+				(true , ctx.current)
+			}
+			var ctx = {
+				mink = ctx.mink;
+				gen = ctx.gen;
+				modules = ctx.modules;
+				classpath = ctx.classpath;
+
+				curfunction = "anonymous";
+				tmptypes = Hashtbl.create();
+				functions = [];
+				opens = [core];
+				current = if is_core then ctx.current else {
+					path = m;
+					constrs = Hashtbl.create();
+					records = Hashtbl.create();
+					types = Hashtbl.create();
+					expr = None;
+					idents = Map.empty();
+					deps = Hashtbl.create();
+				}
+			};
+			Hashtbl.add ctx.modules m ctx.current;
+			var lex = Lexer.create Buffer.create();
+			Lexer.input lex file ch 1 0;
+			var ast = Nekoml.Parser.parse lex;
+			if *verbose then printf "Parsed %s\n" file;
+			var e = match ast {
+				| (EBlock (e :: l) , p) ->
+					var e = type_block ctx e;
+					var el , t = List.fold (function((l,t),e) {
+						var e = type_block ctx e;
+						(e :: l , e.etype)
+					}) ([e] , e.etype) l;
+					type_functions ctx;
+					mk TBlock(List.rev el) t p
+				| _ ->
+					type_expr ctx ast
+			}
+			ctx.current.expr := Some e;		
+			if *verbose then printf "Typing done with %s\n" file;
+			ctx.current
+	}
+}
+
+function context(cpath) {
+	var ctx = {
+		gen = generator();
+		tmptypes = Hashtbl.create();
+		modules = Hashtbl.create();
+		functions = [];
+		opens = [];
+		mink = 0;
+		classpath = cpath;
+		curfunction = "anonymous";
+		current = {
+			path = ["Core"];
+			expr = None;
+			idents = Map.empty();
+			constrs = Hashtbl.create();
+			types = Hashtbl.create();
+			deps = Hashtbl.create();
+			records = Hashtbl.create();
+		};
+	};
+	function add_type(args,name,t) {
+		ignore(type_expr ctx (ETypeDecl args name t, Lexer.null_pos));
+	}
+	function add_variable(name,t) {
+		ctx.current.idents := Map.add ctx.current.idents name t
+	}
+	add_type [] "bool" EUnion([("true",None);("false",None)]);
+	add_type ["a"] "list" (EUnion [("[]",None);("::",Some (ETuple [
+		EPoly "a";
+		EType Some(EPoly "a") [] "list";
+	]))]);
+	add_variable "neko" (mk_fun ctx.gen [t_polymorph ctx.gen] (t_polymorph ctx.gen));
+	var core = load_module ctx ["Core"] Lexer.null_pos;
+	ctx
+}
+
+load_module_ref := load_module
