@@ -103,7 +103,12 @@ function create(cmp) {
 	}
 }
 
-var empty = { cmp = compare; map = Empty };
+function empty() {
+	{
+		cmp = compare;
+		map = Empty;
+	}
+}
 
 function is_empty(m) {
 	m.map == Empty
