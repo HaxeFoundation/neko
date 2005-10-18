@@ -58,6 +58,7 @@ and match_op =
 	| MField of match_op * int
 	| MTuple of match_op * int
 	| MToken of match_op * int
+	| MRecordField of match_op * string
 	| MJunk of match_op * int * match_op
 	| MSwitch of match_op * (tconstant * match_op) list
 	| MBind of string * match_op * match_op
