@@ -429,7 +429,7 @@ function rec compile_function(ctx,params,e) {
 	ctx.ops := Array.create();
 	ctx.breaks := [];
 	ctx.continues := [];
-	ctx.env := Map.empty;
+	ctx.env := Map.empty();
 	ctx.nenv := 0;
 	ctx.ntraps := 0;
 	ctx.limit := ctx.stack;
@@ -721,12 +721,12 @@ function compile(ast) {
 		globals = Hashtbl.create();
 		gobjects = Hashtbl.create();
 		gtable = Array.create();
-		locals = Map.empty;
+		locals = Map.empty();
 		ops = Array.create();
 		breaks = [];
 		continues = [];
 		functions = [];
-		env = Map.empty;
+		env = Map.empty();
 		nenv = 0;
 		ntraps = 0;
 		labels = Hashtbl.create();
