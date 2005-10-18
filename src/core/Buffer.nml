@@ -17,7 +17,7 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-type buffer;
+type t;
 
 neko("
 
@@ -30,19 +30,19 @@ neko("
 
 ");
 
-function create() : buffer {
+function create() : t {
 	neko("@buffer_new()");
 }
 
-function add(b:buffer,x : 'a) : void {
+function add(b:t,x : 'a) : void {
 	neko("@buffer_add(b,x)");
 }
 
-function reset(b:buffer) : void {
+function reset(b:t) : void {
 	neko("@buffer_reset(b)");
 }
 
 
-var string : buffer -> string = neko("@buffer_string");
-var add_sub : buffer -> string -> int -> int -> void = neko("@buffer_add_sub");
-var add_char : buffer -> char -> void = neko("@buffer_add_char");
+var string : t -> string = neko("@buffer_string");
+var add_sub : t -> string -> int -> int -> void = neko("@buffer_add_sub");
+var add_char : t -> char -> void = neko("@buffer_add_char");
