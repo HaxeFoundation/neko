@@ -195,7 +195,7 @@ function rec is_tuple(t) {
 }
 
 function rec is_recursive(t1,t2) {
-	if t1 == t2 then
+	if t1 === t2 then
 		true
 	else match t2.texpr {
 	| TAbstract
@@ -555,7 +555,7 @@ function type_format(ctx,s,p) {
 	var types = &[];
 	var percent = &false;
 	var i = &0;
-	var l = String.length s - 1;
+	var l = String.length s;
 	while *i < l {
 		var c = String.get s (*i);
 		if *percent then {
@@ -585,6 +585,7 @@ function type_format(ctx,s,p) {
 			| _ ->
 				()
 			}
+		i := *i + 1;
 	};
 	if *percent then error (Custom "Invalid % sequence") p;
 	match *types {
@@ -602,7 +603,11 @@ function rec type_functions(ctx) {
 	var l = List.map (function((isrec,name,expr,ft,el,e,rt,p)) {
 		var locals = save_locals ctx;
 		var func = ctx.curfunction;
-		if name != "_" then ctx.curfunction := s_path ctx.current.path name;
+		if name != "_" then {
+			var fname = s_path ctx.current.path name;
+			if *verbose then print ("Typing "+fname+"\n");
+			ctx.curfunction := fname;
+		}
 		List.iter (function((p,pt)) {
 			add_local ctx p pt
 		}) el;
@@ -978,11 +983,11 @@ function rec type_pattern(ctx,h,h2,set,add,(pat,p)) {
 				var h = Hashtbl.create();
 				var ut = duplicate ctx.gen h ut;
 				var t = duplicate ctx.gen h t;
-				unify ctx t pt p;
 				var param = match param {
 					| Some (PTuple l,p) when !is_tuple t -> Some (PTuple [(PTuple l,p)],p)
 					| _  -> param
 				}
+				unify ctx t pt p;
 				(ut , PConstr path s param)
 			}
 		| PAlias (s,pat) ->
