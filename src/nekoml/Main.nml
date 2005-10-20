@@ -9,12 +9,21 @@ try {
 	var i = &1;
 	var args = Sys.args();
 	var ctx = context ["";"core/"];
+	verbose := true;
 	while *i < Array.length args {
 		var file = args.[*i];
 		print ("Compiling " + file + "\n");
 		compile ctx file;
 		i := *i + 1;
 	}
+	Hashtbl.iter (function(m,(e,deps,idents)) {
+		var e = Nekoml.Neko.generate e deps idents m;
+		var file = String.concat "/" m + ".neko";
+		var ch = IO.write_file file false;
+		var ctx = Neko.Printer.create ch;
+		Neko.Printer.print ctx e;
+		IO.close_out ch
+	}) (modules ctx)
 } catch {
 	| Error (msg,p) -> Core.print (sprintf "%s(%d): Type Error %s\n" (p.psource,p.pline,error_msg msg));
 	| e -> Core.print ("Exception : " + string e + "\n")
