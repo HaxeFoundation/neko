@@ -166,7 +166,7 @@ function token(l,t) : 'a {
 		var e = exits.[k];
 		if e != -1 then last := (n,e,res);
 		if res == -1 then throw Exit;
-		loop (n+1) res
+		neko("loop[0](n+1,res)");
 	};	
 	function loop_first(n,k) {
 		var res = neko("tbl[0][k][0][read(l)]");
