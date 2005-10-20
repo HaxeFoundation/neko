@@ -875,11 +875,11 @@ and type_pattern (ctx:context) h ?(h2 = Hashtbl.create 0) set add (pat,p) =
 				let h = Hashtbl.create 0 in
 				let ut = duplicate ctx.gen ~h ut in
 				let t = duplicate ctx.gen ~h t in
-				unify ctx t pt p;
 				let param = (match param with 
 					| Some (PTuple l,p) when not (is_tuple t) -> Some (PTuple [(PTuple l,p)],p)
 					| _  -> param
 				) in
+				unify ctx t pt p;
 				ut , PConstr (path,s,param));
 		| PAlias (s,pat) ->
 			let pt , pat = type_pattern ctx h ~h2 set false pat in
