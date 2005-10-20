@@ -26,6 +26,7 @@ type pos = {
 type constant =
 	| Int of int
 	| Char of char
+	| Bool of bool
 	| Float of string
 	| String of string
 	| Ident of string
@@ -158,6 +159,7 @@ let escape s =
 let rec s_constant = function
 	| Int i -> string_of_int i
 	| Float s -> s
+	| Bool b -> if b then "true" else "false"
 	| Char c -> "'" ^ escape_char c ^ "\""
 	| String s -> "\"" ^ escape s ^ "\""
 	| Ident s -> s

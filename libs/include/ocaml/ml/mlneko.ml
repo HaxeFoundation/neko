@@ -70,17 +70,19 @@ let pos (p : Mlast.pos) =
 let rec is_fun t =
 	match t.texpr with
 	| TNamed (_,_,t) | TLink t -> is_fun t
+	| TPoly
+	| TMono _
 	| TFun _ -> true
 	| _ -> false
 
-let call ret f args p =
+let rec call ret f args p =
 	match f with
 	| EConst (Builtin _) , _ -> ECall (f,args) , p
 	| _ ->
 		match args with
 		| a :: b :: c :: d :: x :: l -> 
 			let app = ECall ((EConst (Builtin "apply"),p),[f;a;b;c;d]) , p in
-			ECall (app,x :: l) , p
+			call ret app (x :: l) p
 		| _ ->
 			if is_fun ret then
 				ECall ((EConst (Builtin "apply"),p),f :: args) , p
@@ -120,8 +122,8 @@ let rec gen_constant ctx c p =
 	| TString s -> EConst (String s)
 	| TIdent s ->
 		if PMap.mem s ctx.refvars then EArray ((EConst (Ident s),null_pos),int 0) else EConst (Ident s)
-	| TConstr "true" | TModule (["Core"],TConstr "true") -> EConst True
-	| TConstr "false" | TModule (["Core"],TConstr "false") -> EConst False
+	| TBool true -> EConst True
+	| TBool false -> EConst False
 	| TConstr "[]" | TModule (["Core"],TConstr "[]") -> fst (core "@empty" p)
 	| TConstr "::" | TModule (["Core"],TConstr "::") -> fst (core "@cons" p)
 	| TConstr s -> EConst (Ident s)

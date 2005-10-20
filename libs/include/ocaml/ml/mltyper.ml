@@ -151,6 +151,12 @@ let get_record ctx f p =
 	let h = Hashtbl.create 0 in
 	duplicate ctx.gen ~h rt, duplicate ctx.gen ~h ft, mut
 
+let rec is_tuple t = 
+	match t.texpr with
+	| TLink t -> is_tuple t
+	| TTuple _ -> true
+	| TNamed(_,_,t) -> is_tuple t
+	| _ -> false
 
 let rec is_recursive t1 t2 = 
 	if t1 == t2 then
@@ -293,6 +299,7 @@ let rec type_constant ctx ?(path=[]) c p =
 	| Int i -> mk (TConst (TInt i)) t_int p
 	| Float s -> mk (TConst (TFloat s)) t_float p
 	| String s -> mk (TConst (TString s)) t_string p
+	| Bool b -> mk (TConst (TBool b)) t_bool p
 	| Char c -> mk (TConst (TChar c)) t_char p
 	| Ident s ->
 		let path , t = get_ident ctx path s p in
@@ -822,6 +829,7 @@ and type_pattern (ctx:context) h ?(h2 = Hashtbl.create 0) set add (pat,p) =
 			| Float s -> t_float
 			| String s -> t_string
 			| Char c -> t_char
+			| Bool b -> t_bool
 			| Ident _ | Constr _ | Module _ ->
 				assert false) , pat
 		| PTuple [p] ->
@@ -851,7 +859,7 @@ and type_pattern (ctx:context) h ?(h2 = Hashtbl.create 0) set add (pat,p) =
 			r , PRecord fl
 		| PIdent s ->
 			(if s = "_" then t_mono ctx.gen else pvar add s) , pat
-		| PConstr (path,s,param) ->			
+		| PConstr (path,s,param) ->	
 			let tparam , param = (match param with
 				| None -> None , None 
 				| Some ((_,p) as param) -> 
@@ -864,13 +872,15 @@ and type_pattern (ctx:context) h ?(h2 = Hashtbl.create 0) set add (pat,p) =
 			| TAbstract , Some _ -> error (Custom "Constructor does not take parameters") p
 			| _ , None -> error (Custom "Constructor require parameters") p
 			| _ , Some (p,pt) ->
-				match pt with
-				| { texpr = TTuple [t2] } | t2 -> 
-					let h = Hashtbl.create 0 in
-					let ut = duplicate ctx.gen ~h ut in
-					let t = duplicate ctx.gen ~h t in
-					unify ctx t t2 p;					
-					ut , PConstr (path,s,param));
+				let h = Hashtbl.create 0 in
+				let ut = duplicate ctx.gen ~h ut in
+				let t = duplicate ctx.gen ~h t in
+				unify ctx t pt p;
+				let param = (match param with 
+					| Some (PTuple l,p) when not (is_tuple t) -> Some (PTuple [(PTuple l,p)],p)
+					| _  -> param
+				) in
+				ut , PConstr (path,s,param));
 		| PAlias (s,pat) ->
 			let pt , pat = type_pattern ctx h ~h2 set false pat in
 			let t = pvar false s in
@@ -942,7 +952,7 @@ and type_match ctx t cl p =
 		restore_locals ctx locals;
 		pl , wh , pe
 	) cl in
-	Mlmatch.fully_matched_ref := (fun cl ->
+	let rec loop cl =
 		match cl with
 		| TModule(path,TConstr c) :: l ->
 			let path , ut , t = get_constr ctx path c null_pos in
@@ -954,11 +964,18 @@ and type_match ctx t cl p =
 				n = List.length cl
 			| _ ->
 				assert false)
+		| TBool b :: l ->
+			let e = List.exists (fun c -> c = TBool (not b)) l in
+			prerr_endline (if e then "ok" else "notok");
+			e
 		| TVoid :: _ ->
 			true
-		| _ ->
+		| _ :: l ->
+			loop cl
+		| [] ->
 			false
-	);	
+	in
+	Mlmatch.fully_matched_ref := loop;
 	let partial , m = Mlmatch.make cl p in
 	partial , m , ret
 
@@ -1062,7 +1079,7 @@ let context cpath =
 	let add_variable name t = 
 		ctx.current.idents <- PMap.add name t ctx.current.idents
 	in
-	add_type [] "bool" (EUnion ["true",None;"false",None]);
+	add_type [] "bool" EAbstract;
 	add_type ["a"] "list" (EUnion ["[]",None;"::",Some (ETuple [
 		EPoly "a";
 		EType (Some (EPoly "a"),[],"list");

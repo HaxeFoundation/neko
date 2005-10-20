@@ -42,6 +42,7 @@ and t = {
 type tconstant =
 	| TVoid
 	| TInt of int
+	| TBool of bool
 	| TFloat of string
 	| TString of string
 	| TChar of char

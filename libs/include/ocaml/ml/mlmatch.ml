@@ -87,6 +87,7 @@ let t_const = function
 	| Float f -> TFloat f
 	| Char c -> TChar c
 	| Ident i -> TIdent i
+	| Bool b -> TBool b
 	| _ -> assert false
 
 let total p1 p2 =

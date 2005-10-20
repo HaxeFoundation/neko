@@ -139,8 +139,8 @@ rule token = parse
 	| number+ { mk lexbuf (Const (Int (int_of_string (lexeme lexbuf)))) }
 	| number+ '.' number*
 	| '.' number+ { mk lexbuf (Const (Float (lexeme lexbuf))) }
-	| "true" { mk lexbuf (Const (Constr "true")) } 
-	| "false" { mk lexbuf (Const (Constr "false")) }
+	| "true" { mk lexbuf (Const (Bool true)) } 
+	| "false" { mk lexbuf (Const (Bool false)) }
 	| '"' {
 			reset();
 			let pmin = lexeme_start lexbuf in
