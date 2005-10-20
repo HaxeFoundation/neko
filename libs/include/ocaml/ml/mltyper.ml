@@ -518,7 +518,11 @@ let rec type_functions ctx =
 	let l = List.map (fun (isrec,name,expr,ft,el,e,rt,p) ->
 		let locals = save_locals ctx in
 		let func = ctx.curfunction in
-		if name <> "_" then ctx.curfunction <- s_path ctx.current.path name;
+		if name <> "_" then begin
+			let fname = s_path ctx.current.path name in
+			if !verbose then prerr_endline ("Typing " ^ fname);
+			ctx.curfunction <- fname;
+		end;
 		List.iter (fun (p,pt) ->
 			add_local ctx p pt
 		) el;		
