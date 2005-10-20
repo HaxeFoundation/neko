@@ -1,13 +1,13 @@
 open Nekoml.Typer;
 
 function compile(ctx,file) {
-	var modname = String.split (Sys.without_extension file) "/";	
+	var modname = String.split (Sys.without_extension file) "/";
 	ignore(load_module ctx modname Lexer.null_pos);
 }
 
 try {
 	var i = &1;
-	var args = Sys.args();	
+	var args = Sys.args();
 	var ctx = context ["";"core/"];
 	while *i < Array.length args {
 		var file = args.[*i];

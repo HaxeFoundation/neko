@@ -46,6 +46,7 @@ type t {
 type tconstant {
 	TVoid;
 	TInt : int;
+	TBool : bool;
 	TFloat : string;
 	TString : string;
 	TChar : char;
@@ -65,6 +66,7 @@ type match_op {
 	MField : (match_op, int);
 	MTuple : (match_op, int);
 	MToken : (match_op, int);
+	MRecordField : (match_op, string);
 	MJunk : (match_op, int, match_op);
 	MSwitch : (match_op, (tconstant, match_op) list);
 	MBind : (string, match_op, match_op);
@@ -153,7 +155,7 @@ var t_string = abstract "string"
 var t_bool = {
 	tid = -1;
 	texpr = TNamed ["bool"] [] ({
-		tid = -1; 
+		tid = -1;
 		texpr = TUnion 2 [
 			("true",t_abstract);
 			("false",t_abstract)
@@ -244,11 +246,11 @@ function s_mutable(m) {
 function rec s_type(ext,h,t) {
 	match t.texpr {
 	| TAbstract -> "<abstract>"
-	| TMono _ -> 
+	| TMono _ ->
 		sprintf "'_%s" poly_id(try
 			if t.tid != -2 then assert();
 			snd (List.find (function((k,v)) { k === t }) h.pi_ml);
-		catch { Not_found -> 
+		catch { Not_found ->
 			var k = h.pi_mcount;
 			h.pi_mcount := h.pi_mcount + 1;
 			h.pi_ml := (t,k) :: h.pi_ml;
@@ -258,7 +260,7 @@ function rec s_type(ext,h,t) {
 		sprintf "'%s" poly_id(try
 			if t.tid == -1 then assert();
 			Hashtbl.find h.pi_ph t.tid
-		catch { Not_found -> 
+		catch { Not_found ->
 			var k = h.pi_pcount;
 			h.pi_pcount := h.pi_pcount + 1;
 			Hashtbl.add h.pi_ph t.tid k;
@@ -266,15 +268,15 @@ function rec s_type(ext,h,t) {
 		})
 	| TRecord fl ->
 		sprintf "{ %s }" (String.concat "; " (List.map (function((f,m,t)) { s_mutable m + f + " : " + s_type false h t }) fl))
-	| TUnion (_,fl) -> 
+	| TUnion (_,fl) ->
 		sprintf "{ %s }" (String.concat "; " (List.map (function((f,t)) { f + " : " + s_type false h t }) fl))
 	| TTuple l ->
 		sprintf "(%s)" (String.concat ", " (List.map (s_type false h) l))
 	| TLink t  ->
 		s_type ext h t
-	| TFun (tl,r) -> 
-		var l = String.concat " -> " (List.map (s_fun ext h) tl) + " -> ";
-		l + s_type ext h r
+	| TFun (tl,r) ->
+		var l = String.concat " -> " (List.map (s_fun false h) tl) + " -> ";
+		l + s_type false h r
 	| TNamed (name,params,t) ->
 		var s = match params {
 			| [] -> ""

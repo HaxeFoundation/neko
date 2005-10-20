@@ -102,13 +102,13 @@ token := Lexer.build [
 	("]", function(l) { mk l BracketClose });
 	("'", function(l) { mk l Quote });
 	("|", function(l) { mk l Vertical });
-	(spaces, function(l) { Lexer.token l (*token) });	
+	(spaces, function(l) { Lexer.token l (*token) });
 	( "0x[0-9a-fA-F]+", mk_int );
 	( numbers, mk_int );
 	( numbers + "." + number + "*", mk_float);
-	( "." + numbers, mk_float );	
-	("true", function(l) { mk l (Const (Constr "true")) });
-	("false", function(l) { mk l (Const (Constr "false"))});
+	( "." + numbers, mk_float );
+	("true", function(l) { mk l (Const (Bool true)) });
+	("false", function(l) { mk l (Const (Bool false))});
 	("\"", function(l) {
 		var p1 = Lexer.curpos l;
 		var buf = Lexer.data l;
@@ -153,10 +153,10 @@ token := Lexer.build [
 	("!==" , mk_binop);
 	("or" , mk_binop);
 	("and" , mk_binop);
-	("xor" , mk_binop);	
+	("xor" , mk_binop);
 	(ident , mk_ident);
 	(modident , function(l) { mk l Const(Constr (Lexer.current l)) });
-] (function(l) { 
+] (function(l) {
 	match Lexer.char l {
 	| None -> mk l Eof
 	| Some c -> error l (Invalid_character c)

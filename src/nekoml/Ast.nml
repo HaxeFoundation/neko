@@ -22,6 +22,7 @@ type pos = Lexer.pos
 type constant {
 	Int : int;
 	Char : char;
+	Bool : bool;
 	Float : string;
 	String : string;
 	Ident : string;
@@ -140,11 +141,12 @@ function rec s_constant(c) {
 	match c {
 	| Int i -> string i
 	| Float s -> s
+	| Bool b -> if b then "true" else "false"
 	| Char c -> "\"" + String.escape_char c + "\""
 	| String s -> "\"" + String.escape s + "\""
 	| Ident s -> s
 	| Constr s -> s
-	| Module (l,c) -> String.concat "." l + "." + s_constant c 
+	| Module (l,c) -> String.concat "." l + "." + s_constant c
 	}
 }
 

@@ -1,0 +1,366 @@
+/*
+ *  NekoML Compiler
+ *  Copyright (c)2005 Nicolas Cannasse
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+
+/* -----
+	We're using the same algorithm and source code as described in
+	chapter 5.2.4 of "The Zinc experiment" by X. Leroy
+	( http://citeseer.ist.psu.edu/leroy90zinc.html )
+	also described in "The Implementation of Functional Programming Languages"
+	by Simon Peyton Jones, in the Chapter 5 by Philip Wadler
+	( http://research.microsoft.com/Users/simonpj/Papers/slpj-book-1987/ )
+*/
+
+open Nekoml.Ast;
+open Nekoml.Type;
+
+type complete {
+	Total;
+	Partial;
+	Dubious;
+}
+
+type lambda = match_op
+
+type matching = ((pattern list , lambda) list , lambda list)
+
+var fully_matched_ref = &(function(cl) { false })
+var error_ref = &(function(msg : string,p : pos) { assert() })
+
+function error(msg,p) {
+	(*error_ref) msg p;
+}
+
+var failure = MFailure
+
+function handle(l1,l2) {
+	if l2 == MFailure then
+		l1
+	else if l1 == MFailure then
+		l2
+	else
+		MHandle l1 l2
+}
+
+function exec(e) {
+	MExecute e true
+}
+
+function cond(path,lambdas) {
+	MConstants path lambdas
+}
+
+function rec switch(path,lambdas) {
+	match lambdas {
+	| (TVoid,m1) :: [] -> m1
+	| (TVoid,m1) :: l -> MNext m1 (switch path l)
+	| _ -> 	MSwitch path lambdas
+	}
+}
+
+function ewhen(e,e2) {
+	MWhen e e2
+}
+
+function rec bind(v,p,m) {
+	match m {
+	| MBind (v2,p2,m) -> MBind v2 p2 (bind v p m)
+	| act -> if v == "_" then act else MBind v p act
+	}
+}
+
+function rec junk(p,k,m) {
+	match m {
+	| MBind (v,m,m2) -> MBind v m (junk p k m2)
+	| act -> if k == 0 then act else MJunk p k act
+	}
+}
+
+function rec stream_pattern((p,pos)) {
+	(match p {
+	| PIdent i -> PConst (Ident i)
+	| PConst c -> PConst c
+	| PTuple pl -> PTuple (List.map stream_pattern pl)
+	| PRecord pr -> PRecord (List.map (function((s,p)) { (s , stream_pattern p) }) pr)
+	| PConstr (path,name,param) -> PConstr path name (match param { None -> None | Some p -> Some (stream_pattern p) })
+	| PAlias (s,p) -> PAlias s (stream_pattern p)
+	| PTyped (p,t) -> PTyped (stream_pattern p) t
+	| PStream (s,k) -> PStream s k
+	} , pos)
+}
+
+function rec have_when(m) {
+	match m {
+	| MWhen _ -> true
+	| MBind (_,_,e) -> have_when e
+	| _ -> false
+	}
+}
+
+function t_const(c) {
+	match c {
+	| Int i -> TInt i
+	| String s -> TString s
+	| Float f -> TFloat f
+	| Char c -> TChar c
+	| Ident i -> TIdent i
+	| Bool b -> TBool b
+	| _ -> assert()
+	}
+}
+
+function total(p1,p2) {
+	match (p1 , p2) {
+	| (Total , Total) -> Total
+	| (Partial , _) -> Partial
+	| (_ , Partial) -> Partial
+	| _  -> Dubious
+	}
+}
+
+function partial(p1,p2) {
+	match (p1 , p2) {
+	| (Total , _) -> p2
+	| (_ , Total) -> Total
+	| _ -> Dubious
+	}
+}
+
+function rec start_by_a_variable((p,_)) {
+	match p {
+	| PAlias (_,p) -> start_by_a_variable p
+	| PIdent _ -> true
+	| _ -> false
+	}
+}
+
+function add_to_match((casel,pathl),cas) {
+	(cas :: casel , pathl)
+}
+
+function make_constant_match(path,cas) {
+	match path {
+	| [] -> assert()
+	| _ :: pathl -> ([cas] , pathl)
+	}
+}
+
+function make_token_match(path,cas) {
+	([cas] , path)
+}
+
+function make_construct_match(tuple,nargs,pathl,cas) {
+	match pathl {
+	| [] -> assert()
+	| path :: pathl ->
+		function rec make_path(i) {
+			if i >= nargs then
+				pathl
+			else {
+				var k = if tuple then MTuple path i else MField path i;
+				k :: make_path (i + 1)
+			}
+		}
+		([cas] , make_path 0)
+	}
+}
+
+function make_record_match(args,pathl,cas) {
+	match pathl {
+	| [] -> assert()
+	| path :: pathl ->
+		var l = List.fold (function(acc,(f,_)) { MRecordField(path,f) :: acc }) pathl (List.rev args);
+		([cas] , l)
+	}
+}
+
+function add_to_division(make_match,divlist,key,cas) {
+	try {
+		var matchref = List.assoc key divlist;
+		matchref := add_to_match (*matchref) cas;
+		divlist
+	} catch {
+		Not_found ->
+		(key , &(make_match cas)) :: divlist
+	}
+}
+
+function always_add(make_match,divlist,cas) {
+	(TVoid , &(make_match cas)) :: divlist
+}
+
+var lines_of_matching = fst
+
+function fully_matched(cl) {
+	(*fully_matched_ref) cl
+}
+
+function flatten(a) {
+	match a {
+	| None -> []
+	| Some p ->
+		match p {
+		| (PTuple l,_) -> l
+		| _ -> [p]
+		}
+	}
+}
+
+function split_matching(m) {
+	match m {
+	| (_ , []) ->
+		assert()
+	| (casel, (curpath :: endpathl) as pathl) ->
+		function rec split_rec(l) {
+			match l {
+			| ((PTyped (p,_),_) :: l , act) :: rest ->
+				split_rec ((p :: l, act) :: rest)
+			| ((PAlias (v,p),_) :: l , act) :: rest ->
+				split_rec ((p :: l, bind v curpath act) :: rest)
+			| ((PIdent v,_) :: l , act) :: rest ->
+				var vars , others = split_rec rest;
+				(add_to_match vars (l, bind v curpath act) , others)
+			| casel ->
+				(([] , endpathl) , (casel , pathl))
+			}
+		}
+		split_rec casel
+	}
+}
+
+function divide_matching(m) {
+	match m {
+	| (_ , []) ->
+		assert()
+	| (casel , (curpath :: tailpathl) as pathl) ->
+		function rec divide_rec(l) {
+			match l {
+			| [] ->
+				([] , [] , ([] , pathl))
+			| ([],_) :: _ ->
+				assert()
+			| ((PTyped (p,_),_) :: l , act) :: rest ->
+				divide_rec ((p :: l , act) :: rest)
+			| ((PAlias (v,p),_) :: l, act) :: rest ->
+				divide_rec ((p :: l , bind v curpath act) :: rest)
+			| ((PConst c,_) :: l, act) :: rest ->
+				var constant , constrs, others = divide_rec rest;
+				(add_to_division (make_constant_match pathl) constant (t_const c) (l, act), constrs , others)
+			| ((PConstr (path,c,arg),_) :: l,act) :: rest ->
+				var constants , constrs, others = divide_rec rest;
+				var args = flatten arg;
+				(constants , add_to_division (make_construct_match false (List.length args) pathl) constrs (TModule path TConstr(c)) (List.append args l,act) , others)
+			| ((PTuple [],_) :: l,act) :: rest ->
+				var constants , constrs, others = divide_rec rest;
+				(constants , add_to_division (make_constant_match pathl) constrs TVoid (l, act), others)
+			| ((PTuple args,_) :: l,act) :: rest ->
+				var constants , constrs, others = divide_rec rest;
+				(constants , add_to_division (make_construct_match true (List.length args) pathl) constrs TVoid (List.append args l,act) , others)
+			| ((PRecord args,_) :: l,act) :: rest ->
+				var constants , constrs, others = divide_rec rest;
+				(constants , always_add (make_record_match args pathl) constrs (List.append (List.map snd args) l,act) , others)
+			| ((PStream ((SPattern p) :: sl,k),pp) :: l,act) :: rest ->
+				var constants , constrs, others = divide_rec rest;
+				(constants , always_add (make_token_match ((MToken curpath k) :: pathl)) constrs (stream_pattern p :: (PStream sl (k+1),pp) :: l, act) , others)
+			| ((PStream ((SMagicExpr ((PTuple _,_) as p,e)) :: sl,k),pp) :: l,act) :: rest ->
+				var constants , constrs, others = divide_rec rest;
+				var bind = MExecute (mk TConst(TIdent "@tmp") t_void pp) false;
+				(constants , always_add (make_token_match (junk curpath k (MExecute magic(e) false) :: bind :: pathl)) constrs ((PConst (Ident "@tmp"),pp) :: stream_pattern p :: (PStream sl 0,pp) :: l, act) , others)
+			| ((PStream ((SMagicExpr (p,e)) :: sl,k),pp) :: l,act) :: rest ->
+				var constants , constrs, others = divide_rec rest;
+				(constants , always_add (make_token_match (junk curpath k (MExecute magic(e) false) :: pathl)) constrs (stream_pattern p :: (PStream sl 0,pp) :: l, act) , others)
+			| ((PStream ([],k),pp) :: l,act) :: rest ->
+				var constants , constrs, others = divide_rec rest;
+				(constants , always_add (make_constant_match pathl) constrs (l, junk curpath k act) , others)
+			| casel ->
+				([] , [] , (casel,pathl))
+			}
+		}
+		divide_rec casel
+	}
+}
+
+function rec conquer_divided_matching(m) {
+	match m {
+	| [] ->
+		([], Total, [])
+	| (key, matchref) :: rest ->
+		var l1, p1, u1 = conquer_matching (*matchref);
+		var l2, p2, u2 = conquer_divided_matching rest;
+		((key , l1) :: l2 , total p1 p2 , List.append u1 u2)
+	}
+}
+
+function rec conquer_matching(m) {
+	match m {
+	| ([] , _) ->
+		(failure , Partial , [])
+	| (([],action) :: rest , k) ->
+		if have_when action then {
+			var a , p , r = conquer_matching (rest,k);
+			(handle action a , p , r)
+		} else
+			(action , Total, rest)
+	| (_ , []) ->
+		assert()
+	| ((p :: _,_) :: _ , _ :: _) when start_by_a_variable p ->
+		var vars , rest = split_matching m;
+		var l1, p1, u1 = conquer_matching vars;
+		var l2, p2, u2 = conquer_matching rest;
+		if p1 == Total then
+			(l1 , Total, List.append u1 lines_of_matching(rest))
+		else
+			(handle l1 l2 , (if p2 == Total then Total else Dubious) , List.append u1 u2)
+	| (_ , path :: _) ->
+		match divide_matching m {
+		| ([] , [] , vars) ->
+			conquer_matching vars
+		| (consts , [] , vars) ->
+			var l1, _ , u1 = conquer_divided_matching consts;
+			var l2, p2, u2 = conquer_matching vars;
+			(handle (cond path l1) l2 , p2 , List.append u1 u2)
+		| ([] , constrs , vars) ->
+			var l1, p1, u1 = conquer_divided_matching constrs;
+			var l2, p2, u2 = conquer_matching vars;
+			if fully_matched (List.map fst constrs) && p1 == Total then
+				(switch path l1 , Total , List.append u1 lines_of_matching(vars))
+			else
+				(handle (switch path l1) l2 , partial p1 p2 , List.append u1 u2)
+		| _ ->
+			assert()
+		}
+	| _ ->
+		assert()
+	}
+}
+
+
+function make(cases : (pattern list, texpr option, texpr) list,p) {
+	var cases = List.concat (List.map (function((pl,wcond,e)) {
+		var e = exec e;
+		var e = match wcond { None -> e | Some e2 -> ewhen e2 e };
+		List.map (function(p) { ([p] , e) }) pl
+	}) cases);
+	var m = (cases , [MRoot]);
+	var lambda, partial, unused = conquer_matching m;
+	match unused {
+	| [] -> ()
+	| ([] , _ ) :: _ -> error "Some pattern are never matched" p
+	| ((_,p) :: _ , _) :: _ -> error "This pattern is never matched" p};
+	(partial != Total , lambda)
+}
