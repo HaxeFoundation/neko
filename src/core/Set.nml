@@ -255,6 +255,8 @@ function inter(set1,set2) {
 				concat cmp (loop l1 l2) (loop r1 r2)
 			| (l2, true, r2) ->
 				join cmp (loop l1 l2) v1 (loop r1 r2)
+			| _ ->
+				assert()
 			}
 		| _ ->
 			assert()
@@ -278,6 +280,8 @@ function diff(set1,set2) {
 				join cmp (loop l1 l2) v1 (loop r1 r2)
 			| (l2, true, r2) ->
 				concat cmp (loop l1 l2) (loop r1 r2)
+			| _ ->
+				assert()
 			}
 		| _ ->
 			assert()
