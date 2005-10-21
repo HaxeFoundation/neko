@@ -415,12 +415,13 @@ function rec gen_expr(ctx,e) {
 		}) vl)
 	| TIf (e,e1,e2) -> EIf (gen_expr ctx e) (gen_expr ctx e1) (match e2 { None -> None | Some e2 -> Some (gen_expr ctx e2) })
 	| TWhile (e1,e2) -> EWhile (gen_expr ctx e1) (gen_expr ctx e2) NormalWhile
-	| TFunction f ->		
-		match f {
-		| (_,"_",params,e) -> EFunction (List.map fst params) block(gen_expr ctx e)
-		| (false,name,params,e) -> EVars [(name , Some (EFunction (List.map fst params) block(gen_expr ctx e), p))]
-		| _ -> EBlock [gen_functions ctx [e] p]
-		}
+	| TFunction (rflag,name,params,e) ->
+		if name == "_" then
+			EFunction (List.map fst params) block(gen_expr ctx e)
+		else if !rflag then
+			EVars [(name , Some (EFunction (List.map fst params) block(gen_expr ctx e), p))]
+		else
+			EBlock [gen_functions ctx [e] p]		
 	| TBinop (op,e1,e2) -> fst (gen_binop ctx op e1 e2 p)
 	| TTupleDecl tl -> fst (array (List.map (gen_expr ctx) tl) p)
 	| TTypeDecl t -> fst (gen_type ctx "<assert>" t p)
