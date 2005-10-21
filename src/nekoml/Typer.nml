@@ -983,10 +983,12 @@ function rec type_pattern(ctx,h,h2,set,add,(pat,p)) {
 				var h = Hashtbl.create();
 				var ut = duplicate ctx.gen h ut;
 				var t = duplicate ctx.gen h t;
-				var param = match param {
-					| Some (PTuple l,p) when !is_tuple t -> Some (PTuple [(PTuple l,p)],p)
-					| _  -> param
+				var param , pt = match param {
+					| Some (PTuple l,p) when !is_tuple t -> (Some (PTuple [(PTuple l,p)],p) , mk_fun ctx.gen [pt] ut)
+					| Some (PIdent "_",p) -> (param , pt)
+					| _  -> (param , match pt.texpr { TTuple l -> mk_fun ctx.gen l ut | _ -> mk_fun ctx.gen [pt] ut })
 				}
+				var t = match t.texpr { TTuple l -> mk_fun ctx.gen l ut | _ -> mk_fun ctx.gen [t] ut };
 				unify ctx t pt p;
 				(ut , PConstr path s param)
 			}
