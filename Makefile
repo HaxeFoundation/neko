@@ -24,8 +24,6 @@ std: bin/std.ndll
 compiler:
         (cd src && ${NEKO_EXEC} Nekoml/Main Neko/Main.nml Nekoml/Main.nml)
         (cd src && ${NEKO_EXEC} Neko/Main *.neko Neko/*.neko Nekoml/*.neko)
-
-compiler-copy:
         -mkdir bin/neko bin/neko/Neko bin/neko/Nekoml
         cp src/*.n bin/neko
         cp src/Neko/*.n bin/neko/Neko
