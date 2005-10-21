@@ -879,10 +879,12 @@ and type_pattern (ctx:context) h ?(h2 = Hashtbl.create 0) set add (pat,p) =
 				let h = Hashtbl.create 0 in
 				let ut = duplicate ctx.gen ~h ut in
 				let t = duplicate ctx.gen ~h t in
-				let param = (match param with 
-					| Some (PTuple l,p) when not (is_tuple t) -> Some (PTuple [(PTuple l,p)],p)
-					| _  -> param
+				let param , pt = (match param with 
+					| Some (PTuple l,p) when not (is_tuple t) -> Some (PTuple [(PTuple l,p)],p) , mk_fun ctx.gen [pt] ut
+					| Some (PIdent "_",p) -> param , pt
+					| _  -> param , (match pt.texpr with TTuple l -> mk_fun ctx.gen l ut | _ -> mk_fun ctx.gen [pt] ut)
 				) in
+				let t = (match t.texpr with TTuple l -> mk_fun ctx.gen l ut | _ -> mk_fun ctx.gen [t] ut) in
 				unify ctx t pt p;
 				ut , PConstr (path,s,param));
 		| PAlias (s,pat) ->
