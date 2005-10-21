@@ -109,6 +109,13 @@ function rec assoc(k,l) {
 	}
 }
 
+function rec phys(k,l) {
+	match l {
+	| [] -> throw Not_found
+	| (k2,v) :: l -> if k === k2 then v else phys k l
+	}
+}
+
 function rec find(f,l) {
 	match l {
 	| [] -> throw Not_found
