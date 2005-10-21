@@ -735,6 +735,18 @@ Math.floor = $loader.loadprim("std@math_floor",1);
 Math.round = $loader.loadprim("std@math_round",1);
 Math.PI = $loader.loadprim("std@math_pi",0)();
 
+Math.min = function(a,b) {
+	if( a < b )
+		return a;
+	return b;
+}
+
+Math.max = function(a,b) {
+	if( a < b )
+		return b;
+	return a;
+}
+
 $exports.Math = Math;
 
 // ----------------------------------------------------------------------
@@ -819,6 +831,7 @@ Std.types = {
 	tint => $tint,
 	tfloat => $tfloat,
 	tbool => $tbool,
+	tstring => $tstring,
 	tobject => $tobject,
 	tarray => $tarray,
 	tfunction => $tfunction,
