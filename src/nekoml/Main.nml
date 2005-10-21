@@ -9,7 +9,8 @@ try {
 	var i = &1;
 	var args = Sys.args();
 	var ctx = context ["";"core/"];
-	verbose := true;
+	Nekoml.Typer.verbose := true;
+	Nekoml.Neko.verbose := true;
 	while *i < Array.length args {
 		var file = args.[*i];
 		print ("Compiling " + file + "\n");
