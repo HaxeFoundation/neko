@@ -147,10 +147,10 @@ function rec gen_constant(ctx,c,p) {
 }
 
 type match_context {
-	ctx : context;
-	h : (match_op , string) Hashtbl.t;
+	ctx : context;	
 	out : string;
 	pos : pos;
+	mutable cache : (match_op , string) list;
 	mutable next : string;
 	mutable first : bool;
 }
@@ -159,7 +159,7 @@ var no_label = "<assert>"
 
 function rec gen_match_rec(mctx,fail,m) {
 	try
-		ident (Hashtbl.find mctx.h m)
+		ident (List.phys m mctx.cache)
 	catch { Not_found ->
 	var p = mctx.pos;
 	var ctx = mctx.ctx;
@@ -238,9 +238,10 @@ function rec gen_match_rec(mctx,fail,m) {
 		] , p)
 	| MBind (v,m1,m2) ->
 		var e1 = gen_rec fail m1;
-		Hashtbl.add mctx.h m1 v;
+		var old = mctx.cache;
+		mctx.cache := (m1,v) :: mctx.cache;
 		var e2 = gen_rec fail m2;
-		Hashtbl.remove mctx.h m1;
+		mctx.cache := old;
 		(EBlock [(EVars [(v, Some e1)] , p); e2] , p)
 	| MWhen (e,m) ->
 		var e = gen_expr ctx e;
@@ -263,14 +264,13 @@ function rec gen_match_rec(mctx,fail,m) {
 function rec gen_matching(ctx,v,m,p,stream,out) {
 	var mctx = {
 		ctx = ctx;
-		h = Hashtbl.create();
+		cache = [(MRoot,v)];
 		pos = p;
 		out = out;
 		first = stream;
 		next = no_label;
 	};
-	var label = (if stream then gen_label ctx else no_label);
-	Hashtbl.add mctx.h MRoot v;
+	var label = (if stream then gen_label ctx else no_label);	
 	var e = gen_match_rec mctx label m;
 	if stream then {
 		var vpos = gen_variable ctx;
@@ -284,7 +284,7 @@ function rec gen_matching(ctx,v,m,p,stream,out) {
 
 function rec gen_match(ctx,e,m,stream,p) {
 	var out = gen_label ctx;
-	var v = gen_variable ctx;
+	var v = gen_variable ctx;	
 	var m = gen_matching ctx v m p stream out;
 	var m = (ENext (EVars [(v,Some e)],p) m, p);
 	(EBlock [m; (ELabel out , p)] , p)
@@ -358,7 +358,7 @@ function rec gen_binop(ctx,op,e1,e2,p) {
 	function make(op) {
 		(EBinop op gen_expr(ctx,e1) gen_expr(ctx,e2) , p)
 	}
-	function builtin(op) {
+	function builtin2(op) {
 		(ECall (builtin op) [gen_expr ctx e1; gen_expr ctx e2] , p)
 	}
 	match op {
@@ -370,8 +370,8 @@ function rec gen_binop(ctx,op,e1,e2,p) {
 		| Structural -> compare op
 		| Native -> make op
 		}
-	| "===" -> (EBinop "==" builtin("pcompare") int(0) , p)
-	| "!==" -> (EBinop "!=" builtin("pcompare") int(0) , p)
+	| "===" -> (EBinop "==" builtin2("pcompare") int(0) , p)
+	| "!==" -> (EBinop "!=" builtin2("pcompare") int(0) , p)
 	| ":=" ->
 		match e1.edecl {
 		| TField _ -> make "="
@@ -415,11 +415,11 @@ function rec gen_expr(ctx,e) {
 		}) vl)
 	| TIf (e,e1,e2) -> EIf (gen_expr ctx e) (gen_expr ctx e1) (match e2 { None -> None | Some e2 -> Some (gen_expr ctx e2) })
 	| TWhile (e1,e2) -> EWhile (gen_expr ctx e1) (gen_expr ctx e2) NormalWhile
-	| TFunction (rflag,name,params,e) ->
+	| TFunction (rflag,name,params,code) ->
 		if name == "_" then
-			EFunction (List.map fst params) block(gen_expr ctx e)
+			EFunction (List.map fst params) block(gen_expr ctx code)
 		else if !rflag then
-			EVars [(name , Some (EFunction (List.map fst params) block(gen_expr ctx e), p))]
+			EVars [(name , Some (EFunction (List.map fst params) block(gen_expr ctx code), p))]
 		else
 			EBlock [gen_functions ctx [e] p]		
 	| TBinop (op,e1,e2) -> fst (gen_binop ctx op e1 e2 p)
@@ -469,7 +469,8 @@ function rec gen_functions(ctx,fl,p) {
 		| TFunction (_,name,_,_) ->
 			ctx.refvars := Set.add ctx.refvars name;
 			(name , Some (array [enull] null_pos))
-		| _ -> assert()
+		| _ ->			
+			assert()
 		}
 	}) fl) , null_pos);
 	List.iter (function(e) {
@@ -510,14 +511,14 @@ function rec gen_block(ctx,el,p) {
 	List.rev (*ell)
 }
 
-function generate(e,deps,idents,m) {
-	var m = module_name m;
+function generate(e,deps,idents,mod) {
+	var m = module_name mod;
 	var ctx = {
 		module_name = m;
 		counter = 0;
 		refvars = Set.empty();
 	};
-	if *verbose then print ("Generating " + m + ".neko\n");
+	if *verbose then print ("Generating " + String.concat "/" mod + ".neko\n");
 	var init = (EBinop "=" ident(m) builtin("exports") , null_pos);
 	var deps = List.map (function(m) {
 		var file = String.concat "/" m;
