@@ -208,13 +208,14 @@ static value socket_listen( value o, value n ) {
 static fd_set INVALID;
 
 static fd_set *make_socket_array( value a, fd_set *tmp ) {
-	unsigned int i;
+	int i, len;	
 	if( val_is_null(a) )
 		return NULL;
 	if( !val_is_array(a) )
 		return &INVALID;
+	len = val_array_size(a);
 	FD_ZERO(tmp);	
-	for(i=0;i<tmp->fd_count;i++) {
+	for(i=0;i<len;i++) {
 		value s = val_array_ptr(a)[i];
 		if( !val_is_kind(s,k_socket) )
 			return &INVALID;
