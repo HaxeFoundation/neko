@@ -249,7 +249,7 @@ function rec s_type(ext,h,t) {
 	| TMono _ ->
 		sprintf "'_%s" poly_id(try
 			if t.tid != -2 then assert();
-			snd (List.find (function((k,v)) { k === t }) h.pi_ml);
+			List.phys t h.pi_ml;
 		catch { Not_found ->
 			var k = h.pi_mcount;
 			h.pi_mcount := h.pi_mcount + 1;
