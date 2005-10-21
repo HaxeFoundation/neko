@@ -186,11 +186,11 @@ let rec gen_match_rec mctx fail m =
 	| MConstants (m,cl) ->
 		let e = gen_rec fail m in
 		let v = gen_variable ctx in
-		let exec = List.fold_right (fun (c,m) acc ->
+		let exec = List.fold_left (fun acc (c,m) ->
 			let test = EBinop ("==", ident v, gen_constant ctx c p) , p in
 			let exec = gen_rec fail m in
 			EIf (test, exec, Some acc) , p
-		) cl (gen_rec fail MFailure) in
+		) (gen_rec fail MFailure) (List.rev cl) in
 		EBlock [
 			EVars [v, Some e] , p;
 			exec
@@ -212,11 +212,11 @@ let rec gen_match_rec mctx fail m =
 	| MSwitch (m,cl) ->
 		let e = gen_rec fail m in
 		let v = gen_variable ctx in
-		let exec = List.fold_right (fun (c,m) acc ->
+		let exec = List.fold_left (fun acc (c,m) ->
 			let test = EBinop ("==", ident v, gen_constant ctx c p) , p in
 			let exec = gen_rec fail m in
 			EIf (test, exec, Some acc) , p
-		) cl (gen_rec fail MFailure) in
+		) (gen_rec fail MFailure) (List.rev cl) in
 		EBlock [
 			EVars [v, Some (EArray (e,int 0),p)] , p;
 			exec;
@@ -366,10 +366,13 @@ and gen_expr ctx e =
 		let ch = IO.input_string (String.concat "\"" (ExtString.String.nsplit s "'")) in
 		let file = "neko@" ^ p.pfile in
 		Parser.parse (Lexing.from_function (fun s p -> try IO.input ch s 0 p with IO.No_more_input -> 0)) file
-	| TCall (f,el) -> call e.etype (gen_expr ctx f) (List.map (gen_expr ctx) el) p
+	| TCall (f,el) -> 
+		let f = gen_expr ctx f in
+		call e.etype f (List.map (gen_expr ctx) el) p
 	| TField (e,s) -> EField (gen_expr ctx e, s) , p
 	| TArray (e1,e2) -> 
-		ECall (core "@aget" p,[gen_expr ctx e1;gen_expr ctx e2]) , p
+		let e1 = gen_expr ctx e1 in
+		ECall (core "@aget" p,[e1;gen_expr ctx e2]) , p
 	| TVar ([v],e) ->
 		ctx.refvars <- PMap.remove v ctx.refvars;
 		EVars [v , Some (gen_expr ctx e)] , p
@@ -380,8 +383,14 @@ and gen_expr ctx e =
 			incr n;
 			v , Some (EArray (ident "@tmp",int !n),p)
 		) vl) , p
-	| TIf (e,e1,e2) -> EIf (gen_expr ctx e, gen_expr ctx e1, match e2 with None -> None | Some e2 -> Some (gen_expr ctx e2)) , p
-	| TWhile (e1,e2) -> EWhile (gen_expr ctx e1 , gen_expr ctx e2 , NormalWhile) , p
+	| TIf (e,e1,e2) -> 
+		let e = gen_expr ctx e in
+		let e1 = gen_expr ctx e1 in
+		EIf (e, e1, match e2 with None -> None | Some e2 -> Some (gen_expr ctx e2)) , p
+	| TWhile (e1,e2) ->
+		let e1 = gen_expr ctx e1 in
+		let e2 = gen_expr ctx e2 in
+		EWhile (e1, e2, NormalWhile) , p
 	| TFunction (_,"_",params,e) -> EFunction (List.map fst params,block (gen_expr ctx e)) , p
 	| TFunction (false,name,params,e) -> EVars [name , Some (EFunction (List.map fst params,block (gen_expr ctx e)) , p)] , p
 	| TFunction _ -> EBlock [gen_functions ctx [e] p] , p
@@ -395,7 +404,8 @@ and gen_expr ctx e =
 		(match el with
 		| [] -> array [] p
 		| x :: l ->
-			array [gen_expr ctx x; gen_expr ctx { e with edecl = TListDecl l }] p)
+			let x = gen_expr ctx x in
+			array [x; gen_expr ctx { e with edecl = TListDecl l }] p)
 	| TUnop (op,e) -> 
 		(match op with
 		| "-" -> EBinop ("-",int 0,gen_expr ctx e) , p
