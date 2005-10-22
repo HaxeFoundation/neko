@@ -50,6 +50,9 @@ exception Invalid_rule : string
 
 var null_pos = { pmin = -1; pmax = -1; pline = -1; psource = "<null>" };
 
+function source(p) { p.psource }
+function line(p) { p.pline }
+
 function punion(p,p2) {
 	{
 		psource = p.psource;
