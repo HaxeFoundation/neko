@@ -1,31 +1,46 @@
 open Nekoml.Typer;
 
-function compile(ctx,file) {
-	var modname = String.split (Sys.without_extension file) "/";
-	ignore(load_module ctx modname Lexer.null_pos);
+function complete(s) {
+	var l = String.length s;
+	if l > 0 && String.get s (l - 1) != '\\' && String.get s (l-1) != '/' then
+		s + "/"
+	else
+		s
+}
+
+function report(msg,p) {
+	IO.printf IO.stderr "%s(%d): %s\n" (Lexer.source p,Lexer.line p,msg);
+	Sys.exit(-1);
 }
 
 try {
-	var i = &1;
-	var args = Sys.args();
-	var ctx = context ["";"core/"];
-	Nekoml.Typer.verbose := true;
-	Nekoml.Neko.verbose := true;
-	while *i < Array.length args {
-		var file = args.[*i];
-		print ("Compiling " + file + "\n");
-		compile ctx file;
-		i := *i + 1;
-	}
+	var head = "NekoML v1.0 - (c)2005 Nicolas Cannasse\n Usage : nekoml [options] files...";
+	var path = &["";"core/"];
+	var files = &[];
+	var decl = [
+		("-p", Args.String (function(p) { path := complete p :: *path }) , "<path> : additional file search path");
+		("-v", Args.Void (function() { verbose := true }) , ": verbose mode");
+	];
+	Args.parse head decl (function(f) { files := f :: *files });
+	var ctx = context (*path);
+	List.iter (function(file) {
+		if *verbose then printf "Compiling %s\n" file;
+		var modname = String.split (Sys.without_extension file) "/";
+		ignore(load_module ctx modname Lexer.null_pos);
+	}) (List.rev (*files));
 	Hashtbl.iter (function(m,(e,deps,idents)) {
 		var e = Nekoml.Neko.generate e deps idents m;
 		var file = String.concat "/" m + ".neko";
+		if *verbose then printf "Generating %s\n" file;
 		var ch = IO.write_file file false;
 		var ctx = Neko.Printer.create ch;
 		Neko.Printer.print ctx e;
 		IO.close_out ch
 	}) (modules ctx)
 } catch {
-	| Error (msg,p) -> Core.print (sprintf "%s(%d): Type Error %s\n" (p.psource,p.pline,error_msg msg));
-	| e -> Core.print ("Exception : " + string e + "\n")
+	| Neko.Lexer.Error (msg,p) -> report Neko.Lexer.error_msg(msg) p
+	| Neko.Parser.Error (msg,p) -> report Neko.Parser.error_msg(msg) p
+	| Nekoml.Lexer.Error (msg,p) -> report Nekoml.Lexer.error_msg(msg) p
+	| Nekoml.Parser.Error (msg,p) -> report Nekoml.Parser.error_msg(msg) p
+	| Nekoml.Typer.Error (msg,p) -> report Nekoml.Typer.error_msg(msg) p
 }
