@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="Windows-1252"?>
+<VisualStudioProject
+	ProjectType="Visual C++"
+	Version="7.10"
+	Name="nekoml"
+	ProjectGUID="{4662A8A2-AE65-465A-B97B-7F1269433BD5}"
+	Keyword="MakeFileProj">
+	<Platforms>
+		<Platform
+			Name="Win32"/>
+	</Platforms>
+	<Configurations>
+		<Configuration
+			Name="Debug|Win32"
+			OutputDirectory="Debug"
+			IntermediateDirectory="Debug"
+			ConfigurationType="0">
+			<Tool
+				Name="VCNMakeTool"
+				BuildCommandLine="make nekoml"
+				ReBuildCommandLine="make nekoml"
+				CleanCommandLine="make clean"/>
+		</Configuration>
+		<Configuration
+			Name="Release|Win32"
+			OutputDirectory="Release"
+			IntermediateDirectory="Release"
+			ConfigurationType="0">
+			<Tool
+				Name="VCNMakeTool"
+				BuildCommandLine="make nekoml"
+				ReBuildCommandLine="make nekoml"
+				CleanCommandLine="make clean"/>
+		</Configuration>
+	</Configurations>
+	<References>
+	</References>
+	<Files>
+		<File
+			RelativePath=".\nekoml\Ast.nml">
+		</File>
+		<File
+			RelativePath=".\nekoml\Lexer.nml">
+		</File>
+		<File
+			RelativePath=".\nekoml\Main.nml">
+		</File>
+		<File
+			RelativePath=".\nekoml\Match.nml">
+		</File>
+		<File
+			RelativePath=".\nekoml\Neko.nml">
+		</File>
+		<File
+			RelativePath=".\nekoml\Parser.nml">
+		</File>
+		<File
+			RelativePath=".\nekoml\Type.nml">
+		</File>
+		<File
+			RelativePath=".\nekoml\Typer.nml">
+		</File>
+	</Files>
+	<Globals>
+	</Globals>
+</VisualStudioProject>

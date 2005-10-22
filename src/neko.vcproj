@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="Windows-1252"?>
+<VisualStudioProject
+	ProjectType="Visual C++"
+	Version="7.10"
+	Name="neko"
+	ProjectGUID="{4C13C941-4D12-4904-BDA2-A2DF8AF4F31A}"
+	Keyword="MakeFileProj">
+	<Platforms>
+		<Platform
+			Name="Win32"/>
+	</Platforms>
+	<Configurations>
+		<Configuration
+			Name="Debug|Win32"
+			OutputDirectory="Debug"
+			IntermediateDirectory="Debug"
+			ConfigurationType="0">
+			<Tool
+				Name="VCNMakeTool"
+				BuildCommandLine="make neko"
+				ReBuildCommandLine="make neko"
+				CleanCommandLine="make clean"/>
+		</Configuration>
+		<Configuration
+			Name="Release|Win32"
+			OutputDirectory="Release"
+			IntermediateDirectory="Release"
+			ConfigurationType="0">
+			<Tool
+				Name="VCNMakeTool"
+				BuildCommandLine="make neko"
+				ReBuildCommandLine="make neko"
+				CleanCommandLine="make clean"/>
+		</Configuration>
+	</Configurations>
+	<References>
+	</References>
+	<Files>
+		<Filter
+			Name="core"
+			Filter="">
+			<File
+				RelativePath=".\core\Args.nml">
+			</File>
+			<File
+				RelativePath=".\core\Array.nml">
+			</File>
+			<File
+				RelativePath=".\core\Buffer.nml">
+			</File>
+			<File
+				RelativePath=".\core\Core.nml">
+			</File>
+			<File
+				RelativePath=".\core\Hashtbl.nml">
+			</File>
+			<File
+				RelativePath=".\core\IO.nml">
+			</File>
+			<File
+				RelativePath=".\core\LexEngine.nml">
+			</File>
+			<File
+				RelativePath=".\core\Lexer.nml">
+			</File>
+			<File
+				RelativePath=".\core\List.nml">
+			</File>
+			<File
+				RelativePath=".\core\Map.nml">
+			</File>
+			<File
+				RelativePath=".\core\Set.nml">
+			</File>
+			<File
+				RelativePath=".\core\String.nml">
+			</File>
+			<File
+				RelativePath=".\core\Sys.nml">
+			</File>
+		</Filter>
+		<Filter
+			Name="neko"
+			Filter="">
+			<File
+				RelativePath=".\neko\Ast.nml">
+			</File>
+			<File
+				RelativePath=".\neko\Bytecode.nml">
+			</File>
+			<File
+				RelativePath=".\neko\Compile.nml">
+			</File>
+			<File
+				RelativePath=".\neko\Lexer.nml">
+			</File>
+			<File
+				RelativePath=".\neko\Main.nml">
+			</File>
+			<File
+				RelativePath=".\neko\Parser.nml">
+			</File>
+			<File
+				RelativePath=".\neko\Printer.nml">
+			</File>
+		</Filter>
+	</Files>
+	<Globals>
+	</Globals>
+</VisualStudioProject>

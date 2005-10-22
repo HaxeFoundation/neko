@@ -1,15 +1,26 @@
-all:
-	neko -msvc -p core -o neko neko/Main.nml nekoml/Main.nml
-	neko *.neko
-	(cd neko; neko *.neko)
-	(cd nekoml; neko *.neko)
 
-rec:
-	nekovm neko/Main *.neko
-	nekovm neko/Main neko/*.neko
-	nekovm neko/Main nekoml/*.neko
+NEKOVM = NEKOPATH='${NEKOPATH};../boot' nekovm
+
+all:
+	${NEKOVM} nekoml/Main neko/Main.nml nekoml/Main.nml
+	${NEKOVM} neko/Main *.neko neko/*.neko nekoml/*.neko
+
+neko:
+	${NEKOVM} nekoml/Main neko/Main.nml
+	${NEKOVM} neko/Main *.neko neko/*.neko
+
+nekoml:
+	${NEKOVM} nekoml/Main nekoml/Main.nml
+	${NEKOVM} neko/Main *.neko nekoml/*.neko neko/*.neko 
+
+install:
+	cp *.n ../boot
+	cp neko/*.n ../boot/neko
+	cp nekoml/*.n ../boot/nekoml
 
 clean:
-	rm -rf *.n *.neko neko/*.neko neko/*.n nekoml/*.neko nekoml/*.n
+	rm -rf neko/*.neko neko/*.n
+	rm -rf nekoml/*.neko nekoml/*.n
+	rm -rf *.n *.neko
 
-again: clean all
+.PHONY: all neko nekoml install clean
