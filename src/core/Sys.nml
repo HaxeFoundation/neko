@@ -17,6 +17,12 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+neko("
+	
+	 @sys_exit = $loader.loadprim('std@sys_exit',1);
+	
+");
+
 function without_extension(s) {	
 	match List.rev (String.split s ".") {
 	| [] -> assert()
@@ -30,5 +36,11 @@ var array_dependency = Array.make
 function args() : string array {
 	neko("
 		@Array.@make($args())
+	");
+}
+
+function exit(code : int) : 'a {
+	neko("
+		@sys_exit(code);
 	");
 }
