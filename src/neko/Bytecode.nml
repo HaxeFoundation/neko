@@ -451,12 +451,12 @@ function dump(ch,(globals,ops)) {
 	Array.iteri (function(i,g) {
 		IO.printf ch "  global %d : %s\n" (i,
 			match g {
-			| GlobalVar s -> "var " + s
+			| GlobalVar s -> "var " + String.escape s
 			| GlobalFunction (p,n) ->
 				if p >= 0 && p < csize then marks.[p] := true;
 				"function " + string p + " nargs " + string n
-			| GlobalString s -> "string \"" + s + "\""
-			| GlobalFloat s -> "float " + s })
+			| GlobalString s -> "string \"" + String.escape s + "\""
+			| GlobalFloat s -> "float " + String.escape s })
 	}) globals;
 	IO.printf ch "FIELDS =\n" ();
 	Hashtbl.iter (function(h,f) {
