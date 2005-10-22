@@ -213,6 +213,21 @@ function mk_union(g,fl) {
 	}
 }
 
+function rec file_name(m : string list,ext) {
+	match m {
+	| [] -> invalid_arg()
+	| [x] -> x + ext
+	| p :: l ->
+		var c = String.get p 0;
+		var p = if c < 'A' || c > 'Z' then p else {
+			var p = String.sub p 0 (String.length p);
+			String.set p 0 chr(ord c - ord 'A' + ord 'a');
+			p
+		}
+		p + "/" + file_name l ext
+	}
+}
+
 type print_infos {
 	mutable pi_mcount : int;
 	mutable pi_pcount : int;

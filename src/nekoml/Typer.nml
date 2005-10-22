@@ -1126,7 +1126,7 @@ function load_module(ctx,m,p) {
 		Hashtbl.find ctx.modules m
 	catch {
 		Not_found ->
-			var file , ch = open_file ctx (String.concat "/" m + ".nml") p;
+			var file , ch = open_file ctx (file_name m ".nml") p;
 			var is_core , core = try
 				(false , Hashtbl.find ctx.modules ["Core"])
 			catch { Not_found ->

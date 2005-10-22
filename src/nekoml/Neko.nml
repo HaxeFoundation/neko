@@ -518,7 +518,7 @@ function generate(e,deps,idents,mod) {
 	};
 	var init = (EBinop "=" ident(m) builtin("exports") , null_pos);
 	var deps = List.map (function(m) {
-		var file = String.concat "/" m;
+		var file = file_name m "";
 		var load = (ECall (EField builtin("loader") "loadmodule",null_pos) [gen_constant ctx (TString file) null_pos;builtin "loader"] , null_pos);
 		(EBinop "=" ident(module_name m) load , null_pos)
 	}) deps;

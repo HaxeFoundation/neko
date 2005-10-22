@@ -30,7 +30,7 @@ try {
 	}) (List.rev (*files));
 	Hashtbl.iter (function(m,(e,deps,idents)) {
 		var e = Nekoml.Neko.generate e deps idents m;
-		var file = String.concat "/" m + ".neko";
+		var file = Nekoml.Type.file_name m ".neko";
 		if *verbose then printf "Generating %s\n" file;
 		var ch = IO.write_file file false;
 		var ctx = Neko.Printer.create ch;
