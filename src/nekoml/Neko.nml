@@ -31,8 +31,6 @@ type context {
 	mutable refvars : string Set.t;
 }
 
-var verbose = &false
-
 var null_pos = Lexer.null_pos
 
 function gen_label(ctx) {
@@ -518,7 +516,6 @@ function generate(e,deps,idents,mod) {
 		counter = 0;
 		refvars = Set.empty();
 	};
-	if *verbose then print ("Generating " + String.concat "/" mod + ".neko\n");
 	var init = (EBinop "=" ident(m) builtin("exports") , null_pos);
 	var deps = List.map (function(m) {
 		var file = String.concat "/" m;
