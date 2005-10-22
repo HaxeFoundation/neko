@@ -1,5 +1,8 @@
 
+var verbose = &false;
+
 function compile(file) {
+	if *verbose then printf "Compiling %s\n" file;
 	var i = IO.read_file file false;
 	var lex = Lexer.create Buffer.create();
 	Lexer.input lex file i 1 0;
@@ -11,15 +14,30 @@ function compile(file) {
 	IO.close_out o
 }
 
+function dump(file) {
+	if *verbose then printf "Dumping %s\n" file;
+	var i = IO.read_file file true;
+	var code = Neko.Bytecode.read i;
+	IO.close_in i;
+	var o = IO.write_file (Sys.without_extension file + ".dump") false;
+	Neko.Bytecode.dump o code;
+	IO.close_out o
+}
+
+function report(msg,p) {
+	IO.printf IO.stderr "%s(%d): %s\n" (Lexer.source p,Lexer.line p,msg);
+	Sys.exit(-1);
+}
+
 try {
-	var i = &1;
-	var args = Sys.args();	
-	while *i < Array.length args {
-		var file = args.[*i];
-		print ("Compiling " + file + "\n");
-		compile file;
-		i := *i + 1;
-	}
+	var head = "Neko v1.0 - (c)2005 Nicolas Cannasse\n Usage : neko [options] files...";
+	var decl = [
+		("-d", Args.String (function(f) { dump f }) , "<file> : dump bytecode");
+		("-v", Args.Void (function() { verbose := true }) , ": verbose mode");
+	];
+	Args.parse head decl (function(f) { compile f });
 } catch {
-	e -> Core.print ("Exception : " + string e + "\n")
+	| Neko.Lexer.Error(msg,pos) -> report Neko.Lexer.error_msg(msg) pos
+	| Neko.Parser.Error(msg,pos) -> report Neko.Parser.error_msg(msg) pos
+	| Neko.Compile.Error(msg,pos) -> report Neko.Compile.error_msg(msg) pos
 }
