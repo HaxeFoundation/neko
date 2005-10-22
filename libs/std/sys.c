@@ -71,10 +71,17 @@ static value sys_command( value cmd ) {
 	return alloc_int( system(val_string(cmd)) );
 }
 
+static value sys_exit( value ecode ) {
+	val_check(ecode,int);
+	exit(val_int(ecode));
+	return val_true;
+}
+
 DEFINE_PRIM(get_env,1);
 DEFINE_PRIM(set_locale,1);
 DEFINE_PRIM(get_cwd,0);
 DEFINE_PRIM(set_cwd,1);
 DEFINE_PRIM(sys_command,1);
+DEFINE_PRIM(sys_exit,1);
 
 /* ************************************************************************ */
