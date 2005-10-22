@@ -8,11 +8,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "nekovm_dll", "vm\nekovm_dll
 	ProjectSection(ProjectDependencies) = postProject
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "neko", "neko\neko.vcproj", "{59B84580-C217-4013-88B0-67D0FB93BA40}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "neko", "src\neko.vcproj", "{4C13C941-4D12-4904-BDA2-A2DF8AF4F31A}"
 	ProjectSection(ProjectDependencies) = postProject
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "src", "src\src.vcproj", "{9DA7F2FB-E47C-4EF3-BBEA-9F76DD549B2B}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "nekoml", "src\nekoml.vcproj", "{4662A8A2-AE65-465A-B97B-7F1269433BD5}"
 	ProjectSection(ProjectDependencies) = postProject
 	EndProjectSection
 EndProject
@@ -30,14 +30,14 @@ Global
 		{FEBA0CA8-4D9C-49C3-B3CC-1A7CFF9BB8B3}.Debug.Build.0 = Debug|Win32
 		{FEBA0CA8-4D9C-49C3-B3CC-1A7CFF9BB8B3}.Release.ActiveCfg = Release|Win32
 		{FEBA0CA8-4D9C-49C3-B3CC-1A7CFF9BB8B3}.Release.Build.0 = Release|Win32
-		{59B84580-C217-4013-88B0-67D0FB93BA40}.Debug.ActiveCfg = Debug|Win32
-		{59B84580-C217-4013-88B0-67D0FB93BA40}.Debug.Build.0 = Debug|Win32
-		{59B84580-C217-4013-88B0-67D0FB93BA40}.Release.ActiveCfg = Release|Win32
-		{59B84580-C217-4013-88B0-67D0FB93BA40}.Release.Build.0 = Release|Win32
-		{9DA7F2FB-E47C-4EF3-BBEA-9F76DD549B2B}.Debug.ActiveCfg = Debug|Win32
-		{9DA7F2FB-E47C-4EF3-BBEA-9F76DD549B2B}.Debug.Build.0 = Debug|Win32
-		{9DA7F2FB-E47C-4EF3-BBEA-9F76DD549B2B}.Release.ActiveCfg = Release|Win32
-		{9DA7F2FB-E47C-4EF3-BBEA-9F76DD549B2B}.Release.Build.0 = Release|Win32
+		{4C13C941-4D12-4904-BDA2-A2DF8AF4F31A}.Debug.ActiveCfg = Debug|Win32
+		{4C13C941-4D12-4904-BDA2-A2DF8AF4F31A}.Debug.Build.0 = Debug|Win32
+		{4C13C941-4D12-4904-BDA2-A2DF8AF4F31A}.Release.ActiveCfg = Release|Win32
+		{4C13C941-4D12-4904-BDA2-A2DF8AF4F31A}.Release.Build.0 = Release|Win32
+		{4662A8A2-AE65-465A-B97B-7F1269433BD5}.Debug.ActiveCfg = Debug|Win32
+		{4662A8A2-AE65-465A-B97B-7F1269433BD5}.Debug.Build.0 = Debug|Win32
+		{4662A8A2-AE65-465A-B97B-7F1269433BD5}.Release.ActiveCfg = Release|Win32
+		{4662A8A2-AE65-465A-B97B-7F1269433BD5}.Release.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 	EndGlobalSection
