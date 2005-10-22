@@ -22,26 +22,26 @@ nekovm: bin/nekovm
 std: bin/std.ndll
 
 compiler:
-        (cd src && ${NEKO_EXEC} Nekoml/Main Neko/Main.nml Nekoml/Main.nml)
-        (cd src && ${NEKO_EXEC} Neko/Main *.neko Neko/*.neko Nekoml/*.neko)
-        -mkdir bin/neko bin/neko/Neko bin/neko/Nekoml
-        cp src/*.n bin/neko
-        cp src/Neko/*.n bin/neko/Neko
-        cp src/Nekoml/*.n bin/neko/Nekoml
+	(cd src && ${NEKO_EXEC} Nekoml/Main Neko/Main.nml Nekoml/Main.nml)
+	(cd src && ${NEKO_EXEC} Neko/Main *.neko Neko/*.neko Nekoml/*.neko)
+	-mkdir bin/neko bin/neko/Neko bin/neko/Nekoml
+	cp src/*.n bin/neko
+	cp src/Neko/*.n bin/neko/Neko
+	cp src/Nekoml/*.n bin/neko/Nekoml
 
 bin/libneko.so: ${LIBNEKO_OBJECTS}
-        ${MAKESO} ${LIBNEKO_OBJECTS} ${LIBNEKO_LIBS} -o $@
+	${MAKESO} ${LIBNEKO_OBJECTS} ${LIBNEKO_LIBS} -o $@
 
 bin/nekovm: $(VM_OBJECTS)
-        ${CC} ${CFLAGS} ${VM_OBJECTS} ${LIBNEKO} -o $@
+	${CC} ${CFLAGS} ${VM_OBJECTS} ${LIBNEKO} -o $@
 
 bin/std.ndll: ${STD_OBJECTS}
-        ${MAKESO} ${STD_OBJECTS} ${LIBNEKO} -o $@
+	${MAKESO} ${STD_OBJECTS} ${LIBNEKO} -o $@
 
 clean:
-        rm -rf bin/libneko.so bin/nekovm bin/std.ndll ${LIBNEKO_OBJECTS} ${VM_OBJECTS} ${STD_OBJECTS} bin/neko src/*.n src/*.neko src/Neko/*.n src/Neko/*.neko src/Nekoml/*.n src/Nekoml/*.neko
+	rm -rf bin/libneko.so bin/nekovm bin/std.ndll ${LIBNEKO_OBJECTS} ${VM_OBJECTS} ${STD_OBJECTS} bin/neko src/*.n src/*.neko src/Neko/*.n src/Neko/*.neko src/Nekoml/*.n src/Nekoml/*.neko
 
 .SUFFIXES : .c .o
 
 .c.o :
-        ${CC} ${CFLAGS} -c $< -o $@
+	${CC} ${CFLAGS} -c $< -o $@
