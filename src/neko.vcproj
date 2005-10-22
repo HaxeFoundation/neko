@@ -18,7 +18,7 @@
 			<Tool
 				Name="VCNMakeTool"
 				BuildCommandLine="make neko"
-				ReBuildCommandLine="make neko"
+				ReBuildCommandLine="make clean neko"
 				CleanCommandLine="make clean"/>
 		</Configuration>
 		<Configuration
@@ -29,7 +29,7 @@
 			<Tool
 				Name="VCNMakeTool"
 				BuildCommandLine="make neko"
-				ReBuildCommandLine="make neko"
+				ReBuildCommandLine="make clean neko"
 				CleanCommandLine="make clean"/>
 		</Configuration>
 	</Configurations>

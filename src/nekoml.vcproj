@@ -18,7 +18,7 @@
 			<Tool
 				Name="VCNMakeTool"
 				BuildCommandLine="make nekoml"
-				ReBuildCommandLine="make nekoml"
+				ReBuildCommandLine="make clean nekoml"
 				CleanCommandLine="make clean"/>
 		</Configuration>
 		<Configuration
@@ -29,7 +29,7 @@
 			<Tool
 				Name="VCNMakeTool"
 				BuildCommandLine="make nekoml"
-				ReBuildCommandLine="make nekoml"
+				ReBuildCommandLine="make clean nekoml"
 				CleanCommandLine="make clean"/>
 		</Configuration>
 	</Configurations>
