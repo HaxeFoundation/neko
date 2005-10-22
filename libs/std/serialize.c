@@ -336,7 +336,7 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 				value exp = val_ocall2(loader,id_loadmodule,mname,loader);
 				value mval;
 				unsigned int i;
-				int *mpos;
+				int_val *mpos;
 				neko_module *m;
 				if( !val_is_object(exp) ) {
 					buffer b = alloc_buffer("module ");

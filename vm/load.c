@@ -67,7 +67,7 @@ DEFINE_KIND(k_module);
 
 #ifdef _64BITS
 
-static void read_long( reader r, readp p, int_val *i ) {
+static void read_long( reader r, readp p, unsigned int *i ) {
 	unsigned char c[4];
 	int n;
 	r(p,c,4);
@@ -354,7 +354,7 @@ static neko_module *neko_module_read( reader r, readp p, value loader ) {
 	}
 	// Check stack preservation
 	{
-		char *stmp = alloc_private(m->codesize+1);
+		unsigned char *stmp = (unsigned char*)alloc_private(m->codesize+1);
 		memset(stmp,UNKNOWN,m->codesize+1);
 		if( !neko_check_stack(m,stmp,0,0,0) )
 			ERROR();

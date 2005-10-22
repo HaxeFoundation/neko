@@ -242,7 +242,7 @@ value append_strings( value s1, value s2 ) {
 	return v;
 }
 
-int neko_stack_expand( int *sp, int *csp, neko_vm *vm ) {
+int neko_stack_expand( int_val *sp, int_val *csp, neko_vm *vm ) {
 	int i;
 	int size = (int)((((int_val)vm->spmax - (int_val)vm->spmin) / sizeof(int_val)) << 1);
 	int_val *nsp;

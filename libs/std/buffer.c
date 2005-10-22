@@ -40,7 +40,7 @@ static value buffer_add_char( value b, value c ) {
 	if( val_int(c) < 0 || val_int(c) > 255 )
 		neko_error();
 	cc = (unsigned char)val_int(c);
-	buffer_append_sub( (buffer)val_data(b), &cc, 1 );
+	buffer_append_sub( (buffer)val_data(b), (char*)&cc, 1 );
 	return val_true;
 }
 

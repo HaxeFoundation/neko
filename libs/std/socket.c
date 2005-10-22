@@ -286,7 +286,7 @@ static value socket_bind( value o, value host, value port ) {
 
 static value socket_accept( value o ) {
 	struct sockaddr_in addr;
-	int addrlen = sizeof(addr);
+	unsigned int addrlen = sizeof(addr);
 	SOCKET s;
 	val_check_kind(o,k_socket);
 	s = accept(val_sock(o),(struct sockaddr*)&addr,&addrlen);
@@ -297,7 +297,7 @@ static value socket_accept( value o ) {
 
 static value socket_peer( value o ) {
 	struct sockaddr_in addr;
-	int addrlen = sizeof(addr);
+	unsigned int addrlen = sizeof(addr);
 	value ret;
 	val_check_kind(o,k_socket);
 	if( getpeername(val_sock(o),(struct sockaddr*)&addr,&addrlen) == SOCKET_ERROR )
@@ -310,7 +310,7 @@ static value socket_peer( value o ) {
 
 static value socket_host( value o ) {
 	struct sockaddr_in addr;
-	int addrlen = sizeof(addr);
+	unsigned int addrlen = sizeof(addr);
 	value ret;
 	val_check_kind(o,k_socket);
 	if( getpeername(val_sock(o),(struct sockaddr*)&addr,&addrlen) == SOCKET_ERROR )
