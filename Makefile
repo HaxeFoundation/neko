@@ -7,6 +7,15 @@ LIBNEKO = -Lbin -lneko
 
 NEKO_EXEC = LD_LIBRARY_PATH=../bin NEKOPATH=../boot ../bin/nekovm
 
+# For 64 bit
+#
+# CFLAGS = -D_64BITS ${CFLAGS}
+
+# For OSX
+#
+# MAKESO = gcc -dynamic
+# LIBNEKO = 
+
 ### MAKE
 
 VM_OBJECTS = vm/main.o
@@ -22,12 +31,12 @@ nekovm: bin/nekovm
 std: bin/std.ndll
 
 compiler:
-	(cd src && ${NEKO_EXEC} Nekoml/Main Neko/Main.nml Nekoml/Main.nml)
-	(cd src && ${NEKO_EXEC} Neko/Main *.neko Neko/*.neko Nekoml/*.neko)
-	-mkdir bin/neko bin/neko/Neko bin/neko/Nekoml
+	(cd src && ${NEKO_EXEC} nekoml/Main neko/Main.nml nekoml/Main.nml)
+	(cd src && ${NEKO_EXEC} neko/Main *.neko neko/*.neko nekoml/*.neko)
+	-mkdir bin/neko bin/neko/neko bin/neko/nekoml
 	cp src/*.n bin/neko
-	cp src/Neko/*.n bin/neko/Neko
-	cp src/Nekoml/*.n bin/neko/Nekoml
+	cp src/neko/*.n bin/neko/neko
+	cp src/nekoml/*.n bin/neko/nekoml
 
 bin/libneko.so: ${LIBNEKO_OBJECTS}
 	${MAKESO} ${LIBNEKO_OBJECTS} ${LIBNEKO_LIBS} -o $@
@@ -39,7 +48,7 @@ bin/std.ndll: ${STD_OBJECTS}
 	${MAKESO} ${STD_OBJECTS} ${LIBNEKO} -o $@
 
 clean:
-	rm -rf bin/libneko.so bin/nekovm bin/std.ndll ${LIBNEKO_OBJECTS} ${VM_OBJECTS} ${STD_OBJECTS} bin/neko src/*.n src/*.neko src/Neko/*.n src/Neko/*.neko src/Nekoml/*.n src/Nekoml/*.neko
+	rm -rf bin/libneko.so bin/nekovm bin/std.ndll ${LIBNEKO_OBJECTS} ${VM_OBJECTS} ${STD_OBJECTS} bin/neko src/*.n src/*.neko src/neko/*.n src/neko/*.neko src/nekoml/*.n src/nekoml/*.neko
 
 .SUFFIXES : .c .o
 
