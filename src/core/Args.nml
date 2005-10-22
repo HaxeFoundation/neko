@@ -1,0 +1,62 @@
+
+type argtype {
+	Void : void -> void;
+	String : string -> void;
+	Int : int -> void;
+}
+
+exception Invalid;
+
+function help(head,decl) {
+	print head;
+	print "\n Options :\n";
+	List.iter (function((name,_,help)) {
+		printf "  %s %s\n" (name,help);		
+	}) decl;
+	Sys.exit(1)
+}
+
+function parse_args(args,head,decl,def) {
+	var i = &1;
+	var l = Array.length args;
+	var h = Hashtbl.create();
+	var hdecl = Void (function() { help head decl });
+	Hashtbl.add h "-help" hdecl;
+	Hashtbl.add h "--help" hdecl;
+	List.iter (function((name,decl,_)) {
+		Hashtbl.add h name decl;
+	}) decl;
+	try {
+		while *i < l {
+			var arg = args.[*i];
+			i := *i + 1;
+			var d = try { Hashtbl.find h arg; } catch { Not_found -> Void (function() { def arg }) };
+			match d {
+			| Void f ->
+				f()
+			| String f ->
+				if *i == l then throw Invalid;
+				var param = args.[*i];
+				i := *i + 1;
+				f param
+			| Int f ->
+				if *i == l then throw Invalid;
+				var param = args.[*i];
+				i := *i + 1;
+				var pval = try { int param } catch { _ -> throw Invalid };
+				f pval
+			}
+		}
+	} catch {
+		Invalid ->
+			var arg = args.[*i - 1];
+			print "Invalid argument : ";
+			print arg;
+			print "\n";
+			help head decl
+	}
+}
+
+function parse(head,decl,def) {
+	parse_args(Sys.args(),head,decl,def);
+}
