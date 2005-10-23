@@ -87,7 +87,7 @@ EXTERN value alloc_empty_string( unsigned int size ) {
 		return (value)&empty_string;
 	if( size > max_string_size )
 		failure("max_string_size reached");
-	s = (vstring*)GC_MALLOC_ATOMIC((size+1)+sizeof(val_type));
+	s = (vstring*)GC_MALLOC_ATOMIC(size+sizeof(vstring));
 	s->t = VAL_STRING | (size << 3);
 	(&s->c)[size] = 0;
 	return (value)s;
@@ -112,7 +112,7 @@ EXTERN value alloc_array( unsigned int n ) {
 		return empty_array;
 	if( n > max_array_size )
 		failure("max_array_size reached");
-	v = (value)GC_MALLOC(n*sizeof(value)+sizeof(val_type));
+	v = (value)GC_MALLOC(sizeof(varray)+(n - 1)*sizeof(value));
 	v->t = VAL_ARRAY | (n << 3);
 	return v;
 }
