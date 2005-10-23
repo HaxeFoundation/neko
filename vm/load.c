@@ -210,7 +210,14 @@ static neko_module *neko_module_read( reader r, readp p, value loader ) {
 	tmp = alloc_private(sizeof(char)*(((m->codesize+1)>MAXSIZE)?(m->codesize+1):MAXSIZE));
 	m->globals = (value*)alloc(m->nglobals * sizeof(value));
 	m->fields = (value*)alloc(sizeof(value*)*m->nfields);
+#ifdef NEKO_PROF
+	if( m->codesize >= PROF_SIZE )
+		ERROR();
+	m->code = (int_val*)alloc_private(sizeof(int_val)*(m->codesize+PROF_SIZE));
+	memset(m->code+PROF_SIZE,0,m->codesize*sizeof(int_val));
+#else
 	m->code = (int_val*)alloc_private(sizeof(int_val)*(m->codesize+1));
+#endif
 	m->loader = loader;
 	m->exports = alloc_object(NULL);
 	alloc_field(m->exports,id_module,alloc_abstract(k_module,m));
@@ -410,9 +417,9 @@ static value default_loadmodule( value mname, value vthis ) {
 		neko_module *m;
 		neko_vm *vm;
 		field mid = val_id(val_string(mname));
-		value v = val_field(l->cache,mid);
-		if( !val_is_null(v) )
-			return v;
+		m = (neko_module*)val_field(l->cache,mid);
+		if( !val_is_null((value)m) )
+			return alloc_object(m->exports);
 		if( !l->l(val_string(mname),&r,&p) ) {
 			buffer b = alloc_buffer("Module not found : ");
 			val_buffer(b,mname);
@@ -427,11 +434,102 @@ static value default_loadmodule( value mname, value vthis ) {
 		}
 		m->name = alloc_string(val_string(mname));
 		vm = neko_vm_current();
-		alloc_field(l->cache,mid,m->exports);
+		alloc_field(l->cache,mid,(value)m);
 		neko_vm_execute(vm,m);
 		return alloc_object(m->exports);
 	}
 }
+
+#ifdef NEKO_PROF
+
+static void dump_prof_tot( value v, field f, void *ptr ) {
+	neko_module *m = (neko_module*)v;
+	unsigned int i;
+	unsigned int tot = 0;
+	for(i=0;i<m->codesize;i++)
+		tot += (int)m->code[PROF_SIZE+i];
+	*((int *)ptr) += tot;	
+}
+
+static void dump_prof_summary( value v, field f, void *ptr ) {
+	value vname = val_field_name(f);
+	const char *name = val_is_null(vname)?"NULL":val_string(vname);
+	neko_module *m = (neko_module*)v;
+	unsigned int i;
+	unsigned int tot = 0;
+	for(i=0;i<m->codesize;i++)
+		tot += (int)m->code[PROF_SIZE+i];	
+	printf("%10d    %-4.1f%%  %s\n",tot,(tot * 100.0f) / (*(int*)ptr),name);
+}
+
+static void dump_prof_details( value v, field f, void *ptr ) {
+	value vname = val_field_name(f);
+	const char *name = val_is_null(vname)?"NULL":val_string(vname);
+	neko_module *m = (neko_module*)v;
+	unsigned int i;	
+	printf("Details for : %s[%d]\n",name,m->codesize);
+	for(i=0;i<m->codesize;i++) {
+		int_val c = m->code[PROF_SIZE+i];
+		if( c > 0 ) {
+			unsigned int p = i;
+			int param = 0;
+			while( i < m->codesize ) {
+				int_val k = m->code[PROF_SIZE+i];
+				if( k != c ) {
+					if( k == 0 ) {
+						if( param == 1 )
+							param = 0; 
+						else
+							break;
+					}
+				} else
+					param = 1;
+				i++;
+			}
+			i--;
+			printf("%-4X %-4X    %d\n",p,i,c);
+		}
+	}
+	printf("\n");
+}
+
+static void dump_prof_functions( value v, field f, void *ptr ) {
+	value vname = val_field_name(f);
+	const char *name = val_is_null(vname)?"NULL":val_string(vname);
+	neko_module *m = (neko_module*)v;
+	unsigned int i;
+	for(i=0;i<m->nglobals;i++) {
+		value v = m->globals[i];
+		if( val_is_function(v) && val_type(v) == VAL_FUNCTION && ((vfunction*)v)->module == m ) {
+			int pos = (int)(((int_val)((vfunction*)v)->addr - (int_val)m->code) / sizeof(int_val));
+			if( m->code[PROF_SIZE+pos] > 0 )
+				printf("%-8d    %-4d %-20s %X\n",m->code[PROF_SIZE+pos],i,name,pos);
+		}
+	}
+}
+
+static value dump_prof() {
+	value o = val_this();
+	value data;
+	val_check(o,object);
+	data = val_field(o,id_data);
+	val_check_kind(data,k_loader);
+	{
+		loader *l = (loader*)val_data(data);
+		int tot = 0;
+		val_iter_fields(l->cache,dump_prof_tot,&tot);
+		printf("Summary :\n");
+		val_iter_fields(l->cache,dump_prof_summary,&tot);
+		printf("%10d\n\n",tot);
+		printf("Functions :\n");
+		val_iter_fields(l->cache,dump_prof_functions,&tot);
+		printf("\n");		
+		val_iter_fields(l->cache,dump_prof_details,NULL);
+	}
+	return val_true;
+}
+
+#endif
 
 #ifdef _WIN32
 #	undef ERROR
@@ -601,6 +699,9 @@ EXTERN value neko_default_loader( loader *l ) {
 	tmp = alloc_function(default_loadmodule,2,"loadmodule");
 	((vfunction*)tmp)->env = l->paths;
 	alloc_field(o,val_id("loadmodule"),tmp);
+#ifdef NEKO_PROF
+	alloc_field(o,val_id("dump_prof"),alloc_function(dump_prof,0,"dump_prof"));
+#endif
 	return o;
 }
 

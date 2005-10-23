@@ -28,10 +28,11 @@ static int execute( neko_vm *vm, char *file ) {
 	value exc = NULL;
 	neko_vm_select(vm);
 	val_callEx(mload,val_field(mload,val_id("loadmodule")),args,2,&exc);
+	val_ocall0(mload,val_id("dump_prof"));
 	if( exc != NULL ) {
 		buffer b = alloc_buffer(NULL);
 		val_buffer(b,exc);
-		printf("Uncaught exception - %s\n",val_string(buffer_to_string(b)));
+		fprintf(stderr,"Uncaught exception - %s\n",val_string(buffer_to_string(b)));
 		return 1;
 	}
 	return 0;
