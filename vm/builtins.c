@@ -489,6 +489,8 @@ static value builtin_apply( value *args, int nargs ) {
 	val_array_ptr(env)[0] = f;
 	for(i=0;i<nargs;i++)
 		val_array_ptr(env)[i+1] = args[i];
+	while( i++ < fargs )
+		val_array_ptr(env)[i] = val_null;
 	switch( fargs - nargs ) {
 	case 1:
 		f = alloc_function( apply1, 1, "apply1" );
