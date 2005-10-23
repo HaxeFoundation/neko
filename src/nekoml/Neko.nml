@@ -26,7 +26,10 @@ type comparison {
 }
 
 type context {
+	current : string list;
 	module_name : string;
+	imports : (string list,int) Hashtbl.t;
+	mutable nimports : int;
 	mutable counter : int;
 	mutable refvars : string Set.t;
 }
@@ -63,9 +66,7 @@ function int(n) {
 
 var enull = (EConst Null , null_pos)
 
-function core(s,p) {
-	(EField (EConst Ident(module_name ["Core"]),p) s , p)
-}
+var core = ["Core"];
 
 function rec is_fun(t) {
 	match t.texpr {
@@ -124,6 +125,24 @@ function comparison(t) {
 	}
 }
 
+function import(ctx,m,i,p) {
+	if m == ctx.current then
+		(EField ident(ctx.module_name) i,p)
+	else {
+		var key = i :: m;
+		var i = try {
+			Hashtbl.find ctx.imports key;
+		} catch {
+			Not_found ->
+				var i = ctx.nimports;
+				ctx.nimports := ctx.nimports + 1;
+				Hashtbl.add ctx.imports key i;
+				i
+		}
+		(EConst Ident("@i" + string i),p)
+	}
+}
+
 function rec gen_constant(ctx,c,p) {
 	(match c {
 	| TVoid -> EConst Null
@@ -135,12 +154,12 @@ function rec gen_constant(ctx,c,p) {
 	| TIdent s ->
 		if Set.exists ctx.refvars s then EArray (EConst (Ident s),null_pos) int(0) else EConst (Ident s)
 	| TBool b -> EConst (if b then True else False)
-	| TConstr "[]" | TModule (["Core"],TConstr "[]") -> fst (core "@empty" p)
-	| TConstr "::" | TModule (["Core"],TConstr "::") -> fst (core "@cons" p)
+	| TConstr "[]" | TModule (["Core"],TConstr "[]") -> fst (import ctx core "@empty" p)
+	| TConstr "::" | TModule (["Core"],TConstr "::") -> fst (import ctx core "@cons" p)
 	| TConstr s -> EConst (Ident s)
 	| TModule ([],c) -> fst (gen_constant ctx c p)
 	| TModule (m,c) ->		
-		EField (EConst Ident(module_name(m)),p) (match c { TConstr x -> x | TIdent s -> s | _ -> assert()})
+		fst (import ctx m (match c { TConstr x -> x | TIdent s -> s | _ -> assert() }) p)
 	} , p)
 }
 
@@ -178,7 +197,7 @@ function rec gen_match_rec(mctx,fail,m) {
 		assert()
 	| MExecute (e,b) ->
 		if !b then {
-			var ematch = (EBinop "==" ident("@exc") core("Stream_matching",p) , p);
+			var ematch = (EBinop "==" ident("@exc") (import ctx core "Stream_matching" p) , p);
 			var reraise = (EIf ematch gen_rec(fail,MFailure) Some((ECall (builtin "throw") [ident "@exc"],p)) , p);
 			mctx.first := false;
 			match e.edecl {
@@ -247,12 +266,12 @@ function rec gen_match_rec(mctx,fail,m) {
 		var fail = gen_rec fail MFailure;
 		(EIf e m Some(fail), p)
 	| MToken (m,n) ->
-		call t_void (core "stream_token" p) [gen_rec fail m; int n] p
+		call t_void (import ctx core "stream_token" p) [gen_rec fail m; int n] p
 	| MJunk (m,n,m2) ->
 		var m = gen_rec fail m;
 		mctx.first := false;
 		(EBlock [
-			call t_void (core "stream_junk" p) [m; int n] p;
+			call t_void (import ctx core "stream_junk" p) [m; int n] p;
 			gen_rec fail m2
 		] , p)
 	}
@@ -272,9 +291,9 @@ function rec gen_matching(ctx,v,m,p,stream,out) {
 	var e = gen_match_rec mctx label m;
 	if stream then {
 		var vpos = gen_variable ctx;
-		var stream_pos = (ECall core("stream_pos",p) [ident v] , p);
+		var stream_pos = (ECall (import ctx core "stream_pos" p) [ident v] , p);
 		var test = (EBinop "==" ident(vpos) stream_pos , p);
-		var exc = (ECall builtin("throw") [(EIf test core("Stream_matching",p) Some(core "Stream_error" p), p)] , p);
+		var exc = (ECall builtin("throw") [(EIf test (import ctx core "Stream_matching" p) Some(import ctx core "Stream_error" p), p)] , p);
 		(EBlock [(EVars [(vpos , Some stream_pos)] , p); e; (ELabel label , p); exc] , p)
 	} else
 		e
@@ -350,7 +369,7 @@ function rec gen_type(ctx,name,t,p) {
 
 function rec gen_binop(ctx,op,e1,e2,p) {
 	function compare(op) {
-		var cmp = (ECall (core "@compare" p) [gen_expr ctx e1; gen_expr ctx e2] , p);
+		var cmp = (ECall (import ctx core "@compare" p) [gen_expr ctx e1; gen_expr ctx e2] , p);
 		(EBinop op cmp int(0) , p)
 	}
 	function make(op) {
@@ -374,7 +393,7 @@ function rec gen_binop(ctx,op,e1,e2,p) {
 		match e1.edecl {
 		| TField _ -> make "="
 		| TArray (a,i) ->
-			(ECall core("@aset",p) [gen_expr ctx a; gen_expr ctx i; gen_expr ctx e2] , p)
+			(ECall (import ctx core "@aset" p) [gen_expr ctx a; gen_expr ctx i; gen_expr ctx e2] , p)
 		| _ ->
 			(EBinop "=" (EArray gen_expr(ctx,e1) int(0),e1.epos) gen_expr(ctx,e2) , p)
 		}
@@ -400,7 +419,7 @@ function rec gen_expr(ctx,e) {
 	| TCall (f,el) -> fst (call e.etype (gen_expr ctx f) (List.map (gen_expr ctx) el) p)
 	| TField (e,s) -> EField gen_expr(ctx,e) s
 	| TArray (e1,e2) ->
-		ECall core("@aget",p) [gen_expr ctx e1;gen_expr ctx e2]
+		ECall (import ctx core "@aget" p) [gen_expr ctx e1;gen_expr ctx e2]
 	| TVar ([v],e) ->
 		ctx.refvars := Set.remove ctx.refvars v;
 		EVars [(v , Some (gen_expr ctx e))]
@@ -425,7 +444,7 @@ function rec gen_expr(ctx,e) {
 	| TTypeDecl t -> fst (gen_type ctx "<assert>" t p)
 	| TMut e -> fst (gen_expr ctx (*e))
 	| TRecordDecl fl ->
-		EObject (("__string", core "@print_record" p) :: List.map (function((s,e)) { (s , gen_expr ctx e) }) fl)
+		EObject (("__string", import ctx core "@print_record" p) :: List.map (function((s,e)) { (s , gen_expr ctx e) }) fl)
 	| TListDecl el ->
 		fst (match el {
 		| [] -> array [] p
@@ -512,8 +531,11 @@ function rec gen_block(ctx,el,p) {
 function generate(e,deps,idents,mod) {
 	var m = module_name mod;
 	var ctx = {
+		current = mod;
 		module_name = m;
 		counter = 0;
+		imports = Hashtbl.create();
+		nimports = 0;
 		refvars = Set.empty();
 	};
 	var init = (EBinop "=" ident(m) builtin("exports") , null_pos);
@@ -525,8 +547,18 @@ function generate(e,deps,idents,mod) {
 	var exports = List.map (function(i) {
 		(EBinop "=" (EField builtin("exports") i,null_pos) ident(i) , null_pos)
 	}) idents;
-	match gen_expr ctx e {
-	| (EBlock e , p) -> (EBlock (List.append (init :: deps) (List.append e  exports)) , p)
-	| e -> (EBlock (List.append (init :: deps) (e :: exports)) , null_pos)
+	var el = match gen_expr ctx e {
+	| (EBlock el, _) -> el
+	| e -> [e]
 	}
+	var imports = &[];
+	Hashtbl.iter (function(key,n : int) {
+		var e = match key {
+			| [] -> assert()
+			| i :: m ->
+				(EBinop "=" ident("@i" + string n) (EField ident(module_name m) i , null_pos) , null_pos) 
+		}
+		imports := e :: *imports;
+	}) ctx.imports;
+	(EBlock (List.append (init :: List.append deps (*imports)) (List.append el exports)) , e.epos)
 }
