@@ -126,9 +126,6 @@
 			RelativePath=".\file.c">
 		</File>
 		<File
-			RelativePath=".\hash.c">
-		</File>
-		<File
 			RelativePath=".\init.c">
 		</File>
 		<File
