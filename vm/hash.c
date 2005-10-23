@@ -36,17 +36,8 @@ typedef struct vparam {
 static void hash_obj_rec( value v, field f, void *_p );
 
 static void hash_rec( value v, int *h, vlist *l ) {
-	vlist *tmp = l;
-	int k = 0;
-	while( tmp != NULL ) {
-		if( tmp->v == v ) {
-			HSMALL(k);
-			return;
-		}
-		k = k + 1;
-		tmp = tmp->next;
-	}
-	switch( val_type(v) ) {
+	val_type t = val_type(v);
+	switch( t ) {
 	case VAL_INT:
 		HBIG(val_int(v));
 		break;
@@ -54,31 +45,45 @@ static void hash_rec( value v, int *h, vlist *l ) {
 		HSMALL(0);
 		break;
 	case VAL_FLOAT:
-		k = sizeof(tfloat);
-		while( k )
-			HSMALL(val_string(v)[--k]);
+		{ 
+			int k = sizeof(tfloat);
+			while( k )
+				HSMALL(val_string(v)[--k]);
+		}
 		break;
 	case VAL_BOOL:
 		HSMALL(val_bool(v));
 		break;
 	case VAL_STRING:
-		k = val_strlen(v);
-		while( k )
-			HSMALL(val_string(v)[--k]);
+		{
+			int k = val_strlen(v);
+			while( k )
+				HSMALL(val_string(v)[--k]);
+		}
 		break;
 	case VAL_OBJECT:
+	case VAL_ARRAY:
 		{
+			vlist *tmp = l;
+			int k = 0;
+			while( tmp != NULL ) {
+				if( tmp->v == v ) {
+					HSMALL(k);
+					return;
+				}
+				k = k + 1;
+				tmp = tmp->next;
+			}
+		}
+		if( t == VAL_OBJECT ) {
 			vparam p;
 			p.h = h;
 			p.l.v = v;
 			p.l.next = l;
 			val_iter_fields(v,hash_obj_rec,&p);
-		}
-		break;
-	case VAL_ARRAY:
-		k = val_array_size(v);
-		{
+		} else {
 			vlist cur;
+			int k = val_array_size(v);
 			cur.v = v;
 			cur.next = l;
 			while( k )
@@ -86,7 +91,7 @@ static void hash_rec( value v, int *h, vlist *l ) {
 		}
 		break;
 	default:
-		HBIG((int)(int_val)v);
+		// ignore since we want hashes to be stable wrt memory
 		break;
 	}
 }
