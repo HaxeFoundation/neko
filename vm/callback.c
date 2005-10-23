@@ -38,22 +38,22 @@ extern void neko_setup_trap( neko_vm *vm, int_val where );
 extern void neko_process_trap( neko_vm *vm );
 extern int neko_stack_expand( int_val *sp, int_val *csp, neko_vm *vm );
 
-EXTERN value val_callEx( value this, value f, value *args, int nargs, value *exc ) {
+EXTERN value val_callEx( value vthis, value f, value *args, int nargs, value *exc ) {
 	neko_vm *vm = NEKO_VM();
-	value old_this = vm->this;
+	value old_this = vm->vthis;
 	value ret = val_null;
 	jmp_buf oldjmp;
 	int old_ncalls = vm->ncalls++;
 	if( old_ncalls > MAXCALLS )
 		failure("Stack Overflow");
-	if( this != NULL )
-		vm->this = this;
+	if( vthis != NULL )
+		vm->vthis = vthis;
 	if( exc ) {
 		memcpy(&oldjmp,&vm->start,sizeof(jmp_buf));
 		if( setjmp(vm->start) ) {
-			*exc = vm->this;
+			*exc = vm->vthis;
 			neko_process_trap(vm);
-			vm->this = old_this;
+			vm->vthis = old_this;
 			memcpy(&vm->start,&oldjmp,sizeof(jmp_buf));
 			vm->ncalls = old_ncalls;
 			return val_null;
@@ -99,14 +99,14 @@ EXTERN value val_callEx( value this, value f, value *args, int nargs, value *exc
 					neko_process_trap(vm);
 					memcpy(&vm->start,&oldjmp,sizeof(jmp_buf));	
 				}
-				vm->this = old_this;
+				vm->vthis = old_this;
 				failure("Stack Overflow");
 			} else {
 				for(n=0;n<nargs;n++)
 					*--vm->sp = (int_val)args[n];
 				*++vm->csp = (int_val)callback_return;
 				*++vm->csp = 0;
-				*++vm->csp = (int_val)vm->this;
+				*++vm->csp = (int_val)vm->vthis;
 				ret = neko_interp(vm,(int_val)val_null,(int_val*)((vfunction*)f)->addr,((vfunction*)f)->env);
 			}
 		}
@@ -116,7 +116,7 @@ EXTERN value val_callEx( value this, value f, value *args, int nargs, value *exc
 		memcpy(&vm->start,&oldjmp,sizeof(jmp_buf));	
 	}
 	vm->ncalls = old_ncalls;
-	vm->this = old_this;
+	vm->vthis = old_this;
 	return ret;
 }
 
@@ -164,7 +164,7 @@ EXTERN value val_ocall2( value o, field f, value arg1, value arg2 ) {
 }
 
 EXTERN value val_this() {
-	return (value)NEKO_VM()->this;
+	return (value)NEKO_VM()->vthis;
 }
 
 /* ************************************************************************ */

@@ -37,7 +37,7 @@ struct _neko_vm {
 	int_val trap;
 	int ncalls;
 	value env;
-	value this;
+	value vthis;
 	printer print;
 	jmp_buf start;
 	value args;

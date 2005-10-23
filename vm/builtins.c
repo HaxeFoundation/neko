@@ -203,10 +203,10 @@ static value builtin_call( value f, value ctx, value args ) {
 	neko_vm *vm;
 	val_check(args,array);
 	vm = NEKO_VM();
-	old = vm->this;
-	vm->this = ctx;
+	old = vm->vthis;
+	vm->vthis = ctx;
 	ret = val_callN(f,val_array_ptr(args),val_array_size(args));
-	vm->this = old;
+	vm->vthis = old;
 	return ret;
 }
 

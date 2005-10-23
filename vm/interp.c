@@ -83,7 +83,7 @@ EXTERN neko_vm *neko_vm_alloc( neko_params *p ) {
 	vm->ncalls = 0;
 	vm->sp = vm->spmax;
 	vm->csp = vm->spmin - 1;
-	vm->this = val_null;
+	vm->vthis = val_null;
 	vm->env = alloc_array(0);
 	vm->args = alloc_array(p?p->nargs:0);
 	if( p ) {
@@ -141,17 +141,17 @@ typedef int_val (*c_primN)(value*,int);
 		csp = vm->csp
 
 #define SetupBeforeCall(this_arg) \
-		value old_this = vm->this; \
+		value old_this = vm->vthis; \
 		value old_env = vm->env; \
 		vfunction *f = (vfunction*)acc; \
-		vm->this = this_arg; \
+		vm->vthis = this_arg; \
 		vm->env = ((vfunction*)acc)->env; \
 		BeginCall(); \
 
 #define RestoreAfterCall() \
 		if( acc == NULL ) val_throw( (value)f->module ); \
 		vm->env = old_env; \
-		vm->this = old_this; \
+		vm->vthis = old_this; \
 		EndCall();
 
 #define DoCall(this_arg) \
@@ -166,9 +166,9 @@ typedef int_val (*c_primN)(value*,int);
 			} \
 			*++csp = (int_val)(pc+1); \
 			*++csp = (int_val)env; \
-			*++csp = (int_val)vm->this; \
+			*++csp = (int_val)vm->vthis; \
 			pc = (int_val*)((vfunction*)acc)->addr; \
-			vm->this = this_arg; \
+			vm->vthis = this_arg; \
 			env = ((vfunction*)acc)->env; \
 		} else if( val_tag(acc) == VAL_PRIMITIVE ) { \
 			if( *pc == ((vfunction*)acc)->nargs ) { \
@@ -288,7 +288,7 @@ void neko_setup_trap( neko_vm *vm, int_val where ) {
 	if( vm->sp <= vm->csp )
 		STACK_EXPAND;
 	vm->sp[0] = (int_val)alloc_int((int_val)(vm->csp - vm->spmin));
-	vm->sp[1] = (int_val)vm->this;
+	vm->sp[1] = (int_val)vm->vthis;
 	vm->sp[2] = (int_val)vm->env;
 	vm->sp[3] = address_int(where);
 	vm->sp[4] = (int_val)alloc_int((int_val)vm->trap);
@@ -308,7 +308,7 @@ void neko_process_trap( neko_vm *vm ) {
 		*vm->csp-- = NULL;
 
 	// restore state
-	vm->this = (value)trap[1];
+	vm->vthis = (value)trap[1];
 	vm->env = (value)trap[2];
 
 	// pop sp
@@ -335,7 +335,7 @@ static int_val interp_loop( neko_vm *vm, int_val _acc, int_val *_pc, value env )
 		acc = (int_val)val_false;
 		Next;
 	Instr(AccThis)
-		acc = (int_val)vm->this;
+		acc = (int_val)vm->vthis;
 		Next;
 	Instr(AccInt)
 		acc = *pc++;
@@ -435,7 +435,7 @@ static int_val interp_loop( neko_vm *vm, int_val _acc, int_val *_pc, value env )
 		*sp++ = NULL;
 		Next;
 	Instr(SetThis)
-		vm->this = (value)acc;
+		vm->vthis = (value)acc;
 		Next;
 	Instr(Push)
 		--sp;
@@ -450,7 +450,7 @@ static int_val interp_loop( neko_vm *vm, int_val _acc, int_val *_pc, value env )
 		PopMacro(*pc++)
 		Next;
 	Instr(Call)
-		DoCall(vm->this);
+		DoCall(vm->vthis);
 		Next;
 	Instr(ObjCall)
 		{
@@ -482,7 +482,7 @@ static int_val interp_loop( neko_vm *vm, int_val _acc, int_val *_pc, value env )
 			csp = vm->csp;
 		}
 		sp[0] = (int_val)alloc_int((int_val)(csp - vm->spmin));
-		sp[1] = (int_val)vm->this;
+		sp[1] = (int_val)vm->vthis;
 		sp[2] = (int_val)env;
 		sp[3] = address_int(*pc);
 		sp[4] = (int_val)alloc_int(vm->trap);
@@ -496,7 +496,7 @@ static int_val interp_loop( neko_vm *vm, int_val _acc, int_val *_pc, value env )
 		Next;
 	Instr(Ret)
 		PopMacro( *pc++ );
-		vm->this = (value)*csp;
+		vm->vthis = (value)*csp;
 		*csp-- = NULL;
 		env = (value)*csp;
 		*csp-- = NULL;
@@ -679,7 +679,7 @@ value neko_interp( neko_vm *vm, int_val acc, int_val *pc, value env ) {
 	memcpy(&old,&vm->start,sizeof(jmp_buf));
 	if( setjmp(vm->start) ) {
 		vm->ncalls = old_ncalls;
-		acc = (int_val)vm->this;
+		acc = (int_val)vm->vthis;
 		
 		// if uncaught or outside init stack, reraise
 		if( vm->trap == 0 || vm->trap <= init_sp ) {
@@ -700,7 +700,7 @@ value neko_interp( neko_vm *vm, int_val acc, int_val *pc, value env ) {
 			*vm->csp-- = NULL;
 	
 		// restore state
-		vm->this = (value)trap[1];
+		vm->vthis = (value)trap[1];
 		env = (value)trap[2];
 		pc = int_address(trap[3]);
 

@@ -395,14 +395,14 @@ static value default_loadprim( value prim, value nargs ) {
 	}
 }
 
-static value default_loadmodule( value mname, value this ) {
+static value default_loadmodule( value mname, value vthis ) {
 	value o = val_this();
 	value data;
 	val_check(o,object);
 	data = val_field(o,id_data);
 	val_check_kind(data,k_loader);
 	val_check(mname,string);
-	val_check(this,object);
+	val_check(vthis,object);
 	{
 		loader *l = (loader*)val_data(data);
 		reader r;
@@ -418,7 +418,7 @@ static value default_loadmodule( value mname, value this ) {
 			val_buffer(b,mname);
 			bfailure(b);
 		}
-		m = neko_module_read(r,p,this);
+		m = neko_module_read(r,p,vthis);
 		l->d(p);
 		if( m == NULL )  {
 			buffer b = alloc_buffer("Invalid module : ");

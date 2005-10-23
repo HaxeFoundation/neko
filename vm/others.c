@@ -341,7 +341,7 @@ EXTERN void val_print( value v ) {
 
 EXTERN void val_throw( value v ) {
 	neko_vm *vm = NEKO_VM();
-	vm->this = v;
+	vm->vthis = v;
 	longjmp(vm->start,1);
 }
 
