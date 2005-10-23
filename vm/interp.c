@@ -324,6 +324,9 @@ static int_val interp_loop( neko_vm *vm, int_val _acc, int_val *_pc, value env )
 	register int_val *sp SP_REG = vm->sp;
 	int_val *csp = vm->csp;
 	while( true ) {
+#ifdef NEKO_PROF
+		if( *pc != Last ) pc[PROF_SIZE]++;
+#endif
 		switch( *pc++ ) {
 	Instr(AccNull)
 		acc = (int_val)val_null;
@@ -514,7 +517,7 @@ static int_val interp_loop( neko_vm *vm, int_val _acc, int_val *_pc, value env )
 				*sp++ = NULL;
 			}
 			if( !val_is_int(acc) && val_tag(acc) == VAL_FUNCTION ) {
-				acc = (int_val)alloc_module_function(*(void**)(((vfunction*)acc)+1),(int)(int_val)((vfunction*)acc)->addr,((vfunction*)acc)->nargs);
+				acc = (int_val)alloc_module_function(((vfunction*)acc)->module,(int)(int_val)((vfunction*)acc)->addr,((vfunction*)acc)->nargs);
 				((vfunction*)acc)->env = (value)tmp;
 			} else
 				acc = (int_val)val_null;
