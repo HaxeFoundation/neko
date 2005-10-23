@@ -138,13 +138,13 @@ EXTERN value alloc_function( void *c_prim, unsigned int nargs, const char *name 
 	return (value)v;
 }
 
-value alloc_module_function( void *m, int pos, int nargs ) {
+value alloc_module_function( void *m, int_val pos, int nargs ) {
 	vfunction *v;
 	if( nargs < 0 && nargs != VAR_ARGS )
 		failure("alloc_module_function");
 	v = (vfunction*)GC_MALLOC(sizeof(vfunction));
 	v->t = VAL_FUNCTION;
-	v->addr = (void*)(int_val)pos;
+	v->addr = (void*)pos;
 	v->nargs = nargs;
 	v->env = alloc_array(0);
 	v->module = m;

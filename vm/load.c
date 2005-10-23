@@ -98,7 +98,7 @@ extern field id_exports;
 extern field id_data;
 extern field id_module;
 extern value *neko_builtins;
-extern value alloc_module_function( void *m, int pos, int nargs );
+extern value alloc_module_function( void *m, int_val pos, int nargs );
 
 static int read_string( reader r, readp p, char *buf ) {
 	int i = 0;
