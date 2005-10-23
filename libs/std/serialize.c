@@ -72,12 +72,6 @@ static int read_char( sbuffer *b ) {
 	return b->cur[b->pos++];
 }
 
-static int peek_char( sbuffer *b ) {
-	if( b->pos >= b->size )
-		return -1;
-	return b->cur[b->pos];
-}
-
 static void write_str( sbuffer *b, int len, const void *s ) {
 	int left = b->size - b->pos;
 	if( left == 0 ) {

@@ -43,7 +43,6 @@ typedef enum {
 	EQUALS,
 	ATTVAL_BEGIN,
 	ATTRIB_VAL,
-	ESCAPE,
 	CHILDS,
 	CLOSE,
 	WAIT_END,
@@ -82,10 +81,10 @@ static bool is_valid_char( int c ) {
 static void do_parse_xml( const char *xml, const char **lp, int *line, value callb, const char *parentname ) {
 	STATE state = BEGIN;
 	STATE next = BEGIN;	
-	field aname;
-	value attribs;
-	value nodename;
-	const char *start;
+	field aname = (field)0;
+	value attribs = NULL;
+	value nodename = NULL;
+	const char *start = NULL;
 	const char *p = *lp;
 	char c = *p;
 	int nsubs = 0;
