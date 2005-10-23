@@ -132,7 +132,6 @@ static value get_builtin( neko_module *m, field id ) {
 
 static int neko_check_stack( neko_module *m, unsigned char *tmp, unsigned int i, int stack, int istack ) {
 	unsigned int itmp;
-	int k = 0;
 	while( true ) {
 		int c = (int)m->code[i];
 		int s = stack_table[c];
