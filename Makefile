@@ -16,6 +16,10 @@ NEKO_EXEC = LD_LIBRARY_PATH=../bin NEKOPATH=../boot ../bin/nekovm
 # MAKESO = gcc -dynamic
 # LIBNEKO = 
 
+# For profiling VM
+#
+# CFLAGS = -DNEKO_PROF ${CFLAGS}
+
 ### MAKE
 
 VM_OBJECTS = vm/main.o
