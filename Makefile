@@ -5,7 +5,7 @@ MAKESO = gcc -shared -WBsymbolic
 LIBNEKO_LIBS = -ldl -lgc -lm
 LIBNEKO = -Lbin -lneko
 
-NEKO_EXEC = LD_LIBRARY_PATH=../bin NEKOPATH=../boot ../bin/nekovm
+NEKO_EXEC = LD_LIBRARY_PATH=../bin:${LD_LIBRARY_PATH} NEKOPATH=../boot ../bin/nekovm
 
 # For 64 bit
 #
