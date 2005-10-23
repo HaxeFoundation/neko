@@ -27,6 +27,7 @@
 #define C(x,y)	((x << 8) | y)
 
 DEFINE_KIND(k_int32);
+DEFINE_KIND(k_hash);
 
 extern _context *neko_fields_context;
 extern field id_compare;

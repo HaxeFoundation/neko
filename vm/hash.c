@@ -1,6 +1,6 @@
 /* ************************************************************************ */
 /*																			*/
-/*  Neko Standard Library													*/
+/*  Neko Virtual Machine													*/
 /*  Copyright (c)2005 Nicolas Cannasse										*/
 /*																			*/
 /*  This program is free software; you can redistribute it and/or modify	*/
@@ -18,7 +18,7 @@
 /*  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 /*																			*/
 /* ************************************************************************ */
-#include <neko.h>
+#include "neko.h"
 
 typedef struct vlist {
 	value v;
@@ -98,13 +98,11 @@ static void hash_obj_rec( value v, field f, void *_p ) {
 	hash_rec(v,h,&p->l);
 }
 
-static value hash( value v ) {
+EXTERN int val_hash( value v ) {
 	int h = 0;
 	hash_rec(v,&h,NULL);
-	return alloc_int(h & 0x3FFFFFFF);
+	return (((unsigned int)h) & 0x3FFFFFFF);
 }
-
-DEFINE_PRIM(hash,1);
 
 /* ************************************************************************ */
 

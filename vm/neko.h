@@ -97,6 +97,19 @@ typedef struct {
 	void *data;
 } vabstract;
 
+typedef struct hcell {
+	int hkey;
+	value key;
+	value val;
+	struct hcell *next;
+} hcell;
+
+typedef struct {
+	hcell **cells;
+	int ncells;
+	int nitems;
+} vhash;
+
 #define val_tag(v)			(*(val_type*)(v))
 #define val_is_null(v)		((v) == val_null)
 #define val_is_int(v)		((((int)(int_val)(v)) & 1) != 0)
@@ -120,6 +133,7 @@ typedef struct {
 #define val_float(v)		(CONV_FLOAT ((vfloat*)(v))->f)
 #define val_bool(v)			((v) == val_true)
 #define val_number(v)		(val_is_int(v)?val_int(v):val_float(v))
+#define val_hdata(v)		((vhash*)val_data(v))
 #define val_string(v)		(&((vstring*)(v))->c)
 #define val_strlen(v)		(val_tag(v) >> 3)
 #define val_set_length(v,l) val_tag(v) = (val_tag(v)&7) | ((l) << 3)
@@ -167,7 +181,6 @@ typedef struct {
 #	endif
 #endif
 
-EXTERN vkind k_int32;
 #define alloc_int32(i) alloc_abstract(k_int32, (value)(int_val)(i))
 #define need_32_bits(i) ( ((unsigned int)(i)) & (1 << 30) )
 #define alloc_best_int(i) (need_32_bits(i) ? alloc_int32(i) : alloc_int(i))
@@ -231,8 +244,12 @@ EXTERN vkind k_int32;
 #define val_throw			neko_val_throw
 #define val_iter_fields		neko_val_iter_fields
 #define val_field_name		neko_val_field_name
+#define val_hash			neko_val_hash
 
 C_FUNCTION_BEGIN
+
+	EXTERN vkind k_int32;
+	EXTERN vkind k_hash;
 
 	EXTERN value val_null;
 	EXTERN value val_true;
@@ -282,6 +299,7 @@ C_FUNCTION_BEGIN
 	EXTERN void val_print( value s );
 	EXTERN void val_gc( value v, finalizer f );
 	EXTERN void val_throw( value v );
+	EXTERN int val_hash( value v );
 
 	EXTERN void _neko_failure( value msg, const char *file, int line );
 

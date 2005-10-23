@@ -543,6 +543,235 @@ static value builtin_args() {
 	return NEKO_VM()->args;
 }
 
+static value builtin_hkey( value v ) {
+	return alloc_int(val_hash(v));
+}
+
+#define HASH_DEF_SIZE 7
+
+static value builtin_hnew( value size ) {
+	vhash *h;
+	int i;
+	val_check(size,int);
+	h = (vhash*)alloc(sizeof(vhash));
+	h->nitems = 0;
+	h->ncells = val_int(size);
+	if( h->ncells <= 0 )
+		h->ncells = HASH_DEF_SIZE;
+	h->cells = (hcell**)alloc(sizeof(hcell*)*h->ncells);
+	for(i=0;i<h->ncells;i++)
+		h->cells[i] = NULL;
+	return alloc_abstract(k_hash,h);
+}
+
+static void add_rec( hcell **cc, int size, hcell *c ) {
+	int k;
+	if( c == NULL )
+		return;
+	add_rec(cc,size,c->next);
+	k = c->hkey % size;	
+	c->next = cc[k];
+	cc[k] = c;
+}
+
+static value builtin_hresize( value vh, value size ) {
+	vhash *h;
+	hcell **cc;
+	int nsize;
+	int i;
+	val_check_kind(vh,k_hash);
+	val_check(size,int);
+	h = val_hdata(vh);
+	nsize = val_int(size);
+	if( nsize <= 0 )
+		nsize = HASH_DEF_SIZE;
+	cc = (hcell**)alloc(sizeof(hcell*)*nsize);
+	for(i=0;i<h->ncells;i++)
+		add_rec(cc,nsize,h->cells[i]);
+	h->cells = cc;
+	h->ncells = nsize;
+	return val_true;
+}
+
+static value builtin_hget( value vh, value key, value cmp ) {
+	vhash *h;
+	hcell *c;
+	if( !val_is_null(cmp) )
+		val_check_function(cmp,2);
+	val_check_kind(vh,k_hash);
+	h = val_hdata(vh);
+	c = h->cells[val_hash(key) % h->ncells];
+	if( val_is_null(cmp) ) {
+		while( c != NULL ) {
+			if( val_compare(key,c->key) == 0 )
+				return c->val;
+			c = c->next;
+		}
+	} else {
+		while( c != NULL ) {
+			if( val_call2(cmp,key,c->key) == alloc_int(0) )
+				return c->val;
+			c = c->next;
+		}
+	}
+	return val_null;
+}
+
+static value builtin_hmem( value vh, value key, value cmp ) {
+	vhash *h;
+	hcell *c;
+	if( !val_is_null(cmp) )
+		val_check_function(cmp,2);
+	val_check_kind(vh,k_hash);
+	h = val_hdata(vh);
+	c = h->cells[val_hash(key) % h->ncells];
+	if( val_is_null(cmp) ) {
+		while( c != NULL ) {
+			if( val_compare(key,c->key) == 0 )
+				return val_true;
+			c = c->next;
+		}
+	} else {
+		while( c != NULL ) {
+			if( val_call2(cmp,key,c->key) == alloc_int(0) )
+				return val_true;
+			c = c->next;
+		}
+	}
+	return val_false;
+}
+
+static value builtin_hremove( value vh, value key, value cmp ) {
+	vhash *h;
+	hcell *c, *prev = NULL;
+	int hkey;
+	if( !val_is_null(cmp) )
+		val_check_function(cmp,2);
+	val_check_kind(vh,k_hash);
+	h = val_hdata(vh);
+	hkey = val_hash(key) % h->ncells;
+	c = h->cells[hkey];
+	if( val_is_null(cmp) ) {
+		while( c != NULL ) {
+			if( val_compare(key,c->key) == 0 ) {
+				if( prev == NULL )
+					h->cells[hkey] = c->next;
+				else
+					prev->next = c->next;
+				h->nitems--;
+				return val_true;
+			}
+			prev = c;
+			c = c->next;
+		}
+	} else {
+		while( c != NULL ) {
+			if( val_call2(cmp,key,c->key) == alloc_int(0) ) {
+				if( prev == NULL )
+					h->cells[hkey] = c->next;
+				else
+					prev->next = c->next;
+				h->nitems--;
+				return val_true;
+			}
+			prev = c;
+			c = c->next;
+		}
+	}
+	return val_false;
+}
+
+static value builtin_hset( value vh, value key, value val, value cmp ) {
+	vhash *h;
+	hcell *c;
+	int hkey;
+	if( !val_is_null(cmp) )
+		val_check_function(cmp,2);
+	val_check_kind(vh,k_hash);
+	h = val_hdata(vh);
+	hkey = val_hash(key);
+	c = h->cells[hkey % h->ncells];
+	if( val_is_null(cmp) ) {
+		while( c != NULL ) {
+			if( val_compare(key,c->key) == 0 ) {
+				c->val = val;
+				return val_false;
+			}
+			c = c->next;
+		}
+	} else {
+		while( c != NULL ) {
+			if( val_call2(cmp,key,c->key) == alloc_int(0) ) {
+				c->val = val;
+				return val_false;
+			}
+			c = c->next;
+		}
+	}	
+	if( h->nitems >= (h->ncells << 1) )
+		builtin_hresize(vh,alloc_int(h->ncells << 1));
+	c = (hcell*)alloc(sizeof(hcell));
+	c->hkey = hkey;
+	c->key = key;
+	c->val = val;
+	hkey %= h->ncells;
+	c->next = h->cells[hkey];
+	h->cells[hkey] = c;
+	h->nitems++;
+	return val_true;
+}
+
+static value builtin_hadd( value vh, value key, value val, value cmp ) {
+	vhash *h;
+	hcell *c;
+	int hkey;
+	if( !val_is_null(cmp) )
+		val_check_function(cmp,2);
+	val_check_kind(vh,k_hash);
+	h = val_hdata(vh);
+	hkey = val_hash(key);
+	if( hkey < 0 )
+		neko_error();
+	if( h->nitems >= (h->ncells << 1) )
+		builtin_hresize(vh,alloc_int(h->ncells << 1));
+	c = (hcell*)alloc(sizeof(hcell));
+	c->hkey = hkey;
+	c->key = key;
+	c->val = val;
+	hkey %= h->ncells;
+	c->next = h->cells[hkey];
+	h->cells[hkey] = c;
+	h->nitems++;
+	return val_true;
+}
+
+static value builtin_hiter( value vh, value f ) {
+	int i;
+	hcell *c;
+	vhash *h;
+	val_check_function(f,2);
+	val_check_kind(vh,k_hash);
+	h = val_hdata(vh);
+	for(i=0;i<h->ncells;i++) {
+		c = h->cells[i];
+		while( c != NULL ) {
+			val_call2(f,c->key,c->val);
+			c = c->next;
+		}
+	}
+	return val_null;
+}
+
+static value builtin_hcount( value vh ) {
+	val_check_kind(vh,k_hash);
+	return alloc_int( val_hdata(vh)->nitems );
+}
+
+static value builtin_hsize( value vh ) {
+	val_check_kind(vh,k_hash);
+	return alloc_int( val_hdata(vh)->ncells );
+}
+
 #define BUILTIN(name,nargs)	\
 	alloc_field(neko_builtins[0],val_id(#name),alloc_function(builtin_##name,nargs,"$" #name));	
 
@@ -593,6 +822,18 @@ void neko_init_builtins() {
 	BUILTIN(isnan,1);
 	BUILTIN(isinfinite,1);
 	BUILTIN(istrue,1);
+
+	BUILTIN(hnew,1);
+	BUILTIN(hget,3);
+	BUILTIN(hmem,3);
+	BUILTIN(hset,4);
+	BUILTIN(hadd,4);
+	BUILTIN(hremove,3);
+	BUILTIN(hresize,2);
+	BUILTIN(hkey,1);
+	BUILTIN(hcount,1);
+	BUILTIN(hsize,1);
+	BUILTIN(hiter,2);
 	
 	BUILTIN(iadd,2);
 	BUILTIN(isub,2);
