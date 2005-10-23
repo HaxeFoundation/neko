@@ -17,134 +17,43 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-type ('a, 'b) bucketlist {
-	Empty;
-	Cons : ('a , 'b , ('a, 'b) bucketlist);
-}
 
-type ('a,'b) t {
-	mutable size : int;
-	mutable data : ('a,'b) bucketlist array;
-}
-
-neko("
-	@hash = $loader.loadprim('std@hash',1);
-");
+type ('a,'b) t;
 
 function hash(x:'a) : int {
-	neko("@hash(x)");
+	neko("$hash(x)")
 }
 
 function create() {
-	{
-		size = 0;
-		data = Array.make 1 Empty;
-	}
+	neko("$hnew(0)")
 }
 
-function length(h) {
-	h.size
+function length(h : ('a,'b) t) : int {
+	neko("$hcount(h)")
 }
 
-function find(h,k) {
-	function rec loop(k,r) {
-		match r {
-		| Empty -> throw Not_found
-		| Cons (k2,d,r) -> if k == k2 then d else loop k r
-		}
-	};
-	loop k (h.data.[hash(k) % Array.length h.data])
+function find(h : ('a,'b) t,k : 'a) : 'b {
+	var v = neko("$hget(h,k,@Core.@compare)");
+	if neko("v == null") then throw Not_found;
+	v
 }
 
-function exists(h,k) {
-	function rec loop(k,r) {
-		match r {
-		| Empty -> false
-		| Cons (k2,d,r) -> k == k2 || loop k r
-		}
-	};
-	loop k (h.data.[hash(k) % Array.length h.data])
-}
-
-function resize(h) {
-	var old_data = h.data;
-	var old_size = Array.length old_data;
-	var new_size = old_size << 1 + 1;
-	var new_data = Array.make new_size Empty;	
-	function rec insert(x) {
-		match x {
-		| Empty -> ()
-		| Cons (k,v,r) ->
-			insert r;
-			var i = hash(k) % new_size;
-			new_data.[i] := Cons(k,v,new_data.[i])
-		}
-	};
-	var i = &0;
-	while *i < old_size {
-		insert old_data.[*i];
-		i := *i + 1;
-	}
-	h.data := new_data;
+function exists(h : ('a,'b) t,k : 'a) : bool {
+	neko("$hmem(h,k,@Core.@compare)");
 }
 
 function add(h : ('a,'b) t, k : 'a, v : 'b) : void {
-	var p = hash(k) % Array.length(h.data);
-	var bucket = Cons(k, v, h.data.[p]);
-	h.data.[p] := bucket;	
-	h.size := h.size + 1;
-	if h.size > Array.length h.data << 1 then resize h
+	neko("$hadd(h,k,v,@Core.@compare)");
 }
 
-function remove(h,k) {
-	function rec loop(b) {
-		match b {
-		| Empty ->
-			Empty
-		| Cons(k2, i, next) ->
-			if k == k2 then {
-				h.size := h.size - 1;
-				next
-			} else
-				Cons(k2, i, loop next)
-		}
-	}
-	var p = hash(k) % Array.length(h.data);
-	h.data.[p] := loop h.data.[p];
+function remove(h : ('a,'b) t,k : 'a) : void {
+	neko("$hremove(h,k,@Core.@compare)");
 }
 
-function replace(h,k,v) {
-	function rec loop(b) {
-		match b {
-		| Empty ->
-			h.size := h.size + 1;
-			Cons(k , v, Empty)
-		| Cons(k2, i, next) ->
-			if k == k2 then
-				Cons(k , v, next)
-			else
-				Cons(k2, i, loop next)
-		}
-	}
-	var p = hash(k) % Array.length(h.data);
-	h.data.[p] := loop h.data.[p];
+function replace(h : ('a,'b) t,k : 'a,v : 'b) : void {
+	neko("$hset(h,k,v,@Core.@compare)");
 }
-
 
 function iter(f : 'a -> 'b -> void,h : ('a,'b) t) : void {
-	var i = &0;
-	var d = h.data;
-	var len = Array.length d;
-	function rec loop(b) {
-		match b {
-		| Empty -> ()
-		| Cons (k,d,r) ->
-			f k d;
-			loop r
-		}
-	};
-	while *i < len {
-		loop d.[*i];
-		i := *i + 1;
-	}
+	neko("$hiter(h,f)");
 }
