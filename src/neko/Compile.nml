@@ -41,7 +41,7 @@ type context {
 	mutable ntraps : int;
 	mutable breaks : (void -> void, pos) list;
 	mutable continues : (void -> void, pos) list;
-	mutable functions : (opcode array, int , int) list;
+	mutable functions : (opcode array, (string,int) array, int , int) list;
 	mutable gtable : global array;
 	labels : (string,label) Hashtbl.t;
 	mutable pos : (string,int) array;
@@ -130,13 +130,15 @@ function set_pos(ctx,p) {
 
 function write_raw_op(ctx,op) {
 	Array.add ctx.pos ctx.curpos;
-	Array.add ctx.ops op
+	if op_param op then Array.add ctx.pos ctx.curpos;
+	Array.add ctx.ops op;
 }
 
 function write(ctx,op) {
 	ctx.stack := ctx.stack + stack_delta op;
 	Array.add ctx.pos ctx.curpos;
-	Array.add ctx.ops op
+	if op_param op then Array.add ctx.pos ctx.curpos;
+	Array.add ctx.ops op;
 }
 
 function jmp(ctx) {
@@ -442,6 +444,8 @@ function rec compile_function(ctx,params,e) {
 	var env = ctx.env;
 	var nenv = ctx.nenv;
 	var ntraps = ctx.ntraps;
+	var pos = ctx.pos;
+	ctx.pos := Array.create();
 	ctx.ops := Array.create();
 	ctx.breaks := [];
 	ctx.continues := [];
@@ -464,9 +468,10 @@ function rec compile_function(ctx,params,e) {
 	ctx.continues := continues;
 	ctx.locals := locals;
 	var gid = Array.length ctx.gtable;
-	ctx.functions := (ctx.ops,gid,List.length params) :: ctx.functions;
+	ctx.functions := (ctx.ops,ctx.pos,gid,List.length params) :: ctx.functions;
 	Array.add ctx.gtable GlobalFunction(gid,-1);
 	ctx.ops := ops;
+	ctx.pos := pos;
 	var local_env = ctx.env;
 	var local_nenv = ctx.nenv;
 	ctx.env := env;
@@ -755,12 +760,16 @@ function compile(ast) {
 	check_breaks ctx;
 	if ctx.functions != [] || Hashtbl.length ctx.gobjects != 0 then {
 		var ctxops = ctx.ops;
+		var ctxpos = ctx.pos;
 		var ops = Array.create();
+		var pos = Array.create();
+		ctx.pos := pos;
 		ctx.ops := ops;
 		write ctx (Jump 0);
-		List.iter (function((fops,gid,nargs)) {
+		List.iter (function((fops,fpos,gid,nargs)) {
 			Array.set ctx.gtable gid GlobalFunction(Array.length ops,nargs);
 			Array.append fops ops;
+			Array.append fpos pos;
 		}) (List.rev ctx.functions);
 		Array.set ops 0 (Jump (Array.length ops));
 		Hashtbl.iter (function(fl,g) {
@@ -773,6 +782,7 @@ function compile(ast) {
 				write ctx (SetField f);
 			}) fl
 		}) ctx.gobjects;
+		Array.append ctxpos pos;
 		Array.append ctxops ops;
 	};
 	Array.add ctx.gtable (GlobalDebug ctx.pos);

@@ -90,7 +90,7 @@ type global {
 
 exception Invalid_file;
 
-var trap_stack_delta = 5
+var trap_stack_delta = 6
 var max_call_args = 5
 
 function hash_field(s : string) : int {
