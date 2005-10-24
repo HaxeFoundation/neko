@@ -364,14 +364,14 @@ objtable otable_empty() {
 	return t2;
 }
 
-void otable_remove( objtable t, field id ) {
+int otable_remove( objtable t, field id ) {
 	int min = 0;
 	int max = t->count;
 	int mid;
 	field cid;
 	cell *c = t->cells;
 	if( !max )
-		return;
+		return 0;
 	while( min < max ) {
 		mid = (min + max) >> 1;
 		cid = c[mid].id;
@@ -386,10 +386,10 @@ void otable_remove( objtable t, field id ) {
 				mid++;
 			}
 			c[mid].v = NULL;
-			return;
+			return 1;
 		}
 	}
-	return;
+	return 0;
 }
 
 void otable_optimize( objtable t ) {

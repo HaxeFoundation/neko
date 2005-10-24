@@ -82,7 +82,7 @@ static INLINE value *otable_find(objtable t,field id) {
 
 objtable otable_empty();
 void otable_replace(objtable t, field id, value data);
-void otable_remove(objtable t, field id);
+int otable_remove(objtable t, field id);
 void otable_optimize(objtable t);
 #define otable_count(t)	(t)->count
 
