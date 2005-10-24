@@ -172,8 +172,8 @@ static int stack_table[] = {
 	0, // Jump
 	0, // JumpIf
 	0, // JumpIfNot
-	5, // Trap
-	-5, // EndTrap
+	6, // Trap
+	-6, // EndTrap
 	0, // Ret
 	-P, // MakeEnv
 	-P, // MakeArray

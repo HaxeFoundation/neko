@@ -317,9 +317,9 @@ static neko_module *neko_module_read( reader r, readp p, value loader ) {
 			break;
 		case 5:
 			m->debuginf = read_debug_infos(r,p,tmp);
-			if( m->debuginf == NULL )
+			if( m->debuginf == NULL || val_array_size(m->debuginf) != m->codesize )
 				ERROR();
-			m->globals[i] = m->debuginf;
+			m->globals[i] = val_null;
 			break;
 		default:
 			ERROR();

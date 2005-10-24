@@ -79,6 +79,7 @@ EXTERN neko_vm *neko_vm_alloc( neko_params *p ) {
 	vm->spmin = (int_val*)alloc(INIT_STACK_SIZE*sizeof(int_val));
 	vm->print = (p && p->printer)?p->printer:default_printer;
 	vm->custom = p?p->custom:NULL;
+	vm->exc_stack = val_null;
 	vm->spmax = vm->spmin + INIT_STACK_SIZE;
 	vm->ncalls = 0;
 	vm->sp = vm->spmax;
@@ -111,7 +112,7 @@ EXTERN void neko_vm_execute( neko_vm *vm, neko_module *m ) {
 	neko_vm_select(vm);
 	for(i=0;i<m->nfields;i++)
 		val_id(val_string(m->fields[i]));
-	neko_interp(vm,(int_val)val_null,m->code,alloc_array(0));
+	neko_interp(vm,m,(int_val)val_null,m->code,alloc_array(0));
 }
 
 typedef int_val (*c_prim0)();
@@ -140,41 +141,46 @@ typedef int_val (*c_primN)(value*,int);
 		sp = vm->sp; \
 		csp = vm->csp
 
-#define SetupBeforeCall(this_arg) \
-		value old_this = vm->vthis; \
-		value old_env = vm->env; \
-		if( csp + 2 >= sp ) { \
+#define PushInfos() \
+		if( csp + 4 >= sp ) { \
 			STACK_EXPAND; \
 			sp = vm->sp; \
 			csp = vm->csp; \
 		} \
-		*++csp = 0; \
-		*++csp = acc; \
+		*++csp = (int_val)(pc+1); \
+		*++csp = (int_val)env; \
+		*++csp = (int_val)vm->vthis; \
+		*++csp = (int_val)m;
+
+#define PopInfos(restpc) \
+		m = (neko_module*)*csp; \
+		*csp-- = NULL; \
+		vm->vthis = (value)*csp; \
+		*csp-- = NULL; \
+		env = (value)*csp; \
+		*csp-- = NULL; \
+		if( restpc ) pc = (int_val*)*csp; \
+		*csp-- = NULL;
+
+#define SetupBeforeCall(this_arg) \
+		vfunction *f = (vfunction*)acc; \
+		PushInfos(); \
 		vm->vthis = this_arg; \
 		vm->env = ((vfunction*)acc)->env; \
-		BeginCall(); \
+		BeginCall();
 
 #define RestoreAfterCall() \
-		if( acc == NULL ) val_throw( (value)((vfunction*)*csp)->module ); \
-		vm->env = old_env; \
-		vm->vthis = old_this; \
+		if( acc == NULL ) val_throw( (value)f->module ); \
 		EndCall(); \
-		*csp = 0; \
-		csp -= 2;
+		PopInfos(false);
 
 #define DoCall(this_arg) \
 		if( acc & 1 ) { \
 			acc = (int_val)val_null; \
 			PopMacro(*pc++); \
 		} else if( val_tag(acc) == VAL_FUNCTION && *pc == ((vfunction*)acc)->nargs ) { \
-			if( csp + 3 >= sp ) { \
-				STACK_EXPAND; \
-				sp = vm->sp; \
-				csp = vm->csp; \
-			} \
-			*++csp = (int_val)(pc+1); \
-			*++csp = (int_val)env; \
-			*++csp = (int_val)vm->vthis; \
+			PushInfos(); \
+			m = (neko_module*)((vfunction*)acc)->module; \
 			pc = (int_val*)((vfunction*)acc)->addr; \
 			vm->vthis = this_arg; \
 			env = ((vfunction*)acc)->env; \
@@ -287,10 +293,37 @@ extern value append_strings( value s1, value s2 );
 		ACC_RESTORE; \
 }
 
+value neko_flush_stack( int_val *cspup, int_val *csp, int flush ) {
+	int ncalls = (int)((cspup - csp) / 4);
+	value stack_trace = alloc_array(ncalls); 
+	value *st = val_array_ptr(stack_trace);
+	neko_module *m;
+	while( csp != cspup ) {
+		m = (neko_module*)csp[4];		
+		if( m ) {
+			if( !val_is_null(m->debuginf) ) {
+				int ppc = (int)((((int_val**)csp)[1]-2) - m->code);
+				*st = val_array_ptr(m->debuginf)[ppc];
+			} else
+				*st = m->name;
+		} else
+			*st = val_null;
+		st++;
+		if( flush ) {
+			*++csp = NULL;
+			*++csp = NULL;
+			*++csp = NULL;
+			*++csp = NULL;
+		} else
+			csp += 4;		
+	}		
+	return stack_trace;
+}
+
 void neko_setup_trap( neko_vm *vm, int_val where ) {
 	int_val acc = 0;
 	int_val *sp, *csp;
-	vm->sp -= 5;
+	vm->sp -= 6;
 	csp = vm->csp;
 	sp = vm->sp;
 	if( vm->sp <= vm->csp )
@@ -299,7 +332,8 @@ void neko_setup_trap( neko_vm *vm, int_val where ) {
 	vm->sp[1] = (int_val)vm->vthis;
 	vm->sp[2] = (int_val)vm->env;
 	vm->sp[3] = address_int(where);
-	vm->sp[4] = (int_val)alloc_int((int_val)vm->trap);
+	vm->sp[4] = (int_val)val_null;
+	vm->sp[5] = (int_val)alloc_int((int_val)vm->trap);
 	vm->trap = vm->spmax - vm->sp;
 }
 
@@ -312,21 +346,21 @@ void neko_process_trap( neko_vm *vm ) {
 
 	trap = vm->spmax - vm->trap;
 	sp = vm->spmin + val_int(trap[0]);
-	while( vm->csp > sp )
-		*vm->csp-- = NULL;
+	vm->exc_stack = neko_flush_stack(vm->csp,sp,1);
+	vm->csp = sp;
 
 	// restore state
 	vm->vthis = (value)trap[1];
 	vm->env = (value)trap[2];
 
 	// pop sp
-	sp = trap + 5;
-	vm->trap = val_int(trap[4]);
+	sp = trap + 6;
+	vm->trap = val_int(trap[5]);
 	while( vm->sp < sp )
 		*vm->sp++ = NULL;
 }
 
-static int_val interp_loop( neko_vm *vm, int_val _acc, int_val *_pc, value env ) {
+static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *_pc, value env ) {
 	register int_val acc ACC_REG = _acc;
 	register int_val *pc PC_REG = _pc;
 	register int_val *sp SP_REG = vm->sp;
@@ -486,7 +520,7 @@ static int_val interp_loop( neko_vm *vm, int_val _acc, int_val *_pc, value env )
 			pc++;
 		Next;
 	Instr(Trap)
-		sp -= 5;
+		sp -= 6;
 		if( sp <= csp ) {
 			STACK_EXPAND;
 			sp = vm->sp;
@@ -496,23 +530,19 @@ static int_val interp_loop( neko_vm *vm, int_val _acc, int_val *_pc, value env )
 		sp[1] = (int_val)vm->vthis;
 		sp[2] = (int_val)env;
 		sp[3] = address_int(*pc);
-		sp[4] = (int_val)alloc_int(vm->trap);
+		sp[4] = address_int(m);
+		sp[5] = (int_val)alloc_int(vm->trap);
 		vm->trap = vm->spmax - sp;
 		pc++;
 		Next;
 	Instr(EndTrap)
 		Error( vm->spmax - vm->trap != sp , "Invalid End Trap" );
-		vm->trap = val_int(sp[4]);
-		PopMacro(5);
+		vm->trap = val_int(sp[5]);
+		PopMacro(6);
 		Next;
 	Instr(Ret)
 		PopMacro( *pc++ );
-		vm->vthis = (value)*csp;
-		*csp-- = NULL;
-		env = (value)*csp;
-		*csp-- = NULL;
-		pc = (int_val*)*csp;
-		*csp-- = NULL;
+		PopInfos(true);
 		Next;
 	Instr(MakeEnv)
 		{
@@ -682,7 +712,7 @@ end:
 	return acc;
 }
 
-value neko_interp( neko_vm *vm, int_val acc, int_val *pc, value env ) {
+value neko_interp( neko_vm *vm, neko_module *m, int_val acc, int_val *pc, value env ) {
 	int_val *sp, *csp, *trap;
 	int_val init_sp = vm->spmax - vm->sp;
 	int old_ncalls = vm->ncalls;
@@ -707,21 +737,22 @@ value neko_interp( neko_vm *vm, int_val acc, int_val *pc, value env ) {
 
 		// pop csp
 		csp = vm->spmin + val_int(trap[0]);
-		while( vm->csp > csp )
-			*vm->csp-- = NULL;
+		vm->exc_stack = neko_flush_stack(vm->csp,csp,1);
+		vm->csp = csp;
 	
 		// restore state
 		vm->vthis = (value)trap[1];
 		env = (value)trap[2];
 		pc = int_address(trap[3]);
+		m = (neko_module*)int_address(trap[4]);
 
 		// pop sp
-		sp = trap + 5;
-		vm->trap = val_int(trap[4]);
+		sp = trap + 6;
+		vm->trap = val_int(trap[5]);
 		while( vm->sp < sp )
 			*vm->sp++ = NULL;
 	}
-	acc = interp_loop(vm,acc,pc,env);
+	acc = interp_loop(vm,m,acc,pc,env);
 	memcpy(&vm->start,&old,sizeof(jmp_buf));
 	return (value)acc;
 }

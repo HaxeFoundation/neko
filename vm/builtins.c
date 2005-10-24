@@ -31,6 +31,7 @@
 #endif
 
 extern value *neko_builtins;
+extern value neko_flush_stack( int_val *cspup, int_val *csp, int flush );
 
 static value builtin_print( value *args, int nargs ) {
 	buffer b;
@@ -774,6 +775,15 @@ static value builtin_hsize( value vh ) {
 	return alloc_int( val_hdata(vh)->ncells );
 }
 
+static value builtin_excstack() {
+	return NEKO_VM()->exc_stack;
+}
+
+static value builtin_callstack() {
+	neko_vm *vm = NEKO_VM();
+	return neko_flush_stack(vm->csp,vm->spmin - 1,0);
+}
+
 #define BUILTIN(name,nargs)	\
 	alloc_field(neko_builtins[0],val_id(#name),alloc_function(builtin_##name,nargs,"$" #name));	
 
@@ -841,6 +851,9 @@ void neko_init_builtins() {
 	BUILTIN(isub,2);
 	BUILTIN(imult,2);
 	BUILTIN(idiv,2);
+
+	BUILTIN(excstack,0);
+	BUILTIN(callstack,0);
 }
 
 /* ************************************************************************ */

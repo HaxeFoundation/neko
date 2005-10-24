@@ -94,7 +94,7 @@ EXTERN value val_callEx( value vthis, value f, value *args, int nargs, value *ex
 	} else if( val_tag(f) == VAL_FUNCTION ) {
 		if( nargs == ((vfunction*)f)->nargs )  {
 			int n;
-			if( vm->csp + 3 >= vm->sp - nargs && !neko_stack_expand(vm->sp,vm->csp,vm) ) {
+			if( vm->csp + 4 >= vm->sp - nargs && !neko_stack_expand(vm->sp,vm->csp,vm) ) {
 				if( exc ) {
 					neko_process_trap(vm);
 					memcpy(&vm->start,&oldjmp,sizeof(jmp_buf));	
@@ -107,7 +107,8 @@ EXTERN value val_callEx( value vthis, value f, value *args, int nargs, value *ex
 				*++vm->csp = (int_val)callback_return;
 				*++vm->csp = 0;
 				*++vm->csp = (int_val)vm->vthis;
-				ret = neko_interp(vm,(int_val)val_null,(int_val*)((vfunction*)f)->addr,((vfunction*)f)->env);
+				*++vm->csp = 0;
+				ret = neko_interp(vm,(neko_module*)((vfunction*)f)->module,(int_val)val_null,(int_val*)((vfunction*)f)->addr,((vfunction*)f)->env);
 			}
 		}
 	}
