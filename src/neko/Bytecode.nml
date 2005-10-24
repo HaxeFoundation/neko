@@ -85,6 +85,7 @@ type global {
 	GlobalFunction : (int , int);
 	GlobalString : string;
 	GlobalFloat : string;
+	GlobalDebug : (string, int) array;
 }
 
 exception Invalid_file;
@@ -92,17 +93,8 @@ exception Invalid_file;
 var trap_stack_delta = 5
 var max_call_args = 5
 
-function hash_field(s) {
-	var acc = &0;
-	function rec loop(i) {
-		if i < String.length s then {
-			acc := 223 * *acc + ord(String.get s i);
-			loop (i + 1);
-		}
-	};
-	loop(0);
-	acc := *acc and ((1 << 31) - 1);
-	*acc
+function hash_field(s : string) : int {
+	neko("$hash(s)")
 }
 
 function op_param(x) {
@@ -193,6 +185,67 @@ function code_tables(ops) {
 	(ids , pos , *p)
 }
 
+function write_debug_infos(ch,inf) {
+	var h = Hashtbl.create();
+	var files = Array.create();
+	var inf = Array.map (function((f,p)) {
+		var fid = try
+			Hashtbl.find h f
+		catch { Not_found ->
+			var id = Array.length files;
+			Hashtbl.add h f id;
+			Array.add files f;
+			id
+		};
+		(fid,p);
+	}) inf;
+	var nfiles = Array.length files;
+	if nfiles > 0x7F then invalid_arg();
+	IO.write_byte ch nfiles;
+	Array.iter (function(s) { IO.write ch s; IO.write_char ch '\000' }) files;
+    IO.write_i32 ch (Array.length inf);
+	var curfile = &0;
+	var curpos = &0;
+	var rcount = &0;
+	function rec flush_repeat(p) {
+		if *rcount > 0 then {
+			if *rcount > 15 then {
+				IO.write_byte ch ((15 << 2) or 2);
+				rcount := *rcount - 15;
+				flush_repeat(p)
+			} else {
+				var delta = p - *curpos;
+				var delta = (if delta > 0 && delta < 4 then delta else 0);
+				IO.write_byte ch ((delta << 6) or (*rcount << 2) or 2);
+				rcount := 0;
+				curpos := *curpos + delta;
+			}
+		}
+	}
+	Array.iter (function((f,p)) {
+		if f != *curfile then {
+			flush_repeat(p);
+			curfile := f;
+			IO.write_byte ch ((f << 1) or 1);
+		}
+		if p != *curpos then flush_repeat(p);
+		if p == *curpos then
+			rcount := *rcount + 1
+		else {
+			var delta = p - *curpos;
+			if delta > 0 && delta < 32 then {
+				IO.write_byte ch ((delta << 3) or 4)
+			} else {
+				IO.write_byte ch (p << 3);
+				IO.write_byte ch (p >> 5);
+				IO.write_byte ch (p >> 13);
+			}
+			curpos := p;
+		}
+	}) inf;
+	flush_repeat(*curpos)
+}
+
 function write(ch,(globals,ops)) {
 	IO.write ch "NEKO";
 	var ids , pos , csize = code_tables ops;
@@ -205,6 +258,7 @@ function write(ch,(globals,ops)) {
 		| GlobalFunction (p,nargs) -> IO.write_byte ch 2; IO.write_i32 ch (pos.[p] or (nargs << 24))
 		| GlobalString s -> IO.write_byte ch 3; IO.write_ui16 ch (String.length s); IO.write ch s
 		| GlobalFloat s -> IO.write_byte ch 4; IO.write ch s; IO.write_char ch '\000'
+		| GlobalDebug inf -> IO.write_byte ch 5; write_debug_infos ch inf;
 		}
 	}) globals;
 	Hashtbl.iter (function(_,s) {
@@ -294,6 +348,50 @@ function read_string(ch) {
 	loop()
 }
 
+function read_debug_infos(ch) {
+	var nfiles = IO.read_byte ch;
+	if nfiles == 0 || nfiles > 0x7F then invalid_arg();
+	var files = Array.init nfiles (function(_) { read_string ch });
+    var npos = IO.read_i32 ch;
+	var curfile = &files.[0];
+	var curpos = &0;
+	var pos = Array.make npos ("",0);
+	function rec loop(i) {
+		if i == npos then
+			()
+		else {
+		var b = IO.read_byte ch;
+		if b and 1 != 0 then {
+			if b >> 1 >= Array.length files then invalid_arg();
+			curfile := files.[b >> 1];
+			loop(i)
+		} else if b and 2 != 0 then {
+			var delta = b >> 6;
+			var count = (b >> 2) and 15;
+			var p = &0;
+			while *p < count {
+				pos.[i + *p] := (*curfile,*curpos);
+				p := *p + 1;
+			}
+			curpos := *curpos + delta;
+			loop (i + count)
+		} else if b and 4 != 0 then {
+			curpos := *curpos + (b >> 3);
+			pos.[i] := (*curfile,*curpos);
+			loop (i + 1)
+		} else {
+			var b2 = IO.read_byte ch;
+			var b3 = IO.read_byte ch;
+			curpos := (b >> 3) or (b2 << 5) or (b3 << 13);
+			pos.[i] := (*curfile,*curpos);
+			loop (i + 1)
+		}
+		}
+	}
+	loop 0;
+	pos
+}
+
 function read(ch) {
 	try {
 		var head = IO.read ch 4;
@@ -314,6 +412,8 @@ function read(ch) {
 				GlobalString(IO.read ch len)
 			| 4 ->
 				GlobalFloat(read_string ch)
+			| 5 ->
+				GlobalDebug(read_debug_infos ch)
 			| _ ->
 				throw Invalid_file
 			}
@@ -456,7 +556,12 @@ function dump(ch,(globals,ops)) {
 				if p >= 0 && p < csize then marks.[p] := true;
 				"function " + string p + " nargs " + string n
 			| GlobalString s -> "string \"" + String.escape s + "\""
-			| GlobalFloat s -> "float " + String.escape s })
+			| GlobalFloat s -> "float " + String.escape s
+			| GlobalDebug inf ->
+				var ch, buf = IO.write_string();
+				write_debug_infos ch inf;
+				sprintf "debug %d ops %d bytes" (Array.length inf,String.length buf())
+			})
 	}) globals;
 	IO.printf ch "FIELDS =\n" ();
 	Hashtbl.iter (function(h,f) {
