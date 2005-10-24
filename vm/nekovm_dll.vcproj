@@ -70,7 +70,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories="../libs/include"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;NEKOVM_DLL_EXPORTS;NEKO_SOURCES"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;NEKOVM_DLL_EXPORTS;NEKO_SOURCES;COMPACT_TABLE"
 				RuntimeLibrary="2"
 				BufferSecurityCheck="FALSE"
 				UsePrecompiledHeader="0"
