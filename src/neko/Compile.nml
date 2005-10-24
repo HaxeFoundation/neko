@@ -44,6 +44,8 @@ type context {
 	mutable functions : (opcode array, int , int) list;
 	mutable gtable : global array;
 	labels : (string,label) Hashtbl.t;
+	mutable pos : (string,int) array;
+	mutable curpos : (string,int);
 }
 
 type error_msg = string
@@ -122,8 +124,18 @@ function pos(ctx) {
 	Array.length ctx.ops
 }
 
+function set_pos(ctx,p) {
+	ctx.curpos := (Lexer.source p,Lexer.line p);
+}
+
+function write_raw_op(ctx,op) {
+	Array.add ctx.pos ctx.curpos;
+	Array.add ctx.ops op
+}
+
 function write(ctx,op) {
 	ctx.stack := ctx.stack + stack_delta op;
+	Array.add ctx.pos ctx.curpos;
 	Array.add ctx.ops op
 }
 
@@ -271,7 +283,7 @@ function rec scan_labels(ctx,supported,e) {
 		Neko.Ast.iter (scan_labels ctx supported) e
 	| EBinop (_,_,_)
 	| EArray _
-	| EField _ 
+	| EField _
 		->
 		Neko.Ast.iter (scan_labels ctx false) e
 	}
@@ -302,21 +314,23 @@ function compile_constant(ctx,c,p) {
 		}
 	| Ident s ->
 		try {
-			var e = Map.find ctx.env s;
-			write ctx (AccEnv e);
-		} catch { Not_found -> try {
 			var l = Map.find ctx.locals s;
 			if l <= ctx.limit then {
-				var e = ctx.nenv;
-				ctx.nenv := ctx.nenv + 1;
-				ctx.env := Map.add ctx.env s e;
+				var e = try {
+					Map.find ctx.env s
+				} catch { Not_found ->
+					var e = ctx.nenv;
+					ctx.nenv := ctx.nenv + 1;
+					ctx.env := Map.add ctx.env s e;
+					e
+				};
 				write ctx (AccEnv e);
 			} else
 				write ctx (AccStack (ctx.stack - l));
 		} catch { Not_found ->
 			var g = global ctx (GlobalVar s);
 			write ctx (AccGlobal g)
-		}}
+		}
 	}
 }
 
@@ -327,21 +341,23 @@ function rec compile_binop(ctx,op,e1,e2,p) {
 		| EConst (Ident s) ->
 			compile ctx e2;
 			try {
-				var e = Map.find ctx.env s;
-				write ctx (SetEnv e);
-			} catch { Not_found -> try {
 				var l = Map.find ctx.locals s;
 				if l <= ctx.limit then {
-					var e = ctx.nenv;
-					ctx.nenv := ctx.nenv + 1;
-					ctx.env := Map.add ctx.env s e;
+					var e = try {
+						Map.find ctx.env s
+					} catch { Not_found ->
+						var e = ctx.nenv;
+						ctx.nenv := ctx.nenv + 1;
+						ctx.env := Map.add ctx.env s e;
+						e
+					};
 					write ctx (SetEnv e);
 				} else
 					write ctx (SetStack (ctx.stack - l))
 			} catch { Not_found ->
 				var g = global ctx (GlobalVar s);
 				write ctx (SetGlobal g)
-			}}
+			}
 		| EField (e,f) ->
 			compile ctx e;
 			write ctx Push;
@@ -533,6 +549,7 @@ function rec compile_builtin(ctx,b,el,p) {
 }
 
 function rec compile(ctx,(e,p)) {
+	set_pos ctx p;
 	match e {
 	| EConst c ->
 		compile_constant ctx c p
@@ -670,11 +687,11 @@ function rec compile(ctx,(e,p)) {
 		| None -> ()
 		| Some e -> compile ctx e
 		};
-		if ctx.loop_limit != ctx.stack then Array.add ctx.ops (Pop (ctx.stack - ctx.loop_limit));
+		if ctx.loop_limit != ctx.stack then write_raw_op ctx (Pop (ctx.stack - ctx.loop_limit));
 		ctx.breaks := (jmp ctx , p) :: ctx.breaks
 	| EContinue ->
 		if ctx.ntraps != 0 then assert();
-		if ctx.loop_limit != ctx.stack then Array.add ctx.ops (Pop (ctx.stack - ctx.loop_limit));
+		if ctx.loop_limit != ctx.stack then write_raw_op ctx (Pop (ctx.stack - ctx.loop_limit));
 		ctx.continues := (jmp ctx , p) :: ctx.continues
 	| EFunction (params,e) ->
 		compile_function ctx params e
@@ -730,6 +747,8 @@ function compile(ast) {
 		nenv = 0;
 		ntraps = 0;
 		labels = Hashtbl.create();
+		pos = Array.create();
+		curpos = ("",0);
 	};
 	scan_labels ctx true ast;
 	compile ctx ast;
@@ -756,5 +775,6 @@ function compile(ast) {
 		}) ctx.gobjects;
 		Array.append ctxops ops;
 	};
+	Array.add ctx.gtable (GlobalDebug ctx.pos);
 	(ctx.gtable, ctx.ops)
 }
