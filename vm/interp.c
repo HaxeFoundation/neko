@@ -143,16 +143,24 @@ typedef int_val (*c_primN)(value*,int);
 #define SetupBeforeCall(this_arg) \
 		value old_this = vm->vthis; \
 		value old_env = vm->env; \
-		vfunction *f = (vfunction*)acc; \
+		if( csp + 2 >= sp ) { \
+			STACK_EXPAND; \
+			sp = vm->sp; \
+			csp = vm->csp; \
+		} \
+		*++csp = 0; \
+		*++csp = acc; \
 		vm->vthis = this_arg; \
 		vm->env = ((vfunction*)acc)->env; \
 		BeginCall(); \
 
 #define RestoreAfterCall() \
-		if( acc == NULL ) val_throw( (value)f->module ); \
+		if( acc == NULL ) val_throw( (value)((vfunction*)*csp)->module ); \
 		vm->env = old_env; \
 		vm->vthis = old_this; \
-		EndCall();
+		EndCall(); \
+		*csp = 0; \
+		csp -= 2;
 
 #define DoCall(this_arg) \
 		if( acc & 1 ) { \
