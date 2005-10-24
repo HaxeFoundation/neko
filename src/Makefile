@@ -2,8 +2,8 @@
 NEKOVM = NEKOPATH='${NEKOPATH};../boot' nekovm
 
 all:
-	${NEKOVM} nekoml/Main neko/Main.nml nekoml/Main.nml
-	${NEKOVM} neko/Main *.neko neko/*.neko nekoml/*.neko
+	${NEKOVM} nekoml/Main -v neko/Main.nml nekoml/Main.nml
+	${NEKOVM} neko/Main -v *.neko neko/*.neko nekoml/*.neko
 
 neko:
 	${NEKOVM} nekoml/Main neko/Main.nml
@@ -14,9 +14,9 @@ nekoml:
 	${NEKOVM} neko/Main *.neko nekoml/*.neko neko/*.neko 
 
 install:
-	cp *.n ../boot
-	cp neko/*.n ../boot/neko
-	cp nekoml/*.n ../boot/nekoml
+	-cp *.n ../boot
+	-cp neko/*.n ../boot/neko
+	-cp nekoml/*.n ../boot/nekoml
 
 clean:
 	rm -rf neko/*.neko neko/*.n
