@@ -190,6 +190,68 @@ static int neko_check_stack( neko_module *m, unsigned char *tmp, unsigned int i,
 	return 1;
 }
 
+static value read_debug_infos( reader r, readp p, char *tmp ) {
+	unsigned int i;
+	int curpos = 0;
+	value curfile;
+	unsigned int npos;
+	unsigned char c;
+	value files;
+	value pos, pp;
+	READ(&c,1);
+	if( c == 0 || c > 0x7F )
+		ERROR();
+	files = alloc_array(c);
+	for(i=0;i<c;i++) {
+		if( read_string(r,p,tmp) == -1 )
+			ERROR();
+		val_array_ptr(files)[i] = alloc_string(tmp);
+	}
+	READ_LONG(npos);
+	curfile = val_array_ptr(files)[0];
+	pos = alloc_array(npos);
+	i = 0;
+	while( i < npos ) {
+		READ(&c,1);
+		if( c & 1 ) {
+			if( (c >> 1) >= val_array_size(files) )
+				ERROR();
+			curfile = val_array_ptr(files)[c >> 1];
+		} else if( c & 2 ) {
+			int delta = c >> 6;
+			int count = (c >> 2) & 15;
+			if( i + count > npos )
+				ERROR();
+			while( count > 0 ) {
+				pp = alloc_array(2);
+				val_array_ptr(pp)[0] = curfile;
+				val_array_ptr(pp)[1] = alloc_int(curpos);
+				val_array_ptr(pos)[i] = pp;
+				count--;
+				i++;
+			}
+			curpos += delta;
+		} else if( c & 4 ) {
+			curpos += c >> 3;
+			pp = alloc_array(2);
+			val_array_ptr(pp)[0] = curfile;
+			val_array_ptr(pp)[1] = alloc_int(curpos);
+			val_array_ptr(pos)[i++] = pp;
+		} else {
+			unsigned char b2;
+			unsigned char b3;
+			READ(&b2,1);
+			READ(&b3,1);
+			curpos = (c >> 3) | (b2 << 5) | (b3 << 13);
+			pp = alloc_array(2);
+			val_array_ptr(pp)[0] = curfile;
+			val_array_ptr(pp)[1] = alloc_int(curpos);
+			val_array_ptr(pos)[i++] = pp;			
+		}
+	}	
+	return pos;
+}
+
 static neko_module *neko_module_read( reader r, readp p, value loader ) {
 	unsigned int i;
 	unsigned int itmp;
@@ -207,6 +269,7 @@ static neko_module *neko_module_read( reader r, readp p, value loader ) {
 	if( m->nglobals < 0 || m->nglobals > 0xFFFF || m->nfields < 0 || m->nfields > 0xFFFF || m->codesize < 0 || m->codesize > 0xFFFFF )
 		ERROR();
 	tmp = alloc_private(sizeof(char)*(((m->codesize+1)>MAXSIZE)?(m->codesize+1):MAXSIZE));
+	m->debuginf = val_null;
 	m->globals = (value*)alloc(m->nglobals * sizeof(value));
 	m->fields = (value*)alloc(sizeof(value*)*m->nfields);
 #ifdef NEKO_PROF
@@ -251,6 +314,12 @@ static neko_module *neko_module_read( reader r, readp p, value loader ) {
 			if( read_string(r,p,tmp) == -1 )
 				ERROR();
 			m->globals[i] = alloc_float( atof(tmp) );
+			break;
+		case 5:
+			m->debuginf = read_debug_infos(r,p,tmp);
+			if( m->debuginf == NULL )
+				ERROR();
+			m->globals[i] = m->debuginf;
 			break;
 		default:
 			ERROR();
