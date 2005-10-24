@@ -21,7 +21,7 @@
 type ('a,'b) t;
 
 function hash(x:'a) : int {
-	neko("$hash(x)")
+	neko("$hkey(x)")
 }
 
 function create() {
