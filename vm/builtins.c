@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include "neko.h"
 #include "load.h"
+#include "interp.h"
 #include "objtable.h"
 #include "vmcontext.h"
 
@@ -31,7 +32,6 @@
 #endif
 
 extern value *neko_builtins;
-extern value neko_flush_stack( int_val *cspup, int_val *csp, int flush );
 
 static value builtin_print( value *args, int nargs ) {
 	buffer b;
@@ -780,8 +780,7 @@ static value builtin_excstack() {
 }
 
 static value builtin_callstack() {
-	neko_vm *vm = NEKO_VM();
-	return neko_flush_stack(vm->csp,vm->spmin - 1,0);
+	return neko_call_stack(NEKO_VM());
 }
 
 #define BUILTIN(name,nargs)	\

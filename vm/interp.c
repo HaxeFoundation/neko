@@ -79,7 +79,7 @@ EXTERN neko_vm *neko_vm_alloc( neko_params *p ) {
 	vm->spmin = (int_val*)alloc(INIT_STACK_SIZE*sizeof(int_val));
 	vm->print = (p && p->printer)?p->printer:default_printer;
 	vm->custom = p?p->custom:NULL;
-	vm->exc_stack = val_null;
+	vm->exc_stack = alloc_array(0);
 	vm->spmax = vm->spmin + INIT_STACK_SIZE;
 	vm->ncalls = 0;
 	vm->sp = vm->spmax;
@@ -113,6 +113,16 @@ EXTERN void neko_vm_execute( neko_vm *vm, neko_module *m ) {
 	for(i=0;i<m->nfields;i++)
 		val_id(val_string(m->fields[i]));
 	neko_interp(vm,m,(int_val)val_null,m->code,alloc_array(0));
+}
+
+EXTERN value neko_exc_stack( neko_vm *vm ) {
+	return vm->exc_stack;
+}
+
+static value neko_flush_stack( int_val *cspup, int_val *csp, int flush );
+
+EXTERN value neko_call_stack( neko_vm *vm ) {
+	return neko_flush_stack(vm->csp,vm->spmin - 1,0);
 }
 
 typedef int_val (*c_prim0)();
@@ -293,7 +303,7 @@ extern value append_strings( value s1, value s2 );
 		ACC_RESTORE; \
 }
 
-value neko_flush_stack( int_val *cspup, int_val *csp, int flush ) {
+static value neko_flush_stack( int_val *cspup, int_val *csp, int flush ) {
 	int ncalls = (int)((cspup - csp) / 4);
 	value stack_trace = alloc_array(ncalls); 
 	value *st = val_array_ptr(stack_trace);

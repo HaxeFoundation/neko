@@ -30,7 +30,24 @@ static int execute( neko_vm *vm, char *file ) {
 	val_callEx(mload,val_field(mload,val_id("loadmodule")),args,2,&exc);
 	val_ocall0(mload,val_id("dump_prof"));
 	if( exc != NULL ) {
-		buffer b = alloc_buffer(NULL);
+		int i;
+		buffer b;
+		value st = neko_exc_stack(vm);
+		for(i=0;i<val_array_size(st);i++) {
+			value s = val_array_ptr(st)[i];
+			if( val_is_null(s) )
+				fprintf(stderr,"Called from a C function\n");
+			else if( val_is_string(s) ) {
+				fprintf(stderr,"Called from a Module %s (no debug available)\n",val_string(s));
+			} else if( val_is_array(s) && val_array_size(s) == 2 && val_is_string(val_array_ptr(s)[0]) && val_is_int(val_array_ptr(s)[1]) )
+				fprintf(stderr,"Called from %s line %d\n",val_string(val_array_ptr(s)[0]),val_int(val_array_ptr(s)[1]));
+			else {
+				b = alloc_buffer(NULL);
+				val_buffer(b,s);
+				fprintf(stderr,"Called from %s\n",val_string(buffer_to_string(b)));
+			}
+		}
+		b = alloc_buffer(NULL);
 		val_buffer(b,exc);
 		fprintf(stderr,"Uncaught exception - %s\n",val_string(buffer_to_string(b)));
 		return 1;
