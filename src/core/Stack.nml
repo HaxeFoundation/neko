@@ -1,0 +1,48 @@
+
+type stack_item {
+	CFunction;
+	Module : string;
+	Pos : (string,int);
+}
+
+type stack = stack_item array;
+
+neko("
+
+	@make_stack = function(a) {
+		var i = 0;
+		var l = $asize(a);
+		while( i < l ) {
+			var k = a[i];
+			a[i] =
+				if( k == null ) CFunction else
+				if( $typeof(k) == $tstring ) Module(k) else
+				Pos(k[0],k[1]);
+			i = i + 1;
+		}
+		return @Array.@make(a);
+	}
+
+")
+
+function call() : stack {
+	neko("@make_stack($callstack())");
+}
+
+function exc() : stack {
+	neko("@make_stack($excstack())");
+}
+
+function dump(ch,stack) {
+	Array.iter (function(s) {
+		match s {
+		| CFunction -> IO.write ch "Called from a C function\n"
+		| Module m -> IO.printf ch "Called from %s (no debug available)\n" m
+		| Pos (file,line) -> IO.printf ch "Called from %s line %d\n" (file,line)
+		}
+	}) stack
+}
+
+function print() {
+	dump(IO.stdout,call());
+}
