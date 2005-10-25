@@ -38,7 +38,7 @@ static int execute( neko_vm *vm, char *file ) {
 			if( val_is_null(s) )
 				fprintf(stderr,"Called from a C function\n");
 			else if( val_is_string(s) ) {
-				fprintf(stderr,"Called from a Module %s (no debug available)\n",val_string(s));
+				fprintf(stderr,"Called from %s (no debug available)\n",val_string(s));
 			} else if( val_is_array(s) && val_array_size(s) == 2 && val_is_string(val_array_ptr(s)[0]) && val_is_int(val_array_ptr(s)[1]) )
 				fprintf(stderr,"Called from %s line %d\n",val_string(val_array_ptr(s)[0]),val_int(val_array_ptr(s)[1]));
 			else {
