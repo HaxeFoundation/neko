@@ -74,10 +74,12 @@ type opcode {
 	Lt;
 	Lte;
 	Not;
+	// extra ops
 	TypeOf;
 	Compare;
 	Hash;
 	New;
+	JumpTable : int;
 };
 
 type global {
@@ -115,6 +117,7 @@ function op_param(x) {
 	| Jump _
 	| JumpIf _
 	| JumpIfNot _
+	| JumpTable _
 	| Trap _
 	| MakeEnv _
 	| MakeArray _
@@ -324,6 +327,7 @@ function write(ch,(globals,ops)) {
 			| Compare -> 53
 			| Hash -> 54
 			| New -> 55
+			| JumpTable n -> pop := Some n; 56
 		});
 		match *pop {
 		| None -> IO.write_byte ch (opid << 2)
@@ -506,6 +510,7 @@ function read(ch) {
 				| 53 -> Compare
 				| 54 -> Hash
 				| 55 -> New
+				| 56 -> JumpTable p
 				| _ -> throw Invalid_file
 			};
 			pos.[*cpos] := Array.length ops;
@@ -629,6 +634,7 @@ function dump(ch,(globals,ops)) {
 			| Compare -> "Compare"
 			| Hash -> "Hash"
 			| New -> "New"
+			| JumpTable i -> str "JumpTable" i
 		});
 		bpos := *bpos + if op_param op then 2 else 1;
 	}) ops;
