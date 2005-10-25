@@ -168,6 +168,15 @@ static int neko_check_stack( neko_module *m, unsigned char *tmp, unsigned int i,
 			if( c == Jump )
 				return 1;
 			break;
+		case JumpTable:			
+			itmp = (int)m->code[i+1];
+			i += itmp;	
+			while( itmp > 0 ) {
+				itmp -= 2;
+				if( !neko_check_stack(m,tmp,i - itmp,stack,istack) )
+					return 0;
+			}			
+			break;
 		case AccStack:
 		case SetStack:
 			if( m->code[i+1] >= stack )
@@ -422,6 +431,11 @@ static neko_module *neko_module_read( reader r, readp p, value loader ) {
 		case MakeArray:
 			if( itmp > 0x10000 )
 				failure("Too much big array");
+			break;
+		case JumpTable:
+			if( itmp > 0xff || i + 1 + itmp * 2 >= m->codesize )
+				ERROR();
+			m->code[i+1] <<= 1;
 			break;
 		}
 		if( !tmp[i+1] )

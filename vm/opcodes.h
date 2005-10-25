@@ -78,6 +78,7 @@ enum OPCODE {
 	Compare,
 	Hash,
 	New,
+	JumpTable,
 
 	Last,
 };
@@ -141,6 +142,7 @@ static int parameter_table[] = {
 	0, // Compare
 	0, // Hash
 	0, // New
+	1, // JumpTable
 };
 
 #define P	0xFF
@@ -202,6 +204,7 @@ static int stack_table[] = {
 	-1, // Compare
 	0, // Hash
 	0, // New
+	0, // JumpTable
 
 	0, // Last
 };
