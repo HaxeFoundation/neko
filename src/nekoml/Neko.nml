@@ -89,7 +89,7 @@ function construct_id(ctx,m,c) {
 	var mod = try Nekoml.Typer.module ctx.typectx m catch { Not_found -> assert() };
 	var r = try Nekoml.Typer.union mod c catch { Not_found -> assert() };
 	if r == t_error then
-		Hashtbl.hash c
+		Hashtbl.hash (c :: m)
 	else match tlinks false r {
 	| TUnion (_,fl) ->
 		function rec loop(i,l) {
@@ -510,7 +510,7 @@ function rec gen_expr(ctx,e) {
 		var printer = gen_expr ctx (gen_type_printer ctx e t);
 		var printer = (EFunction ["v"] (EBlock [printer],p) , p);
 		var printer = (EVars [(e + "__string",Some printer)] , p);
-		ENext printer (gen_constructor ctx e e (Hashtbl.hash e) t p)
+		ENext printer (gen_constructor ctx e e (Hashtbl.hash (e :: ctx.current)) t p)
 	| TTry (e,m) ->
 		var out = gen_label ctx;
 		var matching = gen_matching ctx "@exc" m p false out;
