@@ -233,7 +233,7 @@ function rec gen_match_rec(mctx,fail,m) {
 	| MExecute (e,b) ->
 		if !b then {
 			var ematch = (EBinop "==" ident("@exc") (import ctx core "Stream_matching" p) , p);
-			var reraise = (EIf ematch gen_rec(fail,MFailure) Some((ECall (builtin "throw") [ident "@exc"],p)) , p);
+			var reraise = (EIf ematch gen_rec(fail,MFailure) Some((ECall (builtin "rethrow") [ident "@exc"],p)) , p);
 			mctx.first := false;
 			match e.edecl {
 			| TConst _ -> gen_expr ctx e
@@ -252,16 +252,10 @@ function rec gen_match_rec(mctx,fail,m) {
 		] , p)
 	| MConstants (m,cl) ->
 		var e = gen_rec fail m;
-		var v = gen_variable ctx;
-		var exec = List.fold (function(acc,(c,m)) {
-			var test = (EBinop "==" ident(v) gen_constant(ctx,c,p) , p);
-			var exec = gen_rec fail m;
-			(EIf test exec Some(acc) , p)
-		}) (gen_rec fail MFailure) (List.rev cl);
-		(EBlock [
-			(EVars [(v, Some e)] , p);
-			exec
-		] , p)
+		var cases = List.map (function((c,m)) {
+			(gen_constant ctx c p, gen_rec fail m)
+		}) cl;
+		(ESwitch e cases Some(gen_rec fail MFailure), p)
 	| MRecordField (m,f,t) ->
 		(EArray gen_rec(fail,m) int(record_index f t) , p)
 	| MTuple (m,n) ->
@@ -277,23 +271,17 @@ function rec gen_match_rec(mctx,fail,m) {
 		var m2 = gen_rec fail m2;
 		(EBlock [m1; (ELabel label, p); m2] , p)
 	| MSwitch (m,cl) ->
-		var e = gen_rec fail m;
-		var v = gen_variable ctx;
-		var exec = List.fold (function(acc,(c,m)) {
+		var e = (EArray (gen_rec fail m) int(0) , p);
+		var cases = List.map (function((c,m)) {
 			var path , c = match c {
 			| TModule (path,TConstr c) -> (path , c)
 			| TConstr c -> (ctx.current,c)
 			| _ ->
 				assert()
 			}
-			var test = (EBinop "==" ident(v) int(construct_id ctx path c) , p);
-			var exec = gen_rec fail m;
-			(EIf test exec Some(acc) , p)
-		}) (gen_rec fail MFailure) (List.rev cl);
-		(EBlock [
-			(EVars [(v, Some (EArray e int(0),p))] , p);
-			exec;
-		] , p)
+			(int(construct_id ctx path c), gen_rec fail m)
+		}) cl;
+		(ESwitch e cases Some(gen_rec fail MFailure), p)		
 	| MBind (v,m1,m2) ->
 		var e1 = gen_rec fail m1;
 		var old = mctx.cache;
