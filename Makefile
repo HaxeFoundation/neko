@@ -1,6 +1,6 @@
 ### CONFIG
 
-CFLAGS = -O3 -fPIC -fomit-frame-pointer -I vm
+CFLAGS = -O3 -fPIC -fomit-frame-pointer -I vm -DCOMPACT_TABLE
 MAKESO = gcc -shared -WBsymbolic
 LIBNEKO_LIBS = -ldl -lgc -lm
 LIBNEKO = -Lbin -lneko
@@ -19,6 +19,10 @@ NEKO_EXEC = LD_LIBRARY_PATH=../bin:${LD_LIBRARY_PATH} NEKOPATH=../boot ../bin/ne
 # For profiling VM
 #
 # CFLAGS = -DNEKO_PROF ${CFLAGS}
+
+# For lower memory usage (takes more CPU !)
+#
+# CFLAGS = -DLOW_MEM ${CFLAGS}
 
 ### MAKE
 
