@@ -96,7 +96,7 @@ function rec stream_pattern((p,pos)) {
 	| PIdent i -> PConst (Ident i)
 	| PConst c -> PConst c
 	| PTuple pl -> PTuple (List.map stream_pattern pl)
-	| PRecord pr -> PRecord (List.map (function((s,p)) { (s , stream_pattern p) }) pr)
+	| PRecord (pr,t) -> PRecord (List.map (function((s,p)) { (s , stream_pattern p) }) pr) t
 	| PConstr (path,name,param) -> PConstr path name (match param { None -> None | Some p -> Some (stream_pattern p) })
 	| PAlias (s,p) -> PAlias s (stream_pattern p)
 	| PTyped (p,t) -> PTyped (stream_pattern p) t
@@ -180,11 +180,11 @@ function make_construct_match(tuple,nargs,pathl,cas) {
 	}
 }
 
-function make_record_match(args,pathl,cas) {
+function make_record_match(args,pathl,t,cas) {
 	match pathl {
 	| [] -> assert()
 	| path :: pathl ->
-		var l = List.fold (function(acc,(f,_)) { MRecordField(path,f) :: acc }) pathl (List.rev args);
+		var l = List.fold (function(acc,(f,_)) { MRecordField(path,f,t) :: acc }) pathl (List.rev args);
 		([cas] , l)
 	}
 }
@@ -271,9 +271,9 @@ function divide_matching(m) {
 			| ((PTuple args,_) :: l,act) :: rest ->
 				var constants , constrs, others = divide_rec rest;
 				(constants , add_to_division (make_construct_match true (List.length args) pathl) constrs TVoid (List.append args l,act) , others)
-			| ((PRecord args,_) :: l,act) :: rest ->
+			| ((PRecord (args,t),_) :: l,act) :: rest ->
 				var constants , constrs, others = divide_rec rest;
-				(constants , add_to_division (make_record_match args pathl) constrs TVoid (List.append (List.map snd args) l,act) , others)
+				(constants , add_to_division (make_record_match args pathl magic(t)) constrs TVoid (List.append (List.map snd args) l,act) , others)
 			| ((PStream ((SPattern p) :: sl,k),pp) :: l,act) :: rest ->
 				var constants , constrs, others = divide_rec rest;
 				(constants , always_add (make_token_match ((MToken curpath k) :: pathl)) constrs (stream_pattern p :: (PStream sl (k+1),pp) :: l, act) , others)

@@ -92,6 +92,14 @@ function restore_locals(ctx,l) {
 	ctx.current.idents := l
 }
 
+function module(ctx,path) {
+	Hashtbl.find ctx.modules path
+}
+
+function union(m,c) {
+	fst (Hashtbl.find m.constrs c)
+}
+
 function get_module(ctx,path,p) {
 	match path {
 	| [] -> ctx.current
@@ -945,7 +953,7 @@ function rec type_pattern(ctx,h,h2,set,add,(pat,p)) {
 		| PTuple pl ->
 			var pl , patl = List.split (List.map (type_pattern ctx h h2 set add) pl);
 			(mk_tup ctx.gen pl , PTuple patl)
-		| PRecord fl ->
+		| PRecord (fl,_) ->
 			var s = try fst (List.hd fl) catch { _ -> assert() };
 			var r , _ , _ = get_record ctx s p;
 			var fl = match tlinks false r {
@@ -964,7 +972,7 @@ function rec type_pattern(ctx,h,h2,set,add,(pat,p)) {
 			| _ ->
 				assert()
 			};
-			(r , PRecord fl)
+			(r , PRecord fl magic(r))
 		| PIdent s ->
 			(if s == "_" then t_mono ctx.gen else pvar add s , pat)
 		| PConstr (path,s,param) ->

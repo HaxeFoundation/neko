@@ -96,7 +96,7 @@ type pattern_decl {
 	PIdent : string;
 	PConst : constant;
 	PTuple : pattern list;
-	PRecord : (string , pattern) list;
+	PRecord : ((string , pattern) list, int);
 	PConstr : (string list , string , pattern option);
 	PAlias : (string , pattern);
 	PTyped : (pattern , type_path);

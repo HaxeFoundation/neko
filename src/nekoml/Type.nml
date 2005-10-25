@@ -66,7 +66,7 @@ type match_op {
 	MField : (match_op, int);
 	MTuple : (match_op, int);
 	MToken : (match_op, int);
-	MRecordField : (match_op, string);
+	MRecordField : (match_op, string, t);
 	MJunk : (match_op, int, match_op);
 	MSwitch : (match_op, (tconstant, match_op) list);
 	MBind : (string, match_op, match_op);

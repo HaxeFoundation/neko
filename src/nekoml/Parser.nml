@@ -468,7 +468,7 @@ function rec pattern_decl(s) {
 	| [< (ParentOpen _,p1); pl = pattern_tuple s; (ParentClose,p2) >] ->
 		mk PTuple(pl) punion(p1,p2)
 	| [< (BraceOpen,p1); (Const (Ident name),_); (Binop "=",_); p = pattern s; pl = pattern_record s; (BraceClose,p2) >] ->
-		mk PRecord((name,p) :: pl) punion(p1,p2)
+		mk PRecord((name,p) :: pl,0) punion(p1,p2)
 	| [< (Const (Constr name),p1); l, name2, p2 = pattern_mod_path name p1 s; p , p3 = pattern_opt p2 s >] ->
 		mk PConstr(l,name2,p) punion(p1,p3)
 	| [< (Const (Ident i),p); >] ->
