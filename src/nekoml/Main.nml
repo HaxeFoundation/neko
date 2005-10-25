@@ -36,30 +36,44 @@ function report(msg,p) {
 	Sys.exit(-1);
 }
 
+function gen_neko(ctx,m,e) {
+	var path , deps, idents = module_infos m;	
+	var file = Nekoml.Type.file_name path ".neko";
+	if *verbose then printf "Generating %s\n" file;
+	var e = Nekoml.Neko.generate ctx e deps idents path;
+	var ch = IO.write_file file false;
+	var ctx = Neko.Printer.create ch;
+	Neko.Printer.print ctx e;
+	IO.close_out ch
+}
+
+function compile(ctx,m,e) {
+	var path, deps, idents = module_infos m;
+	var file = Nekoml.Type.file_name path ".n";
+	if *verbose then printf "Compiling %s\n" file;
+	var code = Neko.Compile.compile (Nekoml.Neko.generate ctx e deps idents path);
+	var ch = IO.write_file file true;
+	Neko.Bytecode.write ch code;
+	IO.close_out ch
+}
+
 try {
 	var head = "NekoML v1.0 - (c)2005 Nicolas Cannasse\n Usage : nekoml [options] files...";
 	var path = &["";"core/"];
 	var files = &[];
+	var neko = &false;
 	var decl = [
 		("-p", Args.String (function(p) { path := complete p :: *path }) , "<path> : additional file search path");
 		("-v", Args.Void (function() { verbose := true }) , ": verbose mode");
+		("-n", Args.Void (function() { neko := true }) , ": generate intermediate .neko files");
 	];
 	Args.parse head decl (function(f) { files := f :: *files });
-	var ctx = context (*path);
+	var ctx = context (*path) (function(ctx,m,e) { if *neko then gen_neko ctx m e else compile ctx m e });
 	List.iter (function(file) {
 		if *verbose then printf "Compiling %s\n" file;
 		var modname = String.split (Sys.without_extension file) "/";
 		ignore(load_module ctx modname Lexer.null_pos);
 	}) (List.rev (*files));
-	Hashtbl.iter (function(m,(e,deps,idents)) {
-		var file = Nekoml.Type.file_name m ".neko";
-		if *verbose then printf "Generating %s\n" file;
-		var e = Nekoml.Neko.generate ctx e deps idents m;
-		var ch = IO.write_file file false;
-		var ctx = Neko.Printer.create ch;
-		Neko.Printer.print ctx e;
-		IO.close_out ch
-	}) (modules ctx)
 } catch {
 	| Neko.Lexer.Error (msg,p) -> report Neko.Lexer.error_msg(msg) p
 	| Neko.Parser.Error (msg,p) -> report Neko.Parser.error_msg(msg) p
