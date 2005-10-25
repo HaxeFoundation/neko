@@ -21,10 +21,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include "neko.h"
-#include "load.h"
-#include "interp.h"
 #include "objtable.h"
-#include "vmcontext.h"
+#include "vm.h"
 
 #ifdef _WIN32
 	long _ftol( double f );

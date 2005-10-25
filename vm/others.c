@@ -22,7 +22,7 @@
 #include <stdio.h>
 #include "neko.h"
 #include "objtable.h"
-#include "vmcontext.h"
+#include "vm.h"
 
 #define C(x,y)	((x << 8) | y)
 

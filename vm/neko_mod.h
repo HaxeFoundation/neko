@@ -1,6 +1,6 @@
 /* ************************************************************************ */
 /*																			*/
-/*  Neko Standard Library													*/
+/*  Neko Virtual Machine													*/
 /*  Copyright (c)2005 Nicolas Cannasse										*/
 /*																			*/
 /*  This program is free software; you can redistribute it and/or modify	*/
@@ -18,33 +18,40 @@
 /*  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 /*																			*/
 /* ************************************************************************ */
-#ifndef MODNEKO_H
-#define MODNEKO_H
+#ifndef _NEKO_MOD_H
+#define _NEKO_MOD_H
+#include "neko.h"
 
-#include <httpd.h>
-#include <http_config.h>
-#include <http_core.h>
-#include <http_log.h>
-#include <http_main.h>
-#include <http_protocol.h>
-#undef NOERROR
-#undef INLINE
-#include <context.h>
-#include <neko_vm.h>
+typedef struct _neko_module {
+	unsigned int nglobals;
+	unsigned int nfields;
+	unsigned int codesize;
+	value name;
+	value *globals;
+	value *fields;
+	value loader;
+	value exports;
+	value debuginf;
+	int_val *code;
+} neko_module;
+
+typedef void *readp;
+typedef int (*reader)( readp p, void *buf, int size );
 
 typedef struct {
-	request_rec *r;
-	value main;
-	value post_data;
-	bool headers_sent;
-	bool allow_write;
-} mcontext;
+	char *p;
+	int len;
+} string_pos;
 
-#define CONTEXT()	((mcontext*)neko_vm_custom(neko_vm_current()))
-#define request_print mod_neko_request_print
+C_FUNCTION_BEGIN
 
-void request_print( const char *data, int size );
+EXTERN field neko_id_module;
+EXTERN vkind neko_kind_module;
+EXTERN neko_module *neko_read_module( reader r, readp p, value loader );
+EXTERN int neko_file_reader( readp p, void *buf, int size ); // FILE *
+EXTERN int neko_string_reader( readp p, void *buf, int size ); // string_pos *
+
+C_FUNCTION_END
 
 #endif
-
 /* ************************************************************************ */

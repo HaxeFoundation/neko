@@ -20,9 +20,8 @@
 /* ************************************************************************ */
 #include <string.h>
 #include "neko.h"
-#include "load.h"
 #include "objtable.h"
-#include "vmcontext.h"
+#include "vm.h"
 
 #define MAXCALLS	350
 
@@ -108,7 +107,7 @@ EXTERN value val_callEx( value vthis, value f, value *args, int nargs, value *ex
 				*++vm->csp = 0;
 				*++vm->csp = (int_val)vm->vthis;
 				*++vm->csp = 0;
-				ret = neko_interp(vm,(neko_module*)((vfunction*)f)->module,(int_val)val_null,(int_val*)((vfunction*)f)->addr,((vfunction*)f)->env);
+				ret = neko_interp(vm,((vfunction*)f)->module,(int_val)val_null,(int_val*)((vfunction*)f)->addr,((vfunction*)f)->env);
 			}
 		}
 	}

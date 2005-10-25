@@ -142,6 +142,9 @@
 				RelativePath=".\load.c">
 			</File>
 			<File
+				RelativePath=".\module.c">
+			</File>
+			<File
 				RelativePath=".\objtable.c">
 			</File>
 			<File
@@ -156,22 +159,19 @@
 				RelativePath=".\context.h">
 			</File>
 			<File
-				RelativePath=".\interp.h">
-			</File>
-			<File
-				RelativePath=".\load.h">
-			</File>
-			<File
 				RelativePath=".\neko.h">
+			</File>
+			<File
+				RelativePath=".\neko_mod.h">
+			</File>
+			<File
+				RelativePath=".\neko_vm.h">
 			</File>
 			<File
 				RelativePath=".\objtable.h">
 			</File>
 			<File
 				RelativePath=".\opcodes.h">
-			</File>
-			<File
-				RelativePath=".\vmcontext.h">
 			</File>
 		</Filter>
 	</Files>

@@ -21,12 +21,10 @@
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
-#undef NULL
 #include "context.h"
-#include "load.h"
-#include "interp.h"
 #include "opcodes.h"
-#include "vmcontext.h"
+#include "vm.h"
+#include "neko_mod.h"
 #include "objtable.h"
 
 #if defined(__GNUC__) && defined(__i386__)
@@ -42,6 +40,8 @@
 #	define PC_REG
 #	define SP_REG
 #endif
+
+#define ERASE 0
 
 #define address_int(a)	(((int_val)(a)) | 1)
 #define int_address(a)	(int_val*)(a & ~1)
@@ -107,8 +107,9 @@ EXTERN void *neko_vm_custom( neko_vm *vm ) {
 	return vm->custom;
 }
 
-EXTERN void neko_vm_execute( neko_vm *vm, neko_module *m ) {
+EXTERN void neko_vm_execute( neko_vm *vm, void *_m ) {
 	unsigned int i;
+	neko_module *m = (neko_module*)_m;
 	neko_vm_select(vm);
 	for(i=0;i<m->nfields;i++)
 		val_id(val_string(m->fields[i]));
@@ -140,7 +141,7 @@ typedef int_val (*c_primN)(value*,int);
 #define PopMacro(n) { \
 		int tmp = (int)n; \
 		while( tmp-- > 0 ) \
-			*sp++ = NULL; \
+			*sp++ = ERASE; \
 	}
 
 #define BeginCall() \
@@ -164,13 +165,13 @@ typedef int_val (*c_primN)(value*,int);
 
 #define PopInfos(restpc) \
 		m = (neko_module*)*csp; \
-		*csp-- = NULL; \
+		*csp-- = ERASE; \
 		vm->vthis = (value)*csp; \
-		*csp-- = NULL; \
+		*csp-- = ERASE; \
 		env = (value)*csp; \
-		*csp-- = NULL; \
+		*csp-- = ERASE; \
 		if( restpc ) pc = (int_val*)*csp; \
-		*csp-- = NULL;
+		*csp-- = ERASE;
 
 #define SetupBeforeCall(this_arg) \
 		vfunction *f = (vfunction*)acc; \
@@ -180,7 +181,7 @@ typedef int_val (*c_primN)(value*,int);
 		BeginCall();
 
 #define RestoreAfterCall() \
-		if( acc == NULL ) val_throw( (value)f->module ); \
+		if( acc == (int_val)NULL ) val_throw( (value)f->module ); \
 		EndCall(); \
 		PopInfos(false);
 
@@ -241,14 +242,14 @@ typedef int_val (*c_primN)(value*,int);
 			acc = (int_val)alloc_int(val_int(*sp) op val_int(acc)); \
 		else \
 			acc = (int_val)val_null; \
-		*sp++ = NULL; \
+		*sp++ = ERASE; \
 		Next
 
 #define Test(test) \
 		BeginCall(); \
 		acc = (int_val)val_compare((value)*sp,(value)acc); \
 		EndCall(); \
-		*sp++ = NULL; \
+		*sp++ = ERASE; \
 		acc = (int_val)((acc test 0 && acc != invalid_comparison)?val_true:val_false); \
 		Next
 
@@ -281,7 +282,7 @@ typedef int_val (*c_primN)(value*,int);
 			ObjectOp(acc,*sp,id_rop) \
 		else \
 			acc = (int_val)val_null; \
-		*sp++ = NULL; \
+		*sp++ = ERASE; \
 		Next;
 
 #define ObjectOp(obj,param,id) { \
@@ -320,10 +321,10 @@ static value neko_flush_stack( int_val *cspup, int_val *csp, value old ) {
 			*st = val_null;
 		st++;
 		if( old ) {
-			*++csp = NULL;
-			*++csp = NULL;
-			*++csp = NULL;
-			*++csp = NULL;
+			*++csp = ERASE;
+			*++csp = ERASE;
+			*++csp = ERASE;
+			*++csp = ERASE;
 		} else
 			csp += 4;
 	}
@@ -374,7 +375,7 @@ void neko_process_trap( neko_vm *vm ) {
 	sp = trap + 6;
 	vm->trap = val_int(trap[5]);
 	while( vm->sp < sp )
-		*vm->sp++ = NULL;
+		*vm->sp++ = ERASE;
 }
 
 static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *_pc, value env ) {
@@ -431,7 +432,7 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 			ObjectOp(*sp,acc,id_get)
 		else
 			acc = (int_val)val_null;
-		*sp++ = NULL;
+		*sp++ = ERASE;
 		Next;
 	Instr(AccIndex)
 		if( val_is_array(acc) ) {
@@ -464,7 +465,7 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 			otable_replace(((vobject*)*sp)->table,(field)*pc,(value)acc);
 			ACC_RESTORE;
 		}
-		*sp++ = NULL;
+		*sp++ = ERASE;
 		pc++;
 		Next;
 	Instr(SetArray)
@@ -479,8 +480,8 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 			EndCall();
 			ACC_RESTORE;
 		}
-		*sp++ = NULL;
-		*sp++ = NULL;
+		*sp++ = ERASE;
+		*sp++ = ERASE;
 		Next;
 	Instr(SetIndex)
 		if( val_is_array(*sp) ) {
@@ -494,7 +495,7 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 			ACC_RESTORE;
 		}
 		pc++;
-		*sp++ = NULL;
+		*sp++ = ERASE;
 		Next;
 	Instr(SetThis)
 		vm->vthis = (value)acc;
@@ -517,7 +518,7 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 	Instr(ObjCall)
 		{
 			value vtmp = (value)*sp;
-			*sp++ = NULL;
+			*sp++ = ERASE;
 			DoCall(vtmp);
 		}
 		Next;
@@ -569,7 +570,7 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 			ACC_RESTORE;
 			while( n-- ) {
 				val_array_ptr(tmp)[n] = (value)*sp;
-				*sp++ = NULL;
+				*sp++ = ERASE;
 			}
 			if( !val_is_int(acc) && val_tag(acc) == VAL_FUNCTION ) {
 				acc = (int_val)alloc_module_function(((vfunction*)acc)->module,(int_val)((vfunction*)acc)->addr,((vfunction*)acc)->nargs);
@@ -584,7 +585,7 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 			acc = (int_val)alloc_array(n);
 			while( n-- ) {
 				val_array_ptr(acc)[n] = (value)*sp;
-				*sp++ = NULL;
+				*sp++ = ERASE;
 			}
 		}
 		Next;
@@ -640,7 +641,7 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 			ObjectOp(acc,*sp,id_radd)
 		else
 			acc = (int_val)val_null;
-		*sp++ = NULL;
+		*sp++ = ERASE;
 		Next;
 	Instr(Sub)
 		NumberOp(-,SUB,id_sub,id_rsub)
@@ -655,12 +656,12 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 			ObjectOp(*sp,acc,id_div)
 		else
 			acc = (int_val)val_null;
-		*sp++ = NULL;
+		*sp++ = ERASE;
 		Next;
 	Instr(Mod)
 		if( acc == 1 ) {
 			acc	= (int_val)val_null;
-			*sp++ = NULL;
+			*sp++ = ERASE;
 			Next;
 		}
 		NumberOp(%,fmod,id_mod,id_rmod);
@@ -673,7 +674,7 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 			acc = (int_val)alloc_int(((unsigned int)val_int(*sp)) >> val_int(acc));
 		else
 			acc = (int_val)val_null;
-		*sp++ = NULL;
+		*sp++ = ERASE;
 		Next;
 	Instr(Or)
 		IntOp(|);
@@ -687,7 +688,7 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 		BeginCall();
 		acc = (int_val)((val_compare((value)*sp,(value)acc) == 0)?val_false:val_true);
 		EndCall();
-		*sp++ = NULL;
+		*sp++ = ERASE;
 		Next;
 	Instr(Lt)
 		Test(<)
@@ -705,7 +706,7 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 		acc = (int_val)val_compare((value)*sp,(value)acc);
 		EndCall();
 		acc = (int_val)((acc == invalid_comparison)?val_null:alloc_int(acc));
-		*sp++ = NULL;
+		*sp++ = ERASE;
 		Next;
 	Instr(Hash)
 		if( val_is_string(acc) )
@@ -773,7 +774,7 @@ value neko_interp( neko_vm *vm, neko_module *m, int_val acc, int_val *pc, value 
 		sp = trap + 6;
 		vm->trap = val_int(trap[5]);
 		while( vm->sp < sp )
-			*vm->sp++ = NULL;
+			*vm->sp++ = ERASE;
 	}
 	acc = interp_loop(vm,m,acc,pc,env);
 	memcpy(&vm->start,&old,sizeof(jmp_buf));

@@ -19,11 +19,10 @@
 /*																			*/
 /* ************************************************************************ */
 #include <stdio.h>
-#include "load.h"
-#include "interp.h"
+#include "neko_vm.h"
 
 static int execute( neko_vm *vm, char *file ) {
-	value mload = neko_default_loader(NULL);
+	value mload = neko_default_loader();
 	value args[] = { alloc_string(file), mload };
 	value exc = NULL;
 	neko_vm_select(vm);

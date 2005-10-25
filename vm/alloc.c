@@ -21,10 +21,8 @@
 #include <string.h>
 #include "neko.h"
 #include "objtable.h"
-#include "load.h"
-#include "interp.h"
 #include "opcodes.h"
-#include "vmcontext.h"
+#include "vm.h"
 #ifdef _WIN32
 #	define GC_DLL
 #	define GC_THREADS
@@ -50,10 +48,12 @@ field id_compare;
 field id_string;
 field id_loader;
 field id_exports;
-field id_data;
-field id_module;
+field id_cache;
+field id_path;
+field id_loader_libs;
 field id_get, id_set;
 field id_add, id_radd, id_sub, id_rsub, id_mult, id_rmult, id_div, id_rdiv, id_mod, id_rmod;
+EXTERN field neko_id_module;
 
 static void null_warn_proc( char *msg, int arg ) {
 }
@@ -252,10 +252,12 @@ EXTERN void neko_global_init() {
 	neko_init_builtins();
 	id_loader = val_id("loader");
 	id_exports = val_id("exports");
+	id_cache = val_id("cache");
+	id_path = val_id("path");
+	id_loader_libs = val_id("__libs");
+	neko_id_module = val_id("__module");
 	INIT_ID(compare);
 	INIT_ID(string);
-	INIT_ID(data);
-	INIT_ID(module);
 	INIT_ID(add);
 	INIT_ID(radd);
 	INIT_ID(sub);

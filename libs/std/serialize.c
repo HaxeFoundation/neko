@@ -19,8 +19,7 @@
 /*																			*/
 /* ************************************************************************ */
 #include <string.h>
-#include <neko.h>
-#include <load.h>
+#include <neko_mod.h>
 
 #define BUF_SIZE	4096
 
@@ -339,7 +338,7 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 					bfailure(b);
 				}
 				mval = val_field(exp,id_module);
-				if( !val_is_kind(mval,k_module) ) {
+				if( !val_is_kind(mval,neko_kind_module) ) {
 					buffer b = alloc_buffer("module ");
 					val_buffer(b,mname);
 					buffer_append(b," have invalid type");

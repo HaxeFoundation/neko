@@ -18,11 +18,7 @@
 /*  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 /*																			*/
 /* ************************************************************************ */
-#define neko_module neko_mod
-#include <neko.h>
-#include <load.h>
 #include "mod_neko.h"
-#undef neko_module
 
 typedef struct cache {
 	value file;
@@ -133,7 +129,7 @@ static int neko_handler_rec( request_rec *r ) {
 	if( ctx.main != NULL )
 		val_callEx(val_null,ctx.main,NULL,0,&exc);
 	else {
-		value mload = neko_default_loader(NULL);
+		value mload = neko_default_loader();
 		value args[] = { alloc_string(r->filename), mload };
 		char *p = strrchr(val_string(args[0]),'.');
 		if( p != NULL )

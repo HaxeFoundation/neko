@@ -26,529 +26,41 @@
 #ifndef _WIN32
 #	include <dlfcn.h>
 #endif
-#include "vmcontext.h"
-#include "load.h"
-#include "interp.h"
-#define PARAMETER_TABLE
-#include "opcodes.h"
+#include "vm.h"
+#include "neko_mod.h"
 
-/* Endianness macros. */
-#ifndef LITTLE_ENDIAN
-#	define LITTLE_ENDIAN 1
-#endif
-#ifndef BIG_ENDIAN
-#	define BIG_ENDIAN 2
-#endif
-#ifdef _WIN32
-#	define BYTE_ORDER LITTLE_ENDIAN
-#endif
-#ifndef BYTE_ORDER
-#	warning BYTE_ORDER unknown, assuming BIG_ENDIAN
-#	define BYTE_ORDER BIG_ENDIAN
-#endif
-
-/* *_TO_LE(X) converts (X) to little endian. */
-#if BYTE_ORDER == LITTLE_ENDIAN
-#	define LONG_TO_LE(X) (X)
-#	define SHORT_TO_LE(X) (X)
-#else
-#	define LONG_TO_LE(X) ((((X) >> 24) & 0xff) | \
-		(((X) >> 8) & 0xff00) | (((X) & 0xff00) << 8) | \
-	       	(((X) & 0xff) << 24))
-#	define SHORT_TO_LE(X) ((((X) >> 8) & 0xff) | (((X) & 0xff) << 8))
-#endif
-
-DEFINE_KIND(k_loader);
-DEFINE_KIND(k_module);
-
-#define MAXSIZE 0x100
-#define ERROR() { return NULL; }
-#define READ(buf,len) if( r(p,buf,len) == -1 ) ERROR()
-
-#ifdef _64BITS
-
-static void read_long( reader r, readp p, unsigned int *i ) {
-	unsigned char c[4];
-	int n;
-	r(p,c,4);
-	n = c[0] | (c[1] << 8) | (c[2] << 16) | (c[3] << 24);
-	*i = LONG_TO_LE(n);
-}
-
-static void read_short( reader r, readp p, unsigned short *i ) {
-	unsigned char c[2];
-	int n;
-	r(p,c,2);
-	n = c[0] | (c[1] << 8);
-	*i = SHORT_TO_LE(n);
-}
-
-#	define READ_LONG(var) read_long(r,p,&(var))
-#	define READ_SHORT(var) read_short(r,p,&(var))
-
-#else
-
-#	define READ_LONG(var) READ(&(var), 4); var = LONG_TO_LE(var)
-#	define READ_SHORT(var) READ(&(var), 2); var = SHORT_TO_LE(var)
-
-#endif
-
-extern field id_loader;
-extern field id_exports;
-extern field id_data;
-extern field id_module;
-extern value *neko_builtins;
-extern value alloc_module_function( void *m, int_val pos, int nargs );
-
-static int read_string( reader r, readp p, char *buf ) {
-	int i = 0;
-	char c;
-	while( i < MAXSIZE ) {
-		if( r(p,&c,1) == -1 )
-			return -1;
-		buf[i++] = c;
-		if( c == 0 )
-			return i;
-	}
-	return -1;
-}
-
-static value get_builtin( neko_module *m, field id ) {
-	value f = val_field(*neko_builtins,id);
-	if( val_is_null(f) ) {
-		unsigned int i;
-		for(i=0;i<m->nfields;i++)
-			if( val_id(val_string(m->fields[i])) == id ) {
-				buffer b = alloc_buffer("Builtin not found : ");
-				val_buffer(b,m->fields[i]);
-				bfailure(b);
-			}
-		failure("Builtin not found");		
-	}
-	return f;
-}
-
-#define UNKNOWN  ((unsigned char)-1)
-
-static int neko_check_stack( neko_module *m, unsigned char *tmp, unsigned int i, int stack, int istack ) {
-	unsigned int itmp;
-	while( true ) {
-		int c = (int)m->code[i];
-		int s = stack_table[c];
-		if( tmp[i] == UNKNOWN )
-			tmp[i] = stack;
-		else if( tmp[i] != stack )
-			return 0;
-		else
-			return 1;
-		if( s == P )
-			stack += (int)m->code[i+1];
-		else if( s == -P )
-			stack -= (int)m->code[i+1];
-		else
-			stack += s;
-		if( stack < istack || stack >= UNKNOWN )
-			return 0;
-		switch( c ) {
-		case Jump:
-		case JumpIf:
-		case JumpIfNot:
-		case Trap:
-			itmp = (int)(((int_val*)m->code[i+1]) - m->code);
-			if( tmp[itmp] == UNKNOWN ) {
-				if( c == Trap )
-					stack -= s;
-				if( !neko_check_stack(m,tmp,itmp,stack,istack) )
-					return 0;
-				if( c == Trap )
-					stack += s;
-			}
-			else if( tmp[itmp] != stack )
-				return 0;
-			if( c == Jump )
-				return 1;
-			break;
-		case JumpTable:			
-			itmp = (int)m->code[i+1];
-			i += itmp;	
-			while( itmp > 0 ) {
-				itmp -= 2;
-				if( !neko_check_stack(m,tmp,i - itmp,stack,istack) )
-					return 0;
-			}			
-			break;
-		case AccStack:
-		case SetStack:
-			if( m->code[i+1] >= stack )
-				return 0;
-			break;
-		case Last:
-			if( stack != 0 )
-				return 0;
-			return 1;
-		case Ret:
-			if( m->code[i+1] != stack )
-				return 0;
-			return 1;
-		case ObjCall:
-			stack--;
-			break;
-		}
-		i += parameter_table[c]?2:1;
-	}
-	return 1;
-}
-
-static value read_debug_infos( reader r, readp p, char *tmp ) {
-	unsigned int i;
-	int curpos = 0;
-	value curfile;
-	unsigned int npos;
-	unsigned char c;
-	value files;
-	value pos, pp;
-	READ(&c,1);
-	if( c == 0 || c > 0x7F )
-		ERROR();
-	files = alloc_array(c);
-	for(i=0;i<c;i++) {
-		if( read_string(r,p,tmp) == -1 )
-			ERROR();
-		val_array_ptr(files)[i] = alloc_string(tmp);
-	}
-	READ_LONG(npos);
-	curfile = val_array_ptr(files)[0];
-	pos = alloc_array(npos);
-	i = 0;
-	while( i < npos ) {
-		READ(&c,1);
-		if( c & 1 ) {
-			if( (c >> 1) >= val_array_size(files) )
-				ERROR();
-			curfile = val_array_ptr(files)[c >> 1];
-		} else if( c & 2 ) {
-			int delta = c >> 6;
-			int count = (c >> 2) & 15;
-			if( i + count > npos )
-				ERROR();
-			while( count > 0 ) {
-				pp = alloc_array(2);
-				val_array_ptr(pp)[0] = curfile;
-				val_array_ptr(pp)[1] = alloc_int(curpos);
-				val_array_ptr(pos)[i] = pp;
-				count--;
-				i++;
-			}
-			curpos += delta;
-		} else if( c & 4 ) {
-			curpos += c >> 3;
-			pp = alloc_array(2);
-			val_array_ptr(pp)[0] = curfile;
-			val_array_ptr(pp)[1] = alloc_int(curpos);
-			val_array_ptr(pos)[i++] = pp;
-		} else {
-			unsigned char b2;
-			unsigned char b3;
-			READ(&b2,1);
-			READ(&b3,1);
-			curpos = (c >> 3) | (b2 << 5) | (b3 << 13);
-			pp = alloc_array(2);
-			val_array_ptr(pp)[0] = curfile;
-			val_array_ptr(pp)[1] = alloc_int(curpos);
-			val_array_ptr(pos)[i++] = pp;			
-		}
-	}	
-	return pos;
-}
-
-static neko_module *neko_module_read( reader r, readp p, value loader ) {
-	unsigned int i;
-	unsigned int itmp;
-	unsigned char t;
-	unsigned short stmp;
-	char *tmp = NULL;
-	int entry;
-	neko_module *m = (neko_module*)alloc(sizeof(neko_module));
-	READ_LONG(itmp);
-	if( itmp != 0x4F4B454E )
-		ERROR();
-	READ_LONG(m->nglobals);
-	READ_LONG(m->nfields);
-	READ_LONG(m->codesize);
-	if( m->nglobals < 0 || m->nglobals > 0xFFFF || m->nfields < 0 || m->nfields > 0xFFFF || m->codesize < 0 || m->codesize > 0xFFFFF )
-		ERROR();
-	tmp = alloc_private(sizeof(char)*(((m->codesize+1)>MAXSIZE)?(m->codesize+1):MAXSIZE));
-	m->debuginf = val_null;
-	m->globals = (value*)alloc(m->nglobals * sizeof(value));
-	m->fields = (value*)alloc(sizeof(value*)*m->nfields);
-#ifdef NEKO_PROF
-	if( m->codesize >= PROF_SIZE )
-		ERROR();
-	m->code = (int_val*)alloc_private(sizeof(int_val)*(m->codesize+PROF_SIZE));
-	memset(m->code+PROF_SIZE,0,m->codesize*sizeof(int_val));
-#else
-	m->code = (int_val*)alloc_private(sizeof(int_val)*(m->codesize+1));
-#endif
-	m->loader = loader;
-	m->exports = alloc_object(NULL);
-	alloc_field(m->exports,id_module,alloc_abstract(k_module,m));
-	// Init global table
-	for(i=0;i<m->nglobals;i++) {
-		READ(&t,1);
-		switch( t ) {
-		case 1:
-			if( read_string(r,p,tmp) == -1 )
-				ERROR();
-			m->globals[i] = alloc_string(tmp);
-			break;
-		case 2:
-			READ_LONG(itmp);
-			if( (itmp & 0xFFFFFF) >= m->codesize )
-				ERROR();
-			m->globals[i] = alloc_module_function(m,(itmp&0xFFFFFF),(itmp >> 24));
-			break;
-		case 3:
-			READ_SHORT(stmp);
-			if( stmp > MAXSIZE ) {
-				char *ttmp;
-				ttmp = alloc_private(stmp);
-				READ(ttmp,stmp);
-				m->globals[i] = copy_string(ttmp,stmp);
-			} else {
-				READ(tmp,stmp);
-				m->globals[i] = copy_string(tmp,stmp);
-			}
-			break;
-		case 4:
-			if( read_string(r,p,tmp) == -1 )
-				ERROR();
-			m->globals[i] = alloc_float( atof(tmp) );
-			break;
-		case 5:
-			m->debuginf = read_debug_infos(r,p,tmp);
-			if( m->debuginf == NULL || val_array_size(m->debuginf) != m->codesize )
-				ERROR();
-			m->globals[i] = val_null;
-			break;
-		default:
-			ERROR();
-			break;
-		}
-	}
-	for(i=0;i<m->nfields;i++) {
-		if( read_string(r,p,tmp) == -1 )
-			ERROR();
-		m->fields[i] = alloc_string(tmp);
-	}
-	i = 0;
-	// Unpack opcodes
-	while( i < m->codesize ) {
-		READ(&t,1);
-		tmp[i] = 1;
-		switch( t & 3 ) {
-		case 0:
-			m->code[i++] = (t >> 2);
-			break;
-		case 1:
-			m->code[i++] = (t >> 3);
-			tmp[i] = 0;
-			m->code[i++] = (t >> 2) & 1;
-			break;
-		case 2:
-			m->code[i++] = (t >> 2);
-			READ(&t,1);
-			tmp[i] = 0;
-			m->code[i++] = t;
-			break;
-		case 3:
-			m->code[i++] = (t >> 2);
-			READ_LONG(itmp);
-			tmp[i] = 0;
-			m->code[i++] = itmp;
-			break;
-		}
-	}
-	tmp[i] = 1;
-	m->code[i] = Last;
-	entry = (int)m->code[1];
-	// Check bytecode
-	for(i=0;i<m->codesize;i++) {
-		int c = (int)m->code[i];
-		itmp = (unsigned int)m->code[i+1];
-		if( c >= Last || tmp[i+1] == parameter_table[c] )
-			ERROR();
-		// Additional checks and optimizations
-		switch( m->code[i] ) {
-		case AccGlobal:
-		case SetGlobal:
-			if( itmp >= m->nglobals )
-				ERROR();
-			m->code[i+1] = (int_val)(m->globals + itmp);
-			break;
-		case Jump:
-		case JumpIf:
-		case JumpIfNot:
-		case Trap:
-			itmp += i;
-			if( itmp > m->codesize || !tmp[itmp] )
-				ERROR();
-			m->code[i+1] = (int_val)(m->code + itmp);
-			break;
-		case AccInt:
-			m->code[i+1] = (int_val)alloc_int((int)itmp);
-			break;
-		case AccStack:
-		case SetStack:
-			if( ((int)itmp) < 0 )
-				ERROR();
-			break;
-		case Ret:
-		case Pop:
-		case AccEnv:
-		case SetEnv:
-			if( ((int)itmp) < 0 )
-				ERROR();
-			break;
-		case AccBuiltin: {
-			field f = (field)(int_val)itmp;
-			if( f == id_loader )
-				m->code[i+1] = (int_val)loader;
-			else if( f == id_exports )
-				m->code[i+1] = (int_val)m->exports;
-			else
-				m->code[i+1] = (int_val)get_builtin(m,f);
-			}
-			break;
-		case Call:
-		case ObjCall:
-			if( itmp > CALL_MAX_ARGS )
-				failure("Too many arguments for a call");
-			break;
-		case MakeEnv:
-			if( itmp > 0xFF )
-				failure("Too much big environment");
-			break;
-		case MakeArray:
-			if( itmp > 0x10000 )
-				failure("Too much big array");
-			break;
-		case JumpTable:
-			if( itmp > 0xff || i + 1 + itmp * 2 >= m->codesize )
-				ERROR();
-			m->code[i+1] <<= 1;
-			break;
-		}
-		if( !tmp[i+1] )
-			i++;
-	}
-	// Check stack preservation
-	{
-		unsigned char *stmp = (unsigned char*)alloc_private(m->codesize+1);
-		memset(stmp,UNKNOWN,m->codesize+1);
-		if( !neko_check_stack(m,stmp,0,0,0) )
-			ERROR();
-		for(i=0;i<m->nglobals;i++) {
-			vfunction *f = (vfunction*)m->globals[i];
-			if( val_type(f) == VAL_FUNCTION ) {
-				itmp = (unsigned int)(int_val)f->addr;
-				if( itmp >= m->codesize || !tmp[itmp]  )
-					ERROR();
-				if( !neko_check_stack(m,stmp,itmp,f->nargs,f->nargs) )
-					ERROR();
-				f->addr = m->code + itmp;
-			}
-		}
-	}
-	return m;
-}
-
-static value default_loadprim( value prim, value nargs ) {
-	value o = val_this();
-	value data;
-	val_check(o,object);
-	data = val_field(o,id_data);
-	val_check_kind(data,k_loader);
-	val_check(prim,string);
-	val_check(nargs,int);
-	if( val_int(nargs) > 10 || val_int(nargs) < -1 )
-		return val_null;
-	{
-		loader *l = (loader*)val_data(data);
-		void *ptr = l->p(val_string(prim),val_int(nargs),&l->custom);
-		if( ptr == NULL ) {
-			buffer b = alloc_buffer("Primitive not found : ");
-			val_buffer(b,prim);
-			bfailure(b);
-		}
-		return alloc_function(ptr,val_int(nargs),val_string(copy_string(val_string(prim),val_strlen(prim))));
-	}
-}
-
-static value default_loadmodule( value mname, value vthis ) {
-	value o = val_this();
-	value data;
-	val_check(o,object);
-	data = val_field(o,id_data);
-	val_check_kind(data,k_loader);
-	val_check(mname,string);
-	val_check(vthis,object);
-	{
-		loader *l = (loader*)val_data(data);
-		reader r;
-		readp p;
-		neko_module *m;
-		neko_vm *vm;
-		field mid = val_id(val_string(mname));
-		m = (neko_module*)val_field(l->cache,mid);
-		if( !val_is_null((value)m) )
-			return alloc_object(m->exports);
-		if( !l->l(val_string(mname),&r,&p) ) {
-			buffer b = alloc_buffer("Module not found : ");
-			val_buffer(b,mname);
-			bfailure(b);
-		}
-		m = neko_module_read(r,p,vthis);
-		l->d(p);
-		if( m == NULL )  {
-			buffer b = alloc_buffer("Invalid module : ");
-			val_buffer(b,mname);
-			bfailure(b);
-		}
-		m->name = alloc_string(val_string(mname));
-		vm = neko_vm_current();
-		alloc_field(l->cache,mid,(value)m);
-		neko_vm_execute(vm,m);
-		return alloc_object(m->exports);
-	}
-}
+extern field id_cache;
+extern field id_path;
+extern field id_loader_libs;
+DEFINE_KIND(k_loader_libs);
 
 #ifdef NEKO_PROF
 
-static void dump_prof_tot( value v, field f, void *ptr ) {
-	neko_module *m = (neko_module*)v;
+typedef void (*callb)( const char *name, neko_module *m, int *tot );
+
+typedef struct {
+	callb callb;
+	int tot;
+} dump_param;
+
+static void profile_total( const char *name, neko_module *m, int *tot ) {
 	unsigned int i;
-	unsigned int tot = 0;
+	unsigned int n = 0;
 	for(i=0;i<m->codesize;i++)
-		tot += (int)m->code[PROF_SIZE+i];
-	*((int *)ptr) += tot;	
+		n += (int)m->code[PROF_SIZE+i];
+	*tot += n;	
 }
 
-static void dump_prof_summary( value v, field f, void *ptr ) {
-	value vname = val_field_name(f);
-	const char *name = val_is_null(vname)?"NULL":val_string(vname);
-	neko_module *m = (neko_module*)v;
+static void profile_summary( const char *name, neko_module *m, int *ptr ) {
 	unsigned int i;
 	unsigned int tot = 0;
 	for(i=0;i<m->codesize;i++)
 		tot += (int)m->code[PROF_SIZE+i];	
-	printf("%10d    %-4.1f%%  %s\n",tot,(tot * 100.0f) / (*(int*)ptr),name);
+	printf("%10d    %-4.1f%%  %s\n",tot,(tot * 100.0f) / (*ptr),name);
 }
 
-static void dump_prof_details( value v, field f, void *ptr ) {
-	value vname = val_field_name(f);
-	const char *name = val_is_null(vname)?"NULL":val_string(vname);
-	neko_module *m = (neko_module*)v;
-	unsigned int i;	
+static void profile_details( const char *name, neko_module *m, int *tot ) {
+	unsigned int i;
 	printf("Details for : %s[%d]\n",name,m->codesize);
 	for(i=0;i<m->codesize;i++) {
 		int_val c = m->code[PROF_SIZE+i];
@@ -575,10 +87,7 @@ static void dump_prof_details( value v, field f, void *ptr ) {
 	printf("\n");
 }
 
-static void dump_prof_functions( value v, field f, void *ptr ) {
-	value vname = val_field_name(f);
-	const char *name = val_is_null(vname)?"NULL":val_string(vname);
-	neko_module *m = (neko_module*)v;
+static void profile_functions( const char *name, neko_module *m, int *tot ) {
 	unsigned int i;
 	for(i=0;i<m->nglobals;i++) {
 		value v = m->globals[i];
@@ -590,28 +99,41 @@ static void dump_prof_functions( value v, field f, void *ptr ) {
 	}
 }
 
+static void dump_module( value v, field f, void *p ) {
+	value vname;
+	const char *name;
+	if( !val_is_kind(v,neko_kind_module) )
+		return;
+	vname = val_field_name(f);
+	name = val_is_null(vname)?"???":val_string(vname);
+	((dump_param*)p)->callb( name, (neko_module*)val_data(v), &((dump_param*)p)->tot );	
+}
+
 static value dump_prof() {
+	dump_param p;
 	value o = val_this();
-	value data;
+	value cache;
 	val_check(o,object);
-	data = val_field(o,id_data);
-	val_check_kind(data,k_loader);
-	{
-		loader *l = (loader*)val_data(data);
-		int tot = 0;
-		val_iter_fields(l->cache,dump_prof_tot,&tot);
-		printf("Summary :\n");
-		val_iter_fields(l->cache,dump_prof_summary,&tot);
-		printf("%10d\n\n",tot);
-		printf("Functions :\n");
-		val_iter_fields(l->cache,dump_prof_functions,&tot);
-		printf("\n");		
-		val_iter_fields(l->cache,dump_prof_details,NULL);
-	}
+	cache = val_field(o,id_cache);
+	val_check(cache,object);
+	p.tot = 0;
+	p.callb = profile_total;
+	val_iter_fields(cache,dump_module,&p);
+	printf("Summary :\n");
+	p.callb = profile_summary;
+	val_iter_fields(cache,dump_module,&p);
+	printf("%10d\n\n",p.tot);
+	printf("Functions :\n");
+	p.callb = profile_functions;
+	val_iter_fields(cache,dump_module,&p);
+	printf("\n");
+	p.callb = profile_details;
+	val_iter_fields(cache,dump_module,&p);
 	return val_true;
 }
 
 #endif
+
 
 #ifdef _WIN32
 #	undef ERROR
@@ -620,128 +142,7 @@ static value dump_prof() {
 #	define dlsym(h,n)		GetProcAddress((HANDLE)h,n)
 #endif
 
-static int file_reader( readp p, void *buf, int size ) {
-	int len = 0;
-	while( size > 0 ) {
-		int l = (int)fread(buf,1,size,(FILE*)p);
-		if( l <= 0 )
-			return len;
-		size -= l;
-		len += l;
-		buf = (char*)buf+l;
-	}
-	return len;
-}
-
-EXTERN int neko_default_load_module( const char *mname, reader *r, readp *p ) {
-	FILE *f;
-	value fname = neko_select_file(mname,neko_vm_current()->env,".n");
-	f = fopen(val_string(fname),"rb");
-	if( f == NULL )
-		return 0;
-	*r = file_reader;
-	*p = f;
-	return 1;
-}
-
-EXTERN void neko_default_load_done( readp p ) {
-	fclose(p);
-}
-
-typedef struct _liblist {
-	char *name;
-	void *handle;
-	struct _liblist *next;
-} liblist;
-
-typedef value (*PRIM0)();
-
-EXTERN void *neko_default_load_primitive( const char *prim, int nargs, void **custom ) {
-	char *pos = strchr(prim,'@');
-	int len;	
-	liblist *l;
-	PRIM0 ptr;
-	if( pos == NULL )
-		return NULL;
-	l = (liblist*)*custom;
-	*pos = 0;
-	len = (int)strlen(prim) + 1;
-	while( l != NULL ) {
-		if( memcmp(l->name,prim,len) == 0 )
-			break;
-		l = l->next;
-	}
-	if( l == NULL ) {
-		void *h;
-		value pname;
-		pname = neko_select_file(prim,neko_vm_current()->env,".ndll");
-		h = dlopen(val_string(pname),RTLD_LAZY);
-		if( h == NULL ) {
-			buffer b = alloc_buffer("Library not found : ");
-			val_buffer(b,pname);
-#ifdef __linux__
-			buffer_append(b," (");
-			buffer_append(b,dlerror());
-			buffer_append(b,")");
-#endif
-			*pos = '@';
-			bfailure(b);
-		}
-		l = (liblist*)alloc(sizeof(liblist));
-		l->handle = h;
-		l->name = alloc(len);
-		memcpy(l->name,prim,len);
-		l->next = (liblist*)*custom;
-		*custom = l;
-		ptr = (PRIM0)dlsym(l->handle,"__neko_entry_point");
-		if( ptr != NULL )
-			((PRIM0)ptr())();
-	}
-	*pos++ = '@';
-	{
-		char buf[100];
-		if( strlen(pos) > 90 )
-			return NULL;
-		if( nargs == VAR_ARGS )
-			sprintf(buf,"%s__MULT",pos);
-		else
-			sprintf(buf,"%s__%d",pos,nargs);
-		ptr = (PRIM0)dlsym(l->handle,buf);
-		if( ptr == NULL )
-			return NULL;
-		return ptr();
-	}
-}
-
-EXTERN value neko_init_path( const char *path ) {
-	value l = val_null, tmp;
-	char *p;
-	if( !path )
-		return val_null;
-	while( true ) {
-		p = strchr(path,';');
-		if( p != NULL )
-			*p = 0;
-		tmp = alloc_array(2);
-		if( (p && p[-1] != '/' && p[-1] != '\\') || (!p && path[strlen(path)-1] != '/' && path[strlen(path)-1] != '\\') ) {
-			buffer b = alloc_buffer(path);
-			char c = '/';
-			buffer_append_sub(b,&c,1);
-			val_array_ptr(tmp)[0] = buffer_to_string(b);
-		} else
-			val_array_ptr(tmp)[0] = alloc_string(path);
-		val_array_ptr(tmp)[1] = l;
-		l = tmp;
-		if( p != NULL )
-			*p = ';';
-		else
-			break;
-		path = p+1;
-	}
-	return l;
-}
-
-EXTERN value neko_select_file( const char *file, value path, const char *ext ) {
+static value select_file( value path, const char *file, const char *ext ) {
 	struct stat s;
 	value ff;
 	buffer b = alloc_buffer(file);
@@ -762,25 +163,192 @@ EXTERN value neko_select_file( const char *file, value path, const char *ext ) {
 	return ff;
 }
 
-EXTERN value neko_default_loader( loader *l ) {
-	value o = alloc_object(NULL);
-	value tmp;
-	if( l == NULL ) {
-		l = (loader*)alloc(sizeof(loader));
-		l->l = neko_default_load_module;
-		l->d = neko_default_load_done;
-		l->p = neko_default_load_primitive;
-		l->custom = NULL;
-		l->paths = neko_init_path(getenv("NEKOPATH"));
-		l->cache = alloc_object(NULL);
+
+static void open_module( value path, const char *mname, reader *r, readp *p ) {
+	FILE *f;
+	value fname = select_file(path,mname,".n");
+	f = fopen(val_string(fname),"rb");
+	if( f == NULL ) {
+		buffer b = alloc_buffer("Module not found : ");
+		buffer_append(b,mname);
+		bfailure(b);
 	}
-	alloc_field(o,id_data,alloc_abstract(k_loader,l));
-	tmp = alloc_function(default_loadprim,2,"loadprim");
-	((vfunction*)tmp)->env = l->paths;
-	alloc_field(o,val_id("loadprim"),tmp);
-	tmp = alloc_function(default_loadmodule,2,"loadmodule");
-	((vfunction*)tmp)->env = l->paths;
-	alloc_field(o,val_id("loadmodule"),tmp);
+	*r = neko_file_reader;
+	*p = f;	
+}
+
+static void close_module( readp p ) {
+	fclose(p);
+}
+
+typedef struct _liblist {
+	char *name;
+	void *handle;
+	struct _liblist *next;
+} liblist;
+
+typedef value (*PRIM0)();
+
+static void *load_primitive( const char *prim, int nargs, value path, liblist **libs ) {
+	char *pos = strchr(prim,'@');
+	int len;	
+	liblist *l;
+	PRIM0 ptr;
+	if( pos == NULL )
+		return NULL;
+	l = *libs;
+	*pos = 0;
+	len = (int)strlen(prim) + 1;
+	while( l != NULL ) {
+		if( memcmp(l->name,prim,len) == 0 )
+			break;
+		l = l->next;
+	}
+	if( l == NULL ) {
+		void *h;
+		value pname;
+		pname = select_file(path,prim,".ndll");
+		h = dlopen(val_string(pname),RTLD_LAZY);
+		if( h == NULL ) {
+			buffer b = alloc_buffer("Library not found : ");
+			val_buffer(b,pname);
+#ifdef __linux__
+			buffer_append(b," (");
+			buffer_append(b,dlerror());
+			buffer_append(b,")");
+#endif
+			*pos = '@';
+			bfailure(b);
+		}
+		l = (liblist*)alloc(sizeof(liblist));
+		l->handle = h;
+		l->name = alloc(len);
+		memcpy(l->name,prim,len);
+		l->next = *libs;
+		*libs = l;
+		ptr = (PRIM0)dlsym(l->handle,"__neko_entry_point");
+		if( ptr != NULL )
+			((PRIM0)ptr())();
+	}
+	*pos++ = '@';
+	{
+		char buf[100];
+		if( strlen(pos) > 90 )
+			return NULL;
+		if( nargs == VAR_ARGS )
+			sprintf(buf,"%s__MULT",pos);
+		else
+			sprintf(buf,"%s__%d",pos,nargs);
+		ptr = (PRIM0)dlsym(l->handle,buf);
+		if( ptr == NULL )
+			return NULL;
+		return ptr();
+	}
+}
+
+static value init_path( const char *path ) {
+	value l = val_null, tmp;
+	char *p;
+	if( !path )
+		return val_null;
+	while( true ) {
+		p = strchr(path,':');
+		if( p != NULL )
+			*p = 0;
+		tmp = alloc_array(2);
+		if( (p && p[-1] != '/' && p[-1] != '\\') || (!p && path[strlen(path)-1] != '/' && path[strlen(path)-1] != '\\') ) {
+			buffer b = alloc_buffer(path);
+			char c = '/';
+			buffer_append_sub(b,&c,1);
+			val_array_ptr(tmp)[0] = buffer_to_string(b);
+		} else
+			val_array_ptr(tmp)[0] = alloc_string(path);
+		val_array_ptr(tmp)[1] = l;
+		l = tmp;
+		if( p != NULL )
+			*p = ':';
+		else
+			break;
+		path = p+1;
+	}
+	return l;
+}
+
+static value loader_loadprim( value prim, value nargs ) {
+	value o = val_this();
+	value libs;
+	val_check(o,object);
+	val_check(prim,string);
+	val_check(nargs,int);
+	libs = val_field(o,id_loader_libs);
+	val_check_kind(libs,k_loader_libs);
+	if( val_int(nargs) >= 10 || val_int(nargs) < -1 )
+		neko_error();
+	{		
+		void *ptr = load_primitive(val_string(prim),val_int(nargs),val_field(o,id_path),(liblist**)&val_data(libs));
+		if( ptr == NULL ) {
+			buffer b = alloc_buffer("Primitive not found : ");
+			val_buffer(b,prim);
+			bfailure(b);
+		}
+		return alloc_function(ptr,val_int(nargs),val_string(copy_string(val_string(prim),val_strlen(prim))));
+	}
+}
+
+static value loader_execute( value vm ) {
+	neko_module *m;
+	val_check_kind(vm,neko_kind_module);
+	m = (neko_module*)val_data(vm);
+	neko_vm_execute(neko_vm_current(),m);
+	return m->exports;
+}
+
+static value loader_readmodule( value mname, value vthis ) {
+	value o = val_this();
+	value cache;
+	val_check(o,object);
+	val_check(mname,string);
+	val_check(vthis,object);
+	cache = val_field(o,id_cache);
+	val_check(cache,object);
+	{
+		reader r;
+		readp p;
+		value vm;
+		neko_module *m;	
+		field mid = val_id(val_string(mname));
+		vm = val_field(cache,mid);
+		if( val_is_kind(vm,neko_kind_module) ) {
+			m = (neko_module*)val_data(vm);
+			return m->exports;
+		}
+		open_module(val_field(o,id_path),val_string(mname),&r,&p);
+		m = neko_read_module(r,p,vthis);
+		close_module(p);
+		if( m == NULL ) {
+			buffer b = alloc_buffer("Invalid module : ");
+			val_buffer(b,mname);
+			bfailure(b);
+		}
+		m->name = alloc_string(val_string(mname));
+		alloc_field(cache,mid,(value)m);
+		return alloc_abstract(neko_kind_module,m);
+	}
+}
+
+static value loader_loadmodule( value mname, value vthis ) {
+	return loader_execute(loader_readmodule(mname,vthis));
+}
+
+EXTERN value neko_default_loader() {
+	value o = alloc_object(NULL);
+	alloc_field(o,id_path,init_path(getenv("NEKOPATH")));
+	alloc_field(o,id_cache,alloc_object(NULL));
+	alloc_field(o,id_loader_libs,alloc_abstract(k_loader_libs,NULL));
+	alloc_field(o,val_id("execute"),alloc_function(loader_execute,1,"execute"));
+	alloc_field(o,val_id("readmodule"),alloc_function(loader_readmodule,2,"readmodule"));
+	alloc_field(o,val_id("loadprim"),alloc_function(loader_loadprim,2,"loadprim"));
+	alloc_field(o,val_id("loadmodule"),alloc_function(loader_loadmodule,2,"loadmodule"));
 #ifdef NEKO_PROF
 	alloc_field(o,val_id("dump_prof"),alloc_function(dump_prof,0,"dump_prof"));
 #endif

@@ -22,16 +22,12 @@
 #define _NEKO_H
 
 #ifdef _WIN32
-#include <basetsd.h>
-typedef INT_PTR		int_val;
+#include <stddef.h>
 #else
 #include <stdint.h>
-typedef intptr_t int_val;
 #endif
 
-#ifndef NULL
-#	define NULL			0
-#endif
+typedef intptr_t int_val;
 
 typedef enum {
 	VAL_INT			= 0xFF,
