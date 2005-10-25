@@ -75,7 +75,7 @@ static void default_printer( const char *s, int len ) {
 }
 
 EXTERN neko_vm *neko_vm_alloc( neko_params *p ) {
-	neko_vm *vm = (neko_vm*)alloc(sizeof(neko_vm));	
+	neko_vm *vm = (neko_vm*)alloc(sizeof(neko_vm));
 	vm->spmin = (int_val*)alloc(INIT_STACK_SIZE*sizeof(int_val));
 	vm->print = (p && p->printer)?p->printer:default_printer;
 	vm->custom = p?p->custom:NULL;
@@ -91,7 +91,7 @@ EXTERN neko_vm *neko_vm_alloc( neko_params *p ) {
 		int i;
 		for(i=0;i<p->nargs;i++)
 			val_array_ptr(vm->args)[i] = alloc_string(p->args[i]);
-	}	
+	}
 	return vm;
 }
 
@@ -119,10 +119,10 @@ EXTERN value neko_exc_stack( neko_vm *vm ) {
 	return vm->exc_stack;
 }
 
-static value neko_flush_stack( int_val *cspup, int_val *csp, int flush );
+static value neko_flush_stack( int_val *cspup, int_val *csp, value old );
 
 EXTERN value neko_call_stack( neko_vm *vm ) {
-	return neko_flush_stack(vm->csp,vm->spmin - 1,0);
+	return neko_flush_stack(vm->csp,vm->spmin - 1,NULL);
 }
 
 typedef int_val (*c_prim0)();
@@ -303,13 +303,13 @@ extern value append_strings( value s1, value s2 );
 		ACC_RESTORE; \
 }
 
-static value neko_flush_stack( int_val *cspup, int_val *csp, int flush ) {
+static value neko_flush_stack( int_val *cspup, int_val *csp, value old ) {
 	int ncalls = (int)((cspup - csp) / 4);
-	value stack_trace = alloc_array(ncalls); 
+	value stack_trace = alloc_array(ncalls + ((old == NULL)?0:val_array_size(old)));
 	value *st = val_array_ptr(stack_trace);
 	neko_module *m;
 	while( csp != cspup ) {
-		m = (neko_module*)csp[4];		
+		m = (neko_module*)csp[4];
 		if( m ) {
 			if( !val_is_null(m->debuginf) ) {
 				int ppc = (int)((((int_val**)csp)[1]-2) - m->code);
@@ -319,14 +319,20 @@ static value neko_flush_stack( int_val *cspup, int_val *csp, int flush ) {
 		} else
 			*st = val_null;
 		st++;
-		if( flush ) {
+		if( old ) {
 			*++csp = NULL;
 			*++csp = NULL;
 			*++csp = NULL;
 			*++csp = NULL;
 		} else
-			csp += 4;		
-	}		
+			csp += 4;
+	}
+	if( old ) {
+		value *oldst = val_array_ptr(old);
+		ncalls = val_array_size(old);
+		while( ncalls-- )
+			*st++ = *oldst++;
+	}
 	return stack_trace;
 }
 
@@ -350,13 +356,14 @@ void neko_setup_trap( neko_vm *vm, int_val where ) {
 void neko_process_trap( neko_vm *vm ) {
 	// pop csp
 	int_val *sp;
-	int_val *trap;
+	int_val *trap;	
 	if( vm->trap == 0 )
 		return;
 
 	trap = vm->spmax - vm->trap;
 	sp = vm->spmin + val_int(trap[0]);
-	vm->exc_stack = neko_flush_stack(vm->csp,sp,1);
+	vm->exc_stack = neko_flush_stack(vm->csp,sp,vm->exc_stack);
+
 	vm->csp = sp;
 
 	// restore state
@@ -509,7 +516,7 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 		Next;
 	Instr(ObjCall)
 		{
-			value vtmp = (value)*sp; 
+			value vtmp = (value)*sp;
 			*sp++ = NULL;
 			DoCall(vtmp);
 		}
@@ -709,6 +716,12 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 	Instr(New)
 		acc = (int_val)alloc_object((value)acc);
 		Next;
+	Instr(JumpTable)
+		if( val_is_int(acc) && ((unsigned)acc) < ((unsigned)*pc) )
+			pc += acc;
+		else
+			pc += *pc++;
+		Next;
 	Instr(Last)
 		goto end;
 #ifdef _MSC_VER
@@ -731,7 +744,7 @@ value neko_interp( neko_vm *vm, neko_module *m, int_val acc, int_val *pc, value 
 	if( setjmp(vm->start) ) {
 		vm->ncalls = old_ncalls;
 		acc = (int_val)vm->vthis;
-		
+
 		// if uncaught or outside init stack, reraise
 		if( vm->trap == 0 || vm->trap <= init_sp ) {
 			memcpy(&vm->start,&old,sizeof(jmp_buf));
@@ -747,9 +760,9 @@ value neko_interp( neko_vm *vm, neko_module *m, int_val acc, int_val *pc, value 
 
 		// pop csp
 		csp = vm->spmin + val_int(trap[0]);
-		vm->exc_stack = neko_flush_stack(vm->csp,csp,1);
+		vm->exc_stack = neko_flush_stack(vm->csp,csp,vm->exc_stack);
 		vm->csp = csp;
-	
+
 		// restore state
 		vm->vthis = (value)trap[1];
 		env = (value)trap[2];

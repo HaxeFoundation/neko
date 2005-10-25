@@ -192,6 +192,11 @@ static value builtin_throw( value v ) {
 	return val_null;
 }
 
+static value builtin_rethrow( value v ) {
+	val_rethrow(v);
+	return val_null;
+}
+
 static value builtin_nargs( value f ) {
 	if( !val_is_function(f) )
 		neko_error();
@@ -828,6 +833,7 @@ void neko_init_builtins() {
 	BUILTIN(pcompare,2);
 	BUILTIN(not,1);
 	BUILTIN(throw,1);
+	BUILTIN(rethrow,1);
 	BUILTIN(nargs,1);
 	BUILTIN(call,3);
 	BUILTIN(isnan,1);
