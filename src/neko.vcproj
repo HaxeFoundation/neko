@@ -73,6 +73,9 @@
 				RelativePath=".\core\Set.nml">
 			</File>
 			<File
+				RelativePath=".\core\Stack.nml">
+			</File>
+			<File
 				RelativePath=".\core\String.nml">
 			</File>
 			<File
