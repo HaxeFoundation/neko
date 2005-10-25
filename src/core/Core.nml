@@ -179,10 +179,9 @@ neko("
 		a[0][i] = v;
 	}
 
-	@empty = $array(null,function(_){ '[]' });
-	@empty[0] = @empty;
+	@empty = $array(0,function(_){ '[]' });
 	@cons = function(x,l) {
-		$array(@cons,function(c) { @string(c[2]) + ' :: ' + @string(c[3]) },x,l)
+		$array(1,function(c) { @string(c[2]) + ' :: ' + @string(c[3]) },x,l)
 	}
 	$exports.@cons = @cons;
 	$exports.@empty = @empty;
