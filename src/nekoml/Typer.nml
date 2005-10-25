@@ -26,7 +26,7 @@ type module_context {
 	constrs : (string, (t, t)) Hashtbl.t;
 	records : (string, (t, t, mutflag)) Hashtbl.t;
 	deps : (string list, module_context) Hashtbl.t;
-	mutable expr : texpr option;
+	mutable done : bool;
 	mutable idents : (string,t) Map.t;
 }
 
@@ -40,6 +40,7 @@ type context {
 	current : module_context;
 	modules : (string list, module_context) Hashtbl.t;
 	classpath : string list;
+	callback : context -> module_context -> texpr -> void;
 }
 
 type error_msg {
@@ -108,7 +109,7 @@ function get_module(ctx,path,p) {
 			Hashtbl.find ctx.modules path
 		catch { Not_found -> (*load_module_ref) ctx path p };
 		if m != ctx.current then {
-			if m.expr == None then error (Module_not_loaded m) p;
+			if !m.done then error (Module_not_loaded m) p;
 			Hashtbl.replace ctx.current.deps m.path m;
 		};
 		m
@@ -1095,24 +1096,17 @@ function rec type_match(ctx,t,cl,p) {
 	(partial , m , ret)
 }
 
-function modules(ctx) {
+function module_infos(m) {
 	var h = Hashtbl.create();
-	Hashtbl.iter (function(p,m) {
-		match m.expr {
-		| None -> ()
-		| Some e ->
-			var deps = &(if m.path == ["Core"] || Hashtbl.exists m.deps ["Core"] then [] else [["Core"]]);
-			var idents = &[];
-			Hashtbl.iter (function(_,m) {
-				deps := m.path :: *deps
-			}) m.deps;
-			Map.iter (function(i,t) {
-				idents := i :: *idents
-			}) m.idents;
-			Hashtbl.add h p (e,*deps,*idents)
-		}
-	}) ctx.modules;
-	h
+	var deps = &(if m.path == ["Core"] || Hashtbl.exists m.deps ["Core"] then [] else [["Core"]]);
+	var idents = &[];
+	Hashtbl.iter (function(_,m) {
+		deps := m.path :: *deps
+	}) m.deps;
+	Map.iter (function(i,t) {
+		idents := i :: *idents
+	}) m.idents;
+	(m.path,*deps,*idents)
 }
 
 function open_file(ctx,file,p) {
@@ -1145,6 +1139,7 @@ function load_module(ctx,m,p) {
 				gen = ctx.gen;
 				modules = ctx.modules;
 				classpath = ctx.classpath;
+				callback = ctx.callback;
 
 				curfunction = "anonymous";
 				tmptypes = Hashtbl.create();
@@ -1155,7 +1150,7 @@ function load_module(ctx,m,p) {
 					constrs = Hashtbl.create();
 					records = Hashtbl.create();
 					types = Hashtbl.create();
-					expr = None;
+					done = false;
 					idents = Map.empty();
 					deps = Hashtbl.create();
 				}
@@ -1177,13 +1172,14 @@ function load_module(ctx,m,p) {
 				| _ ->
 					type_expr ctx ast
 			}
-			ctx.current.expr := Some e;
 			if *verbose then printf "Typing done with %s\n" file;
+			ctx.current.done := true;
+			ctx.callback ctx ctx.current e;
 			ctx.current
 	}
 }
 
-function context(cpath) {
+function context(cpath,callb) {
 	var ctx = {
 		gen = generator();
 		tmptypes = Hashtbl.create();
@@ -1193,9 +1189,10 @@ function context(cpath) {
 		mink = 0;
 		classpath = cpath;
 		curfunction = "anonymous";
+		callback = callb;
 		current = {
 			path = ["Core"];
-			expr = None;
+			done = false;
 			idents = Map.empty();
 			constrs = Hashtbl.create();
 			types = Hashtbl.create();
