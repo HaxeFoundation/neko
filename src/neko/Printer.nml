@@ -197,6 +197,28 @@ function rec print_ast(ctx,binop,(e,p)) {
 		print ctx "}"
 	| ELabel s ->
 		printf ctx "%s:" s
+	| ESwitch (e,cases,eo) ->
+		print ctx "switch ";
+		print_rec e;
+		print ctx "{";
+		newline ctx;
+		List.iter (function((e1,e2)) {
+			print_rec e1;
+			print ctx " => ";
+			level ctx true;
+			print_rec e2;
+			level ctx false;
+		}) cases;
+		match eo {
+		| None -> ()
+		| Some e ->
+			print ctx "default => ";
+			level ctx true;
+			print_rec e;
+			level ctx false
+		}
+		print ctx "}";
+		newline ctx
 	}
 }
 

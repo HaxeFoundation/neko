@@ -44,6 +44,7 @@ type keyword {
 	Default;
 	Try;
 	Catch;
+	Switch;
 }
 
 type token {
@@ -91,6 +92,7 @@ type expr_decl {
 	ENext : (expr , expr);
 	EObject : (string , expr) list;
 	ELabel : string;
+	ESwitch : (expr, (expr, expr) list, expr option);
 }
 
 type expr = (expr_decl , pos)
@@ -154,6 +156,7 @@ function map(f,(e,p)) {
 	| EBreak (Some e) -> EBreak Some(f e)
 	| ENext (e1,e2) -> ENext f(e1) f(e2)
 	| EObject fl -> EObject (List.map (function((s,e)) { (s , f e) }) fl)
+	| ESwitch (e,cases,eo) -> ESwitch f(e) (List.map (function((e1,e2)) { (f e1, f e2) }) cases) (match eo { None -> None | Some e -> Some f(e) })
 	| EReturn None
 	| EBreak None
 	| EContinue
@@ -178,6 +181,7 @@ function iter(f,(e,p)) {
 	| EBreak (Some e) -> f e
 	| ENext (e1,e2) -> f e1; f e2
 	| EObject fl -> List.iter (function((_,e)) { f e }) fl
+	| ESwitch (e,cases,eo) -> f e; List.iter (function((e1,e2)) { f e1; f e2 }) cases; match eo { None -> () | Some e -> f e };
 	| EReturn None
 	| EBreak None
 	| EContinue
@@ -214,6 +218,7 @@ function s_keyword(x) {
 	| Default -> "default"
 	| Try -> "try"
 	| Catch -> "catch"
+	| Switch -> "switch"
 	}
 }
 

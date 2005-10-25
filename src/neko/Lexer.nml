@@ -46,7 +46,7 @@ function error(l,msg) {
 var keywords = {
 	var h = Hashtbl.create();
 	List.iter (function(k) { Hashtbl.add h (s_keyword k) k })
-	[Var;While;Do;If;Else;Function;Return;Break;Continue;Try;Catch];
+	[Var;While;Do;If;Else;Function;Return;Break;Continue;Try;Catch;Switch;Default];
 	h
 }
 

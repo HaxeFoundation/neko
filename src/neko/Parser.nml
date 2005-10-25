@@ -99,6 +99,8 @@ function rec expr(s) {
 		expr_next (EWhile cond e NormalWhile, punion p1 (pos e)) s
 	| [< (Keyword Do,p1); e = expr s; (Keyword While,_); cond = expr s >] ->
 		expr_next (EWhile cond e DoWhile, punion p1 (pos cond)) s
+	| [< (Keyword Switch,p1); v = expr s; (BraceOpen,_); l , def = switch_cases s; (BraceClose,p2) >] ->
+		expr_next (ESwitch v l def,punion p1 p2) s;
 	| [< (Keyword If,p1); cond = expr s; e = expr s >] ->
 		function rec loop() {
 			match s {
@@ -177,6 +179,18 @@ function rec object_fields(s) {
 	| [< (Const (Ident name),_); (Arrow,_); e = expr s; l = object_fields s >] -> (name,e) :: l
 	| [< (Comma,_); l = object_fields s >] -> l
 	| [< >] -> []
+	}
+}
+
+function rec switch_cases(s) {
+	match s {
+	| [< e1 = expr s; (Arrow,p); e2 = expr s; l , def = switch_cases s >] -> ((e1,e2) :: l , def)
+	| [< (Keyword Default,pp); (Arrow,p); e = expr s; l, def = switch_cases s >] ->
+		match def {
+		| None -> (l, Some e)
+		| Some _ -> error (Unexpected (Keyword Default)) pp
+		}
+	| [< >] -> ([] , None)
 	}
 }
 
