@@ -76,6 +76,7 @@ function stack_delta(o) {
 	| JumpIf _
 	| JumpIfNot _
 	| Jump _
+	| JumpTable _
 	| Ret _
 	| SetGlobal _
 	| SetStack _
@@ -199,6 +200,19 @@ function check_breaks(ctx) {
 	List.iter (function((_,p)) { error "Continue outside a loop" p }) ctx.continues
 }
 
+function get_cases_ints(cases) {
+	var max = &(-1);
+	var l = List.map (function((e,e2)) {
+		match e {
+		| (EConst (Int n),_) when n >= 0 && n < 32 ->
+			if n > *max then max := n;
+			(n,e2)
+		| _ -> throw Exit
+		}
+	}) cases;
+	(l,*max + 1)
+}
+
 function rec scan_labels(ctx,supported,e) {
 	match fst e {
 	| EFunction (args,e) ->
@@ -274,6 +288,24 @@ function rec scan_labels(ctx,supported,e) {
 			scan_labels ctx supported e
 		}) fl;
 		ctx.stack := ctx.stack - 2;
+	| ESwitch (ee,[(econd,exec)],eo) ->
+		var p = snd e;
+		scan_labels ctx supported (EIf (EBinop "==" ee econd,p) exec eo,p)
+	| ESwitch (e,cases,eo) ->
+		scan_labels ctx supported e;
+		var delta = try { ignore(get_cases_ints cases); 0 } catch { Exit -> 1 };
+		ctx.stack := ctx.stack + delta;
+		List.iter (function((e1,e2)) {
+			ctx.stack := ctx.stack + delta;
+			scan_labels ctx supported e1;
+			ctx.stack := ctx.stack - delta;
+			scan_labels ctx supported e2;
+		}) cases;
+		match eo {
+		| None -> ()
+		| Some e -> scan_labels ctx supported e
+		}
+		ctx.stack := ctx.stack - delta;
 	| EConst _
 	| EContinue
 	| EBreak _
@@ -727,11 +759,69 @@ function rec compile(ctx,(e,p)) {
 		write ctx (Pop 1)
 	| ELabel l ->
 		var l = try Hashtbl.find ctx.labels l catch { Not_found -> assert() };
-		if ctx.stack != l.lstack then assert();
-		if ctx.ntraps != l.ltraps then assert();
+		if ctx.stack != l.lstack || ctx.ntraps != l.ltraps then error (sprintf "Label failure %d %d %d %d" (ctx.stack,l.lstack,ctx.ntraps,l.ltraps)) p;
 		List.iter (function(f) { f() }) l.lwait;
 		l.lwait := [];
 		l.lpos := Some (pos ctx)
+	| ESwitch (e,[(econd,exec)],eo) ->
+		compile ctx (EIf (EBinop "==" e econd,p) exec eo,p)
+	| ESwitch (e,cases,eo) ->
+		try {
+			var ints , size = get_cases_ints cases;
+			compile ctx e;
+			write ctx (JumpTable size);
+			var tbl = Array.make size None;
+			List.iter (function((i,e)) {
+				tbl.[i] := Some e;
+			}) ints;
+			var tbl = Array.map (function(e) { (jmp ctx,e) }) tbl;
+			Array.iter (function((j,e)) {
+				if e == None then j()
+			}) tbl;
+			match eo {
+			| None -> write ctx AccNull
+			| Some e -> compile ctx e
+			}
+			var jump_end = jmp ctx;
+			var tbl = Array.map (function((j,e)) {
+				match e {
+				| Some e ->
+					j();
+					compile ctx e;
+					jmp ctx
+				| None ->
+					function() { }
+				}
+			}) tbl;
+			jump_end();
+			Array.iter (function(j) { j() }) tbl
+		} catch { Exit ->
+			compile ctx e;
+			write ctx Push;
+			var jumps = List.map (function((e1,e2)) {
+				write ctx (AccStack 0);
+				write ctx Push;
+				compile ctx e1;
+				write ctx Eq;
+				(cjmp true ctx , e2)
+			}) cases;
+			match eo {
+			| None -> write ctx AccNull
+			| Some e -> compile ctx (EBlock [e],Lexer.null_pos)
+			}
+			var jump_end = jmp ctx;
+			var jumps = List.map (function((j,e)) {
+				j();
+				compile ctx (EBlock [e],Lexer.null_pos);
+				jmp ctx;
+			}) jumps;
+			jump_end();
+			match List.rev jumps {
+			| [] -> ()
+			| _ :: l -> List.iter (function(j) { j() }) l
+			}
+			write ctx (Pop 1)
+		}
 	}
 }
 
