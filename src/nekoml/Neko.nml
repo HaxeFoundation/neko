@@ -281,7 +281,7 @@ function rec gen_match_rec(mctx,fail,m) {
 			}
 			(int(construct_id ctx path c), gen_rec fail m)
 		}) cl;
-		(ESwitch e cases Some(gen_rec fail MFailure), p)		
+		(ESwitch e cases Some(gen_rec fail MFailure), p)
 	| MBind (v,m1,m2) ->
 		var e1 = gen_rec fail m1;
 		var old = mctx.cache;
@@ -502,7 +502,7 @@ function rec gen_expr(ctx,e) {
 	| TTry (e,m) ->
 		var out = gen_label ctx;
 		var matching = gen_matching ctx "@exc" m p false out;
-		var reraise = call t_void (builtin "throw") [ident "@exc"] p;
+		var reraise = call t_void (builtin "rethrow") [ident "@exc"] p;
 		var handle = (EBlock [matching;reraise;(ELabel out , p)] , p);
 		ETry (gen_expr ctx e) "@exc" handle
 	};
@@ -566,7 +566,7 @@ function generate(tctx,e,deps,idents,mod) {
 		current = mod;
 		module_name = m;
 		counter = 0;
-		imports = Hashtbl.create();		
+		imports = Hashtbl.create();
 		refvars = Set.empty();
 	};
 	var init = (EBinop "=" ident(m) builtin("exports") , null_pos);
