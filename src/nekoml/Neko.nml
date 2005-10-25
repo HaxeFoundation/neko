@@ -26,10 +26,10 @@ type comparison {
 }
 
 type context {
+	typectx : Nekoml.Typer.context;
 	current : string list;
 	module_name : string;
-	imports : (string list,int) Hashtbl.t;
-	mutable nimports : int;
+	imports : (string list,string) Hashtbl.t;
 	mutable counter : int;
 	mutable refvars : string Set.t;
 }
@@ -67,6 +67,43 @@ function int(n) {
 var enull = (EConst Null , null_pos)
 
 var core = ["Core"];
+
+function record_index(f,t) {
+	match tlinks false t {
+	| TRecord fl ->
+		function rec loop(i,l) {
+			match l {
+			| [] -> assert()
+			| (ff,_,_) :: l ->
+				if f == ff then i else loop (i+1) l
+			}
+		}
+		loop 0 fl
+	| _ ->
+		assert()
+	}
+}
+
+function construct_id(ctx,m,c) {
+	var m = if m == [] then ctx.current else m;
+	var mod = try Nekoml.Typer.module ctx.typectx m catch { Not_found -> assert() };
+	var r = try Nekoml.Typer.union mod c catch { Not_found -> assert() };
+	if r == t_error then
+		Hashtbl.hash c
+	else match tlinks false r {
+	| TUnion (_,fl) ->
+		function rec loop(i,l) {
+			match l {
+			| [] -> assert()
+			| (cc,_) :: l ->
+				if c == cc then i else loop (i+1) l
+			}
+		}
+		loop 0 fl
+	| _ ->
+		assert()
+	}
+}
 
 function rec is_fun(t) {
 	match t.texpr {
@@ -130,16 +167,14 @@ function import(ctx,m,i,p) {
 		(EField ident(ctx.module_name) i,p)
 	else {
 		var key = i :: m;
-		var i = try {
-			Hashtbl.find ctx.imports key;
+		(EConst Ident(try {
+			Hashtbl.find ctx.imports key
 		} catch {
 			Not_found ->
-				var i = ctx.nimports;
-				ctx.nimports := ctx.nimports + 1;
+				var i = "@" + String.concat "_" m + "_" + i;
 				Hashtbl.add ctx.imports key i;
 				i
-		}
-		(EConst Ident("@i" + string i),p)
+		}),p)
 	}
 }
 
@@ -158,13 +193,13 @@ function rec gen_constant(ctx,c,p) {
 	| TConstr "::" | TModule (["Core"],TConstr "::") -> fst (import ctx core "@cons" p)
 	| TConstr s -> EConst (Ident s)
 	| TModule ([],c) -> fst (gen_constant ctx c p)
-	| TModule (m,c) ->		
+	| TModule (m,c) ->
 		fst (import ctx m (match c { TConstr x -> x | TIdent s -> s | _ -> assert() }) p)
 	} , p)
 }
 
 type match_context {
-	ctx : context;	
+	ctx : context;
 	out : string;
 	pos : pos;
 	mutable cache : (match_op , string) list;
@@ -208,7 +243,7 @@ function rec gen_match_rec(mctx,fail,m) {
 			mctx.first := true;
 			var out = call t_void (builtin "goto") [ident mctx.out] p;
 			(EBlock [gen_expr ctx e;out] , p)
-		}		
+		}
 	| MConstants (m,[(TIdent v,m1)]) ->
 		var m = gen_rec fail m;
 		(EBlock [
@@ -227,8 +262,8 @@ function rec gen_match_rec(mctx,fail,m) {
 			(EVars [(v, Some e)] , p);
 			exec
 		] , p)
-	| MRecordField (m,f) ->
-		(EField gen_rec(fail,m) f , p)
+	| MRecordField (m,f,t) ->
+		(EArray gen_rec(fail,m) int(record_index f t) , p)
 	| MTuple (m,n) ->
 		(EArray gen_rec(fail,m) int(n) , p)
 	| MField (m,n) ->
@@ -245,7 +280,13 @@ function rec gen_match_rec(mctx,fail,m) {
 		var e = gen_rec fail m;
 		var v = gen_variable ctx;
 		var exec = List.fold (function(acc,(c,m)) {
-			var test = (EBinop "==" ident(v) gen_constant(ctx,c,p) , p);
+			var path , c = match c {
+			| TModule (path,TConstr c) -> (path , c)
+			| TConstr c -> (ctx.current,c)
+			| _ ->
+				assert()
+			}
+			var test = (EBinop "==" ident(v) int(construct_id ctx path c) , p);
 			var exec = gen_rec fail m;
 			(EIf test exec Some(acc) , p)
 		}) (gen_rec fail MFailure) (List.rev cl);
@@ -287,7 +328,7 @@ function rec gen_matching(ctx,v,m,p,stream,out) {
 		first = stream;
 		next = no_label;
 	};
-	var label = (if stream then gen_label ctx else no_label);	
+	var label = (if stream then gen_label ctx else no_label);
 	var e = gen_match_rec mctx label m;
 	if stream then {
 		var vpos = gen_variable ctx;
@@ -301,23 +342,23 @@ function rec gen_matching(ctx,v,m,p,stream,out) {
 
 function rec gen_match(ctx,e,m,stream,p) {
 	var out = gen_label ctx;
-	var v = gen_variable ctx;	
+	var v = gen_variable ctx;
 	var m = gen_matching ctx v m p stream out;
 	var m = (ENext (EVars [(v,Some e)],p) m, p);
 	(EBlock [m; (ELabel out , p)] , p)
 }
 
-function rec gen_constructor(ctx,tname,c,t,p) {
+function rec gen_constructor(ctx,tname,c,id,t,p) {
 	var field = ident c;
 	var printer = (EConst Ident(tname + "__string"), p);
 	function val_type(t) {
 		match arity t {
 		| 0 ->
-			var make = array [enull;printer] p;
-			(ENext (EBinop "="  field make , p) (EBinop "=" (EArray field int(0),p) field , p) , p)
+			var make = array [int id;printer] p;
+			(EBinop "="  field make , p)
 		| n ->
 			var args = Array.list (Array.init n (function(n) { "p" + string n }));
-			var build = array (field :: printer :: List.map (function(a) { (EConst (Ident a) , p) }) args) p;
+			var build = array (int id :: printer :: List.map (function(a) { (EConst (Ident a) , p) }) args) p;
 			var func = (EFunction args (EBlock [(EReturn (Some build),p)] , p) , p);
 			(EBinop "=" field func , p)
 		}
@@ -362,7 +403,8 @@ function rec gen_type(ctx,name,t,p) {
 			(TConstr c , MExecute e true)
 		}) constrs)) false p;
 		var printer = (EFunction ["v"] cmatch , p);
-		var regs = List.map (function((c,t)) { gen_constructor ctx name c t p }) constrs;
+		var i = &(-1);
+		var regs = List.map (function((c,t)) { i := *i + 1; gen_constructor ctx name c (*i) t p }) constrs;
 		(EBlock ((EVars [(name + "__string",Some printer)],p) :: regs) , p)
 	}
 }
@@ -417,7 +459,7 @@ function rec gen_expr(ctx,e) {
 		Lexer.input lex file ch p.pline p.pmin;
 		fst (Neko.Parser.parse lex)
 	| TCall (f,el) -> fst (call e.etype (gen_expr ctx f) (List.map (gen_expr ctx) el) p)
-	| TField (e,s) -> EField gen_expr(ctx,e) s
+	| TField (e,s) -> EArray gen_expr(ctx,e) int(record_index s e.etype)
 	| TArray (e1,e2) ->
 		ECall (import ctx core "@aget" p) [gen_expr ctx e1;gen_expr ctx e2]
 	| TVar ([v],e) ->
@@ -438,13 +480,14 @@ function rec gen_expr(ctx,e) {
 		else if !rflag then
 			EVars [(name , Some (EFunction (List.map fst params) block(gen_expr ctx code), p))]
 		else
-			EBlock [gen_functions ctx [e] p]		
+			EBlock [gen_functions ctx [e] p]
 	| TBinop (op,e1,e2) -> fst (gen_binop ctx op e1 e2 p)
 	| TTupleDecl tl -> fst (array (List.map (gen_expr ctx) tl) p)
 	| TTypeDecl t -> fst (gen_type ctx "<assert>" t p)
 	| TMut e -> fst (gen_expr ctx (*e))
 	| TRecordDecl fl ->
-		EObject (("__string", import ctx core "@print_record" p) :: List.map (function((s,e)) { (s , gen_expr ctx e) }) fl)
+		var fl = List.sort (function((f1,_),(f2,_)) { compare (record_index f1 e.etype) (record_index f2 e.etype)}) fl;
+		fst(array (List.map (function((_,e)) { gen_expr ctx e }) fl) p)
 	| TListDecl el ->
 		fst (match el {
 		| [] -> array [] p
@@ -467,7 +510,7 @@ function rec gen_expr(ctx,e) {
 		var printer = gen_expr ctx (gen_type_printer ctx e t);
 		var printer = (EFunction ["v"] (EBlock [printer],p) , p);
 		var printer = (EVars [(e + "__string",Some printer)] , p);
-		ENext printer (gen_constructor ctx e e t p)
+		ENext printer (gen_constructor ctx e e (Hashtbl.hash e) t p)
 	| TTry (e,m) ->
 		var out = gen_label ctx;
 		var matching = gen_matching ctx "@exc" m p false out;
@@ -486,7 +529,7 @@ function rec gen_functions(ctx,fl,p) {
 		| TFunction (_,name,_,_) ->
 			ctx.refvars := Set.add ctx.refvars name;
 			(name , Some (array [enull] null_pos))
-		| _ ->			
+		| _ ->
 			assert()
 		}
 	}) fl) , null_pos);
@@ -522,20 +565,20 @@ function rec gen_block(ctx,el,p) {
 			ell := gen_expr ctx x :: *ell;
 			loop [] l
 		}
-	}	
+	}
 	loop [] el;
 	ctx.refvars := old;
 	List.rev (*ell)
 }
 
-function generate(e,deps,idents,mod) {
+function generate(tctx,e,deps,idents,mod) {
 	var m = module_name mod;
 	var ctx = {
+		typectx = tctx;
 		current = mod;
 		module_name = m;
 		counter = 0;
-		imports = Hashtbl.create();
-		nimports = 0;
+		imports = Hashtbl.create();		
 		refvars = Set.empty();
 	};
 	var init = (EBinop "=" ident(m) builtin("exports") , null_pos);
@@ -552,11 +595,11 @@ function generate(e,deps,idents,mod) {
 	| e -> [e]
 	}
 	var imports = &[];
-	Hashtbl.iter (function(key,n : int) {
+	Hashtbl.iter (function(key,id) {
 		var e = match key {
 			| [] -> assert()
 			| i :: m ->
-				(EBinop "=" ident("@i" + string n) (EField ident(module_name m) i , null_pos) , null_pos) 
+				(EBinop "=" ident(id) (EField ident(module_name m) i , null_pos) , null_pos)
 		}
 		imports := e :: *imports;
 	}) ctx.imports;
