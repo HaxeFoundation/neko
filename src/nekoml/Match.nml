@@ -65,10 +65,10 @@ function cond(path,lambdas) {
 	MConstants path lambdas
 }
 
-function rec switch(path,lambdas) {
+function rec mswitch(path,lambdas) {
 	match lambdas {
 	| (TVoid,m1) :: [] -> m1
-	| (TVoid,m1) :: l -> MNext m1 (switch path l)
+	| (TVoid,m1) :: l -> MNext m1 (mswitch path l)
 	| _ -> 	MSwitch path lambdas
 	}
 }
@@ -338,9 +338,9 @@ function rec conquer_matching(m) {
 			var l1, p1, u1 = conquer_divided_matching constrs;
 			var l2, p2, u2 = conquer_matching vars;
 			if fully_matched (List.map fst constrs) && p1 == Total then
-				(switch path l1 , Total , List.append u1 lines_of_matching(vars))
+				(mswitch path l1 , Total , List.append u1 lines_of_matching(vars))
 			else
-				(handle (switch path l1) l2 , partial p1 p2 , List.append u1 u2)
+				(handle (mswitch path l1) l2 , partial p1 p2 , List.append u1 u2)
 		| _ ->
 			assert()
 		}
