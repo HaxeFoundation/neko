@@ -25,7 +25,11 @@ function dump(file) {
 }
 
 function report(msg,p) {
-	IO.printf IO.stderr "%s(%d): %s\n" (Lexer.source p,Lexer.line p,msg);
+	if p == Lexer.null_pos then	{
+		Stack.dump IO.stderr Stack.exc();
+		IO.printf IO.stderr "Exception : %s\n" msg
+	} else
+		IO.printf IO.stderr "%s(%d): %s\n" (Lexer.source p,Lexer.line p,msg);
 	Sys.exit(-1);
 }
 
@@ -40,4 +44,5 @@ try {
 	| Neko.Lexer.Error(msg,pos) -> report Neko.Lexer.error_msg(msg) pos
 	| Neko.Parser.Error(msg,pos) -> report Neko.Parser.error_msg(msg) pos
 	| Neko.Compile.Error(msg,pos) -> report Neko.Compile.error_msg(msg) pos
+	| e -> report string(e) Lexer.null_pos
 }
