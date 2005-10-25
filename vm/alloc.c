@@ -60,7 +60,9 @@ static void null_warn_proc( char *msg, int arg ) {
 
 void neko_gc_init() {
 	GC_no_dls = 1;
+#ifdef LOW_MEM
 	GC_dont_expand = 1;
+#endif
 	GC_clear_roots();
 	GC_set_warn_proc((GC_warn_proc)null_warn_proc);
 }
