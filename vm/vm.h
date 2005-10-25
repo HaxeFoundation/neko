@@ -21,13 +21,15 @@
 #ifndef _NEKO_VMCONTEXT_H
 #define _NEKO_VMCONTEXT_H
 #include <setjmp.h>
-#include "neko.h"
+#include "neko_vm.h"
 #include "context.h"
 
 typedef void (*printer)( const char *, int );
 
 #define INIT_STACK_SIZE (1 << 7)
 #define MAX_STACK_SIZE	(1 << 18)
+#define PROF_SIZE		(1 << 16)
+#define CALL_MAX_ARGS	5
 
 struct _neko_vm {
 	int_val *spmin;
@@ -45,11 +47,6 @@ struct _neko_vm {
 	void *custom;
 	char tmp[100];
 };
-
-#ifndef neko_vm_def
-typedef struct _neko_vm neko_vm;
-#define neko_vm_def
-#endif
 
 extern int_val *callback_return;
 extern _context *neko_vm_context;
