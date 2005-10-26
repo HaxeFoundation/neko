@@ -31,6 +31,7 @@
 #include "gc/gc.h"
 
 static int_val op_last = Last;
+static value *apply_string = NULL;
 int_val *callback_return = &op_last;
 value *neko_builtins = NULL;
 _context *neko_fields_context = NULL;
@@ -153,6 +154,60 @@ value alloc_module_function( void *m, int_val pos, int nargs ) {
 	return (value)v;
 }
 
+static value apply1( value p1 ) {
+	value env = NEKO_VM()->env;
+	value *a = val_array_ptr(env) + 1;
+	int n = val_array_size(env) - 1;
+	a[n-1] = p1;
+	return val_callN(a[-1],a,n);
+}
+
+static value apply2( value p1, value p2 ) {
+	value env = NEKO_VM()->env;
+	value *a = val_array_ptr(env) + 1;
+	int n = val_array_size(env) - 1;
+	a[n-2] = p1;
+	a[n-1] = p2;
+	return val_callN(a[-1],a,n);
+}
+
+static value apply3( value p1, value p2, value p3 ) {
+	value env = NEKO_VM()->env;
+	value *a = val_array_ptr(env) + 1;
+	int n = val_array_size(env) - 1;
+	a[n-3] = p1;
+	a[n-2] = p2;
+	a[n-1] = p3;
+	return val_callN(a[-1],a,n);
+}
+
+static value apply4( value p1, value p2, value p3, value p4 ) {
+	value env = NEKO_VM()->env;
+	value *a = val_array_ptr(env) + 1;
+	int n = val_array_size(env) - 1;
+	a[n-4] = p1;
+	a[n-3] = p2;
+	a[n-2] = p3;
+	a[n-1] = p4;
+	return val_callN(a[-1],a,n);
+}
+
+value alloc_apply( int nargs, value env ) {
+	vfunction *v = (vfunction*)GC_MALLOC(sizeof(vfunction));
+	v->t = VAL_PRIMITIVE;
+	switch( nargs ) {
+	case 1: v->addr = apply1; break;
+	case 2: v->addr = apply2; break;
+	case 3: v->addr = apply3; break;
+	case 4: v->addr = apply4; break;
+	default: failure("Too many calls"); break;
+	}
+	v->nargs = nargs;
+	v->env = env;
+	v->module = *apply_string;
+	return (value)v;
+}
+
 EXTERN value alloc_object( value cpy ) {
 	vobject *v;
 	if( cpy != NULL && !val_is_null(cpy) && !val_is_object(cpy) )
@@ -270,11 +325,15 @@ EXTERN void neko_global_init() {
 	INIT_ID(rmod);
 	INIT_ID(get);
 	INIT_ID(set);
+	apply_string = alloc_root(1);
+	*apply_string = alloc_string("apply");
 }
 
 EXTERN void neko_global_free() {
 	neko_clean_thread();
+	free_root(apply_string);
 	free_root(neko_builtins);
+	apply_string = NULL;
 #ifdef _DEBUG
 	if( roots != NULL ) {
 		printf("Some roots are not free");
