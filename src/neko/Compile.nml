@@ -90,6 +90,10 @@ function stack_delta(o) {
 	| Hash
 	| TypeOf
 	| New
+	| AccStack0
+	| AccStack1
+	| AccIndex0
+	| AccIndex1
 		-> 0
 	| Add
 	| Sub
@@ -108,13 +112,14 @@ function stack_delta(o) {
 	| Gte
 	| Lt
 	| Lte
+	| PhysCompare
 		-> -1
 	| AccArray -> -1
 	| SetField _ | SetIndex _ | Compare -> -1
 	| SetArray -> -2
 	| Push -> 1
 	| Pop x -> -x
-	| Call nargs -> -nargs
+	| Apply nargs | Call nargs -> -nargs
 	| ObjCall nargs -> -(nargs + 1)
 	| MakeEnv size | MakeArray size -> -size
 	| Trap _ -> trap_stack_delta
@@ -126,13 +131,7 @@ function pos(ctx) {
 }
 
 function set_pos(ctx,p) {
-	ctx.curpos := (Lexer.source p,Lexer.line p);
-}
-
-function write_raw_op(ctx,op) {
-	Array.add ctx.pos ctx.curpos;
-	if op_param op then Array.add ctx.pos ctx.curpos;
-	Array.add ctx.ops op;
+	if p != Lexer.null_pos then ctx.curpos := (Lexer.source p,Lexer.line p);
 }
 
 function write(ctx,op) {
@@ -276,11 +275,13 @@ function rec scan_labels(ctx,supported,e) {
 		ctx.stack := ctx.stack - (if ext then 2 else 1);
 	| ECall ((EConst (Builtin x),_),el) when x != "array" && x != "apply" ->
 		Neko.Ast.iter (scan_labels ctx false) e
-	| ECall(_,el) ->
+	| ECall ((EConst (Builtin "apply"),_),e :: el)
+	| ECall(e,el) ->
 		List.iter (function(e) {
 			scan_labels ctx supported e;
 			ctx.stack := ctx.stack + 1;
 		}) el;
+		scan_labels ctx supported e;
 		ctx.stack := ctx.stack - List.length el
 	| EObject fl ->
 		ctx.stack := ctx.stack + 2;
@@ -359,8 +360,10 @@ function compile_constant(ctx,c,p) {
 					e
 				};
 				write ctx (AccEnv e);
-			} else
-				write ctx (AccStack (ctx.stack - l));
+			} else {
+				var p = ctx.stack - l;
+				write ctx (if p == 0 then AccStack0 else if p == 1 then AccStack1 else AccStack p);
+			}
 		} catch { Not_found ->
 			var g = global ctx (GlobalVar s);
 			write ctx (AccGlobal g)
@@ -513,7 +516,7 @@ function rec compile_function(ctx,params,e) {
 		var a = Array.make local_nenv "";
 		Map.iter (function(v,i){ a.[i] := v }) local_env;
 		Array.iter (function(v){
-			compile_constant ctx (Ident v) Lexer.null_pos;
+			compile_constant ctx (Ident v) snd(e);
 			write ctx Push;
 		}) a;
 		write ctx (AccGlobal gid);
@@ -541,6 +544,11 @@ function rec compile_builtin(ctx,b,el,p) {
 		write ctx Push;
 		compile ctx e2;
 		write ctx Compare
+	| ("pcompare" , [e1;e2]) ->
+		compile ctx e1;
+		write ctx Push;
+		compile ctx e2;
+		write ctx PhysCompare
 	| ("goto" , [(EConst (Ident l) , _)] ) ->
 		var l = try Hashtbl.find ctx.labels l catch { Not_found -> error ("Unknown label " + l) p };
 		var os = ctx.stack;
@@ -575,7 +583,30 @@ function rec compile_builtin(ctx,b,el,p) {
 		}
 	| ("goto" , _) ->
 		error "Invalid $goto statement" p
-	| _ ->
+	| ("array",_) ->
+		List.iter (function(e) {
+			compile ctx e;
+			write ctx Push;
+		}) el;
+		write ctx (MakeArray (List.length el))
+	| (bname,a :: b :: c :: d :: x1 :: x2 :: l) ->
+		var apply = (EConst (Builtin "apply"),p);
+		if bname == "apply" then {
+			var app = ECall apply [a;b;c;d;x1];
+			compile ctx (ECall apply ((app,p) :: x2 :: l),p)
+		} else {
+			var app = ECall apply [(EConst (Builtin bname),p);a;b;c;d];
+			compile ctx (ECall (app,p) (x1 :: x2 :: l) ,p)
+		}
+/*	| ("apply",e :: el) ->
+		List.iter (function(e) {
+			compile ctx e;
+			write ctx Push;
+		}) el;
+		compile ctx e;
+		var nargs = List.length el;
+		if nargs > 0 then write ctx (Apply nargs);
+*/	| _ ->
 		List.iter (function(e) {
 			compile ctx e;
 			write ctx Push;
@@ -604,14 +635,11 @@ function rec compile(ctx,(e,p)) {
 	| EField (e,f) ->
 		compile ctx e;
 		write ctx (AccField f)
-	| ECall ((EConst (Builtin "array"),_),el) ->
-		List.iter (function(e) {
-			compile ctx e;
-			write ctx Push;
-		}) el;
-		write ctx (MakeArray (List.length el));
-	| ECall (_,el) when List.length el > max_call_args ->
-		error "Too many arguments" p
+	| ECall ((EConst (Builtin b),_),el) ->
+		compile_builtin ctx b el p
+	| ECall (e,a :: b :: c :: d :: x1 :: x2 :: l) ->
+		var app = ECall (EConst (Builtin "apply"),p) [e;a;b;c;d];
+		compile ctx (ECall (app,p) (x1 :: x2 :: l) ,p)
 	| ECall ((EField (e,f),_),el) ->
 		List.iter (function(e) {
 			compile ctx e;
@@ -621,8 +649,6 @@ function rec compile(ctx,(e,p)) {
 		write ctx Push;
 		write ctx (AccField f);
 		write ctx (ObjCall (List.length el))
-	| ECall ((EConst (Builtin b),_),el) ->
-		compile_builtin ctx b el p
 	| ECall (e,el) ->
 		List.iter (function(e) {
 			compile ctx e;
@@ -632,7 +658,7 @@ function rec compile(ctx,(e,p)) {
 		write ctx (Call (List.length el))
 	| EArray (e1,(EConst (Int n),_)) ->
 		compile ctx e1;
-		write ctx (AccIndex n)
+		write ctx (if n == 0 then AccIndex0 else if n == 1 then AccIndex1 else AccIndex n)
 	| EArray (e1,e2) ->
 		compile ctx e1;
 		write ctx Push;
@@ -724,11 +750,19 @@ function rec compile(ctx,(e,p)) {
 		| None -> ()
 		| Some e -> compile ctx e
 		};
-		if ctx.loop_limit != ctx.stack then write_raw_op ctx (Pop (ctx.stack - ctx.loop_limit));
+		if ctx.loop_limit != ctx.stack then {
+			var s = ctx.stack;
+			write ctx Pop(ctx.stack - ctx.loop_limit);
+			ctx.stack := s;
+		}
 		ctx.breaks := (jmp ctx , p) :: ctx.breaks
 	| EContinue ->
 		if ctx.ntraps != 0 then assert();
-		if ctx.loop_limit != ctx.stack then write_raw_op ctx (Pop (ctx.stack - ctx.loop_limit));
+		if ctx.loop_limit != ctx.stack then {
+			var s = ctx.stack;
+			write ctx Pop(ctx.stack - ctx.loop_limit);
+			ctx.stack := s;
+		}
 		ctx.continues := (jmp ctx , p) :: ctx.continues
 	| EFunction (params,e) ->
 		compile_function ctx params e
@@ -754,7 +788,7 @@ function rec compile(ctx,(e,p)) {
 			write ctx Push;
 			compile ctx e;
 			write ctx (SetField f);
-			write ctx (AccStack 0);
+			write ctx AccStack0;
 		}) fl;
 		write ctx (Pop 1)
 	| ELabel l ->
@@ -799,7 +833,7 @@ function rec compile(ctx,(e,p)) {
 			compile ctx e;
 			write ctx Push;
 			var jumps = List.map (function((e1,e2)) {
-				write ctx (AccStack 0);
+				write ctx AccStack0;
 				write ctx Push;
 				compile ctx e1;
 				write ctx Eq;
@@ -807,12 +841,12 @@ function rec compile(ctx,(e,p)) {
 			}) cases;
 			match eo {
 			| None -> write ctx AccNull
-			| Some e -> compile ctx (EBlock [e],Lexer.null_pos)
+			| Some e -> compile ctx (EBlock [e],p)
 			}
 			var jump_end = jmp ctx;
 			var jumps = List.map (function((j,e)) {
 				j();
-				compile ctx (EBlock [e],Lexer.null_pos);
+				compile ctx (EBlock [e],p);
 				jmp ctx;
 			}) jumps;
 			jump_end();

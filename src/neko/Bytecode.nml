@@ -80,6 +80,12 @@ type opcode {
 	Hash;
 	New;
 	JumpTable : int;
+	Apply : int;
+	AccStack0;
+	AccStack1;
+	AccIndex0;
+	AccIndex1;
+	PhysCompare;
 };
 
 type global {
@@ -93,7 +99,6 @@ type global {
 exception Invalid_file;
 
 var trap_stack_delta = 6
-var max_call_args = 5
 
 function hash_field(s : string) : int {
 	neko("$hash(s)")
@@ -124,6 +129,7 @@ function op_param(x) {
 	| Ret _
 	| AccIndex _
 	| SetIndex _
+	| Apply _
 		-> true
 	| AccNull
 	| AccTrue
@@ -159,6 +165,11 @@ function op_param(x) {
 	| Compare
 	| Hash
 	| New
+	| AccStack0
+	| AccStack1
+	| AccIndex0
+	| AccIndex1
+	| PhysCompare
 		-> false
 	}
 }
@@ -276,12 +287,12 @@ function write(ch,(globals,ops)) {
 			| AccFalse -> 2
 			| AccThis -> 3
 			| AccInt n -> pop := Some n; 4
-			| AccStack n -> pop := Some n; 5
+			| AccStack n -> pop := Some (n - 2); 5
 			| AccGlobal n -> pop := Some n; 6
 			| AccEnv n -> pop := Some n; 7
 			| AccField s -> pop := Some (hash_field s); 8
 			| AccArray -> 9
-			| AccIndex n -> pop := Some n; 10
+			| AccIndex n -> pop := Some (n - 2); 10
 			| AccBuiltin s -> pop := Some (hash_field s); 11
 			| SetStack n -> pop := Some n; 12
 			| SetGlobal n -> pop := Some n; 13
@@ -328,6 +339,12 @@ function write(ch,(globals,ops)) {
 			| Hash -> 54
 			| New -> 55
 			| JumpTable n -> pop := Some n; 56
+			| Apply n -> pop := Some n; 57
+			| AccStack0 -> 58
+			| AccStack1 -> 59
+			| AccIndex0 -> 60
+			| AccIndex1 -> 61
+			| PhysCompare -> 62
 		});
 		match *pop {
 		| None -> IO.write_byte ch (opid << 2)
@@ -459,12 +476,12 @@ function read(ch) {
 				| 2 -> AccFalse
 				| 3 -> AccThis
 				| 4 -> AccInt p
-				| 5 -> AccStack p
+				| 5 -> AccStack (p + 2)
 				| 6 -> AccGlobal p
 				| 7 -> AccEnv p
 				| 8 -> AccField (try Hashtbl.find ids p catch { Not_found -> throw Invalid_file })
 				| 9 -> AccArray
-				| 10 -> AccIndex p
+				| 10 -> AccIndex (p + 2)
 				| 11 -> AccBuiltin (try Hashtbl.find ids p catch { Not_found -> throw Invalid_file })
 				| 12 -> SetStack p
 				| 13 -> SetGlobal p
@@ -511,6 +528,12 @@ function read(ch) {
 				| 54 -> Hash
 				| 55 -> New
 				| 56 -> JumpTable p
+				| 57 -> Apply p
+				| 58 -> AccStack0
+				| 59 -> AccStack1
+				| 60 -> AccIndex0
+				| 61 -> AccIndex1
+				| 62 -> PhysCompare
 				| _ -> throw Invalid_file
 			};
 			pos.[*cpos] := Array.length ops;
@@ -578,26 +601,18 @@ function dump(ch,(globals,ops)) {
 	Array.iteri (function(pos,op) {
 		if marks.[pos] then IO.write_char ch '\n';
 		IO.printf ch "%.6X %6d    %s\n" (*bpos , pos , match op {
-			| AccNull -> "AccNull"
-			| AccTrue -> "AccTrue"
-			| AccFalse -> "AccFalse"
-			| AccThis -> "AccThis"
 			| AccInt i -> str "AccInt" i
 			| AccStack i -> str "AccStack" i
 			| AccGlobal i -> str "AccGlobal" i
 			| AccEnv i -> str "AccEnv" i
 			| AccField s -> "AccField " + s
-			| AccArray -> "AccArray"
 			| AccIndex i -> str "AccIndex" i
 			| AccBuiltin s -> "AccBuiltin " + s
 			| SetStack i -> str "SetStack" i
 			| SetGlobal i -> str "SetGlobal" i
 			| SetEnv i -> str "SetEnv" i
 			| SetField f -> "SetField " + f
-			| SetArray -> "SetArray"
 			| SetIndex i -> str "SetIndex" i
-			| SetThis -> "SetThis"
-			| Push -> "Push"
 			| Pop i -> str "Pop" i
 			| Call i -> str "Call" i
 			| ObjCall i -> str "ObjCall" i
@@ -605,36 +620,12 @@ function dump(ch,(globals,ops)) {
 			| JumpIf i -> str "JumpIf" (pos + i)
 			| JumpIfNot i -> str "JumpIfNot" (pos + i)
 			| Trap i -> str "Trap" (pos + i)
-			| EndTrap -> "EndTrap"
 			| Ret i -> str "Ret" i
 			| MakeEnv i -> str "MakeEnv" i
 			| MakeArray i -> str "MakeArray" i
-			| Bool -> "Bool"
-			| IsNull -> "IsNull"
-			| IsNotNull -> "IsNotNull"
-			| Add -> "Add"
-			| Sub -> "Sub"
-			| Mult -> "Mult"
-			| Div -> "Div"
-			| Mod -> "Mod"
-			| Shl -> "Shl"
-			| Shr -> "Shr"
-			| UShr -> "UShr"
-			| Or -> "Or"
-			| And -> "And"
-			| Xor -> "Xor"
-			| Eq -> "Eq"
-			| Neq -> "Neq"
-			| Gt -> "Gt"
-			| Gte -> "Gte"
-			| Lt -> "Lt"
-			| Lte -> "Lte"
-			| Not -> "Not"
-			| TypeOf -> "TypeOf"
-			| Compare -> "Compare"
-			| Hash -> "Hash"
-			| New -> "New"
 			| JumpTable i -> str "JumpTable" i
+			| Apply i -> str "Apply" i
+			| _ -> string op
 		});
 		bpos := *bpos + if op_param op then 2 else 1;
 	}) ops;
