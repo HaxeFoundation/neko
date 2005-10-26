@@ -33,6 +33,7 @@ typedef struct _neko_module {
 	value exports;
 	value debuginf;
 	int_val *code;
+	int load_count;
 } neko_module;
 
 typedef void *readp;
