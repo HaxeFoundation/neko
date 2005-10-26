@@ -42,6 +42,23 @@ function dump(file) {
 	IO.close_out o
 }
 
+function release(file) {
+	if *verbose then printf "Releasing %s\n" file;
+	var i = IO.read_file file true;
+	var globals, code = Neko.Bytecode.read i;
+	IO.close_in i;
+	var globals = Array.map (function(g) {
+		match g {
+		| Neko.Bytecode.GlobalVar _
+		| Neko.Bytecode.GlobalDebug _ -> Neko.Bytecode.GlobalVar ""
+		| _ -> g
+		}
+	}) globals;
+	var o = IO.write_file file true;
+	Neko.Bytecode.write o (globals,code);
+	IO.close_out o
+}
+
 function report(msg,p) {
 	if p == Lexer.null_pos then	{
 		Stack.dump IO.stderr Stack.exc();
@@ -55,6 +72,7 @@ try {
 	var head = "Neko v1.0 - (c)2005 Nicolas Cannasse\n Usage : neko [options] files...";
 	var decl = [
 		("-d", Args.String (function(f) { dump f }) , "<file> : dump bytecode");
+		("-z", Args.String (function(f) { release f }), "<file> : make bytecode release");
 		("-v", Args.Void (function() { verbose := true }) , ": verbose mode");
 	];
 	Args.parse head decl (function(f) { compile f });
