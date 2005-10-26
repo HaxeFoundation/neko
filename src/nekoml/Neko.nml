@@ -115,21 +115,11 @@ function rec is_fun(t) {
 	}
 }
 
-function rec call(ret,f,args,p) {
-	match fst f {
-	| EConst (Builtin _) -> (ECall f args, p)
-	| _ ->
-		match args {
-		| a :: b :: c :: d :: x :: l ->
-			var app = ECall (EConst (Builtin "apply"),p) [f;a;b;c;d];
-			call ret (app,p) (x :: l) p
-		| _ ->
-			if is_fun ret then
-				(ECall (EConst (Builtin "apply"),p) (f :: args) , p)
-			else
-				(ECall f args , p)
-		}
-	}
+function call(ret,f,args,p) {
+	if is_fun ret then
+		(ECall (EConst (Builtin "apply"),p) (f :: args) , p)
+	else
+		(ECall f args , p)
 }
 
 function array(args,p) {
@@ -187,7 +177,7 @@ function rec gen_constant(ctx,c,p) {
 	| TChar c -> EConst Int(ord c)
 	| TString s -> EConst (String s)
 	| TIdent s ->
-		if Set.exists ctx.refvars s then EArray (EConst (Ident s),null_pos) int(0) else EConst (Ident s)
+		if Set.exists ctx.refvars s then EArray ident(s) int(0) else EConst (Ident s)
 	| TBool b -> EConst (if b then True else False)
 	| TConstr "[]" | TModule (["Core"],TConstr "[]") -> fst (import ctx core "@empty" p)
 	| TConstr "::" | TModule (["Core"],TConstr "::") -> fst (import ctx core "@cons" p)
@@ -355,12 +345,12 @@ function rec gen_constructor(ctx,tname,c,id,t,p) {
 	(ENext val_type(t) export , p)
 }
 
-function rec gen_type_printer(ctx,c,t) {
-	var printer = mk TConst(TModule ["Core"] TIdent("@print_union")) t_void null_pos;
+function rec gen_type_printer(ctx,c,t,p) {
+	var printer = mk TConst(TModule ["Core"] TIdent("@print_union")) t_void p;
 	var e = mk (TCall printer [
-		mk TConst(TString c) t_string null_pos;
-		mk TConst(TIdent "v") t_void null_pos
-	]) t_string null_pos;
+		mk TConst(TString c) t_string p;
+		mk TConst(TIdent "v") t_void p
+	]) t_string p;
 	e
 }
 
@@ -387,7 +377,7 @@ function rec gen_type(ctx,name,t,p) {
 		gen_type ctx (loop name) t p
 	| TUnion (_,constrs) ->
 		var cmatch = gen_match ctx (ident "v") (MSwitch MRoot (List.map (function((c,t)) {
-			var e = gen_type_printer ctx c t;
+			var e = gen_type_printer ctx c t p;
 			(TConstr c , MExecute e true)
 		}) constrs)) false p;
 		var printer = (EFunction ["v"] cmatch , p);
@@ -495,7 +485,7 @@ function rec gen_expr(ctx,e) {
 	| TTupleGet (e,n) ->
 		EArray (gen_expr ctx e) int(n)
 	| TErrorDecl (e,t) ->
-		var printer = gen_expr ctx (gen_type_printer ctx e t);
+		var printer = gen_expr ctx (gen_type_printer ctx e t p);
 		var printer = (EFunction ["v"] (EBlock [printer],p) , p);
 		var printer = (EVars [(e + "__string",Some printer)] , p);
 		ENext printer (gen_constructor ctx e e (Hashtbl.hash (e :: ctx.current)) t p)
@@ -516,11 +506,11 @@ function rec gen_functions(ctx,fl,p) {
 			("_" , Some (EFunction (List.map fst params) block(gen_expr ctx e),p))
 		| TFunction (_,name,_,_) ->
 			ctx.refvars := Set.add ctx.refvars name;
-			(name , Some (array [enull] null_pos))
+			(name , Some (array [enull] p))
 		| _ ->
 			assert()
 		}
-	}) fl) , null_pos);
+	}) fl) , p);
 	List.iter (function(e) {
 		var p = e.epos;
 		match e.edecl {
@@ -569,14 +559,15 @@ function generate(tctx,e,deps,idents,mod) {
 		imports = Hashtbl.create();
 		refvars = Set.empty();
 	};
-	var init = (EBinop "=" ident(m) builtin("exports") , null_pos);
+	var p = e.epos;
+	var init = (EBinop "=" ident(m) builtin("exports") , p);
 	var deps = List.map (function(m) {
 		var file = file_name m "";
-		var load = (ECall (EField builtin("loader") "loadmodule",null_pos) [gen_constant ctx (TString file) null_pos;builtin "loader"] , null_pos);
-		(EBinop "=" ident(module_name m) load , null_pos)
+		var load = (ECall (EField builtin("loader") "loadmodule",p) [gen_constant ctx (TString file) p;builtin "loader"] , p);
+		(EBinop "=" ident(module_name m) load , p)
 	}) deps;
 	var exports = List.map (function(i) {
-		(EBinop "=" (EField builtin("exports") i,null_pos) ident(i) , null_pos)
+		(EBinop "=" (EField builtin("exports") i,p) ident(i) , p)
 	}) idents;
 	var el = match gen_expr ctx e {
 	| (EBlock el, _) -> el
@@ -587,7 +578,7 @@ function generate(tctx,e,deps,idents,mod) {
 		var e = match key {
 			| [] -> assert()
 			| i :: m ->
-				(EBinop "=" ident(id) (EField ident(module_name m) i , null_pos) , null_pos)
+				(EBinop "=" ident(id) (EField ident(module_name m) i , p) , p)
 		}
 		imports := e :: *imports;
 	}) ctx.imports;
