@@ -173,6 +173,9 @@
 			<File
 				RelativePath=".\opcodes.h">
 			</File>
+			<File
+				RelativePath=".\vm.h">
+			</File>
 		</Filter>
 	</Files>
 	<Globals>
