@@ -48,7 +48,7 @@ type ('a,'b) tables {
 
 exception Invalid_rule : string
 
-var null_pos = { pmin = -1; pmax = -1; pline = -1; psource = "<null>" };
+var null_pos = { pmin = 0; pmax = 0; pline = 0; psource = "<null>" };
 
 function source(p) { p.psource }
 function line(p) { p.pline }
