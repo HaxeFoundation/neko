@@ -79,6 +79,12 @@ enum OPCODE {
 	Hash,
 	New,
 	JumpTable,
+	Apply,
+	AccStack0,
+	AccStack1,
+	AccIndex0,
+	AccIndex1,
+	PhysCompare,
 
 	Last,
 };
@@ -143,6 +149,12 @@ static int parameter_table[] = {
 	0, // Hash
 	0, // New
 	1, // JumpTable
+	1, // Apply
+	0, // AccStack0
+	0, // AccStack1
+	0, // AccIndex0
+	0, // AccIndex1
+	0, // PhysCompare
 };
 
 #define P	0xFF
@@ -205,6 +217,12 @@ static int stack_table[] = {
 	0, // Hash
 	0, // New
 	0, // JumpTable
+	-P, // Apply
+	0, // AccStack0
+	0, // AccStack1
+	0, // AccIndex0
+	0, // AccIndex1
+	-1, // PhysCompare
 
 	0, // Last
 };

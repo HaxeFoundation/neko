@@ -173,6 +173,14 @@ static int neko_check_stack( neko_module *m, unsigned char *tmp, unsigned int i,
 			if( m->code[i+1] >= stack )
 				return 0;
 			break;
+		case AccStack0:
+			if( 0 >= stack )
+				return 0;
+			break;
+		case AccStack1:
+			if( 1 >= stack )
+				return 0;
+			break;
 		case Last:
 			if( stack != 0 )
 				return 0;
@@ -382,7 +390,12 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 		case AccInt:
 			m->code[i+1] = (int_val)alloc_int((int)itmp);
 			break;
+		case AccIndex:
+			m->code[i+1] += 2;
+			break;
 		case AccStack:
+			m->code[i+1] += 2;
+			itmp = (unsigned int)m->code[i+1];
 		case SetStack:
 			if( ((int)itmp) < 0 )
 				ERROR();
@@ -407,7 +420,11 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 		case Call:
 		case ObjCall:
 			if( itmp > CALL_MAX_ARGS )
-				failure("Too many arguments for a call");
+				ERROR();
+			break;
+		case Apply:
+			if( itmp == 0 || itmp >= CALL_MAX_ARGS )
+				ERROR();
 			break;
 		case MakeEnv:
 			if( itmp > 0xFF )

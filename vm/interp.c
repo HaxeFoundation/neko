@@ -403,6 +403,12 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 	Instr(AccInt)
 		acc = *pc++;
 		Next;
+	Instr(AccStack0)
+		acc = *sp;
+		Next;
+	Instr(AccStack1)
+		acc = sp[1];
+		Next;
 	Instr(AccStack)
 		acc = sp[*pc++];
 		Next;
@@ -433,6 +439,28 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 		else
 			acc = (int_val)val_null;
 		*sp++ = ERASE;
+		Next;
+	Instr(AccIndex0)
+		if( val_is_array(acc) ) {
+			if( val_array_size(acc) )
+				acc = (int_val)*val_array_ptr(acc);
+			else
+				acc = (int_val)val_null;
+		} else if( val_is_object(acc) )
+			ObjectOp(acc,alloc_int(0),id_get)
+		else
+			acc = (int_val)val_null;
+		Next;
+	Instr(AccIndex1)
+		if( val_is_array(acc) ) {
+			if( val_array_size(acc) > 1 )
+				acc = (int_val)val_array_ptr(acc)[1];
+			else
+				acc = (int_val)val_null;
+		} else if( val_is_object(acc) )
+			ObjectOp(acc,alloc_int(1),id_get)
+		else
+			acc = (int_val)val_null;
 		Next;
 	Instr(AccIndex)
 		if( val_is_array(acc) ) {
@@ -512,6 +540,30 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 	Instr(Pop)
 		PopMacro(*pc++)
 		Next;
+	Instr(Apply)
+		if( !val_is_function(acc) )
+			val_throw(alloc_string("apply"));
+		{
+			int n = val_fun_nargs(acc);
+			if( n == *pc || n == VAR_ARGS )
+				goto do_call;
+			if( n < *pc )
+				val_throw(alloc_string("apply"));
+			{
+				int i = 0;
+				value env = alloc_array(n + 1);
+				val_array_ptr(env)[0] = (value)acc;
+				while( i++ < *pc ) {
+					val_array_ptr(env)[i] = (value)*sp;
+					*sp++ = ERASE;
+				}
+				while( i++ < n )
+					val_array_ptr(env)[i] = val_null;
+				acc = (int_val)alloc_apply((int)(n - *pc),env);
+			}
+		}
+		Next;
+		do_call:
 	Instr(Call)
 		DoCall(vm->vthis);
 		Next;
@@ -706,6 +758,10 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 		acc = (int_val)val_compare((value)*sp,(value)acc);
 		EndCall();
 		acc = (int_val)((acc == invalid_comparison)?val_null:alloc_int(acc));
+		*sp++ = ERASE;
+		Next;
+	Instr(PhysCompare)
+		acc = (int_val)(( *sp > acc )?alloc_int(1):(( *sp < acc )?alloc_int(-1):alloc_int(0)));
 		*sp++ = ERASE;
 		Next;
 	Instr(Hash)
