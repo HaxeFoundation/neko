@@ -318,10 +318,8 @@ static value loader_readmodule( value mname, value vthis ) {
 		neko_module *m;	
 		field mid = val_id(val_string(mname));
 		vm = val_field(cache,mid);
-		if( val_is_kind(vm,neko_kind_module) ) {
-			m = (neko_module*)val_data(vm);
-			return m->exports;
-		}
+		if( val_is_kind(vm,neko_kind_module) )			
+			return vm;		
 		open_module(val_field(o,id_path),val_string(mname),&r,&p);
 		m = neko_read_module(r,p,vthis);
 		close_module(p);
@@ -331,13 +329,19 @@ static value loader_readmodule( value mname, value vthis ) {
 			bfailure(b);
 		}
 		m->name = alloc_string(val_string(mname));
-		alloc_field(cache,mid,(value)m);
-		return alloc_abstract(neko_kind_module,m);
+		vm = alloc_abstract(neko_kind_module,m);
+		alloc_field(cache,mid,vm);
+		return vm;
 	}
 }
 
 static value loader_loadmodule( value mname, value vthis ) {
-	return loader_execute(loader_readmodule(mname,vthis));
+	value vm = loader_readmodule(mname,vthis);
+	neko_module *m = ((neko_module*)val_data(vm));
+	m->load_count++;
+	if( m->load_count == 1 )
+		return loader_execute(vm);
+	return m->exports;
 }
 
 EXTERN value neko_default_loader() {
