@@ -542,29 +542,29 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 		Next;
 	Instr(Apply)
 		if( !val_is_function(acc) )
-			val_throw(alloc_string("apply"));
+			val_throw(alloc_string("$apply"));
 		{
-			int n = val_fun_nargs(acc);
-			if( n == *pc || n == VAR_ARGS )
+			int fargs = val_fun_nargs(acc);
+			if( fargs == *pc || fargs == VAR_ARGS )
 				goto do_call;
-			if( n < *pc )
-				val_throw(alloc_string("apply"));
+			if( *pc > fargs )
+				val_throw(alloc_string("$apply"));
 			{
-				int i = 0;
-				value env = alloc_array(n + 1);
+				int i = fargs;
+				value env = alloc_array(fargs + 1);
 				val_array_ptr(env)[0] = (value)acc;
-				while( i++ < *pc ) {
-					val_array_ptr(env)[i] = (value)*sp;
+				while( i > *pc )
+					val_array_ptr(env)[i--] = val_null;
+				while( i ) {
+					val_array_ptr(env)[i--] = (value)*sp;
 					*sp++ = ERASE;
 				}
-				while( i++ < n )
-					val_array_ptr(env)[i] = val_null;
-				acc = (int_val)alloc_apply((int)(n - *pc),env);
+				acc = (int_val)alloc_apply((int)(fargs - *pc++),env);
 			}
 		}
-		Next;
-		do_call:
+		Next;		
 	Instr(Call)
+		do_call:
 		DoCall(vm->vthis);
 		Next;
 	Instr(ObjCall)
