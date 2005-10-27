@@ -16,7 +16,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
-
+open Lexer;
 open Neko.Ast;
 open Nekoml.Type;
 
@@ -33,8 +33,6 @@ type context {
 	mutable counter : int;
 	mutable refvars : string Set.t;
 }
-
-var null_pos = Lexer.null_pos
 
 function gen_label(ctx) {
 	var c = ctx.counter;
@@ -422,21 +420,39 @@ function rec gen_binop(ctx,op,e1,e2,p) {
 	}
 }
 
+function rec gen_call(ctx,e,el,p) {
+	match e.edecl {
+	| TConst (TIdent "neko") 
+	| TConst (TModule ([],TIdent "neko"))
+	| TConst (TModule (["Core"],TIdent "neko")) ->
+		match el {
+		| [{ edecl = TConst (TString s) }] ->
+			var ch = IO.read_string (String.concat "\"" (String.split s "'"));			
+			var lex = Lexer.create Buffer.create();
+			Lexer.input lex p.psource ch p.pline p.pmin;
+			fst (Neko.Parser.parse lex)
+		| _ ->
+			assert()
+		}
+	| TConst (TConstr "::")
+	| TConst (TModule ([],TConstr "::"))
+	| TConst (TModule (["Core"],TConstr "::")) ->
+		match el {
+		| [e1;e2] -> ECall (EConst (Builtin "array"),p) [int 1;import ctx core "@pcons" p;gen_expr ctx e1;gen_expr ctx e2]
+		| _ -> assert()
+		}
+	| _ ->
+		fst (call e.etype (gen_expr ctx e) (List.map (gen_expr ctx) el) p)
+	}
+}
+
 function rec gen_expr(ctx,e) {
 	var p = e.epos;
 	var e = match e.edecl {
 	| TConst c -> fst (gen_constant ctx c p)
 	| TBlock el -> EBlock (gen_block ctx el p)
 	| TParenthesis e -> EParenthesis (gen_expr ctx e)
-	| TCall ({ edecl = TConst (TIdent "neko") },[{ edecl = TConst (TString s) }])
-	| TCall ({ edecl = TConst (TModule ([],TIdent "neko")) },[{ edecl = TConst (TString s) }])
-	| TCall ({ edecl = TConst (TModule (["Core"],TIdent "neko")) },[{ edecl = TConst (TString s) }]) ->
-		var ch = IO.read_string (String.concat "\"" (String.split s "'"));
-		var file = "neko@" + p.psource;
-		var lex = Lexer.create Buffer.create();
-		Lexer.input lex file ch p.pline p.pmin;
-		fst (Neko.Parser.parse lex)
-	| TCall (f,el) -> fst (call e.etype (gen_expr ctx f) (List.map (gen_expr ctx) el) p)
+	| TCall (e,el) -> gen_call ctx e el p
 	| TField (e,s) -> EArray gen_expr(ctx,e) int(record_index s e.etype)
 	| TArray (e1,e2) ->
 		ECall (import ctx core "@aget" p) [gen_expr ctx e1;gen_expr ctx e2]
