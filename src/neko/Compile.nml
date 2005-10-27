@@ -598,7 +598,7 @@ function rec compile_builtin(ctx,b,el,p) {
 			var app = ECall apply [(EConst (Builtin bname),p);a;b;c;d];
 			compile ctx (ECall (app,p) (x1 :: x2 :: l) ,p)
 		}
-/*	| ("apply",e :: el) ->
+	| ("apply",e :: el) ->
 		List.iter (function(e) {
 			compile ctx e;
 			write ctx Push;
@@ -606,7 +606,7 @@ function rec compile_builtin(ctx,b,el,p) {
 		compile ctx e;
 		var nargs = List.length el;
 		if nargs > 0 then write ctx (Apply nargs);
-*/	| _ ->
+	| _ ->
 		List.iter (function(e) {
 			compile ctx e;
 			write ctx Push;
