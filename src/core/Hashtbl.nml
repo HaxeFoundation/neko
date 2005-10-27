@@ -43,7 +43,7 @@ function exists(h : ('a,'b) t,k : 'a) : bool {
 }
 
 function add(h : ('a,'b) t, k : 'a, v : 'b) : void {
-	neko("$hadd(h,k,v,@Core.@compare)");
+	neko("$hadd(h,k,v)");
 }
 
 function remove(h : ('a,'b) t,k : 'a) : void {

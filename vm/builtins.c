@@ -666,12 +666,10 @@ static value builtin_hset( value vh, value key, value val, value cmp ) {
 	return val_true;
 }
 
-static value builtin_hadd( value vh, value key, value val, value cmp ) {
+static value builtin_hadd( value vh, value key, value val ) {
 	vhash *h;
 	hcell *c;
 	int hkey;
-	if( !val_is_null(cmp) )
-		val_check_function(cmp,2);
 	val_check_kind(vh,k_hash);
 	h = val_hdata(vh);
 	hkey = val_hash(key);
@@ -781,7 +779,7 @@ void neko_init_builtins() {
 	BUILTIN(hget,3);
 	BUILTIN(hmem,3);
 	BUILTIN(hset,4);
-	BUILTIN(hadd,4);
+	BUILTIN(hadd,3);
 	BUILTIN(hremove,3);
 	BUILTIN(hresize,2);
 	BUILTIN(hkey,1);
