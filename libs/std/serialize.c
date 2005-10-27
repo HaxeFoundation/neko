@@ -197,6 +197,22 @@ void serialize_rec( sbuffer *b, value o ) {
 			write_char(b,'I');
 			write_int(b,val_int32(o));
 			break;
+		} else if( val_is_kind(o,k_hash) ) {
+			int i;
+			vhash *h = val_hdata(o);
+			write_char(b,'h');
+			write_int(b,h->ncells);
+			write_int(b,h->nitems);
+			for(i=0;i<h->ncells;i++) {
+				hcell *c = h->cells[i];
+				while( c != NULL ) {
+					write_int(b,c->hkey);
+					serialize_rec(b,c->key);
+					serialize_rec(b,c->val);
+					c = c->next;
+				}
+			}
+			break;
 		}
 	default:
 		failure("Cannot Serialize Abstract");
@@ -365,6 +381,33 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 				}
 			}
 			return val_null;
+		}
+	case 'h':
+		{
+			int i;
+			vhash *h = (vhash*)alloc(sizeof(vhash));
+			h->ncells = read_int(b);
+			h->nitems = read_int(b);			
+			if( b->error ) 
+				return val_null;
+			h->cells = (hcell**)alloc(sizeof(hcell*)*h->ncells);
+			for(i=0;i<h->nitems;i++) {
+				hcell **p;
+				hcell *c = (hcell*)alloc(sizeof(hcell));
+				c->hkey = read_int(b);
+				c->key = unserialize_rec(b,loader);
+				if( b->error )
+					return val_null;
+				c->val = unserialize_rec(b,loader);
+				c->next = NULL;
+				if( b->error )
+					return val_null;
+				p = &h->cells[c->hkey % h->ncells];
+				while( *p != NULL )
+					p = &(*p)->next;
+				*p = c;
+			}
+			return alloc_abstract(k_hash,h);
 		}
 	default:
 		b->error = true;
