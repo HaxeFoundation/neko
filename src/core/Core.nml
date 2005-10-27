@@ -180,9 +180,11 @@ neko("
 	}
 
 	@empty = $array(0,function(_){ '[]' });
+	@pcons = function(c) { @string(c[2]) + ' :: ' + @string(c[3]) };
 	@cons = function(x,l) {
-		$array(1,function(c) { @string(c[2]) + ' :: ' + @string(c[3]) },x,l)
+		$array(1,@pcons,x,l)
 	}
+	$exports.@pcons = @pcons;
 	$exports.@cons = @cons;
 	$exports.@empty = @empty;
 ");
