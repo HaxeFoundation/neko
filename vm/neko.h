@@ -23,6 +23,9 @@
 
 #ifdef _WIN32
 #include <stddef.h>
+#ifndef NULL
+#	define NULL ((void*)0)
+#endif
 #else
 #include <stdint.h>
 #endif
