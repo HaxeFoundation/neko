@@ -21,8 +21,13 @@
 #include <neko.h>
 #include <time.h>
 #include <string.h>
-#ifndef _WIN32
-#include <sys/time.h>
+#ifdef _WIN32
+#	include <windows.h>
+#	include <process.h>
+#else
+#	include <sys/time.h>
+#	include <sys/types.h>
+#	include <unistd.h>
 #endif
 
 DEFINE_KIND(k_random);
@@ -51,17 +56,6 @@ static const unsigned long init_seeds[] = {
 	0x512c0c03, 0xea857ccd, 0x4cc1d30f, 0x8891a8a1, 0xa6b7aadb
 };
 
-#ifdef _WIN32
-#include <windows.h>
-
-static int gettimeofday( struct timeval *t, struct timezone *tz ) {
-	DWORD d = GetTickCount();
-	t->tv_sec = d / 1000;
-	t->tv_usec = (d % 1000) * 1000;
-	return 0;
-}
-#endif
-
 static int rnd_size() {
 	return sizeof(rnd);
 }
@@ -76,9 +70,16 @@ static void rnd_set_seed( rnd *r, int s ) {
 
 static rnd *rnd_init( void *data ) {
 	rnd *r = (rnd*)data;
+	int pid = getpid();
+	unsigned int time;
+#ifdef _WIN32
+	time = GetTickCount();
+#else
 	struct timeval t;
 	gettimeofday(&t,NULL);
-	rnd_set_seed(r,t.tv_sec * 1000000 + t.tv_usec);
+	time = t.tv_sec * 1000000 + t.tv_usec;
+#endif	
+	rnd_set_seed(r,time ^ (pid | (pid << 16)));
 	return r;
 }
 
