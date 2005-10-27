@@ -201,7 +201,7 @@ static value sprintf( value fmt, value params ) {
 }
 
 static value test() {
-	val_print(alloc_string("Calling a function inside std library..."));
+	val_print(alloc_string("Calling a function inside std library...\n"));
 	return val_null;
 }
 
