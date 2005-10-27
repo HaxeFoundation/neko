@@ -61,27 +61,14 @@ static void profile_summary( const char *name, neko_module *m, int *ptr ) {
 
 static void profile_details( const char *name, neko_module *m, int *tot ) {
 	unsigned int i;
+	value *dbg = val_is_null(m->debuginf)?NULL:val_array_ptr(m->debuginf);
 	printf("Details for : %s[%d]\n",name,m->codesize);
 	for(i=0;i<m->codesize;i++) {
-		int_val c = m->code[PROF_SIZE+i];
+		int c = (int)m->code[PROF_SIZE+i];
 		if( c > 0 ) {
-			unsigned int p = i;
-			int param = 0;
-			while( i < m->codesize ) {
-				int_val k = m->code[PROF_SIZE+i];
-				if( k != c ) {
-					if( k == 0 ) {
-						if( param == 1 )
-							param = 0; 
-						else
-							break;
-					}
-				} else
-					param = 1;
-				i++;
-			}
-			i--;
-			printf("%-4X %-4X    %d\n",p,i,c);
+			if( dbg )
+				val_print(dbg[i]);
+			printf("  %-4X    %d\n",i,c);
 		}
 	}
 	printf("\n");
@@ -89,12 +76,17 @@ static void profile_details( const char *name, neko_module *m, int *tot ) {
 
 static void profile_functions( const char *name, neko_module *m, int *tot ) {
 	unsigned int i;
+	value *dbg = val_is_null(m->debuginf)?NULL:val_array_ptr(m->debuginf);
 	for(i=0;i<m->nglobals;i++) {
 		value v = m->globals[i];
 		if( val_is_function(v) && val_type(v) == VAL_FUNCTION && ((vfunction*)v)->module == m ) {
 			int pos = (int)(((int_val)((vfunction*)v)->addr - (int_val)m->code) / sizeof(int_val));
-			if( m->code[PROF_SIZE+pos] > 0 )
-				printf("%-8d    %-4d %-20s %X\n",m->code[PROF_SIZE+pos],i,name,pos);
+			if( m->code[PROF_SIZE+pos] > 0 ) {				
+				printf("%-8d    %-4d %-20s %X ",m->code[PROF_SIZE+pos],i,name,pos);
+				if( dbg )
+					val_print(dbg[pos]);
+				printf("\n");
+			}
 		}
 	}
 }
