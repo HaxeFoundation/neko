@@ -143,7 +143,8 @@ static value file_rename( value path, value newname ) {
 	return val_true;
 }
 
-#define STATF(f) alloc_field(o,val_id(#f),alloc_int32(s.st_##f))
+#define STATF(f) alloc_field(o,val_id(#f),alloc_int(s.st_##f))
+#define STATF32(f) alloc_field(o,val_id(#f),alloc_int32(s.st_##f))
 
 static value sys_stat( value path ) {
 	struct stat s;
@@ -154,13 +155,13 @@ static value sys_stat( value path ) {
 	o = alloc_object(NULL);
 	STATF(gid);
 	STATF(uid);
-	STATF(atime);
+	STATF32(atime);
 #ifdef _WIN32
 	alloc_field(o,val_id("mtime"),alloc_int32(s.st_ctime));
 #else
 	STATF(mtime);
 #endif
-	STATF(ctime);
+	STATF32(ctime);
 	STATF(dev);
 	STATF(ino);
 	STATF(mode);
@@ -168,6 +169,32 @@ static value sys_stat( value path ) {
 	STATF(rdev);
 	STATF(size);
 	return o;
+}
+
+static value sys_file_type( value path ) {
+	struct stat s;
+	val_check(path,string);
+	if( stat(val_string(path),&s) != 0 )
+		neko_error();
+	if( s.st_mode & S_IFREG )
+		return alloc_string("file");
+	if( s.st_mode & S_IFDIR )
+		return alloc_string("dir");
+	if( s.st_mode & S_IFCHR )
+		return alloc_string("char");
+#ifndef _WIN32
+	if( s.st_mode & S_IFLNK )
+		return alloc_string("symlink");
+	if( s.st_mode & S_IFBLK )
+		return alloc_string("block");
+	if( s.st_mode & S_IFIFO )
+		return alloc_string("fifo");
+	if( s.st_mode & S_IFSOCK )
+		return alloc_string("sock");
+	if( s.st_mode & S_IFWHT )
+		return alloc_string("white");
+#endif
+	neko_error();
 }
 
 static value sys_create_dir( value path, value mode ) {
@@ -358,5 +385,6 @@ DEFINE_PRIM(file_exists,1);
 DEFINE_PRIM(file_delete,1);
 DEFINE_PRIM(file_rename,1);
 DEFINE_PRIM(sys_exe_path,0);
+DEFINE_PRIM(sys_file_type,1);
 
 /* ************************************************************************ */
