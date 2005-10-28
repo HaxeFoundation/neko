@@ -31,19 +31,19 @@ libs = {
 		src => $array("mod_neko","cgi"),
 		inc => "httpd.h",
 		incname => "Apache 1.3"
-		lib => null,
 	},
 	mysql => {
 		src => $array("mysql"),
 		inc => "mysql.h",
 		incname => "MySQL 4.+"
 		lib => "libmysqlclient.a",
+		lparams => "-lz"
 	},
 	regexp => {
 		src => $array("regexp"),
 		inc => "pcre.h",
 		incname => "PCRE",
-		lib => "-lpcre",
+		lparams => "-lpcre",
 	},
 }
 
@@ -169,11 +169,11 @@ compile = function(file) {
 	exec("gcc -O3 -fPIC -c "+make("-I",includes)+file+".c");
 }
 
-link = function(files,target,lib) {
+link = function(files,target,params) {
 	files = make("",map(files,function(f){ f + ".o" }));
 	var cmd = linkcmd+" "+linkoptions+" "+make("-L",libraries);
 	var out = " -o ../../bin/"+target+".ndll ";
-	exec(cmd+out+files+" "+lib);
+	exec(cmd+out+files+" "+params);
 }
 
 // COMPILATION
@@ -194,7 +194,7 @@ compile_lib = function(lib) {
 	var dir = "";
 	if( linklib == null )
 		linklib = "";
-	else if( $sget(linklib,0) != $sget("-",0) ) {
+	else {
 		while( (dir = find_file(linklib,libraries)) == null ) {
 			$print("The file "+linklib+" provided when installing "+data.incname+" was not found\n");
 			$print("Please enter a valid include path to look for it\n");
@@ -209,7 +209,7 @@ compile_lib = function(lib) {
 		compile(data.src[i]);
 		i = i + 1;
 	}
-	link(data.src,lib,dir+linklib);
+	link(data.src,lib,dir+linklib+(if( data.lparams ) " "+data.lparams else ""));
 }
 
 // MAIN LOOP
