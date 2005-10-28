@@ -206,7 +206,7 @@ compile_lib = function(lib) {
 		compile(data.src[i]);
 		i = i + 1;
 	}
-	link(data.src,lib,if( data.lparams != null ) { " "+data.lparams } else "")," "+linklib);
+	link(data.src,lib,if( data.lparams != null ) { " "+data.lparams } else ""," "+linklib);
 }
 
 // MAIN LOOP
