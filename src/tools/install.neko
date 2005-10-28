@@ -58,7 +58,9 @@ nekovm = switch system { "Windows" => "..\\bin\\nekovm" default => "../bin/nekov
 includes = $array(
 	"../../vm",
 	"/usr/local/apache/include",
-	"/usr/local/include/mysql"
+	"/usr/local/include/mysql",
+	"/usr/include",
+	"/usr/local/include",
 );
 
 libraries = $array(
