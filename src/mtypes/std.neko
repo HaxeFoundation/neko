@@ -320,81 +320,30 @@ Hash = $new(null);
 
 Hash.new = function() {
 	var o = $new(@Hash);
-	o.@h = $amake(64);
+	o.@h = $hnew(3);
 	return o;
 }
 
 @Hash = $new(null);
 @Hash.@h = null;
 @Hash.get = function(k) {
-	k = k.@s;
-	var l = this.@h[$hash(k) & 63];
-	while( l != null ) {
-		if( l[0] == k )
-			return l[1];
-		l = l[2];
-	}
-	return null;
+	return $hget(this.@h,k,null);
 }
 
 @Hash.set = function(k,v) {
-	k = k.@s;
-	var p = $hash(k) & 63;
-	var l = this.@h[p];
-	while( l != null ) {
-		if( l[0] == k ) {
-			l[1] = v;
-			return;
-		}
-		l = l[2];
-	}
-	var h = $amake(3);
-	h[0] = k;
-	h[1] = v;
-	h[2] = this.@h[p];
-	this.@h[p] = h;
+	$hset(this.@h,k,v,null);
 }
 
 @Hash.remove = function(k) {
-	k = k.@s;
-	var p = $hash(k) & 63;
-	var prev = null;
-	var l = this.@h[p];
-	while( l != null ) {
-		if( l[0] == k ) {
-			if( prev == null )
-				this.@h[p] = l[2];
-			else
-				prev[2] = l[2];
-			return true;
-		}
-		prev = l;
-		l = l[2];
-	}
-	return false;
+	return $hremove(this.@h,k,null);
 }
 
 @Hash.exists = function(k) {
-	k = k.@s;
-	var l = this.@h[$hash(k) & 63];
-	while( l != null ) {
-		if( l[0] == k )
-			return true;
-		l = l[2];
-	}
-	return false;
+	return $hmem(this.@h,k,null);
 }
 
 @Hash.iter = function(f) {
-	var i = 0;
-	while( i < 64 ) {
-		var l = this.@h[i];
-		while( l != null ) {
-			f(String.new(l[0]),l[1]);
-			l = l[2];
-		}
-		i = i + 1;
-	}
+	$hiter(this.@h,f);
 }
 
 @Hash.toString = function() {
@@ -406,20 +355,15 @@ Hash.new = function() {
 	var i = 0;
 	var first = true;
 	s.add("#hash[");
-	while( i < 64 ) {
-		var h = this.@h[i];
-		while( h != null ) {
-			if( first )
-				first = false;
-			else
-				s.add(", ");
-			s.add(h[0]);
-			s.add(" => ");
-			s.add(h[1]);
-			h = h[2];
-		}
-		i = i + 1;
-	}
+	$hiter(this.@h,function(k,v) {
+		if( first )
+			first = false;
+		else
+			s.add(", ");
+		s.add(k);
+		s.add(" => ");
+		s.add(v);
+	});
 	s.add("]");
 	return s.__string();
 }
@@ -863,6 +807,11 @@ Std.unserialize = function(s) {
 Std.throw = function(e) {
 	$throw(e);
 }
+
+Std.parseFloat = function(s) {
+	return $float(s);
+}
+
 
 $exports.Std = Std;
 
