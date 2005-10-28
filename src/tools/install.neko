@@ -139,7 +139,8 @@ compile = function(file) {
 link = function(files,target,lib) {
 	files = make("",map(files,function(f){ f + ".o" }));
 	var cmd = linkcmd+" "+linkoptions+" "+make("-L",libraries);
-	exec(cmd+" "+files+" "+lib+" -o ../../bin/"+target+".ndll");
+	var out = " -o ../../bin/"+target+".ndll ";
+	exec(cmd+out+files+" "+lib);
 }
 
 // COMPILATION
