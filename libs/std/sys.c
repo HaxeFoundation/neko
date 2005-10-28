@@ -255,7 +255,7 @@ static value sys_read_dir( value path ) {
 		if( e->d_name[0] == '.' && (e->d_name[1] == 0 || (e->d_name[1] == '.' && e->d_name[2] == 0)) )
 			continue;
 		tmp = alloc_array(2);
-		val_array_ptr(tmp)[0] = alloc_string(d->name);
+		val_array_ptr(tmp)[0] = alloc_string(e->d_name);
 		val_array_ptr(tmp)[1] = val_null;
 		if( cur )
 			val_array_ptr(cur)[1] = tmp;
