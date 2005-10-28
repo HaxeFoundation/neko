@@ -57,9 +57,6 @@ nekovm = switch system { "Windows" => "..\\bin\\nekovm" default => "../bin/nekov
 
 includes = $array(
 	"../../vm",
-	"../include/mysql",
-	"/usr/include",
-	"/usr/local/include",
 	"/usr/local/apache/include",
 	"/usr/local/include/mysql"
 );
@@ -169,11 +166,11 @@ compile = function(file) {
 	exec("gcc -O3 -fPIC -c "+make("-I",includes)+file+".c");
 }
 
-link = function(files,target,params) {
+link = function(files,target,params1,params2) {
 	files = make("",map(files,function(f){ f + ".o" }));
 	var cmd = linkcmd+" "+linkoptions+" "+make("-L",libraries);
 	var out = " -o ../../bin/"+target+".ndll ";
-	exec(cmd+out+files+" "+params);
+	exec(cmd+out+params1+files+params2);
 }
 
 // COMPILATION
@@ -202,14 +199,14 @@ compile_lib = function(lib) {
 			if( $not(request_lib()) )
 				return;
 		}
-		dir = dir + "/";
+		linklib = dir + "/" + linklib;
 	}
 	var i = 0;
 	while( i < $asize(data.src) ) {
 		compile(data.src[i]);
 		i = i + 1;
 	}
-	link(data.src,lib,dir+linklib+(if( data.lparams != null ) { " "+data.lparams } else ""));
+	link(data.src,lib,if( data.lparams != null ) { " "+data.lparams } else "")," "+linklib);
 }
 
 // MAIN LOOP
