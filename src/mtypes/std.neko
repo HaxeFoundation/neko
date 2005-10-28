@@ -209,7 +209,7 @@ Array.new1 = function(a) {
 @Array.concat = function(a) {
 	var l = $asize(this.@a);
 	var l2 = $asize(a.@a);
-	var a = $array(l+l2);
+	var a = $amake(l+l2);
 	$ablit(a,0,this.@a,0,l);
 	$ablit(a,l,a.@a,0,l2);
 	this.@a = a;
