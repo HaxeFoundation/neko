@@ -202,7 +202,10 @@ static void val_buffer_rec( buffer b, value v, vlist *stack ) {
 		buffer_append_sub(b,"]",1);
 		break;
 	case VAL_ABSTRACT:
-		buffer_append_sub(b,"#abstract",9);
+		if( val_is_kind(v,k_int32) )
+			buffer_append_sub(b,buf,sprintf(buf,"%d",val_int32(v)));
+		else
+			buffer_append_sub(b,"#abstract",9);
 		break;
 	default:
 		buffer_append_sub(b,"#unknown",8);
