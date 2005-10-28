@@ -21,13 +21,9 @@
 #ifndef _NEKO_H
 #define _NEKO_H
 
-#ifdef _WIN32
 #include <stddef.h>
-#ifndef NULL
-#	define NULL ((void*)0)
-#endif
-#else
-#include <stdint.h>
+#ifndef _WIN32
+#	include <stdint.h>
 #endif
 
 typedef intptr_t int_val;
