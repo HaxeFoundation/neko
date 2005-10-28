@@ -115,10 +115,10 @@ find_file = function(f,arr) {
 	var i = 0;
 	while( i < $asize(arr) ) {
 		if( file_exists(arr[i]+"/"+f) )
-			return true;
+			return arr[i];
 		i = i + 1;
 	}
-	return false;
+	return null;
 }
 
 map = function(a,f) {
@@ -138,8 +138,8 @@ compile = function(file) {
 
 link = function(files,target,lib) {
 	files = make("",map(files,function(f){ f + ".o" }));
-	var cmd = linkcmd+" "+linkoptions+" "+make("-L",libraries)+" "+lib;
-	exec(cmd+" "+files+" -o ../../bin/"+target+".ndll");
+	var cmd = linkcmd+" "+linkoptions+" "+make("-L",libraries);
+	exec(cmd+" "+files+" "+lib+" -o ../../bin/"+target+".ndll");
 }
 
 // COMPILATION
@@ -149,7 +149,7 @@ compile_lib = function(lib) {
 	var data = $objget(libs,$hash(lib));
 	if( data == null )
 		return $print("No data found for this library : Skipping\n");
-	while( $not(find_file(data.inc,includes)) ) {
+	while( find_file(data.inc,includes) == null ) {
 		$print("The file "+data.inc+" provided when installing "+data.incname+" was not found\n");
 		$print("Please enter a valid include path to look for it\n");
 		$print("Or 's' to skip this library\n");
@@ -157,16 +157,18 @@ compile_lib = function(lib) {
 			return;
 	}
 	var linklib = data.lib;
+	var dir = "";
 	if( linklib == null )
 		linklib = "";
 	else if( $sget(linklib,0) != $sget("-",0) ) {
-		while( $not(find_file(linklib,libraries)) ) {
+		while( (dir = find_file(linklib,libraries)) == null ) {
 			$print("The file "+linklib+" provided when installing "+data.incname+" was not found\n");
 			$print("Please enter a valid include path to look for it\n");
 			$print("Or 's' to skip this library\n");
 			if( $not(request_lib()) )
 				return;
 		}
+		dir = dir + "/";
 	}
 	var i = 0;
 	while( i < $asize(data.src) ) {
