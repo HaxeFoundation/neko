@@ -8,12 +8,23 @@ read_char = $loader.loadprim("std@file_read_char",1);
 ftype = $loader.loadprim("std@sys_file_type",1);
 command = $loader.loadprim("std@sys_command",1);
 file_exists = $loader.loadprim("std@file_exists",1);
+split = $loader.loadprim("std@string_split",2);
+mkdir = $loader.loadprim("std@sys_create_dir",2);
 
 buffer_new = $loader.loadprim("std@buffer_new",0);
 buffer_add_char = $loader.loadprim("std@buffer_add_char",2);
 buffer_string = $loader.loadprim("std@buffer_string",1);
 
 // LIBS DATAS
+
+sources = $array(
+	"tools/test",
+	"mtypes/cgi",
+	"mtypes/mysql",
+	"mtypes/regexp",
+	"mtypes/std",
+	"mtypes/sys",
+);
 
 libs = {
 	mod_neko => {
@@ -40,6 +51,7 @@ libs = {
 
 linkcmd = switch system { "BSD" => "ld" default => "gcc" };
 linkoptions = switch system { default => "-shared -L../../bin -lneko" };
+nekovm = switch system { "Windows" => "..\\bin\\nekovm" default => "../bin/nekovm" };
 
 // COMMANDS
 
@@ -132,6 +144,27 @@ map = function(a,f) {
 	return a2;
 }
 
+copy = function(file,path) {
+	switch system {
+	"Windows" => {
+		slashes = function(f) {
+			var c = split(f,"/");
+			var b = "";
+			while( c != null ) {
+				b = b + c[0];
+				if( c[1] != null )
+					b = b + "\\";
+				c = c[1];
+			}
+			return b;
+		}
+		exec("copy "+slashes(file)+" "+slashes(path)+" >NUL");
+	}
+	default =>
+		exec("cp "+file+" "+path)
+	};
+}
+
 compile = function(file) {
 	exec("gcc -O3 -fPIC -c "+make("-I",includes)+file+".c");
 }
@@ -180,6 +213,24 @@ compile_lib = function(lib) {
 }
 
 // MAIN LOOP
+
+rights = 0;
+base = "../bin/neko";
+
+try { mkdir(base,rights); } catch e { };
+
+map(sources,function(s) {
+	var dir = split(s,"/");
+	var path = base;
+	while( dir[1] != null ) {
+		path = path + "/" + dir[0];
+		if( $not(file_exists(path)) )
+			mkdir(path,rights);
+		dir = dir[1];
+	}
+	exec(nekovm+" neko/Main "+s+".neko");
+	copy(s+".n ",path);
+});
 
 chdir("../libs");
 var libs = readdir(".");
