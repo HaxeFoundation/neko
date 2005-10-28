@@ -1,0 +1,194 @@
+// PRIMITIVES
+
+system = $loader.loadprim("std@sys_string",0)();
+chdir = $loader.loadprim("std@set_cwd",1);
+readdir = $loader.loadprim("std@sys_read_dir",1);
+stdin = $loader.loadprim("std@file_stdin",0)();
+read_char = $loader.loadprim("std@file_read_char",1);
+ftype = $loader.loadprim("std@sys_file_type",1);
+command = $loader.loadprim("std@sys_command",1);
+file_exists = $loader.loadprim("std@file_exists",1);
+
+buffer_new = $loader.loadprim("std@buffer_new",0);
+buffer_add_char = $loader.loadprim("std@buffer_add_char",2);
+buffer_string = $loader.loadprim("std@buffer_string",1);
+
+// LIBS DATAS
+
+libs = {
+	mod_neko => {
+		src => $array("mod_neko","cgi"),
+		inc => "httpd.h",
+		incname => "Apache 1.3"
+		lib => null,
+	},
+	mysql => {
+		src => $array("mysql"),
+		inc => "mysql.h",
+		incname => "MySQL 4.+"
+		lib => "libmysqlclient.a",
+	},
+	regexp => {
+		src => $array("regexp"),
+		inc => "pcre.h",
+		incname => "PCRE",
+		lib => "-lpcre",
+	},
+}
+
+// PLATFORM
+
+linkcmd = switch system { "BSD" => "ld" default => "gcc" };
+linkoptions = switch system { default => "-shared -L../../bin -lneko" };
+
+// COMMANDS
+
+includes = $array(
+	"../../vm",
+	"../include/mysql",
+	"/usr/include",
+	"/usr/local/include",
+	"/usr/local/apache/include",
+	"/usr/local/include/mysql"
+);
+
+libraries = $array(
+	"/usr/lib",
+	"/usr/local/lib",
+	"/usr/local/lib/mysql",
+);
+
+exec = function(cmd) {
+	$print(cmd,"\n");
+	var ecode = command(cmd);
+	if( ecode != 0 )
+		$throw("Error "+ecode+" : aborted");
+}
+
+make = function(sep,arr) {
+	var i = 0;
+	var s = "";
+	while( i < $asize(arr) ) {
+		s = s + sep+arr[i]+" ";
+		i = i + 1;
+	}
+	return s;
+}
+
+append = function(arr,s) {
+	var n = $asize(arr);
+	var arr2 = $amake(n+1);
+	$ablit(arr2,0,arr,0,n);
+	arr2[n] = s;
+	return arr2;
+}
+
+readline = function() {
+	$print("> ");
+	var b = buffer_new();
+	do {
+		var c = read_char(stdin);
+		if( c == 10 )
+			break;
+		buffer_add_char(b,c);
+	} while(true);
+	return buffer_string(b);
+}
+
+request_include = function() {
+	var s = readline();
+	if( s == "s" )
+		return false;
+	includes = append(includes,s);
+	return true;
+}
+
+request_lib = function() {
+	var s = readline();
+	if( s == "s" )
+		return false;
+	libraries = append(libraries,s);
+	return true;
+}
+
+find_file = function(f,arr) {
+	var i = 0;
+	while( i < $asize(arr) ) {
+		if( file_exists(arr[i]+"/"+f) )
+			return true;
+		i = i + 1;
+	}
+	return false;
+}
+
+map = function(a,f) {
+	var i = 0;
+	var l = $asize(a);
+	var a2 = $amake(l);
+	while( i < l ) {
+		a2[i] = f(a[i]);
+		i = i + 1;
+	}
+	return a2;
+}
+
+compile = function(file) {
+	exec("gcc -O3 -fPIC -c "+make("-I",includes)+file+".c");
+}
+
+link = function(files,target,lib) {
+	files = make("",map(files,function(f){ f + ".o" }));
+	var cmd = linkcmd+" "+linkoptions+" "+make("-L",libraries)+" "+lib;
+	exec(cmd+" "+files+" -o ../../bin/"+target+".ndll");
+}
+
+// COMPILATION
+
+compile_lib = function(lib) {
+	$print("Compiling ",lib,"...\n");
+	var data = $objget(libs,$hash(lib));
+	if( data == null )
+		return $print("No data found for this library : Skipping\n");
+	while( $not(find_file(data.inc,includes)) ) {
+		$print("The file "+data.inc+" provided when installing "+data.incname+" was not found\n");
+		$print("Please enter a valid include path to look for it\n");
+		$print("Or 's' to skip this library\n");
+		if( $not(request_include()) )
+			return;
+	}
+	var linklib = data.lib;
+	if( linklib == null )
+		linklib = "";
+	else if( $sget(linklib,0) != $sget("-",0) ) {
+		while( $not(find_file(linklib,libraries)) ) {
+			$print("The file "+linklib+" provided when installing "+data.incname+" was not found\n");
+			$print("Please enter a valid include path to look for it\n");
+			$print("Or 's' to skip this library\n");
+			if( $not(request_lib()) )
+				return;
+		}
+	}
+	var i = 0;
+	while( i < $asize(data.src) ) {
+		compile(data.src[i]);
+		i = i + 1;
+	}
+	link(data.src,lib,linklib);
+}
+
+// MAIN LOOP
+
+chdir("../libs");
+var libs = readdir(".");
+while( libs != null ) {
+	var l = libs[0];
+	if( l == "include" || l == "std" || l == "CVS" || ftype(l) != "dir" )
+		$goto(next);
+	chdir(l);
+	compile_lib(l);
+	chdir("..");
+next:
+	libs = libs[1];
+}
+
+// END

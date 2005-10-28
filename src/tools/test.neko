@@ -1,0 +1,4 @@
+$print("The virtual machine is working !\n");
+test = $loader.loadprim("std@test",0);
+test();
+$print("Test successful\n");
