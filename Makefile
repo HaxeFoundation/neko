@@ -60,7 +60,7 @@ bin/std.ndll: ${STD_OBJECTS}
 
 clean:
 	rm -rf bin/libneko.so bin/nekovm ${LIBNEKO_OBJECTS} ${VM_OBJECTS}
-	rm -rf bin/*.ndll libs/*/*.o
+	rm -rf bin/neko bin/*.ndll libs/*/*.o
 	rm -rf src/*.n src/neko/*.n src/nekoml/*.n src/tools/*.n
 
 .SUFFIXES : .c .o
