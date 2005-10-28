@@ -119,7 +119,7 @@ static int neko_handler_rec( request_rec *r ) {
 		request_rec *tmp = r;
 		while( tmp->prev != NULL )
 			tmp = tmp->prev;
-		params.args = &tmp->unparsed_uri;
+		params.args = (const char**)&tmp->unparsed_uri;
 		params.nargs = 1;
 	}
 
