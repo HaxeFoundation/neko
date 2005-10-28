@@ -299,7 +299,7 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 		case 1:
 			if( read_string(r,p,tmp) == -1 )
 				ERROR();
-			m->globals[i] = alloc_string(tmp);
+			m->globals[i] = val_null;
 			break;
 		case 2:
 			READ_LONG(itmp);
