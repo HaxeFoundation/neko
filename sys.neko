@@ -267,6 +267,30 @@ Sys.args = function() {
 	return Array.new1(a);
 }
 
+toArray = function(a) {
+	var i = 0;
+	var l = $asize(a);
+	while( i < l ) {
+		var k = a[i];
+		a[i] = if( k == null )
+			"Called from a C function";
+		else if( $typeof(k) == $tarray )
+			"Called from "+k[0]+" line "+k[1];
+		else
+			"Called from "+k;
+		i = i + 1;
+	}
+	return Array.new1(a);
+}
+
+Sys.callstack = function() {
+	return toArray($callstack());
+}
+
+Sys.excstack = function() {
+	return toArray($excstack());
+}
+
 $exports.Sys = Sys;
 
 // ----------------------------------------------------------------------
