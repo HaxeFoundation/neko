@@ -175,7 +175,7 @@ compile_lib = function(lib) {
 		compile(data.src[i]);
 		i = i + 1;
 	}
-	link(data.src,lib,linklib);
+	link(data.src,lib,dir+linklib);
 }
 
 // MAIN LOOP
