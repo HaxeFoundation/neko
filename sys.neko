@@ -147,6 +147,7 @@ file_open = $loader.loadprim("std@file_open",2);
 file_close = $loader.loadprim("std@file_close",1);
 file_read = $loader.loadprim("std@file_read",4);
 file_write = $loader.loadprim("std@file_write",4);
+file_exists = $loader.loadprim("std@file_exists",1);
 std_file_name = $loader.loadprim("std@file_name",1);
 
 file_name = function(f) {
@@ -216,6 +217,14 @@ File.new = function(name) {
 
 @File.name = function() {
 	return String.new(file_name(this.@f));
+}
+
+@File.absoluteName = function() {
+	$throw("File.absoluteName not implemented");
+}
+
+@File.exists = function() {
+	return file_exists(this.@f);
 }
 
 $exports.File = File;
