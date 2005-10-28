@@ -59,7 +59,9 @@ bin/std.ndll: ${STD_OBJECTS}
 	${MAKESO} ${STD_OBJECTS} ${LIBNEKO} -o $@
 
 clean:
-	rm -rf bin/libneko.so bin/nekovm bin/std.ndll ${LIBNEKO_OBJECTS} ${VM_OBJECTS} ${STD_OBJECTS} bin/neko src/*.n src/*.neko src/neko/*.n src/neko/*.neko src/nekoml/*.n src/nekoml/*.neko
+	rm -rf bin/libneko.so bin/nekovm ${LIBNEKO_OBJECTS} ${VM_OBJECTS}
+	rm -rf bin/*.ndll libs/*/*.o
+	rm -rf src/*.n src/neko/*.n src/nekoml/*.n src/tools/*.n
 
 .SUFFIXES : .c .o
 
