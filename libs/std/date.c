@@ -35,7 +35,7 @@ static value date_now() {
 }
 
 static value date_new( value s ) {
-	int o;
+	int o = 0;
 	if( val_is_null(s) )
 		o = (int)time(NULL);
 	else {

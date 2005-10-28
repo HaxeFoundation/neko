@@ -777,7 +777,7 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 		if( val_is_int(acc) && ((unsigned)acc) < ((unsigned)*pc) )
 			pc += acc;
 		else
-			pc += *pc++;
+			pc += *pc + 1;
 		Next;
 	Instr(Last)
 		goto end;

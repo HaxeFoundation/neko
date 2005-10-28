@@ -33,6 +33,7 @@
 #else
 #	include <unistd.h>
 #	include <dirent.h>
+#	include <sys/times.h>
 #endif
 
 static value get_env( value v ) {
@@ -274,8 +275,7 @@ static value file_full_path( value path ) {
 		neko_error();
 	return alloc_string(buf);
 #else
-	char buf[PATH_MAX];
-	char *f;
+	char buf[PATH_MAX];	
 	val_check(path,string);	
 	if( realpath(val_string(path),buf) == NULL )
 		neko_error();
@@ -309,6 +309,8 @@ static value sys_exe_path() {
 	}
 #endif
 }
+
+extern char **environ;
 
 static value sys_env() {
 	value h = val_null;

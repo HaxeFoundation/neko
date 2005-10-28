@@ -29,7 +29,9 @@
 #	include <sys/socket.h>
 #	include <netinet/in.h>
 #	include <arpa/inet.h>
+#	include <unistd.h>
 #	include <netdb.h>
+#	include <stdio.h>
 	typedef int SOCKET;
 #	define closesocket close
 #	define SOCKET_ERROR (-1)

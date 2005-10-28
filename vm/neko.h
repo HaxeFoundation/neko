@@ -47,10 +47,9 @@ struct _value {
 };
 
 struct _objtable;
-struct _bufffer;
-struct _vkind;
+struct _buffer;
 typedef int field;
-typedef struct _vkind *vkind;
+typedef struct { int __zero; } *vkind;
 typedef struct _value *value;
 typedef struct _objtable* objtable;
 typedef struct _buffer *buffer;
