@@ -551,7 +551,9 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 				val_throw(alloc_string("$apply"));
 			{
 				int i = fargs;
+				ACC_BACKUP;
 				value env = alloc_array(fargs + 1);
+				ACC_RESTORE;
 				val_array_ptr(env)[0] = (value)acc;
 				while( i > *pc )
 					val_array_ptr(env)[i--] = val_null;
