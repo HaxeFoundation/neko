@@ -44,7 +44,6 @@ std: bin/std.ndll
 
 compiler:
 	(cd src; ${NEKO_EXEC} nekoml/Main -v neko/Main.nml nekoml/Main.nml)
-	(cd src; ${NEKO_EXEC} neko/Main -v *.neko neko/*.neko nekoml/*.neko)
 	-mkdir bin/neko bin/neko/neko bin/neko/nekoml
 	cp src/*.n bin/neko
 	cp src/neko/*.n bin/neko/neko
