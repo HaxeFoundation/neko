@@ -5,11 +5,11 @@ MAKESO = gcc -shared -WBsymbolic
 LIBNEKO_LIBS = -ldl -lgc -lm
 LIBNEKO = -Lbin -lneko
 
-NEKO_EXEC = LD_LIBRARY_PATH=../bin:${LD_LIBRARY_PATH} NEKOPATH=boot bin/nekovm
+NEKO_EXEC = LD_LIBRARY_PATH=../bin:${LD_LIBRARY_PATH} NEKOPATH=../boot ../bin/nekovm
 
 # For 64 bit
 #
-# CFLAGS = -D_64BITS ${CFLAGS}
+# CFLAGS += -D_64BITS
 
 # For OSX
 #
@@ -18,11 +18,11 @@ NEKO_EXEC = LD_LIBRARY_PATH=../bin:${LD_LIBRARY_PATH} NEKOPATH=boot bin/nekovm
 
 # For profiling VM
 #
-# CFLAGS = -DNEKO_PROF ${CFLAGS}
+# CFLAGS += -DNEKO_PROF
 
 # For lower memory usage (takes more CPU !)
 #
-# CFLAGS = -DLOW_MEM ${CFLAGS}
+# CFLAGS += -DLOW_MEM
 
 ### MAKE
 
@@ -35,16 +35,16 @@ all: libneko nekovm std compiler libs
 libneko: bin/libneko.so
 
 libs:
-	${NEKO_EXEC} neko/Main src/install/install.neko
-	${NEKO_EXEC} src/install/install
+	(cd src; ${NEKO_EXEC} neko/Main install/install.neko)
+	(cd src; ${NEKO_EXEC} install/install)
 
 nekovm: bin/nekovm
 
 std: bin/std.ndll
 
 compiler:
-	${NEKO_EXEC} nekoml/Main -v -p src -p src/core neko/Main.nml nekoml/Main.nml
-	${NEKO_EXEC} neko/Main -v src/*.neko src/neko/*.neko src/nekoml/*.neko
+	(cd src; ${NEKO_EXEC} nekoml/Main -v neko/Main.nml nekoml/Main.nml)
+	(cd src; ${NEKO_EXEC} neko/Main -v *.neko neko/*.neko nekoml/*.neko)
 	-mkdir bin/neko bin/neko/neko bin/neko/nekoml
 	cp src/*.n bin/neko
 	cp src/neko/*.n bin/neko/neko
