@@ -191,8 +191,6 @@ static value sys_file_type( value path ) {
 		return alloc_string("fifo");
 	if( s.st_mode & S_IFSOCK )
 		return alloc_string("sock");
-	if( s.st_mode & S_IFWHT )
-		return alloc_string("white");
 #endif
 	neko_error();
 }
