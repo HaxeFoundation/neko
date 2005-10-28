@@ -223,7 +223,7 @@ $exports.File = File;
 // ----------------------------------------------------------------------
 // Sys
 
-set_locale = $loader.loadprim("std@set_locale",1);
+set_locale = $loader.loadprim("std@set_time_locale",1);
 sys_command = $loader.loadprim("std@sys_command",1);
 get_cwd = $loader.loadprim("std@get_cwd",0);
 set_cwd = $loader.loadprim("std@set_cwd",1);
