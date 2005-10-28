@@ -35,8 +35,8 @@ all: libneko nekovm std compiler libs
 libneko: bin/libneko.so
 
 libs:
-	(cd src; ${NEKO_EXEC} neko/Main install/install.neko)
-	(cd src; ${NEKO_EXEC} install/install)
+	(cd src; ${NEKO_EXEC} neko/Main tools/install.neko)
+	(cd src; ${NEKO_EXEC} tools/install)
 
 nekovm: bin/nekovm
 
