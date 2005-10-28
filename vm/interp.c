@@ -792,7 +792,7 @@ end:
 	return acc;
 }
 
-value neko_interp( neko_vm *vm, neko_module *m, int_val acc, int_val *pc, value env ) {
+value neko_interp( neko_vm *vm, void *m, int_val acc, int_val *pc, value env ) {
 	int_val *sp, *csp, *trap;
 	int_val init_sp = vm->spmax - vm->sp;
 	int old_ncalls = vm->ncalls;
@@ -824,7 +824,7 @@ value neko_interp( neko_vm *vm, neko_module *m, int_val acc, int_val *pc, value 
 		vm->vthis = (value)trap[1];
 		env = (value)trap[2];
 		pc = int_address(trap[3]);
-		m = (neko_module*)int_address(trap[4]);
+		m = (void*)int_address(trap[4]);
 
 		// pop sp
 		sp = trap + 6;
@@ -832,7 +832,7 @@ value neko_interp( neko_vm *vm, neko_module *m, int_val acc, int_val *pc, value 
 		while( vm->sp < sp )
 			*vm->sp++ = ERASE;
 	}
-	acc = interp_loop(vm,m,acc,pc,env);
+	acc = interp_loop(vm,(neko_module*)m,acc,pc,env);
 	memcpy(&vm->start,&old,sizeof(jmp_buf));
 	return (value)acc;
 }
