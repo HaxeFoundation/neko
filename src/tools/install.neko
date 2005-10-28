@@ -215,7 +215,7 @@ compile_lib = function(lib) {
 // MAIN LOOP
 
 rights = 0;
-base = "../bin/neko";
+base = "../bin/std";
 
 try { mkdir(base,rights); } catch e { };
 

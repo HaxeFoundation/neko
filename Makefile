@@ -44,10 +44,10 @@ std: bin/std.ndll
 
 compiler:
 	(cd src; ${NEKO_EXEC} nekoml/Main -v neko/Main.nml nekoml/Main.nml)
-	-mkdir bin/neko bin/neko/neko bin/neko/nekoml
-	cp src/*.n bin/neko
-	cp src/neko/*.n bin/neko/neko
-	cp src/nekoml/*.n bin/neko/nekoml
+	-mkdir bin/std bin/std/neko bin/std/nekoml
+	cp src/*.n bin/std
+	cp src/neko/*.n bin/std/neko
+	cp src/nekoml/*.n bin/std/nekoml
 
 bin/libneko.so: ${LIBNEKO_OBJECTS}
 	${MAKESO} ${LIBNEKO_OBJECTS} ${LIBNEKO_LIBS} -o $@
@@ -60,7 +60,7 @@ bin/std.ndll: ${STD_OBJECTS}
 
 clean:
 	rm -rf bin/libneko.so bin/nekovm ${LIBNEKO_OBJECTS} ${VM_OBJECTS}
-	rm -rf bin/neko bin/*.ndll libs/*/*.o
+	rm -rf bin/std bin/*.ndll libs/*/*.o
 	rm -rf src/*.n src/neko/*.n src/nekoml/*.n src/tools/*.n
 
 .SUFFIXES : .c .o
