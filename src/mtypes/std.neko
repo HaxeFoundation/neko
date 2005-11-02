@@ -327,23 +327,23 @@ Hash.new = function() {
 @Hash = $new(null);
 @Hash.@h = null;
 @Hash.get = function(k) {
-	return $hget(this.@h,k,null);
+	return $hget(this.@h,k.@s,null);
 }
 
 @Hash.set = function(k,v) {
-	$hset(this.@h,k,v,null);
+	$hset(this.@h,k.@s,v,null);
 }
 
 @Hash.remove = function(k) {
-	return $hremove(this.@h,k,null);
+	return $hremove(this.@h,k.@s,null);
 }
 
 @Hash.exists = function(k) {
-	return $hmem(this.@h,k,null);
+	return $hmem(this.@h,k.@s,null);
 }
 
 @Hash.iter = function(f) {
-	$hiter(this.@h,f);
+	$hiter(this.@h,function(k,v) { f(String.new(k),v) });
 }
 
 @Hash.toString = function() {
