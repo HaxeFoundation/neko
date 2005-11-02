@@ -59,6 +59,8 @@ includes = $array(
 	"../../vm",
 	"/usr/local/apache/include",
 	"/usr/local/include/mysql",
+	"/usr/apache/include",
+	"/usr/include/mysql",
 	"/usr/include",
 	"/usr/local/include",
 );
