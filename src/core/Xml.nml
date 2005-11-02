@@ -1,0 +1,161 @@
+/*
+ *  NekoML Standard Library
+ *  Copyright (c)2005 Nicolas Cannasse
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+
+type t {
+	Node : (string, (string, string) list , t list);
+	PCData : string;
+	CData : string;
+	Document : t list;
+}
+
+exception Error : string;
+
+var __list = List.hd;
+
+neko("
+	 
+	@parser = function() {
+		return {
+			stack => null,
+			doc => null,
+			cdata => function(s) {
+				this.doc = $array(CData(s),this.doc);
+			},
+			pcdata => function(s) {
+				this.doc = $array(PCData(s),this.doc);
+			},
+			xml => function(name,att) {
+				var fields = $objfields(att);
+				var nf = $asize(fields);
+				var fl = null;
+				var i = 0;
+				while( i < nf ) {
+					var f = fields[i];
+					fl = $array($array($field(f),$objget(att,f)),fl);
+					i = i + 1;
+				}
+				this.stack = $array(name,fl,this.doc,this.stack);
+				this.doc = null;
+			},
+			done => function() {
+				var s = this.stack;
+				var d = this.doc;
+				this.doc = $array(Node(s[0],@List.@rmake(s[1]),@List.@rmake(d)),s[2]);
+				this.stack = s[3];
+			}
+		}
+	}
+
+	 @parse = $loader.loadprim('std@parse_xml',2);
+
+");
+
+function parse( s : string ) : t {
+	neko("
+		var p = @parser();
+		try {
+			@parse(s,p);
+			return Document(@List.@rmake(p.doc));
+		} catch e {
+			if( $typeof(e) == $tstring )
+				$rethrow(Error(e));
+			$rethrow(e);
+		}
+	");
+}
+
+function is_node(x) {
+	match x {
+	| Node _ -> true
+	| _ -> false
+	}
+}
+
+function is_pcdata(x) {
+	match x {
+	| PCData _ -> true
+	| _ -> false
+	}
+}
+
+function is_cdata(x) {
+	match x {
+	| CData _ -> true
+	| _ -> false
+	}
+}
+function firstNode(x) {
+	match x {
+	| Node (_,_,l) | Document l -> List.find is_node l
+	| CData _ | PCData _ -> invalid_arg()
+	}
+}
+
+function nodes(x) {
+	match x {
+	| Node (_,_,l) | Document l -> List.filter is_node l
+	| CData _ | PCData _ -> invalid_arg()
+	}
+}
+
+function node_name(x) {
+	match x {
+	| Node (name,_,_) -> name
+	| _ -> invalid_arg()
+	}
+}
+
+function node_text(x) {
+	match x {
+	| Node (_,_,childs) ->
+		var b = Buffer.create();
+		List.iter (function(x) {
+			match x {
+			| CData t | PCData t -> Buffer.add b t
+			| _ -> invalid_arg()
+			}
+		}) childs;
+		Buffer.string b
+	| _ -> invalid_arg()
+	}
+}
+
+function attrib(x,n) {
+	var n = String.lowercase n;
+	match x {
+	| Node (_,att,_) -> snd (List.find (function((n2,_)) { String.lowercase n2 == n }) att)
+	| _ -> invalid_arg()
+	}
+}
+
+function rec write(ch,x) {
+	match x {
+	| Document l -> List.iter write(ch) l
+	| CData c -> IO.write ch "<![CDATA["; IO.write ch c; IO.write ch "]]>";
+	| PCData c -> IO.write ch c;
+	| Node (name,att,childs) -> 
+		IO.printf ch "<%s%s" (name,String.concat "" (List.map (function((a,v)) { " "+a+"=\""+String.escape v+"\"" }) att));
+		match childs {
+		| [] -> IO.write ch "/>"
+		| l -> IO.write ch ">"; List.iter write(ch) l; IO.printf ch "</%s>" name
+		}
+	}
+}
+
+
