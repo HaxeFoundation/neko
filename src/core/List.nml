@@ -24,6 +24,13 @@ neko("
 		return @Core.@cons(s[0],@make(s[1]));
 	}
 
+	@rmake = function(s,x) {
+		if( s == null )
+			return x;
+		return @rmake(s[1],@Core.@cons(s[0],x));
+	}
+
+	$exports.@rmake = function(s) { @rmake(s,@Core.@empty) };
 	$exports.@make = @make;
 ");
 
