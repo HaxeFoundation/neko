@@ -81,6 +81,9 @@
 			<File
 				RelativePath=".\core\Sys.nml">
 			</File>
+			<File
+				RelativePath=".\core\Xml.nml">
+			</File>
 		</Filter>
 		<Filter
 			Name="neko"
@@ -105,6 +108,9 @@
 			</File>
 			<File
 				RelativePath=".\neko\Printer.nml">
+			</File>
+			<File
+				RelativePath=".\neko\Xml.nml">
 			</File>
 		</Filter>
 	</Files>
