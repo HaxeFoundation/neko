@@ -88,7 +88,7 @@ static void do_parse_xml( const char *xml, const char **lp, int *line, value cal
 	const char *p = *lp;
 	char c = *p;
 	int nsubs = 0;
-	while( true ) {
+	while( c ) {
 		switch( state ) {
 		case IGNORE_SPACES:
 			switch( c ) {
@@ -271,19 +271,17 @@ static void do_parse_xml( const char *xml, const char **lp, int *line, value cal
 		c = *++p;
 		if( c == '\n' )
 			(*line)++;
-		if( c == 0 ) {
-			if( state == BEGIN ) {
-				start = p;
-				state = PCDATA;
-			}
-			if( parentname == NULL && state == PCDATA ) {
-				if( p != start || nsubs == 0 )
-					val_ocall1(callb,id_pcdata,copy_string(start,p-start));
-				return;
-			}
-			ERROR("Unexpected end");
-		}
 	}
+	if( state == BEGIN ) {
+		start = p;
+		state = PCDATA;
+	}
+	if( parentname == NULL && state == PCDATA ) {
+		if( p != start || nsubs == 0 )
+			val_ocall1(callb,id_pcdata,copy_string(start,p-start));
+		return;
+	}
+	ERROR("Unexpected end");
 }
 
 // ----------------------------------------------
