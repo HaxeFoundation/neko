@@ -66,7 +66,6 @@ The syntax is parsed using a left-to-right LL(1) parser. That means that after r
 		| <b>DOT</b> [0-9]+
 		| <b>DOUBLEQUOTE</b> <i>characters</i> <b>DOUBLEQUOTE</b>
 		| <b>DOLLAR</b> <i>ident</i>
-		| <b>QUOTE</b> <i>ident</i>
 		| <b>true</b>
 		| <b>false</b>
 		| <b>null</b>
@@ -92,6 +91,7 @@ The syntax is parsed using a left-to-right LL(1) parser. That means that after r
 		| <b>break</b> [<i>expr</i> | <b>SEMICOLON</b>]
 		| <b>continue</b>
 		| <i>ident</i> <b>:</b>
+		| <b>switch</b> <i>expr</i> <b>{</b> <i>switch-case</i>* <b>}</b>
 
 	    <i>variables</i> :=
 		| <i>ident</i> [<b>=</b> <i>expr</i>] <i>variables</i>
@@ -107,6 +107,10 @@ The syntax is parsed using a left-to-right LL(1) parser. That means that after r
 		| <i>ident</i> <i>parameters-names</i>
 		| <b>COMMA</b> <i>parameters-names</i>
 		| &epsilon;
+
+	    <i>switch-cases</i> :=
+		| <b>default =></b> <i>expr</i>
+		| <i>ident</i> <b>=></b> <i>expr</i>
 
 </pre>
 
@@ -201,6 +205,7 @@ Before evaluating any expression, all sub-expressions are evaluated in an unspec
 <li><code><b>break</b> v</code> : exit current while loop and return value <code>v</code>.</li>
 <li><code><b>continue</b></code> : continue execution to next while loop step.</li>
 <li><code><i>ident</i>:</code> : a label, see the corresponding section.</li>
+<li><code><b>switch</b> <i>e</i> <b>{</b> <i>e1a</i> <b>=></b> <i>e1b</i> <i>e2a</i> <b>=></b> <i>e2b</i> .... <b>default =></b> <i>edef</i> <b>}</b></code> : evaluate e and test it with each <code>e<i>i</i>a</code> sequentially until it is equal, then return the corresponding expression <code>e<i>i</i>b</code> evaluated. If no equal value is found, the <code>edef</code> expression is evaluated, which is <code>null</code> if no <code>default</code> specified.</li>
 </ul>
 
 <p>
@@ -1326,7 +1331,7 @@ Exceptions are often referred as "non local jumps". It's a very good way for han
 </p>
 
 <pre>
-	$goto(next);
+    $goto(next);
     {
         var x = 0;
         next:
