@@ -64,6 +64,7 @@ type token {
 	Binop : string;
 	Comment : string;
 	CommentLine : string;
+	NXml : string;
 }
 
 type while_flag {
@@ -240,5 +241,6 @@ function s_token(x) {
 	| Binop s -> s
 	| Comment s -> "/*" + s + "*/"
 	| CommentLine s -> "//" + s
+	| NXml s -> "<nxml>"+s+"</nxml>"
 	}
 }

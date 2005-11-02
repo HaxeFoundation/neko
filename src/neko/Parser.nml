@@ -22,6 +22,7 @@ open Neko.Ast;
 type error_msg {
 	Unexpected : token;
 	Unclosed : string;
+	Invalid_nxml : error;
 }
 
 exception Error : (error_msg , pos)
@@ -30,6 +31,7 @@ function error_msg(m) {
 	match m {
 	| Unexpected t -> "Unexpected " + s_token t
 	| Unclosed s -> "Unclosed " + s
+	| Invalid_nxml e -> "Invalid nxml (" + string e + ")"
 	}
 }
 
@@ -129,6 +131,9 @@ function rec expr(s) {
 		expr_next (EContinue,p1) s
 	| [< (Keyword Try,p1); e = expr s; (Keyword Catch,_); (Const (Ident name),_); e2 = expr s >] ->
 		expr_next (ETry e name e2,punion p1 (pos e2)) s
+	| [< (NXml x,p) >] ->
+		var e = try Neko.Xml.parse x p catch { e -> error (Invalid_nxml e) p };
+		expr_next e s 
 	}
 }
 
@@ -253,3 +258,12 @@ function parse(lexer) {
 		| Stream_error -> error Unexpected(fst(*last)) snd(*last)
 	}
 }
+
+function parse_string(str,p) {
+	var ch = IO.read_string str;
+	var lex = Lexer.create Buffer.create();
+	Lexer.input lex p.psource ch p.pline p.pmin;
+	parse lex
+}
+
+Neko.Xml.parse_string := parse_string

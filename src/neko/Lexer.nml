@@ -22,6 +22,7 @@ type error_msg {
 	Invalid_character : char;
 	Unterminated_string;
 	Unclosed_comment;
+	Unclosed_nxml;
 	Invalid_escaped_character : int;
 	Invalid_escape;
 }
@@ -34,6 +35,7 @@ function error_msg(msg) {
 	| Invalid_character c -> sprintf "Invalid character 0x%.2X" (ord c)
 	| Unterminated_string -> "Unterminated string"
 	| Unclosed_comment -> "Unclosed comment"
+	| Unclosed_nxml -> "Unclosed nxml"
 	| Invalid_escaped_character n -> sprintf "Invalid escaped character %d" n
 	| Invalid_escape -> "Invalid escape sequence"
 	}
@@ -73,6 +75,7 @@ var binop = "[-!=\\*/<>&|^%\\+:]";
 var expr = &Lexer.empty();
 var estring = &Lexer.empty();
 var ecomment = &Lexer.empty();
+var enxml = &Lexer.empty();
 
 function comment(l) {
 	Lexer.token l (*ecomment)
@@ -81,6 +84,10 @@ function comment(l) {
 function str(l) {
 	Lexer.token l (*estring)
 };
+
+function nxml(l) {
+	Lexer.token l (*enxml)
+}
 
 expr := Lexer.build [
 	(";", function(l) { mk l Semicolon });
@@ -130,6 +137,14 @@ expr := Lexer.build [
 		var n = (if String.get s (len - 1) == '\r' then 3 else 2);
 		mk l CommentLine(String.sub s 0 (len - n))
 	});
+	("<nxml>",function(l) {
+		var p1 = Lexer.curpos l;
+		var buf = Lexer.data l;
+		Buffer.reset buf;
+		try nxml l catch { Exit -> throw Error(Unclosed_nxml,p1) };
+		var p2 = Lexer.curpos l;
+		(NXml(Buffer.string buf) , Lexer.punion p1 p2)		
+	});
 	(binop + binop + "?",function(l) { mk l (Binop (Lexer.current l)) });
 	(">>>",function(l) { mk l (Binop ">>>") });
 ]
@@ -177,4 +192,10 @@ estring := Lexer.build [
 	("\\\\" , function(l) { error l Invalid_escape });
 	("\"" , function(l) { });
 	("[^\"\\]+", function(l) { Buffer.add (Lexer.data l) (Lexer.current l); str l });
+] (function(l) { throw Exit });
+
+enxml := Lexer.build [
+	("</nxml>", function(l) { });
+	("<",function(l) { Buffer.add_char (Lexer.data l) '<'; nxml l });
+	("[^<]+", function(l) { Buffer.add (Lexer.data l) (Lexer.current l); nxml l });
 ] (function(l) { throw Exit });

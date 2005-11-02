@@ -1,0 +1,283 @@
+/*
+ *  Neko Compiler
+ *  Copyright (c)2005 Nicolas Cannasse
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+open Lexer;
+open Neko.Ast;
+open Xml;
+
+exception Error : string;
+
+var parse_string : (string -> pos -> expr) ref = &(function(_,_) { assert() });
+
+function parse_pos(p,x) {
+	try {
+		var a = attrib x "p";
+		var f, l = match String.split a ":" {
+		| [] -> assert()
+		| [line] -> (p.psource, int line)
+		| l -> 
+			match List.rev l {
+			| [] -> assert()
+			| line :: l ->
+				(String.concat ":" (List.rev l),int line)
+			}
+		};
+		{
+			psource = f;
+			pmin = p.pmin;
+			pmax = p.pmax;
+			pline = l;
+		}
+	} catch {
+		Not_found -> p
+	}	
+}
+
+function rec parse_xml(p,x) {
+	function error() {
+		invalid_arg();
+	}
+	function binop(f) {
+		match nodes x {
+		| [a;b] ->
+			(f (parse_xml p a) (parse_xml p b),p)
+		| _ ->
+			error()
+		}
+	}
+	var p = parse_pos p x;
+	match node_name x {
+	| "i" -> 
+		var v = int (attrib x "v");
+		(EConst Int(v),p)
+	| "f" ->
+		var v = attrib x "v";
+		(EConst Float(v),p)
+	| "s" ->
+		var v = attrib x "v";
+		(EConst String(String.unescape v),p)
+	| "v" ->
+		var v = attrib x "v";
+		if String.get v 0 == '$' then
+			(EConst Builtin(String.sub v 0 (String.length v - 1)),p)
+		else match v {
+		| "true" -> (EConst True,p)
+		| "false" -> (EConst False,p)
+		| "null" -> (EConst Null,p)
+		| "this" -> (EConst This,p)
+		| _ ->
+			(EConst Ident(v),p)
+		}
+	| "b" ->
+		(EBlock (List.map (parse_xml p) (nodes x)),p)
+	| "p" ->
+		(EParenthesis (parse_xml p (firstNode x)),p)
+	| "g" ->
+		var v = attrib x "v";
+		(EField (parse_xml p (firstNode x)) v,p)
+	| "c" ->
+		match nodes x {
+		| [] -> error()
+		| x :: l -> (ECall (parse_xml p x) (List.map (parse_xml p) l),p)
+		}
+	| "a" -> binop EArray
+	| "var" ->
+		(EVars (List.map (function(x) {
+			var e = try Some (firstNode x) catch { _ -> None };
+			(attrib x "v", match e { None -> None | Some x -> Some (parse_xml p x) })
+		}) nodes(x)),p)
+	| "while" -> 
+		binop (function(a,b) { EWhile a b NormalWhile })
+	| "do" -> 
+		binop (function(a,b) { EWhile b a DoWhile })
+	| "if" ->
+		match nodes x {
+		| [cond;e] -> (EIf (parse_xml p cond) (parse_xml p e) None,p)
+		| [cond;e1;e2] -> (EIf (parse_xml p cond) (parse_xml p e1) Some(parse_xml p e2),p)
+		| _ -> error()
+		}
+	| "o" ->
+		var v = attrib x "v";
+		binop (EBinop v)
+	| "try" ->
+		var v = attrib x "v";
+		binop (function(a,b) { ETry a v b })
+	| "function" ->
+		var args = String.split (attrib x "v") ":";
+		(EFunction args (parse_xml p (firstNode x)),p)
+	| "return" ->
+		var x = try Some (firstNode x) catch { _ -> None };
+		(EReturn (match x { None -> None | Some x -> Some (parse_xml p x) }),p)
+	| "break" ->
+		var x = try Some (firstNode x) catch { _ -> None };
+		(EBreak (match x { None -> None | Some x -> Some (parse_xml p x) }),p)
+	| "continue" ->
+		(EContinue,p)
+	| "next" ->
+		binop ENext
+	| "object" ->
+		(EObject (List.map (function(x) {
+			(attrib x "v", parse_xml p (firstNode x))
+		}) nodes(x)),p)
+	| "label" ->
+		var v = attrib x "v";
+		(ELabel v,p)
+	| "switch" ->
+		var cases = &[];
+		var def = &None;
+		var e = &None;
+		List.iter (function(x) {
+			match node_name x {
+			| "case" ->
+				var c = match nodes x {
+				| [a;b] -> (parse_xml p a, parse_xml p b)
+				| _ -> error()
+				};
+				cases := c :: *cases;
+			| "default" ->
+				if *def != None then error()
+				def := Some (parse_xml p firstNode(x));
+			| _ ->
+				if *e != None then error();
+				e := Some (parse_xml p x);
+			}
+		}) nodes(x);
+		match *e {
+		| None -> error()
+		| Some e -> (ESwitch e (List.rev (*cases)) (*def),p)
+		}
+	| "neko" ->
+		var e , _ = (*parse_string) (node_text x) p;
+		(e,p)
+	| n ->
+		throw Error("Unknown node name : "+n);
+	}
+}
+
+function parse(s,p) {
+	var x = parse s;
+	match nodes x {
+	| [(Node _) as x] -> parse_xml p x
+	| _ -> invalid_arg()
+	}
+}
+
+function rec to_xml_rec(p,ast) {
+	var e , p2 = ast;
+	var name = &"";
+	var val = &None;
+	var childs = &[];
+	match e {
+	| EConst c ->
+		match c {
+		| True
+		| False
+		| Null
+		| This
+		| Builtin _
+		| Ident _ ->
+			name := "v";
+			val := Some (s_constant c)
+		| Int i ->
+			name := "i";
+			val := Some (string i);
+		| Float s ->
+			name := "f";
+			val := Some s;
+		| String s ->
+			name := "s";
+			val := Some s;
+		}
+	| EBlock el ->
+		name := "b";
+		childs := List.map (to_xml_rec p) el; 
+	| EParenthesis e ->
+		name := "p";
+		childs := [to_xml_rec p e];
+	| EField (e,f) ->
+		name := "g";
+		val := Some f;
+		childs := [to_xml_rec p e];
+	| ECall (e,el) ->
+		name := "c";
+		childs := to_xml_rec p e :: List.map (to_xml_rec p) el;
+	| EArray (a,b) ->
+		name := "a";
+		childs := [to_xml_rec p a; to_xml_rec p b]; 
+	| EVars vl ->
+		name := "var";
+		childs := List.map (function((v,e)) {
+			Node "v" [("v",v)] (match e { None -> [] | Some e -> [to_xml_rec p e] })
+		}) vl;
+	| EWhile (econd,e,NormalWhile) ->
+		name := "while";
+		childs := [to_xml_rec p econd; to_xml_rec p e];
+	| EWhile (econd,e,DoWhile) ->
+		name := "do";
+		childs := [to_xml_rec p e; to_xml_rec p econd];
+	| EIf (cond,e,eelse) ->
+		name := "if";
+		childs := to_xml_rec p cond :: to_xml_rec p e :: (match eelse { None -> [] | Some e -> [to_xml_rec p e] })
+	| ETry (e1,v,e2) ->
+		name := "try";
+		val := Some v;
+		childs := [to_xml_rec p e1; to_xml_rec p e2];
+	| EFunction (args,e) ->
+		name := "function";
+		val := Some (String.concat ":" args);
+		childs := [to_xml_rec p e];
+	| EBinop (op,e1,e2) ->
+		name := "o";
+		val := Some op;
+		childs := [to_xml_rec p e1; to_xml_rec p e2];
+	| EReturn e ->
+		name := "return";
+		childs := match e { None -> [] | Some e -> [to_xml_rec p e]};
+	| EBreak e ->
+		name := "break";
+		childs := match e { None -> [] | Some e -> [to_xml_rec p e]};
+	| EContinue ->
+		name := "continue";
+	| ENext (e1,e2) ->
+		name := "next";
+		childs := [to_xml_rec p e1; to_xml_rec p e2];
+	| EObject fl ->
+		name := "object";
+		childs := List.map (function((v,e)) { Node "v" [("v",v)] [to_xml_rec p e] }) fl;
+	| ELabel v ->
+		name := "label";
+		val := Some v;
+	| ESwitch (e,cases,def) ->
+		name := "switch";
+		var cases = List.map (function((e1,e2)) { Node "case" [] [to_xml_rec p e1; to_xml_rec p e2] }) cases;
+		childs := to_xml_rec p e :: (match def { None -> cases | Some e -> Node "default" [] [to_xml_rec p e] :: cases });
+	}
+	var pos = (if p.psource != p2.psource then
+		[("p",p2.psource + ":" + p2.pline)]
+	else if p.pline != p2.pline then
+		[("p",string p2.pline)]
+	else
+		[]);
+	var val = match *val { None -> [] | Some v -> [("v",v)] };
+	Node (*name) (List.append pos val) (*childs)
+}
+
+function to_xml(ast) {
+	to_xml_rec null_pos ast
+}
+
