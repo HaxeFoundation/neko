@@ -48,13 +48,15 @@ typedef enum {
 	WAIT_END,
 	WAIT_END_RET,
 	PCDATA,
-	COMMENT
+	COMMENT,
+	CDATA,
 } STATE;
 
 extern field id_pcdata;
 extern field id_xml;
 extern field id_done;
 extern field id_comment;
+extern field id_cdata;
 
 static void xml_error( const char *xml, const char *p, int *line, const char *msg ) {
 	buffer b = alloc_buffer("Xml parse error : ");
@@ -122,9 +124,25 @@ static void do_parse_xml( const char *xml, const char **lp, int *line, value cal
 				next = BEGIN_NODE;
 			}
 			break;
+		case CDATA:
+			if( c == ']' && p[1] == ']' && p[2] == '>' ) {
+				val_ocall1(callb,id_cdata,copy_string(start,p-start));
+				nsubs++;
+				p += 2;
+				state = BEGIN;
+			}
+			break;
 		case BEGIN_NODE:
 			switch( c ) {
 			case '!':
+				if( p[1] == '[' ) {
+					p += 2;
+					if( *p++ != 'C' || *p++ != 'D' || *p++ != 'A' || *p++ != 'T' || *p++ != 'A' || *p != '[' )
+						ERROR("Expected <![CDATA[");
+					state = CDATA;
+					start = p + 1;
+					break;
+				}
 			case '?':
 				state = COMMENT;
 				start = p;

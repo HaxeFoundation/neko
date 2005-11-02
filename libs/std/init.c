@@ -31,6 +31,7 @@ field id_done;
 field id_comment;
 field id_xml;
 field id_pcdata;
+field id_cdata;
 
 DEFINE_ENTRY_POINT(std_main);
 
@@ -46,6 +47,7 @@ void std_main() {
 	id_comment = val_id("comment");
 	id_xml = val_id("xml");
 	id_pcdata = val_id("pcdata");
+	id_cdata = val_id("cdata");
 }
 
 /* ************************************************************************ */
