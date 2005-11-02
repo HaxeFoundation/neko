@@ -422,10 +422,10 @@
 
 <ul>
 	<li><code>val_is_<em>type</em>(v)</code> functions can test if a single value is of the given type.</li>
-	<li><code>val_check(v,<em>type</em>)</code> will check <code>val_is_<em>type</em></code> and call <code>type_error()</code> if it fails.</li>
-	<li><code>val_check_kind(v,<em>kind</em>)</code> will check that the value is an abstract of the given kind and call <code>type_error()</code> if not.</li>
-	<li><code>val_check_function(v,<em>nargs</em>)</code> will check that the value is a function that can be called with the specified number of arguments and call <code>type_error()</code> if not.</li>
-	<li><code>type_error()</code> will simply return the C <code>NULL</code> value. This special value will be catched  by the virtual machine that will raise an exception. Please use the macro instead of <code>return NULL</code> so your library will stay compatible if the implementation change.</li>
+	<li><code>val_check(v,<em>type</em>)</code> will check <code>val_is_<em>type</em></code> and call <code>neko_error()</code> if it fails.</li>
+	<li><code>val_check_kind(v,<em>kind</em>)</code> will check that the value is an abstract of the given kind and call <code>neko_error()</code> if not.</li>
+	<li><code>val_check_function(v,<em>nargs</em>)</code> will check that the value is a function that can be called with the specified number of arguments and call <code>neko_error()</code> if not.</li>
+	<li><code>neko_error()</code> will simply return the C <code>NULL</code> value. This special value will be catched  by the virtual machine that will raise an exception. Please use the macro instead of <code>return NULL</code> so your library will stay compatible if the implementation change.</li>
 </ul>
 
 <p>
@@ -551,7 +551,7 @@
 <pre>
     value dosomething( value v ) {
         if( !val_is_abstract(v) || !val_is_kind(v,k_mykind) )
-            type_error();
+            neko_error();
         do_something_in_C( val_data(v) );
         return val_true;
     }
