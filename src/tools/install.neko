@@ -49,6 +49,7 @@ libs = {
 
 // PLATFORM
 
+cflags = $array("-O3","-fPIC");
 linkcmd = switch system { "BSD" => "ld" default => "gcc" };
 linkoptions = switch system { default => "-shared -L../../bin -lneko" };
 nekovm = switch system { "Windows" => "..\\bin\\nekovm" default => "../bin/nekovm" };
@@ -167,7 +168,7 @@ copy = function(file,path) {
 }
 
 compile = function(file) {
-	exec("gcc -O3 -fPIC -c "+make("-I",includes)+file+".c");
+	exec("gcc "+make("",cflags)+"-c "+make("-I",includes)+file+".c");
 }
 
 link = function(files,target,params1,params2) {
