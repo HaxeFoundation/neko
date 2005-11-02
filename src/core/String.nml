@@ -117,3 +117,74 @@ function escape(s) {
 	};
 	loop(0);
 }
+
+function unescape(s) {
+	var l = length s;
+	var s2 = create l;
+	var i = &0;
+	var p = &0;
+	while *i < l {
+		match neko("$sget")(s,*i) {
+		| '\\' ->
+			i := *i + 1;
+			if *i == l then invalid_arg();
+			var c = neko("$sget")(s,*i);
+			match c {
+			| 'n' ->
+				neko("$sset")(s2,*p,'\n');
+			| 't' ->
+				neko("$sset")(s2,*p,'\t');
+			| 'r' ->
+				neko("$sset")(s2,*p,'\r');
+			| '"' ->
+				neko("$sset")(s2,*p,'"');
+			| '\\' ->
+				neko("$sset")(s2,*p,'\\');
+			| '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' ->
+				if *i + 2 >= l then invalid_arg();
+				var c2 = neko("$sget")(s,*i + 1);
+				var c3 = neko("$sget")(s,*i + 2);
+				i := *i + 2;
+				if c2 < '0' || c2 > '9' || c3 < '0' || c3 > '9' then invalid_arg();
+				var o0 = ord '0';
+				var n = (ord c - o0) * 100 + (ord c2 - o0) * 10 + (ord c3 - o0);
+				if n > 255 then invalid_arg();
+				neko("$sset")(s2,*p,chr n);
+			| _ ->
+				invalid_arg()
+			}
+		| c ->
+			neko("$sset")(s2,*p,c);
+		}
+		p := *p + 1;
+		i := *i + 1;
+	}
+	sub s2 0 (*p)
+}
+
+
+function lowercase(s) {
+	var l = length s;
+	var s2 = sub s 0 l;
+	var i = &0;
+	var delta = ord 'a' - ord 'A';
+	while *i < l {
+		var c = neko("$sget")(s,*i);
+		if c >= 'A' && c <= 'Z' then neko("$sset")(s2,*i,chr(ord c + delta));
+		i := *i + 1;
+	}
+	s2
+}
+
+function uppercase(s) {
+	var l = length s;
+	var s2 = sub s 0 l;
+	var i = &0;
+	var delta = ord 'A' - ord 'a';
+	while *i < l {
+		var c = neko("$sget")(s,*i);
+		if c >= 'a' && c <= 'z' then neko("$sset")(s2,*i,chr(ord c + delta));
+		i := *i + 1;
+	}
+	s2
+}
