@@ -160,25 +160,31 @@ function char(l) : char option {
 	}
 }
 
+type cur {
+	mutable cur_n : int;
+	mutable cur_res : int;
+}
+
 function token(l,t) : 'a {
 	var tbl = fst t.engine;
 	var exits = snd t.engine;
-	var last = &(0,-1,-1);
+	var cur = { cur_n = 0; cur_res = -1 };
+	var last = { cur_n = 0; cur_res = -1 };
 	function rec loop(n,k) {
 		var res = neko("tbl[0][k][0][read(l)]");
 		var e = exits.[k];
-		if e != -1 then last := (n,e,res);
+		cur.cur_n := n;
+		cur.cur_res := res;
+		if e != -1 then {
+			last.cur_n := n;
+			last.cur_res := e;
+		}
 		if res == -1 then throw Exit;
 		neko("loop[0](n+1,res)");
 	};	
-	function loop_first(n,k) {
-		var res = neko("tbl[0][k][0][read(l)]");
-		last := (n,exits.[k],res);
-		if res == -1 then throw Exit;
-		loop (n+1) res
-	};
 	function process() {
-		var n , k, _ = *last;
+		var n = last.cur_n;
+		var k = last.cur_res;
 		if k == -1 then {
 			l.current := "";
 			-1;
@@ -197,12 +203,14 @@ function token(l,t) : 'a {
 		}
 	};
 	var k = try {
-		loop_first 0 0;
+		loop 0 0;
 		assert();
 	} catch {
 		| IO.Eof ->
-			var n , _ , res = *last;
-			if res != -1 then last := (n+1,exits.[res],-1);
+			if cur.cur_res != -1 then {
+				last.cur_n := cur.cur_n + 1;
+				last.cur_res := exits.[cur.cur_res];
+			}
 			process();
 		| Exit -> process()
 	}
