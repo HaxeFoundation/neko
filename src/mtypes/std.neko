@@ -530,6 +530,15 @@ fpcdata = function(text) {
 	var o = $new(@Xml);
 	o.text = String.new(text);
 	o.parent = this.cur;
+	o.cdata = false;
+	this.cur.children.add(o);
+}
+
+fcdata = function(text) {
+	var o = $new(@Xml);
+	o.text = String.new(text);
+	o.parent = this.cur;
+	o.cdata = true;
 	this.cur.children.add(o);
 }
 
@@ -548,6 +557,7 @@ Xml.new = function(s) {
 	parse_xml(s.@s,{
 		cur => doc,
 		xml => fxml,
+		cdata => fcdata,
 		pcdata => fpcdata,
 		comment => fcomment,
 		done => fdone
@@ -610,7 +620,11 @@ Xml.new = function(s) {
 
 xml_string_rec = function(x,b) {
 	if( x.text != null ) {
+		if( x.cdata )
+			buffer_add(b,"<![CDATA[");
 		buffer_add(b,x.text);
+		if( x.cdata )
+			buffer_add(b,"]]>");
 		return;
 	}
 	var s = x.children.h;
