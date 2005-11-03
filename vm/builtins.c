@@ -234,7 +234,7 @@ static value builtin_idiv( value a, value b ) {
 
 typedef union {
 	double d;
-	union {
+	struct {
 		unsigned int l;
 		unsigned int h;
 	} i;
