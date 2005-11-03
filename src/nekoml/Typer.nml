@@ -604,7 +604,7 @@ function type_format(ctx,s,p) {
 	}
 }
 
-function rec type_functions(ctx,polym) {
+function rec type_functions(ctx) {
 	var l = ctx.functions;
 	if l != [] then {
 	var mink = ctx.mink;
@@ -627,9 +627,11 @@ function rec type_functions(ctx,polym) {
 		unify ctx ft ft2 p;
 		expr := mk TFunction(isrec,name,el,e) ft2 p;
 		if !isrec then add_local ctx name ft;
-		ft2
+		(name == "_" , ft2)
 	}) (List.rev l);
-	if polym then List.iter (polymorphize ctx.gen mink) l
+	List.iter (function((anon,t)) {
+		if !anon then polymorphize ctx.gen mink t
+	}) l
 	}
 }
 
@@ -647,7 +649,7 @@ function rec type_expr(ctx,(e,p)) {
 			var e = type_block ctx e;
 			(e :: l , e.etype)
 		}) ([e] , e.etype) l;
-		type_functions ctx true;
+		type_functions ctx;
 		restore_locals ctx locals;
 		mk TBlock(List.rev el) t p
 	| EApply (e,el) ->
@@ -759,7 +761,7 @@ function rec type_expr(ctx,(e,p)) {
 		mk TWhile(e1,e2) t_void p
 	| EFunction (isrec,name,pl,e,rt) ->
 		var r = register_function ctx isrec name pl e rt p;
-		type_functions ctx false;
+		type_functions ctx;
 		r
 	| EBinop (op,e1,e2) ->
 		type_binop ctx op (type_expr ctx e1) (type_expr ctx e2) p
@@ -898,7 +900,7 @@ function rec type_block(ctx,x) {
 	var e , p = x;
 	match e {
 	| EVar (vl,e) ->
-		type_functions ctx true;
+		type_functions ctx;
 		var e = type_expr ctx e;
 		function make(v,t) {
 			var t = match t {
@@ -919,7 +921,7 @@ function rec type_block(ctx,x) {
 	| EFunction (true,name,pl,e,rt) ->
 		register_function ctx true name pl e rt p
 	| _ ->
-		type_functions ctx true;
+		type_functions ctx;
 		type_expr ctx x
 	}
 }
@@ -1167,7 +1169,7 @@ function load_module(ctx,m,p) {
 						var e = type_block ctx e;
 						(e :: l , e.etype)
 					}) ([e] , e.etype) l;
-					type_functions ctx true;
+					type_functions ctx;
 					mk TBlock(List.rev el) t p
 				| _ ->
 					type_expr ctx ast
