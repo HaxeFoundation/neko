@@ -1,5 +1,5 @@
 (*
- *  Neko Compiler
+ *  Neko AST for OCaml
  *  Copyright (c)2005 Nicolas Cannasse
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -18,9 +18,8 @@
  *)
 
 type pos = {
-	pmin : int;
-	pmax : int;
-	pfile : string;
+	psource : string;
+	pline : int;
 }
 
 type constant =
@@ -33,38 +32,6 @@ type constant =
 	| String of string
 	| Builtin of string
 	| Ident of string
-
-type keyword =
-	| Var
-	| While
-	| Do
-	| If
-	| Else
-	| Function
-	| Return
-	| Break
-	| Continue
-	| Default
-	| Try
-	| Catch
-
-type token =
-	| Eof
-	| Semicolon
-	| Dot
-	| Comma
-	| Arrow
-	| BraceOpen
-	| BraceClose
-	| ParentOpen
-	| ParentClose
-	| BracketOpen
-	| BracketClose
-	| Const of constant
-	| Keyword of keyword
-	| Binop of string
-	| Comment of string
-	| CommentLine of string
 
 type while_flag =
 	| NormalWhile
@@ -89,21 +56,14 @@ type expr_decl =
 	| ENext of expr * expr
 	| EObject of (string * expr) list
 	| ELabel of string
+	| ESwitch of expr * (expr * expr) list * expr option
+	| ENeko of string
 
 and expr = expr_decl * pos
 
 let pos = snd
 
-let var_args = -1
-
-let null_pos = { pmin = -1; pmax = -1; pfile = "<null pos>" }
-
-let punion p p2 =
-	{
-		pfile = p.pfile;
-		pmin = min p.pmin p2.pmin;
-		pmax = max p.pmax p2.pmax;
-	}
+let null_pos = { pline = 0; psource = "<null pos>" }
 
 let mk_call v args p = ECall (v,args) , p
 let mk_call0 v p = ECall (v,[]) , p
@@ -131,9 +91,11 @@ let map f (e,p) =
 	| EBreak (Some e) -> EBreak (Some (f e))
 	| ENext (e1,e2) -> ENext (f e1,f e2)
 	| EObject fl -> EObject (List.map (fun (s,e) -> s , f e) fl)
+	| ESwitch (e,cases,def) -> ESwitch (f e,List.map (fun(e1,e2) -> f e1, f e2) cases,match def with None -> None | Some e -> Some (f e))
 	| EReturn None
 	| EBreak None
-	| EContinue	
+	| EContinue
+	| ENeko _
 	| ELabel _
 	| EConst _ as x -> x) , p
 
@@ -154,9 +116,11 @@ let iter f (e,p) =
 	| EBreak (Some e) -> f e
 	| ENext (e1,e2) -> f e1; f e2
 	| EObject fl -> List.iter (fun (_,e) -> f e) fl
+	| ESwitch (e,cases,def) -> f e; List.iter (fun(e1,e2) -> f e1; f e2) cases; (match def with None -> () | Some e -> f e) 
 	| EReturn None
 	| EBreak None
 	| EContinue
+	| ENeko _
 	| ELabel _
 	| EConst _ -> ()
 
@@ -170,8 +134,7 @@ let escape s =
 		| '\t' -> Buffer.add_string b "\\t"
 		| '\r' -> Buffer.add_string b "\\r"
 		| '\\' -> Buffer.add_string b "\\\\"
-		| '"' -> Buffer.add_string b "\\\""
-		| c when not (is_printable c) -> Buffer.add_string b (Printf.sprintf "\\%.3d" (int_of_char c))
+		| c when c == '"' || not (is_printable c) -> Buffer.add_string b (Printf.sprintf "\\%.3d" (int_of_char c))
 		| c -> Buffer.add_char b c
 	done;
 	Buffer.contents b
@@ -186,35 +149,3 @@ let s_constant = function
 	| String s -> "\"" ^ escape s ^ "\""
 	| Builtin s -> "$" ^ s
 	| Ident s -> s
-
-let s_keyword = function
-	| Var -> "var"
-	| While -> "while"
-	| Do -> "do"
-	| If -> "if"
-	| Else -> "else"
-	| Function -> "function"
-	| Return -> "return"
-	| Break -> "break"
-	| Continue -> "continue"
-	| Default -> "default"
-	| Try -> "try"
-	| Catch -> "catch"
-
-let s_token = function
-	| Eof -> "<eof>"
-	| Semicolon -> ";"
-	| Dot -> "."
-	| Comma -> ","
-	| Arrow -> "=>"
-	| BraceOpen -> "{"
-	| BraceClose -> "}"
-	| ParentOpen -> "("
-	| ParentClose -> ")"
-	| BracketOpen -> "["
-	| BracketClose -> "]"
-	| Const c -> s_constant c
-	| Keyword k -> s_keyword k
-	| Binop s -> s
-	| Comment s -> "/*" ^ s ^ "*/"
-	| CommentLine s -> "//" ^ s
