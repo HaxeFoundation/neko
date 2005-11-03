@@ -253,11 +253,11 @@ static value alloc_result( MYSQL_RES *r ) {
 				buffer_append(b,fields[i].name);
 				buffer_append(b,":");
 				val_buffer(b,alloc_int(i));
-				buffer_append(b,"</b> and <b>");
+				buffer_append(b," and ");
 				buffer_append(b,fields[j].name);
 				buffer_append(b,":");
 				val_buffer(b,alloc_int(j));
-				buffer_append(b,"</b>.<br/>");
+				buffer_append(b,".");
 				bfailure(b);
 			}
 		res->fields_ids[i] = id;
