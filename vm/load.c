@@ -244,7 +244,11 @@ static value init_path( const char *path ) {
 	if( !path )
 		return val_null;
 	while( true ) {
-		p = strchr(path,':');
+		// windows drive letter (same behavior expected on all os)
+		if( *path && path[1] == ':' )
+			p = strchr(path+2,':');
+		else
+			p = strchr(path,':');
 		if( p != NULL )
 			*p = 0;
 		tmp = alloc_array(2);
