@@ -158,7 +158,12 @@ static value select_file( value path, const char *file, const char *ext ) {
 
 static void open_module( value path, const char *mname, reader *r, readp *p ) {
 	FILE *f;
-	value fname = select_file(path,mname,".n");
+	value fname;
+	char *ext = strrchr(mname,'.');
+	if( ext && ext[1] == 'n' && ext[2] == 0 )
+		fname = select_file(path,mname,"");
+	else
+		fname = select_file(path,mname,".n");
 	f = fopen(val_string(fname),"rb");
 	if( f == NULL ) {
 		buffer b = alloc_buffer("Module not found : ");
