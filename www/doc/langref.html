@@ -27,6 +27,7 @@
 	<li><a href="#arrays">Arrays</a></li>
 	<li><a href="#strings">Strings</a></li>
 	<li><a href="#exceptions">Exceptions</a></li>
+	<li><a href="#hash">Hashtables</a></li>
 	<li><a href="#labels">Labels and Gotos</a></li>
 </ul>
 
@@ -590,11 +591,11 @@ Operations substract ( - ) divide ( / ) multiply ( * ) and modulo ( % ) :
 <h3>Equality &amp; Comparisons</h3>
 
 <p>
-	Physical comparison occurs when the following operations are performed : equality <code>==</code>, difference<code>!=</code>, greater <code>&gt;</code>, lower <code>&lt;</code>, greater or equal <code>&gt;=</code> or lower or equal <code>&lt;=</code>.
+	Comparison occurs when the following operations are performed : equality <code>==</code>, difference<code>!=</code>, greater <code>&gt;</code>, lower <code>&lt;</code>, greater or equal <code>&gt;=</code> or lower or equal <code>&lt;=</code>.
 </p>
 
 <p>
-	Physical comparison method :
+	Comparison method :
 </p>
 
 
@@ -769,6 +770,14 @@ Operations substract ( - ) divide ( / ) multiply ( * ) and modulo ( % ) :
 	<td>true</td>
 </tr>
 </table>
+
+<p>
+	Physical comparison :
+</p>
+
+<p>
+	The builtin <code>$pcompare</code> will compare two values physicaly. It will be the same result as <code>$compare</code> for integers, and other values will be compared using their memory address. You can use <code>$pcompare</code> instead of <code>$compare</code> if you want to optimize your integer comparisons.
+</p>
 
 <a name="converts"></a>
 <h3>Conversions</h3>
@@ -1290,6 +1299,71 @@ Exceptions are often referred as "non local jumps". It's a very good way for han
 		$print(e); // prints "failure"
 	}
 </pre>
+
+<p>
+	Every time an exception is catched, the <i>exception stack</i> is stored and can be retrieved using the builtin <code>$excstack()</code>. It contains the filenames and positions of the different calls between the <code>try</code> and the place the exception was raised.
+</p>
+
+<pre>
+	try
+		foo()
+	catch e {
+		$print(e," raised from : ",$excstack());
+	}
+</pre>
+
+<p>
+	In some cases, you want to filter exceptions and catch only some of theses. You need then to catch all the exceptions, check if the exception is filtered, and raise it again if not. However, in order to loose the exception stack by throwing a new exception, you can use the <code>$rethrow</code> builtin that will add the two stacks together (the current one and the one to the next <code>catch</code>).
+</p>
+
+<pre>
+	try
+		foo()
+	catch e {
+		if( $typeof(e) == $tint )
+			$print("catched !")
+		else
+			$rethrow(e);
+	}
+</pre>
+
+<p>
+	Please note that you can <code>rethrow</code> another exception, so it's more easy to rewrap some Neko libraries exceptions with your own format.
+</p>
+
+<p>
+	It is also possible to get the current call stack at any point of a Neko program using the <code>$callstack()</code> builtin.
+</p>
+
+<!-- ****************************************************************************** -->
+
+<a name="hash"></a>
+<h2>Hashtables</h2>
+
+<p>
+	There is a set of builtins that are useful for using Hashtables. An hashtable is not a basic type but an <i>abtract</i> type. It can then only be manipulated using the following builtins :
+</p>
+
+<ul>
+	<li><code>$hnew(size)</code> : create a new hashtable having initialy <code>size</code> slots.</li>
+	<li><code>$hadd(h,k,v)</code> : add the value <code>v</code> with key <code>k</code> to the hashtable. Please note that <code>k</code> can be any Neko value, even recursive.</li>
+	<li><code>$hset(h,k,v,cmp)</code> : set the value of the key <code>k</code> to <code>v</code>. The previous binding is replaced if the <code>cmp</code> function between keys returns 0. If <code>cmp</code> is <code>null</code>, the default comparison function is used.</li>
+	<li><code>$hmem(h,k,cmp)</code> : returns true if a value exists for key <code>k</code> in the Hashtable.</li>
+	<li><code>$hget(h,k,cmp)</code> : returns the first value bound to key <code>k</code> or <code>null</code> if not found.</li>
+	<li><code>$hremove(h,k,cmp)</code> : removes the first binding of <code>k</code>. returns a boolean indicating the success.</li>
+	<li><code>$hresize(h,size)</code> : resize the hashtable. Please note that the size is usually automaticaly handled.</li>
+	<li><code>$hsize(h)</code> : returns the size of the hashtable.</li>
+	<li><code>$hcount(h)</code> : returns the number of bindings in the hashtable.</li>
+	<li><code>$hiter(h,f)</code> : calls <code>f(k,v)</code> for each binding found in the hashtable.</li>
+</ul>
+
+<p>
+	The hashtable stores the (key,values) couples in one chained list per slot. Adding a new binding with the same key will mask the previous one. The hash function used internaly is <code>$hkey(k)</code> which will return a positive Neko integer for any Neko value. The hash function cannot be overriden but the comparison function between keys can be where it is used.
+</p>
+
+<p>
+	You can of course write your own hashtable implementation using Neko data structures, but using the standard builtin hashtable is better for languages interoperability.
+</p>
 
 <!-- ****************************************************************************** -->
 
