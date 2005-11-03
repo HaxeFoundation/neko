@@ -142,7 +142,9 @@ static int neko_handler_rec( request_rec *r ) {
 	if( exc != NULL ) {
 		buffer b = alloc_buffer(NULL);
 		value v;
+		int i;
 		const char *p, *start;
+		value st = neko_exc_stack(vm);
 		val_buffer(b,exc);
 		send_headers(&ctx);
 		v = buffer_to_string(b);
@@ -158,6 +160,21 @@ static int neko_handler_rec( request_rec *r ) {
 			p++;
 		}
 		ap_rwrite(start,p - start,r);
+		ap_rprintf(r,"<br/><br/>");
+		for(i=0;i<val_array_size(st);i++) {
+			value s = val_array_ptr(st)[i];
+			if( val_is_null(s) )
+				ap_rprintf(r,"Called from a C function<br/>");
+			else if( val_is_string(s) ) {
+				ap_rprintf(r,"Called from %s (no debug available)<br/>",val_string(s));
+			} else if( val_is_array(s) && val_array_size(s) == 2 && val_is_string(val_array_ptr(s)[0]) && val_is_int(val_array_ptr(s)[1]) )
+				ap_rprintf(r,"Called from %s line %d<br/>",val_string(val_array_ptr(s)[0]),val_int(val_array_ptr(s)[1]));
+			else {
+				b = alloc_buffer(NULL);
+				val_buffer(b,s);
+				ap_rprintf(r,"Called from %s<br/>",val_string(buffer_to_string(b)));
+			}
+		}
 		return OK;
 	}
 
