@@ -27,6 +27,7 @@
 	<li><a href="#typecheck">Type checks</a></li>
 	<li><a href="#callb">Function Callbacks</a></li>
 	<li><a href="#abstracts">Abstracts and Kinds</a></li>
+	<li><a href="#int32">Using 32 bits integers</a></li>
 	<li><a href="#memory">Managing Memory</a></li>
 	<li><a href="#misc">Misc API Functions</a></li>
 	<li><a href="#samples">More Samples</a></li>
@@ -604,6 +605,26 @@
 </p>
 
 <!-- ****************************************************************************** -->
+<a name="int32"></a>
+<h2>Using 32 bits integers</h2>
+
+<p>
+	As explained before, Neko integers are only signed 31 bits. While this is enough for most of the cases, there is some times where you want to use the full 32 bits. It was then added a common int32 abstract type.
+</p>
+
+<p>
+	You can use <code>val_is_int32(i)</code> to check that the value <code>i</code> is either an integer or an int32. And <code>val_int32(i)</code> will return the corresponding integer. If you want to check that the value is <i>exactly</i> an int32, then you can use <code>val_is_kind(i,k_in32)</code>.
+</p>
+
+<p>
+	To create an int32 value, you can use <code>alloc_int32(i)</code>. Please note that unlike <code>alloc_int</code> which is a fast macro, <code>alloc_int32</code> allocate some memory to store the integer so it is slower.
+</p>
+
+<p>
+	In the case most of your integers are using only 31 bits but you still want to be able to use the full 32 bits, then you can use the <code>alloc_best_int(i)</code> macro that will use either <code>alloc_int</code> or <code>alloc_int32</code> depending on the needed bits. Use then the <code>val_check(i,int32)</code> and <code>val_is_int32(v)</code> macros in order to accept both kind of integers.
+</p>
+
+<!-- ****************************************************************************** -->
 
 <a name="memory"></a>
 <h2>Managing Memory</h2>
@@ -644,7 +665,8 @@
 <ul class="large">
 	<li><code>val_compare(a,b)</code> : compare two values according to Neko specification. Returns an integer that will be 0 if <code>a = b</code>, -1 if <code>a &lt; b</code>, 1 if <code>a &gt; b</code> or <code>invalid_comparison</code> if <code>a</code> and <code>b</code> can't be compared.</li>
 	<li><code>val_print(v)</code> : print the value to the defined output of the virtual machine.</li>
-	<li><code>val_throw(v)</code> : throw the value v as an exception.</li>
+	<li><code>val_hash(v)</code> : hash any value into a positive integer.</li>
+	<li><code>val_throw(v)</code> and <code>val_rethrow(v)</code> : throw the value v as an exception.</li>
 	<li><code>failure(msg)</code> : throw a <em>failure</em> exception using a constant C string as error message. This is a convenient way of handling errors in your primitives, since the exception will contain your error message as well as the C filename and the line where the error occured.</li>
 	<li><code>bfailure(buf)</code> : same as <code>failure</code> but use a <em>buffer</em> instead of a constant string.</li>
 </ul>
