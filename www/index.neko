@@ -1,4 +1,3 @@
-file_new = $loader.loadprim("std@file_new",2);
 file_contents = $loader.loadprim("std@file_contents",1);
 file_exists = $loader.loadprim("std@file_exists",1);
 
@@ -27,10 +26,10 @@ read = function(fname) {
 		else
 			return "Invalid char "+c;
 	}
-	var f = file_new(directory,fname+".html");
-	if( $not(file_exists(f)) )
+	var fpath = directory + fname + ".html";
+	if( $not(file_exists(fpath)) )
 		return "Document not found : " + fname;
-	return file_contents(f);
+	return file_contents(fpath);
 }
 
 main = function() {
