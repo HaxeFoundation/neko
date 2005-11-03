@@ -52,6 +52,7 @@ function rec parse_xml(p,x) {
 	function error() {
 		invalid_arg();
 	}
+	var p = parse_pos p x;
 	function binop(f) {
 		match nodes x {
 		| [a;b] ->
@@ -60,7 +61,6 @@ function rec parse_xml(p,x) {
 			error()
 		}
 	}
-	var p = parse_pos p x;
 	match node_name x {
 	| "i" -> 
 		var v = int (attrib x "v");
@@ -74,7 +74,7 @@ function rec parse_xml(p,x) {
 	| "v" ->
 		var v = attrib x "v";
 		if String.get v 0 == '$' then
-			(EConst Builtin(String.sub v 0 (String.length v - 1)),p)
+			(EConst Builtin(String.sub v 1 (String.length v - 1)),p)
 		else match v {
 		| "true" -> (EConst True,p)
 		| "false" -> (EConst False,p)
@@ -177,8 +177,8 @@ function parse(s,p) {
 	}
 }
 
-function rec to_xml_rec(p,ast) {
-	var e , p2 = ast;
+function rec to_xml_rec(p2,ast) {
+	var e , p = ast;
 	var name = &"";
 	var val = &None;
 	var childs = &[];
@@ -268,9 +268,9 @@ function rec to_xml_rec(p,ast) {
 		childs := to_xml_rec p e :: (match def { None -> cases | Some e -> Node "default" [] [to_xml_rec p e] :: cases });
 	}
 	var pos = (if p.psource != p2.psource then
-		[("p",p2.psource + ":" + p2.pline)]
+		[("p",p.psource + ":" + p.pline)]
 	else if p.pline != p2.pline then
-		[("p",string p2.pline)]
+		[("p",string p.pline)]
 	else
 		[]);
 	var val = match *val { None -> [] | Some v -> [("v",v)] };
@@ -280,4 +280,3 @@ function rec to_xml_rec(p,ast) {
 function to_xml(ast) {
 	to_xml_rec null_pos ast
 }
-
