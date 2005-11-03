@@ -19,11 +19,7 @@ buffer_string = $loader.loadprim("std@buffer_string",1);
 
 sources = $array(
 	"tools/test",
-	"mtypes/cgi",
-	"mtypes/mysql",
-	"mtypes/regexp",
 	"mtypes/std",
-	"mtypes/sys",
 );
 
 libs = {
