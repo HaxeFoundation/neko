@@ -89,6 +89,8 @@ function nxml(l) {
 	Lexer.token l (*enxml)
 }
 
+exception Continue : bool;
+
 expr := Lexer.build [
 	(";", function(l) { mk l Semicolon });
 	(".", function(l) { mk l Dot });
@@ -141,7 +143,18 @@ expr := Lexer.build [
 		var p1 = Lexer.curpos l;
 		var buf = Lexer.data l;
 		Buffer.reset buf;
-		try nxml l catch { Exit -> throw Error(Unclosed_nxml,p1) };
+		try
+			while true {
+				try
+					nxml l
+				catch {
+					| Continue true -> ()
+					| Exit -> throw Error(Unclosed_nxml,p1)
+				}
+			}
+		catch {
+			Continue false -> ()
+		}		
 		var p2 = Lexer.curpos l;
 		(NXml(Buffer.string buf) , Lexer.punion p1 p2)		
 	});
@@ -195,7 +208,7 @@ estring := Lexer.build [
 ] (function(l) { throw Exit });
 
 enxml := Lexer.build [
-	("</nxml>", function(l) { });
-	("<",function(l) { Buffer.add_char (Lexer.data l) '<'; nxml l });
+	("</nxml>", function(l) { throw Continue(false) });
+	("<",function(l) { Buffer.add_char (Lexer.data l) '<'; throw Continue(true) });
 	("[^<]+", function(l) { Buffer.add (Lexer.data l) (Lexer.current l); nxml l });
 ] (function(l) { throw Exit });
