@@ -1,0 +1,351 @@
+
+type doc_type {
+	TBase : string;
+	TAbstract : string;
+	TCustom : string;
+	TFun : (doc_type, doc_type);
+	TOpt : doc_type;
+	TStar : doc_type;
+	TMult : doc_type list;
+	TObj : (string , doc_type) list;
+	TNamed : (string , doc_type);
+	TArray : doc_type;
+	TFunction : int;
+}
+
+type doc_item {
+	Function : (string , doc_type, Xml.t option);
+	Document : Xml.t;
+}
+
+type doc = doc_item list
+
+type token {
+	Eof;
+	Begin;
+	End;
+	Star;
+	Question;
+	Arrow;
+	DoubleDot;
+	POpen;
+	PClose;
+	Or;
+	Quote;
+	Sharp;
+	Int : int;
+	Doc : Xml.t;
+	Ident : string;
+}
+
+type status {
+	mutable doc : bool;
+	buf : Buffer.t;
+}
+
+type error_msg {
+	Unexpected : token;
+	Invalid_char : char;
+	Unknown_type : string;
+	Unclosed_doc;
+	Invalid_doc;
+}
+
+exception Error : (error_msg,Lexer.pos);
+
+function error(msg,p) {
+	throw Error(msg,p)
+}
+
+function s_token(t) {
+	match t {
+	| Eof -> "<eof>"
+	| Begin -> "/**"
+	| End -> "**/"
+	| DoubleDot -> ":"
+	| Arrow -> "->"
+	| Star -> "*"
+	| POpen -> "("
+	| PClose -> ")"
+	| Or -> "|"
+	| Quote -> "'"
+	| Sharp -> "#"
+	| Question -> "?"
+	| Int i -> string i
+	| Ident i -> i
+	| Doc d -> "<doc>"+Xml.to_string d+"</doc>"
+	}
+}
+
+function error_msg(msg) {
+	match msg {
+	| Unexpected t -> "Unexpected " + s_token t
+	| Invalid_char c -> "Invalid character " + String.escape_char c
+	| Unknown_type s -> "Unknown type " + s
+	| Unclosed_doc -> "Unclosed doc tag"
+	| Invalid_doc -> "Documentation is not XHTML valid"
+	}
+}
+
+function mk_tok(l,t) {
+	(t,Lexer.curpos l)
+}
+
+function status() {
+	{
+		buf = Buffer.create();
+		doc = false;
+	}
+}
+
+var doc_token = &Lexer.empty();
+var doc_content = &Lexer.empty();
+var doc_doc = &Lexer.empty();
+
+doc_token := Lexer.build [
+	("/\\*\\*" , function(l) { (Lexer.data l).doc := true; mk_tok l Begin }); 
+	("/" , function(l) { Lexer.token l (*doc_token) });
+	("[^/]+", function(l) { Lexer.token l (*doc_token) });
+] (function(l) { mk_tok l Eof });
+
+doc_content := Lexer.build [
+	("\\*\\*/", function(l) { (Lexer.data l).doc := false; mk_tok l End });
+	(":", function(l) { mk_tok l DoubleDot });
+	("(", function(l) { mk_tok l POpen });
+	(")", function(l) { mk_tok l PClose });
+	("|", function(l) { mk_tok l Or });
+	("->", function(l) { mk_tok l Arrow });
+	("\\*", function(l) { mk_tok l Star });
+	("\\?", function(l) { mk_tok l Question });
+	("'", function(l) { mk_tok l Quote });
+	("#", function(l) { mk_tok l Sharp });
+	("<doc>", function(l) {
+		var p1 = Lexer.curpos l;
+		var buf = (Lexer.data l).buf;
+		Buffer.reset buf;
+		try Lexer.token l (*doc_doc) catch { Exit -> error Unclosed_doc p1 };
+		var p2 = Lexer.curpos l;
+		var x = try Xml.parse (Buffer.string buf) catch { _ -> error Invalid_doc p1 };
+		(Doc x, Lexer.punion p1 p2)
+	});
+	("[ \t\r\n]+", function(l) { Lexer.token l (*doc_content) });
+	("[0-9]+", function(l) { mk_tok l Int(int (Lexer.current l)) });
+	("$?[a-zA-Z_@][a-zA-Z0-9_@]*", function(l) { mk_tok l Ident(Lexer.current l) });
+] (function(l) { 
+	match Lexer.char l {
+	| None -> mk_tok l Eof
+	| Some c -> error Invalid_char(c) Lexer.curpos(l)
+	}
+});
+
+doc_doc := Lexer.build [
+	("</doc>", function(l) { });
+	("<", function(l) { Buffer.add_char (Lexer.data l).buf '<'; Lexer.token l (*doc_doc) });
+	("[^<]+", function(l) { Buffer.add (Lexer.data l).buf Lexer.current(l); Lexer.token l (*doc_doc) });
+] (function(l) { throw Exit });
+
+function rec documentation(s) {
+	match s {
+	| [< (Eof,_) >] -> []
+	| [< (Begin,_); d = document s; (End,_); l = documentation s >] -> d :: l
+	}
+}
+
+function rec document(s) {
+	match s {
+	| [< (Ident i,_); (DoubleDot,_); t = doc_type s; d = doc_option s >] -> Function i t d
+	| [< (Doc d,_) >] -> Document d
+	}
+}
+
+function rec doc_option(s) {
+	match s {
+	| [< (Doc d,_) >] -> Some d
+	| [< >] -> None
+	}
+}
+
+function rec doc_type(s) {
+	match s {
+	| [< t = doc_type_base s >] -> doc_type_next t s
+	}
+}
+
+function rec doc_type_base(s) {
+	match s {
+	| [< (Quote,_); (Ident i,_); >] -> TAbstract i
+	| [< (Sharp,_); (Ident i,_); >] -> TCustom i
+	| [< (Ident i,p) >] ->
+		match i {
+		| "null" | "int" | "float" | "string" | "array" | "bool" |  "any" | "void" | "number" | "object" ->
+			TBase i
+		| "function" ->
+			match s {
+			| [< (DoubleDot,_); (Int n,_) >] -> TFunction n
+			| [< >] -> TBase i
+			}
+		| _ ->
+			match s {
+			| [< (DoubleDot,_); t = doc_type_base s >] -> TNamed i t
+			| [< >] -> error Unknown_type(i) p
+			}
+		}
+	| [< (POpen,_); t = doc_type s; l = doc_type_list s; (PClose,_) >] -> TMult (t :: l)
+	}
+}
+
+function rec doc_type_next(t,s) {
+	match s {
+	| [< (Arrow,_); t2 = doc_type s >] -> doc_type_next (TFun t t2) s
+	| [< (Star,_) >] -> doc_type_next (TStar t) s
+	| [< (Question,_) >] -> doc_type_next (TOpt t) s
+	| [< (Ident "array",_) >] -> doc_type_next (TArray t) s
+	| [< >] -> t
+	}
+}
+
+function rec doc_type_list(s) {
+	match s {
+	| [< (Or,_); t = doc_type s; l = doc_type_list s >] -> t :: l
+	| [< >] -> []
+	}
+}
+
+function parse(lex) : doc {
+	var last = &(Eof,Lexer.null_pos);
+	function rec next_token() {
+		var t = Lexer.token lex (if (Lexer.data lex).doc then (*doc_content) else (*doc_token));
+		last := t;
+		t
+	}
+	try {
+		documentation (stream next_token)
+	} catch {
+		| Stream_matching
+		| Stream_error -> error Unexpected(fst(*last)) snd(*last)
+	}
+}
+
+function rec type_write(ch,t) {
+	match t {
+	| TBase b -> IO.write ch b
+	| TAbstract a -> IO.printf ch "'%s" a
+	| TCustom s -> IO.printf ch "#%s" s
+	| TFun (t1,t2) ->
+		type_write_par ch t1;
+		IO.write ch " -> ";
+		type_write ch t2
+	| TOpt t ->
+		type_write_par ch t;
+		IO.write ch "?"
+	| TStar t ->
+		type_write_par ch t;
+		IO.write ch "*"
+	| TMult l ->
+		IO.write ch "(";
+		function rec loop(l) {
+			match l {
+			| [] -> ()
+			| [t] -> type_write_par ch t 
+			| t :: l ->
+				type_write_par ch t;
+				IO.write ch " | ";
+				loop l
+			}
+		}
+		loop l;
+		IO.write ch ")"
+	| TObj l ->
+		IO.write ch "{ ";
+		function rec loop(l) {
+			match l {
+			| [] -> ()
+			| [(n,t)] ->
+				IO.write ch n;
+				IO.write ch " => ";
+				type_write ch t;
+			| (n,t) :: l ->
+				IO.write ch n;
+				IO.write ch " => ";
+				type_write ch t;
+				IO.write ch ", ";
+				loop l
+			}
+		}
+		loop l;
+		IO.write ch "}";
+	| TNamed (s,t) ->
+		IO.printf ch "%s : " s;
+		type_write_par ch t
+	| TArray t ->
+		type_write_par ch t;
+		IO.write ch " array"
+	| TFunction n ->
+		IO.printf ch "function:%d" n 
+	}
+}
+
+function rec type_write_par(ch,t) {
+	match t {
+	| TFun _ ->
+		IO.write ch "(";
+		type_write ch t;
+		IO.write ch ")";
+	| _ ->
+		type_write ch t;
+	}
+}
+
+function format_xml(s) {
+	var s = String.concat "<div class=\"doc_code\">" (String.split s "[");
+	var s = String.concat "</div>" (String.split s "]");
+	s
+}
+
+function to_html(ch,doc) {
+	List.iter (function(d) {
+		match d {
+		| Document x -> 
+			IO.write ch (format_xml Xml.to_string(x));
+			IO.write ch "\n"
+		| Function (f,t,doc) ->
+			IO.write ch "<div class=\"doc_blk\">\n <div class=\"doc_type\">";
+			function rec loop(t) {	
+				match t {
+				| TFun (p,r) ->
+					var args , r = loop r;
+					(p :: args, r)
+				| _ ->
+					([],t)
+				}
+			}
+			var args , r = loop t;
+			match args {
+			| [] ->
+				IO.printf ch "<div class=\"doc_name\">%s</div> : " f;
+				type_write ch r;
+			| _ ->
+				type_write_par ch r;
+				IO.printf ch " <div class=\"doc_name\">%s</div>(" f;
+				function rec loop(l) {
+					match l {
+					| [] -> ()
+					| [t] -> type_write ch t
+					| t :: l ->
+						type_write ch t;
+						IO.write ch ", ";
+						loop l
+					}
+				}
+				loop args;
+				IO.write ch ")";
+			}
+			IO.write ch "</div> <div class=\"doc_doc\">";
+			match doc {
+			| None -> ()
+			| Some x -> IO.write ch (format_xml Xml.to_string(x))
+			}
+			IO.write ch "</div>\n</div>\n";
+		}
+	}) doc;
+}
