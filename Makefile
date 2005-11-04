@@ -38,6 +38,10 @@ libs:
 	(cd src; ${NEKO_EXEC} neko/Main tools/install.neko)
 	(cd src; ${NEKO_EXEC} tools/install)
 
+doc:
+	(cd src; ${NEKO_EXEC} neko/Main tools/makedoc.neko)
+	(cd src; ${NEKO_EXEC} tools/makedoc)
+
 nekovm: bin/nekovm
 
 std: bin/std.ndll
@@ -68,4 +72,4 @@ clean:
 .c.o :
 	${CC} ${CFLAGS} -c $< -o $@
 
-.PHONY: all libneko libs nekovm std compiler clean
+.PHONY: all libneko libs nekovm std compiler clean doc
