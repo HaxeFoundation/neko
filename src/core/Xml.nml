@@ -158,4 +158,9 @@ function rec write(ch,x) {
 	}
 }
 
+function to_string(x) {
+	var ch , str = IO.write_string();
+	write ch x;
+	str()
+}
 
