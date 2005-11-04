@@ -98,6 +98,9 @@
 				RelativePath=".\neko\Compile.nml">
 			</File>
 			<File
+				RelativePath=".\neko\Doc.nml">
+			</File>
+			<File
 				RelativePath=".\neko\Lexer.nml">
 			</File>
 			<File
