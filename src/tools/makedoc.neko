@@ -1,0 +1,39 @@
+
+readdir = $loader.loadprim("std@sys_read_dir",1);
+command = $loader.loadprim("std@sys_command",1);
+
+exec = function(cmd) {
+	$print(cmd,"\n");
+	var ecode = command(cmd);
+	if( ecode != 0 )
+		$throw("Error "+ecode+" : aborted");
+}
+
+makedoc = function(file) {
+	exec("nekovm neko/Main -o ../www/libs -doc ../"+file);
+}
+
+files = $array(
+	"vm/builtins.c",
+);
+
+var i = 0;
+var l = $asize(files);
+while i < l {
+	makedoc(files[i]);
+	i = i + 1;
+}
+
+var libs = readdir("../libs");
+while( libs != null ) {
+	var l = libs[0];
+	var k = try readdir("../libs/"+l) catch _ { null };
+	while( k != null ) {
+		var f = k[0];
+		var len = $ssize(f);
+		if( $ssub(f,len-2,2) == ".c" )
+			makedoc("libs/"+l+"/"+f);
+		k = k[1];
+	}
+	libs = libs[1];
+}
