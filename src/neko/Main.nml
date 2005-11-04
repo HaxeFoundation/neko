@@ -17,6 +17,7 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+var dir = &"";
 var verbose = &false;
 
 function compile(file) {
@@ -27,7 +28,7 @@ function compile(file) {
 	var ast = Neko.Parser.parse lex;
 	IO.close_in i;
 	var code = Neko.Compile.compile ast;
-	var o = IO.write_file (Sys.without_extension file + ".n") true;
+	var o = IO.write_file (*dir + Sys.without_extension file + ".n") true;
 	Neko.Bytecode.write o code;
 	IO.close_out o
 }
@@ -37,8 +38,20 @@ function dump(file) {
 	var i = IO.read_file file true;
 	var code = Neko.Bytecode.read i;
 	IO.close_in i;
-	var o = IO.write_file (Sys.without_extension file + ".dump") false;
+	var o = IO.write_file (*dir + Sys.without_extension file + ".dump") false;
 	Neko.Bytecode.dump o code;
+	IO.close_out o
+}
+
+function print_ast(file) {
+	if *verbose then printf "Printing %s\n" file;
+	var i = IO.read_file file false;
+	var lex = Lexer.create Buffer.create();
+	Lexer.input lex file i 1 0;
+	var ast = Neko.Parser.parse lex;
+	IO.close_in i;
+	var o = IO.write_file (*dir + Sys.without_extension file + "2.neko") false;
+	Neko.Printer.print Neko.Printer.create(o) ast;
 	IO.close_out o
 }
 
@@ -59,6 +72,18 @@ function release(file) {
 	IO.close_out o
 }
 
+function documentation(file) {
+	if *verbose then printf "Building documentation for %s\n" file;
+	var i = IO.read_file file false;
+	var lex = Lexer.create Neko.Doc.status();
+	Lexer.input lex file i 1 0;
+	var doc = Neko.Doc.parse lex;
+	IO.close_in i;
+	var o = IO.write_file (*dir + Sys.without_extension file + ".html") false;
+	Neko.Doc.to_html o doc;
+	IO.close_out o
+}
+
 function report(msg,p) {
 	if p == Lexer.null_pos then	{
 		Stack.dump IO.stderr Stack.exc();
@@ -68,11 +93,22 @@ function report(msg,p) {
 	Sys.exit(-1);
 }
 
+function complete(dir) {
+	var l = String.length dir;
+	if l > 0 && String.get dir (l - 1) != '/' && String.get dir (l - 1) != '\\' then
+		dir + "/"
+	else
+		dir
+}
+
 try {
 	var head = "Neko v1.0 - (c)2005 Nicolas Cannasse\n Usage : neko [options] files...";
 	var decl = [
 		("-d", Args.String (function(f) { dump f }) , "<file> : dump bytecode");
 		("-z", Args.String (function(f) { release f }), "<file> : make bytecode release");
+		("-p", Args.String (function(f) { print_ast f }), "<file> : parse and print neko source");
+		("-doc", Args.String (function(f) { documentation f }) , "<file> : make documentation");
+		("-o", Args.String (function(f) { dir := complete f }),"<dir> : set output directory"); 
 		("-v", Args.Void (function() { verbose := true }) , ": verbose mode");
 	];
 	Args.parse head decl (function(f) { compile f });
@@ -80,5 +116,6 @@ try {
 	| Neko.Lexer.Error(msg,pos) -> report Neko.Lexer.error_msg(msg) pos
 	| Neko.Parser.Error(msg,pos) -> report Neko.Parser.error_msg(msg) pos
 	| Neko.Compile.Error(msg,pos) -> report Neko.Compile.error_msg(msg) pos
+	| Neko.Doc.Error(msg,pos) -> report Neko.Doc.error_msg(msg) pos
 	| e -> report string(e) Lexer.null_pos
 }
