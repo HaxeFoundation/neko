@@ -1,0 +1,240 @@
+
+		<h1>Builtins</h1>
+		<p>
+			Builtins are basic operations that can be optimized by the Neko compiler.
+		</p>
+	
+<h2>Array Builtins</h2>
+<doc_blk>
+  <doc_type>array</doc_type> <doc_name>$array</doc_name><doc_type>(any*)</doc_type> <doc_doc>Create an array from a list of values</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>array</doc_type> <doc_name>$amake</doc_name><doc_type>(n : int)</doc_type> <doc_doc>Create an array of size <doc_code>n</doc_code></doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>array</doc_type> <doc_name>$acopy</doc_name><doc_type>(array)</doc_type> <doc_doc>Make a copy of an array</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>int</doc_type> <doc_name>$asize</doc_name><doc_type>(array)</doc_type> <doc_doc>Return the size of an array</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>array</doc_type> <doc_name>$asub</doc_name><doc_type>(array, p : int, l : int)</doc_type> <doc_doc>
+	Return <doc_code>l</doc_code> elements starting at position <doc_code>p</doc_code> of an array.
+	An error occurs if out of array bounds.
+	</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>array</doc_type> <doc_name>$ablit</doc_name><doc_type>(dst : array, dst_pos : int, src : array, src_pos : int, len : int)</doc_type> <doc_doc>
+	Copy <doc_code>len</doc_code> elements from <doc_code>src_pos</doc_code> of <doc_code>src</doc_code> to <doc_code>dst_pos</doc_code> of <doc_code>dst</doc_code>.
+	An error occurs if out of arrays bounds.
+	</doc_doc>
+</doc_blk>
+<h2>String Builtins</h2>
+<doc_blk>
+  <doc_type>string</doc_type> <doc_name>$string</doc_name><doc_type>(any)</doc_type> <doc_doc>Convert any value to a string. This will make a copy of string.</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>string</doc_type> <doc_name>$smake</doc_name><doc_type>(n : int)</doc_type> <doc_doc>Return an uninitialized string of size <doc_code>n</doc_code></doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>int</doc_type> <doc_name>$ssize</doc_name><doc_type>(string)</doc_type> <doc_doc>Return the size of a string</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>string</doc_type> <doc_name>$scopy</doc_name><doc_type>(string)</doc_type> <doc_doc>Make a copy of a string</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>string</doc_type> <doc_name>$ssub</doc_name><doc_type>(string, p : int, l : int)</doc_type> <doc_doc>
+	Return <doc_code>l</doc_code> chars starting at position <doc_code>p</doc_code> of a string.
+	An error occurs if out of string bounds.
+	</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>int?</doc_type> <doc_name>$sget</doc_name><doc_type>(string, n : int)</doc_type> <doc_doc>Return the <doc_code>n</doc_code>th char of a string or <doc_code>null</doc_code> if out of bounds</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>int?</doc_type> <doc_name>$sset</doc_name><doc_type>(string, n : int, c : int)</doc_type> <doc_doc>
+	Set the <doc_code>n</doc_code>th char of a string to (<doc_code>c</doc_code> & 255).
+	Returns the char set or <doc_code>null</doc_code> if out of bounds.
+	</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>string</doc_type> <doc_name>$sblit</doc_name><doc_type>(dst : string, dst_pos : int, src : string, src_pos : int, len : int)</doc_type> <doc_doc>
+	Copy <doc_code>len</doc_code> chars from <doc_code>src_pos</doc_code> of <doc_code>src</doc_code> to <doc_code>dst_pos</doc_code> of <doc_code>dst</doc_code>.
+	An error occurs if out of strings bounds.
+	</doc_doc>
+</doc_blk>
+<h2>Object Builtins</h2>
+<doc_blk>
+  <doc_type>object</doc_type> <doc_name>$new</doc_name><doc_type>(object?)</doc_type> <doc_doc>Return a copy of the object or a new object if <doc_code>null</doc_code></doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>any</doc_type> <doc_name>$objget</doc_name><doc_type>(o : any, f : int)</doc_type> <doc_doc>Return the field <doc_code>f</doc_code> of <doc_code>o</doc_code> or <doc_code>null</doc_code> if doesn't exists or <doc_code>o</doc_code> is not an object</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>any</doc_type> <doc_name>$objset</doc_name><doc_type>(o : any, f : int, v : any)</doc_type> <doc_doc>Set the field <doc_code>f</doc_code> of <doc_code>o</doc_code> to <doc_code>v</doc_code> and return <doc_code>v</doc_code> if <doc_code>o</doc_code> is an object or <doc_code>null</doc_code> if not</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>any</doc_type> <doc_name>$objcall</doc_name><doc_type>(o : any, f : int, args : array)</doc_type> <doc_doc>Call the field <doc_code>f</doc_code> of <doc_code>o</doc_code> with <doc_code>args</doc_code> and return the value or <doc_code>null</doc_code> is <doc_code>o</doc_code> is not an object</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>bool</doc_type> <doc_name>$objfield</doc_name><doc_type>(o : any, f : int)</doc_type> <doc_doc>Return true if <doc_code>o</doc_code> is an object which have field <doc_code>f</doc_code></doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>bool</doc_type> <doc_name>$objremove</doc_name><doc_type>(o : object, f : int)</doc_type> <doc_doc>Remove the field <doc_code>f</doc_code> from object <doc_code>o</doc_code>. Return <doc_code>true</doc_code> on success</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>int array</doc_type> <doc_name>$objfields</doc_name><doc_type>(o : object)</doc_type> <doc_doc>Return all fields of the object</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>int</doc_type> <doc_name>$hash</doc_name><doc_type>(string)</doc_type> <doc_doc>Return the hashed value of a field name</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>string</doc_type> <doc_name>$field</doc_name><doc_type>(int)</doc_type> <doc_doc>Reverse the hashed value of a field name. Return <doc_code>null</doc_code> on failure</doc_doc>
+</doc_blk>
+<h2>Function Builtins</h2>
+<doc_blk>
+  <doc_type>int</doc_type> <doc_name>$nargs</doc_name><doc_type>(function)</doc_type> <doc_doc>Return the number of arguments of a function</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>any</doc_type> <doc_name>$call</doc_name><doc_type>(f : function, this : any, args : array)</doc_type> <doc_doc>Call <doc_code>f</doc_code> with <doc_code>this</doc_code> context and <doc_code>args</doc_code> arguments</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>function</doc_type> <doc_name>$closure</doc_name><doc_type>(function, any*)</doc_type> <doc_doc>Build a closure by applying a given number of arguments to a function</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>any</doc_type> <doc_name>$apply</doc_name><doc_type>(function, any*)</doc_type> <doc_doc>
+	Apply the function to several arguments.
+	Return a function asking for more arguments or the function result if more args needed.
+	</doc_doc>
+</doc_blk>
+<h2>Number Builtins</h2>
+<doc_blk>
+  <doc_type>int</doc_type> <doc_name>$iadd</doc_name><doc_type>(any, any)</doc_type> <doc_doc>Add two integers</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>int</doc_type> <doc_name>$isub</doc_name><doc_type>(any, any)</doc_type> <doc_doc>Subtract two integers</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>int</doc_type> <doc_name>$imult</doc_name><doc_type>(any, any)</doc_type> <doc_doc>Multiply two integers</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>int</doc_type> <doc_name>$idiv</doc_name><doc_type>(any, any)</doc_type> <doc_doc>Divide two integers. An error occurs if division by 0</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>bool</doc_type> <doc_name>$isnan</doc_name><doc_type>(any)</doc_type> <doc_doc>Return if a value is the float NaN</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>bool</doc_type> <doc_name>$isinfinite</doc_name><doc_type>(any)</doc_type> <doc_doc>Return if a value is the float +Infinite</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>int?</doc_type> <doc_name>$int</doc_name><doc_type>(any)</doc_type> <doc_doc>Convert the value to the corresponding integer or return <doc_code>null</doc_code></doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>float?</doc_type> <doc_name>$float</doc_name><doc_type>(any)</doc_type> <doc_doc>Convert the value to the corresponding float or return <doc_code>null</doc_code></doc_doc>
+</doc_blk>
+<h2>Hashtable Builtins</h2>
+<doc_blk>
+  <doc_type>int</doc_type> <doc_name>$hkey</doc_name><doc_type>(any)</doc_type> <doc_doc>Return the hash of any value</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>'hash</doc_type> <doc_name>$hnew</doc_name><doc_type>(s : int)</doc_type> <doc_doc>Create an hashtable with <doc_code>s</doc_code> slots</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>void</doc_type> <doc_name>$hresize</doc_name><doc_type>('hash, int)</doc_type> <doc_doc>Resize an hashtable</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>any</doc_type> <doc_name>$hget</doc_name><doc_type>('hash, k : any, cmp : function:2?)</doc_type> <doc_doc>
+		Look for the value bound to the key <doc_code>k</doc_code> in the hashtable.
+		Use the comparison function <doc_code>cmp</doc_code> or <doc_code>$compare</doc_code> if <doc_code>null</doc_code>.
+		Return <doc_code>null</doc_code> if no value is found.
+	</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>bool</doc_type> <doc_name>$hmem</doc_name><doc_type>('hash, k : any, cmp : function:2?)</doc_type> <doc_doc>
+		Look for the value bound to the key <doc_code>k</doc_code> in the hashtable.
+		Use the comparison function <doc_code>cmp</doc_code> or <doc_code>$compare</doc_code> if <doc_code>null</doc_code>.
+		Return true if such value exists, false either.
+	</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>bool</doc_type> <doc_name>$hremove</doc_name><doc_type>('hash, k : any, cmp : function:2?)</doc_type> <doc_doc>
+		Look for the value bound to the key <doc_code>k</doc_code> in the hashtable.
+		Use the comparison function <doc_code>cmp</doc_code> or <doc_code>$compare</doc_code> if <doc_code>null</doc_code>.
+		Return true if such value exists and remove it from the hash, false either.
+	</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>bool</doc_type> <doc_name>$hset</doc_name><doc_type>('hash, k : any, v : any, cmp : function:2?)</doc_type> <doc_doc>
+	Set the value bound to key <doc_code>k</doc_code> to <doc_code>v</doc_code> or add it to the hashtable if not found.
+	Return true if the value was added to the hashtable.
+	</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>void</doc_type> <doc_name>$hadd</doc_name><doc_type>('hash, k : any, v : any)</doc_type> <doc_doc>
+	Add the value <doc_code>v</doc_code> with key <doc_code>k</doc_code> to the hashtable. Previous binding is masked but not removed.
+	</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>void</doc_type> <doc_name>$hiter</doc_name><doc_type>('hash, f : function:2)</doc_type> <doc_doc>Call the function <doc_code>f</doc_code> with every key and value in the hashtable</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>int</doc_type> <doc_name>$hcount</doc_name><doc_type>('hash)</doc_type> <doc_doc>Return the number of elements in the hashtable</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>int</doc_type> <doc_name>$hsize</doc_name><doc_type>('hash)</doc_type> <doc_doc>Return the size of the hashtable</doc_doc>
+</doc_blk>
+<h2>Other Builtins</h2>
+<doc_blk>
+  <doc_type>void</doc_type> <doc_name>$print</doc_name><doc_type>(any*)</doc_type> <doc_doc>Can print any value</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>any</doc_type> <doc_name>$throw</doc_name><doc_type>(any)</doc_type> <doc_doc>Throw any value as an exception. Never returns</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>any</doc_type> <doc_name>$rethrow</doc_name><doc_type>(any)</doc_type> <doc_doc>Throw any value as an exception while keeping previous exception stack. Never returns</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>bool</doc_type> <doc_name>$istrue</doc_name><doc_type>(v : any)</doc_type> <doc_doc>Return true if <doc_code>v</doc_code> is not <doc_code>false</doc_code>, not <doc_code>null</doc_code> and not 0</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>bool</doc_type> <doc_name>$not</doc_name><doc_type>(any)</doc_type> <doc_doc>Return true if <doc_code>v</doc_code> is <doc_code>false</doc_code> or <doc_code>null</doc_code> or <doc_code>0</doc_code></doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>int</doc_type> <doc_name>$typeof</doc_name><doc_type>(any)</doc_type> <doc_doc>
+		Return the type of a value. The following builtins are defined :
+		<ul>
+			<li><doc_code>$tnull</doc_code> = 0</li>
+			<li><doc_code>$tint</doc_code> = 1</li>
+			<li><doc_code>$tfloat</doc_code> = 2</li>
+			<li><doc_code>$tbool</doc_code> = 3</li>
+			<li><doc_code>$tstring</doc_code> = 4</li>
+			<li><doc_code>$tobject</doc_code> = 5</li>
+			<li><doc_code>$tarray</doc_code> = 6</li>
+			<li><doc_code>$tfunction</doc_code> = 7</li>
+			<li><doc_code>$tabstract</doc_code> = 8</li>
+		</ul>
+	</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>int?</doc_type> <doc_name>$compare</doc_name><doc_type>(any, any)</doc_type> <doc_doc>Compare two values and return 1, -1 or 0. Return <doc_code>null</doc_code> if comparison is not possible</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>int</doc_type> <doc_name>$pcompare</doc_name><doc_type>(any, any)</doc_type> <doc_doc>Physically compare two values. Same as <doc_code>$compare</doc_code> for integers.</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>string array</doc_type> <doc_name>$args</doc_name><doc_type>()</doc_type> <doc_doc>Return the commandline arguments</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>array</doc_type> <doc_name>$excstack</doc_name><doc_type>()</doc_type> <doc_doc>
+	Return the stack between the place the last exception was raised and the place it was catched.
+	The stack is composed of the following items :
+	<ul>
+		<li><doc_code>null</doc_code> when it's a C function</li>
+		<li>a string when it's a module without debug informations</li>
+		<li>an array of two elements (usually file and line) if debug informations where available</li>
+	</ul>
+	</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>array</doc_type> <doc_name>$callstack</doc_name><doc_type>()</doc_type> <doc_doc>Return the current callstack. Same format as <doc_code>$excstack</doc_code></doc_doc>
+</doc_blk>
