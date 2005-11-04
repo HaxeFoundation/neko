@@ -215,3 +215,25 @@ table th {
 	width : 1em;
 	z-index : -1;
 }
+
+/*** DOCUMENTATION ***/
+
+doc_blk {
+	display : block;
+	margin-bottom : 20px;
+}
+
+doc_code {
+	font-family : fixed;
+}
+
+doc_doc {
+	display : block;
+}
+
+doc_type, doc_name {
+	font-family : fixed;
+	color			: #888;
+	background-color	: #f9f9f9;
+}
+
