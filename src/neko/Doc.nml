@@ -9,7 +9,7 @@ type doc_type {
 	TMult : doc_type list;
 	TObj : (string , doc_type) list;
 	TNamed : (string , doc_type);
-	TArray : doc_type;
+	TPoly : (string, doc_type);
 	TFunction : int;
 }
 
@@ -30,6 +30,10 @@ type token {
 	DoubleDot;
 	POpen;
 	PClose;
+	BrOpen;
+	BrClose;
+	Comma;
+	Field;
 	Or;
 	Quote;
 	Sharp;
@@ -67,6 +71,10 @@ function s_token(t) {
 	| Star -> "*"
 	| POpen -> "("
 	| PClose -> ")"
+	| BrOpen -> "{"
+	| BrClose -> "}"
+	| Comma -> ","
+	| Field -> "=>"
 	| Or -> "|"
 	| Quote -> "'"
 	| Sharp -> "#"
@@ -113,6 +121,10 @@ doc_content := Lexer.build [
 	(":", function(l) { mk_tok l DoubleDot });
 	("(", function(l) { mk_tok l POpen });
 	(")", function(l) { mk_tok l PClose });
+	("{", function(l) { mk_tok l BrOpen });
+	("}", function(l) { mk_tok l BrClose });
+	(",", function(l) { mk_tok l Comma });
+	("=>", function(l) { mk_tok l Field });
 	("|", function(l) { mk_tok l Or });
 	("->", function(l) { mk_tok l Arrow });
 	("\\*", function(l) { mk_tok l Star });
@@ -191,6 +203,7 @@ function rec doc_type_base(s) {
 			}
 		}
 	| [< (POpen,_); t = doc_type s; l = doc_type_list s; (PClose,_) >] -> TMult (t :: l)
+	| [< (BrOpen,_); f = doc_type_fields s; (BrClose,_) >] -> TObj f
 	}
 }
 
@@ -199,7 +212,8 @@ function rec doc_type_next(t,s) {
 	| [< (Arrow,_); t2 = doc_type s >] -> doc_type_next (TFun t t2) s
 	| [< (Star,_) >] -> doc_type_next (TStar t) s
 	| [< (Question,_) >] -> doc_type_next (TOpt t) s
-	| [< (Ident "array",_) >] -> doc_type_next (TArray t) s
+	| [< (Ident "array",_) >] -> doc_type_next TPoly("array",t) s
+	| [< (Ident "list",_) >] -> doc_type_next TPoly("list",t) s
 	| [< >] -> t
 	}
 }
@@ -207,6 +221,14 @@ function rec doc_type_next(t,s) {
 function rec doc_type_list(s) {
 	match s {
 	| [< (Or,_); t = doc_type s; l = doc_type_list s >] -> t :: l
+	| [< >] -> []
+	}
+}
+
+function rec doc_type_fields(s) {
+	match s {
+	| [< (Ident i,_); (Field,_); t = doc_type s >] -> (i,t) :: doc_type_fields s
+	| [< (Comma,_) >] -> doc_type_fields s
 	| [< >] -> []
 	}
 }
@@ -277,9 +299,9 @@ function rec type_write(ch,t) {
 	| TNamed (s,t) ->
 		IO.printf ch "%s : " s;
 		type_write_par ch t
-	| TArray t ->
+	| TPoly (s,t) ->
 		type_write_par ch t;
-		IO.write ch " array"
+		IO.printf ch " %s" s
 	| TFunction n ->
 		IO.printf ch "function:%d" n 
 	}
@@ -297,8 +319,8 @@ function rec type_write_par(ch,t) {
 }
 
 function format_xml(s) {
-	var s = String.concat "<div class=\"doc_code\">" (String.split s "[");
-	var s = String.concat "</div>" (String.split s "]");
+	var s = String.concat "<doc_code>" (String.split s "[");
+	var s = String.concat "</doc_code>" (String.split s "]");
 	s
 }
 
@@ -309,7 +331,7 @@ function to_html(ch,doc) {
 			IO.write ch (format_xml Xml.to_string(x));
 			IO.write ch "\n"
 		| Function (f,t,doc) ->
-			IO.write ch "<div class=\"doc_blk\">\n <div class=\"doc_type\">";
+			IO.write ch "<doc_blk>\n";
 			function rec loop(t) {	
 				match t {
 				| TFun (p,r) ->
@@ -322,11 +344,12 @@ function to_html(ch,doc) {
 			var args , r = loop t;
 			match args {
 			| [] ->
-				IO.printf ch "<div class=\"doc_name\">%s</div> : " f;
+				IO.printf ch "  <doc_name>%s</doc_name> :  <doc_type>" f;
 				type_write ch r;
 			| _ ->
+				IO.write ch "  <doc_type>";
 				type_write_par ch r;
-				IO.printf ch " <div class=\"doc_name\">%s</div>(" f;
+				IO.printf ch "</doc_type> <doc_name>%s</doc_name><doc_type>(" f;
 				function rec loop(l) {
 					match l {
 					| [] -> ()
@@ -337,15 +360,18 @@ function to_html(ch,doc) {
 						loop l
 					}
 				}
-				loop args;
+				match args {
+				| [TBase "void"] -> ()
+				| _ -> loop args
+				}
 				IO.write ch ")";
 			}
-			IO.write ch "</div> <div class=\"doc_doc\">";
+			IO.write ch "</doc_type> <doc_doc>";
 			match doc {
 			| None -> ()
 			| Some x -> IO.write ch (format_xml Xml.to_string(x))
 			}
-			IO.write ch "</div>\n</div>\n";
+			IO.write ch "</doc_doc>\n</doc_blk>\n";
 		}
 	}) doc;
 }
