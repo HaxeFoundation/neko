@@ -291,6 +291,7 @@ function escaped(s,i) {
 	| '\\'
 	| '+'
 	| '*'
+	| '?'
 	| '[' -> c
 	| _ -> invalid s
 	}
