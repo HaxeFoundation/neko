@@ -17,8 +17,16 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-var dir = &"";
+var dir = &None;
 var verbose = &false;
+
+function out(file,ext) {
+	var file = Sys.without_extension file + ext;
+	match *dir {
+	| None -> file
+	| Some dir -> dir + Sys.without_dir file
+	}
+}
 
 function compile(file) {
 	if *verbose then printf "Compiling %s\n" file;
@@ -28,7 +36,7 @@ function compile(file) {
 	var ast = Neko.Parser.parse lex;
 	IO.close_in i;
 	var code = Neko.Compile.compile ast;
-	var o = IO.write_file (*dir + Sys.without_extension file + ".n") true;
+	var o = IO.write_file out(file,".n") true;
 	Neko.Bytecode.write o code;
 	IO.close_out o
 }
@@ -38,7 +46,7 @@ function dump(file) {
 	var i = IO.read_file file true;
 	var code = Neko.Bytecode.read i;
 	IO.close_in i;
-	var o = IO.write_file (*dir + Sys.without_extension file + ".dump") false;
+	var o = IO.write_file out(file,".dump") false;
 	Neko.Bytecode.dump o code;
 	IO.close_out o
 }
@@ -50,7 +58,7 @@ function print_ast(file) {
 	Lexer.input lex file i 1 0;
 	var ast = Neko.Parser.parse lex;
 	IO.close_in i;
-	var o = IO.write_file (*dir + Sys.without_extension file + "2.neko") false;
+	var o = IO.write_file out(file,"2.neko") false;
 	Neko.Printer.print Neko.Printer.create(o) ast;
 	IO.close_out o
 }
@@ -67,7 +75,7 @@ function release(file) {
 		| _ -> g
 		}
 	}) globals;
-	var o = IO.write_file file true;
+	var o = IO.write_file out(file,".n") true;
 	Neko.Bytecode.write o (globals,code);
 	IO.close_out o
 }
@@ -79,7 +87,7 @@ function documentation(file) {
 	Lexer.input lex file i 1 0;
 	var doc = Neko.Doc.parse lex;
 	IO.close_in i;
-	var o = IO.write_file (*dir + Sys.without_extension file + ".html") false;
+	var o = IO.write_file out(file,".html") false;
 	Neko.Doc.to_html o doc;
 	IO.close_out o
 }
@@ -108,7 +116,7 @@ try {
 		("-z", Args.String (function(f) { release f }), "<file> : make bytecode release");
 		("-p", Args.String (function(f) { print_ast f }), "<file> : parse and print neko source");
 		("-doc", Args.String (function(f) { documentation f }) , "<file> : make documentation");
-		("-o", Args.String (function(f) { dir := complete f }),"<dir> : set output directory"); 
+		("-o", Args.String (function(f) { dir := Some (complete f) }),"<dir> : set output directory"); 
 		("-v", Args.Void (function() { verbose := true }) , ": verbose mode");
 	];
 	Args.parse head decl (function(f) { compile f });
