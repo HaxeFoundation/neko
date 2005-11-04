@@ -254,8 +254,7 @@ function parse(lexer) {
 		var p = program (stream next_token);		
 		(EBlock p,null_pos)
 	} catch {
-		| Stream_matching
-		| Stream_error -> error Unexpected(fst(*last)) snd(*last)
+		Stream_error -> error Unexpected(fst(*last)) snd(*last)
 	}
 }
 

@@ -37,7 +37,6 @@ exception Invalid_argument : string;
 exception Assert_failure : (string,int);
 exception Error : string;
 exception Stream_error;
-exception Stream_matching;
 exception Not_found;
 exception Exit;
 

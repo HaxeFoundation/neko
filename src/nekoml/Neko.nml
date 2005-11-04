@@ -220,8 +220,10 @@ function rec gen_match_rec(mctx,fail,m) {
 		assert()
 	| MExecute (e,b) ->
 		if !b then {
-			var ematch = (EBinop "==" ident("@exc") (import ctx core "Stream_matching" p) , p);
-			var reraise = (EIf ematch gen_rec(fail,MFailure) Some((ECall (builtin "rethrow") [ident "@exc"],p)) , p);
+			var ematch = (EBinop "==" ident("@exc") (import ctx core "Stream_error" p) , p);
+			var stream_pos = (ECall (import ctx core "stream_pos" p) [gen_rec fail MRoot] , p);
+			var test = (EBinop "==" ident("@pos") stream_pos , p);
+			var reraise = (EIf (EBinop "&&" ematch test,p) gen_rec(fail,MFailure) Some((ECall (builtin "rethrow") [ident "@exc"],p)) , p);
 			mctx.first := false;
 			match e.edecl {
 			| TConst _ -> gen_expr ctx e
@@ -307,10 +309,9 @@ function rec gen_matching(ctx,v,m,p,stream,out) {
 	var label = (if stream then gen_label ctx else no_label);
 	var e = gen_match_rec mctx label m;
 	if stream then {
-		var vpos = gen_variable ctx;
+		var vpos = "@pos";
 		var stream_pos = (ECall (import ctx core "stream_pos" p) [ident v] , p);
-		var test = (EBinop "==" ident(vpos) stream_pos , p);
-		var exc = (ECall builtin("throw") [(EIf test (import ctx core "Stream_matching" p) Some(import ctx core "Stream_error" p), p)] , p);
+		var exc = (ECall builtin("throw") [import ctx core "Stream_error" p] , p);
 		(EBlock [(EVars [(vpos , Some stream_pos)] , p); e; (ELabel label , p); exc] , p)
 	} else
 		e

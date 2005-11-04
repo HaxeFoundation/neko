@@ -243,8 +243,7 @@ function parse(lex) : doc {
 	try {
 		documentation (stream next_token)
 	} catch {
-		| Stream_matching
-		| Stream_error -> error Unexpected(fst(*last)) snd(*last)
+		Stream_error -> error Unexpected(fst(*last)) snd(*last)
 	}
 }
 

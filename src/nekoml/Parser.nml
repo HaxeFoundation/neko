@@ -583,8 +583,6 @@ function parse(lex) {
 		var p = program (stream next_token);
 		mk EBlock(p) Lexer.null_pos
 	} catch {
-		| Stream_error
-		| Stream_matching ->
-			error Unexpected(fst (*last)) snd(*last)
+		Stream_error -> error Unexpected(fst (*last)) snd(*last)
 	}
 }
