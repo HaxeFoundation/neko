@@ -23,17 +23,44 @@
 #include <stdio.h>
 #include <memory.h>
 
+/**
+	<doc>
+	<h1>Date</h1>
+	<p>
+	Date are using standard C functions in order to manipulate a 32 bit integer.
+	Dates are then represented as the number of seconds elapsed since 1st January
+	1970.
+	</p>
+	</doc>
+**/
+
 extern field id_h;
 extern field id_m;
 extern field id_s;
 extern field id_y;
 extern field id_d;
 
+/**
+	date_now : void -> 'int32
+	<doc>Return current date and time</doc>
+**/
 static value date_now() {
 	int t = (int)time(NULL);
 	return alloc_int32(t);
 }
 
+/**
+	date_new : string? -> 'int32
+	<doc>
+	Parse a date format. The following formats are accepted :
+	<ul>
+		<li>[null] : return current date and time</li>
+		<li>[YYYY-MM-DD HH:MM:SS] : full date and time</li>
+		<li>[YYYY-MM-DD] : date only (time will be set to midnight)</li>
+		<li>[HH:MM:SS] : this represent an elapsed time. It will be corrected with timezone so you can subtract it from a date.</li>
+	</ul>
+	</doc>
+**/
 static value date_new( value s ) {
 	int o = 0;
 	if( val_is_null(s) )
@@ -72,6 +99,10 @@ static value date_new( value s ) {
 	return alloc_int32(o);
 }
 
+/**
+	date_format : #int32 -> fmt:string? -> string
+	<doc>Format a date using [strftime]. If [fmt] is [null] then default format is used</doc>
+**/
 static value date_format( value o, value fmt ) {
 	char buf[128];
 	struct tm *t;
@@ -88,6 +119,10 @@ static value date_format( value o, value fmt ) {
 	return alloc_string(buf);
 }
 
+/**
+	date_set_hour : #int32 -> h:int -> m:int -> s:int -> 'int32
+	<doc>Change the time of a date. Return the modified date</doc>
+**/
 static value date_set_hour( value o, value h, value m, value s ) {
 	struct tm *t;
 	time_t d;
@@ -104,6 +139,10 @@ static value date_set_hour( value o, value h, value m, value s ) {
 	return alloc_int32(d);
 }
 
+/**
+	date_set_day : #int32 -> y:int -> m:int -> d:int -> 'int32
+	<doc>Change the day of a date. Return the modified date</doc>
+**/
 static value date_set_day( value o, value y, value m, value d ) {
 	struct tm *t;
 	time_t date;
@@ -120,6 +159,10 @@ static value date_set_day( value o, value y, value m, value d ) {
 	return alloc_int32(date);
 }
 
+/**
+	date_get_day : #int32 -> { y => int, m => int, d => int }
+	<doc>Return the year month and day of a date</doc>
+**/
 static value date_get_day( value o ) {
 	value r;
 	struct tm *t;
@@ -136,6 +179,10 @@ static value date_get_day( value o ) {
 	return r;
 }
 
+/**
+	date_get_hour : #int32 -> { h => int, m => int, s => int }
+	<doc>Return the hour minutes and seconds of a date</doc>
+**/
 static value date_get_hour( value o ) {
 	value r;
 	struct tm *t;

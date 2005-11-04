@@ -21,6 +21,19 @@
 #include <neko.h>
 #include <string.h>
 
+/**
+	<doc>
+	<h1>Misc Functions</h1>
+	<p>
+	Some other standard functions that don't belong to any particular module.
+	</p>
+	</doc>
+**/
+
+/**
+	string_split : s:string -> sep:string -> string list
+	<doc>split the string [s] using separator [sep]</doc>
+**/
 static value string_split( value o, value s ) {
 	value l, first;
 	int ilen;
@@ -63,6 +76,20 @@ static value string_split( value o, value s ) {
 #define HEX			1
 #define HEX_SMALL	2
 
+/**
+	sprintf : fmt:string -> params:(any | array) -> string
+	<doc>
+	Format a string. If only one parameter is needed then it can be 
+	directly passed, either the parameters need to be stored in an array.
+	The following formats are accepted (with corresponding types) :
+	<ul>
+		<li>[%s] : string</li>
+		<li>[%d] [%x] [%X] : int</li>
+		<li>[%c] : int in the 0..255 range</li>
+		<li>[%b] : bool</li>
+	</ul>
+	</doc>
+**/
 static value sprintf( value fmt, value params ) {
 	char *last, *cur, *end;
 	int count = 0;
@@ -200,6 +227,10 @@ static value sprintf( value fmt, value params ) {
 	return buffer_to_string(b);
 }
 
+/**
+	test : void -> void
+	<doc>The test function, to check that library is reachable and correctly linked</doc>
+**/
 static value test() {
 	val_print(alloc_string("Calling a function inside std library...\n"));
 	return val_null;

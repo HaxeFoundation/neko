@@ -30,6 +30,13 @@
 #	include <unistd.h>
 #endif
 
+/**
+	<doc>
+	<h1>Random</h1>
+	<p>A seeded pseudo-random generator</p>
+	</doc>
+**/
+
 DEFINE_KIND(k_random);
 
 #define val_rnd(o)		((rnd*)val_data(o))
@@ -105,10 +112,18 @@ static double rnd_float( rnd *r ) {
 	return ((rnd_int(r) / big + rnd_int(r)) / big + rnd_int(r)) / big;
 }
 
+/**
+	random_new : void -> 'random
+	<doc>Create a new random with random seed</doc>
+**/
 static value random_new() {
 	return alloc_abstract( k_random, rnd_init(alloc_private(rnd_size())) );
 }
 
+/**
+	random_set_seed : 'random -> int -> void
+	<doc>Set the generator seed</doc>
+**/
 static value random_set_seed( value o, value v ) {
 	val_check_kind(o,k_random);
 	val_check(v,int);
@@ -116,6 +131,10 @@ static value random_set_seed( value o, value v ) {
 	return val_true;
 }
 
+/**
+	random_int : 'random -> max:int -> int
+	<doc>Return a random integer modulo [max]</doc>
+**/
 static value random_int( value o, value max ) {
 	val_check_kind(o,k_random);
 	val_check(max,int);
@@ -124,6 +143,10 @@ static value random_int( value o, value max ) {
 	return alloc_int( (rnd_int(val_rnd(o)) & 0x3FFFFFFF) % val_int(max) );
 }
 
+/**
+	random_float : 'random -> float
+	<doc>Return a random float</doc>
+**/
 static value random_float( value o ) {
 	val_check_kind(o,k_random);
 	return alloc_float( rnd_float(val_rnd(o)) );

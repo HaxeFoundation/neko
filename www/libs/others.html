@@ -1,0 +1,25 @@
+
+	<h1>Misc Functions</h1>
+	<p>
+	Some other standard functions that don't belong to any particular module.
+	</p>
+	
+<doc_blk>
+  <doc_type>string list</doc_type> <doc_name>string_split</doc_name><doc_type>(s : string, sep : string)</doc_type> <doc_doc>split the string <doc_code>s</doc_code> using separator <doc_code>sep</doc_code></doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>string</doc_type> <doc_name>sprintf</doc_name><doc_type>(fmt : string, params : (any | array))</doc_type> <doc_doc>
+	Format a string. If only one parameter is needed then it can be 
+	directly passed, either the parameters need to be stored in an array.
+	The following formats are accepted (with corresponding types) :
+	<ul>
+		<li><doc_code>%s</doc_code> : string</li>
+		<li><doc_code>%d</doc_code> <doc_code>%x</doc_code> <doc_code>%X</doc_code> : int</li>
+		<li><doc_code>%c</doc_code> : int in the 0..255 range</li>
+		<li><doc_code>%b</doc_code> : bool</li>
+	</ul>
+	</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>void</doc_type> <doc_name>test</doc_name><doc_type>()</doc_type> <doc_doc>The test function, to check that library is reachable and correctly linked</doc_doc>
+</doc_blk>

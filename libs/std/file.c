@@ -24,6 +24,15 @@
 #	include <windows.h>
 #endif
 
+/**
+	<doc>
+	<h1>File</h1>
+	<p>
+	The file api can be used for different kind of file I/O.
+	</p>
+	</doc>
+**/
+
 typedef struct {
 	value name;
 	FILE *io;
@@ -40,6 +49,13 @@ static void file_error( const char *msg, fio *f ) {
 	val_throw(a);
 }
 
+/**
+	file_open : f:string -> r:string -> 'file
+	<doc>
+	Call the C function [fopen] with the file path and access rights. 
+	Return the opened file or throw an exception if the file couldn't be open.
+	</doc>
+**/
 static value file_open( value name, value r ) {
 	fio *f;
 	val_check(name,string);
@@ -52,6 +68,10 @@ static value file_open( value name, value r ) {
 	return alloc_abstract(k_file,f);
 }
 
+/**
+	file_close : 'file -> void
+	<doc>Close an file. Any other operations on this file will fail</doc> 
+**/
 static value file_close( value o ) {	
 	fio *f;
 	val_check_kind(o,k_file);
@@ -61,11 +81,22 @@ static value file_close( value o ) {
 	return val_true;
 }
 
+/**
+	file_name : 'file -> string
+	<doc>Return the name of the file which was opened</doc>
+**/
 static value file_name( value o ) {
 	val_check_kind(o,k_file);
 	return alloc_string(val_string(val_file(o)->name));
 }
 
+/**
+	file_write : 'file -> s:string -> p:int -> l:int -> int
+	<doc>
+	Write up to [l] chars of string [s] starting at position [p]. 
+	Returns the number of chars written which is >= 0.
+	</doc>
+**/
 static value file_write( value o, value s, value pp, value n ) {
 	int p, len;
 	fio *f;
@@ -88,6 +119,13 @@ static value file_write( value o, value s, value pp, value n ) {
 	return n;
 }
 
+/**
+	file_read : 'file -> s:string -> p:int -> l:int -> int
+	<doc>
+	Read up to [l] chars into the string [s] starting at position [p].
+	Returns the number of chars readed which is > 0 (or 0 if l == 0).
+	</doc>
+**/
 static value file_read( value o, value s, value pp, value n ) {
 	fio *f;
 	int p;
@@ -115,6 +153,10 @@ static value file_read( value o, value s, value pp, value n ) {
 	return n;
 }
 
+/**
+	file_write_char : 'file -> c:int -> void
+	<doc>Write the char [c]. Error if [c] outside of the range 0..255</doc>
+**/
 static value file_write_char( value o, value c ) {
 	unsigned char cc;
 	fio *f;
@@ -129,6 +171,10 @@ static value file_write_char( value o, value c ) {
 	return val_true;
 }
 
+/**
+	file_read_char : 'file -> int
+	<doc>Read a char from the file. Exception on error</doc>
+**/
 static value file_read_char( value o ) {
 	unsigned char cc;
 	fio *f;
@@ -139,6 +185,10 @@ static value file_read_char( value o ) {
 	return alloc_int(cc);
 }
 
+/**
+	file_seek : 'file -> pos:int -> mode:int -> void
+	<doc>Use [fseek] to move the file pointer.</doc>
+**/
 static value file_seek( value o, value pos, value kind ) {
 	fio *f;
 	val_check_kind(o,k_file);
@@ -150,6 +200,10 @@ static value file_seek( value o, value pos, value kind ) {
 	return val_true;
 }
 
+/**
+	file_tell : 'file -> int
+	<doc>Return the current position in the file</doc>
+**/
 static value file_tell( value o ) {
 	int p;
 	fio *f;
@@ -161,11 +215,19 @@ static value file_tell( value o ) {
 	return alloc_int(p);
 }
 
+/**
+	file_eof : 'file -> bool
+	<doc>Tell if we have reached the end of the file</doc>
+**/
 static value file_eof( value o ) {
 	val_check_kind(o,k_file);
 	return alloc_bool( feof(val_file(o)->io) );
 }
 
+/**
+	file_flush : 'file -> void
+	<doc>Flush the file buffer</doc>
+**/
 static value file_flush( value o ) {
 	fio *f;
 	val_check_kind(o,k_file);
@@ -175,6 +237,10 @@ static value file_flush( value o ) {
 	return val_true;
 }
 
+/**
+	file_contents : f:string -> string
+	<doc>Read the content of the file [f] and return it.</doc>
+**/
 static value file_contents( value name ) {
 	value s;
 	fio f;
@@ -213,8 +279,20 @@ static value file_contents( value name ) {
 	} \
 	DEFINE_PRIM(file_##k,0);
 
+/**
+	file_stdin : void -> 'file
+	<doc>The standard input</doc>
+**/
 MAKE_STDIO(stdin);
+/**
+	file_stdout : void -> 'file
+	<doc>The standard output</doc>
+**/
 MAKE_STDIO(stdout);
+/**
+	file_stderr : void -> 'file
+	<doc>The standard error output</doc>
+**/
 MAKE_STDIO(stderr);
 
 DEFINE_PRIM(file_open,2);

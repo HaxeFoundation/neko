@@ -1,0 +1,37 @@
+
+	<h1>Date</h1>
+	<p>
+	Date are using standard C functions in order to manipulate a 32 bit integer.
+	Dates are then represented as the number of seconds elapsed since 1st January
+	1970.
+	</p>
+	
+<doc_blk>
+  <doc_type>'int32</doc_type> <doc_name>date_now</doc_name><doc_type>()</doc_type> <doc_doc>Return current date and time</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>'int32</doc_type> <doc_name>date_new</doc_name><doc_type>(string?)</doc_type> <doc_doc>
+	Parse a date format. The following formats are accepted :
+	<ul>
+		<li><doc_code>null</doc_code> : return current date and time</li>
+		<li><doc_code>YYYY-MM-DD HH:MM:SS</doc_code> : full date and time</li>
+		<li><doc_code>YYYY-MM-DD</doc_code> : date only (time will be set to midnight)</li>
+		<li><doc_code>HH:MM:SS</doc_code> : this represent an elapsed time. It will be corrected with timezone so you can subtract it from a date.</li>
+	</ul>
+	</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>string</doc_type> <doc_name>date_format</doc_name><doc_type>(#int32, fmt : string?)</doc_type> <doc_doc>Format a date using <doc_code>strftime</doc_code>. If <doc_code>fmt</doc_code> is <doc_code>null</doc_code> then default format is used</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>'int32</doc_type> <doc_name>date_set_hour</doc_name><doc_type>(#int32, h : int, m : int, s : int)</doc_type> <doc_doc>Change the time of a date. Return the modified date</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>'int32</doc_type> <doc_name>date_set_day</doc_name><doc_type>(#int32, y : int, m : int, d : int)</doc_type> <doc_doc>Change the day of a date. Return the modified date</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>{ y => int, m => int, d => int}</doc_type> <doc_name>date_get_day</doc_name><doc_type>(#int32)</doc_type> <doc_doc>Return the year month and day of a date</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>{ h => int, m => int, s => int}</doc_type> <doc_name>date_get_hour</doc_name><doc_type>(#int32)</doc_type> <doc_doc>Return the hour minutes and seconds of a date</doc_doc>
+</doc_blk>

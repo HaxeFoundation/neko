@@ -225,6 +225,25 @@ static void serialize_fields_rec( value data, field id, void *b ) {
 	serialize_rec(b,data);
 }
 
+/**
+	<doc>
+	<h1>Serialize</h1>
+	<p>
+	Serialization can be used in order to store permanantly some runtime value.
+	Serialization of all values is possible, except Abstracts (with the special
+	cases of ['int32] and ['hash] which are handled) and Native functions.
+	</p>
+	<p>
+	Serialization of bytecode function is possible, but will result in a runtime
+	exception when deserializing if the function offset in the bytecode has changed.
+	</p>
+	</doc>
+**/
+
+/**
+	serialize : any -> string
+	<doc>Serialize any value recursively</doc>
+**/
 static value serialize( value o ) {
 	sbuffer b;
 	value v;
@@ -415,6 +434,12 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 	}
 }
 
+/**
+	unserialize : string -> #loader -> any
+	<doc>Unserialize a stored value.
+	Need a loader to look for modules if some bytecode functions have been serialized.
+	</doc>
+**/
 static value unserialize( value s, value loader ) {
 	value v;
 	sbuffer b;

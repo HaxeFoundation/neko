@@ -20,11 +20,30 @@
 /* ************************************************************************ */
 #include <neko.h>
 
+/**
+	<doc>
+	<h1>Int32</h1>
+	<p>
+	Int32 is an abstract type that can be used to store the full 32 bits of an
+	integer. The type ['int32] means that the value is a real int32. The type
+	[#int32] means [(int | 'int32)] and accept then the both kind of integers.
+	</p>
+	</doc>
+**/
+
+/**
+	int32_new : #int32 -> 'int32
+	<doc>Allocate an int32 from any integer</doc>
+**/
 static value int32_new( value v ) {	
 	val_check(v,int32);	
 	return alloc_int32(val_int32(v));
 }
 
+/**
+	int32_to_int : #int32 -> int
+	<doc>Return the int value if it can be represented using 31 bits. Error either</doc>
+**/
 static value int32_to_int( value v ) {
 	int i;
 	val_check(v,int32);
@@ -34,6 +53,10 @@ static value int32_to_int( value v ) {
 	return alloc_int(i);
 }
 
+/**
+	int32_compare : #int32 -> #int32 -> int
+	<doc>Compare two integers</doc>
+**/
 static value int32_compare( value v1, value v2 ) {
 	int i1, i2;
 	val_check(v1,int32);
@@ -81,6 +104,10 @@ static value int32_compare( value v1, value v2 ) {
 	} \
 	DEFINE_PRIM(int32_##op_name,2)
 
+/**
+	int32_ushr : #int32 -> #int32 -> #int32
+	<doc>Perform unsigned right bits-shifting</doc>
+**/
 static value int32_ushr( value v1, value v2 ) {
 	int r;
 	val_check(v1,int32);
@@ -89,17 +116,65 @@ static value int32_ushr( value v1, value v2 ) {
 	return alloc_best_int(r);
 }
 
+/** 
+	int32_add : #int32 -> #int32 -> #int32
+	<doc>Add two integers</doc>
+**/
 INT32_OP(add,+);
+/** 
+	int32_sub : #int32 -> #int32 -> #int32
+	<doc>Subtract two integers</doc>
+**/
 INT32_OP(sub,-);
+/** 
+	int32_mul : #int32 -> #int32 -> #int32
+	<doc>Multiply two integers</doc>
+**/
 INT32_OP(mul,*);
+/** 
+	int32_div : #int32 -> #int32 -> #int32
+	<doc>Divide two integers. Error on division by 0</doc>
+**/
 INT32_OP_ZERO(div,/);
+/** 
+	int32_shl : #int32 -> #int32 -> #int32
+	<doc>Perform left bit-shifting</doc>
+**/
 INT32_OP(shl,<<);
+/** 
+	int32_shr : #int32 -> #int32 -> #int32
+	<doc>Perform right bit-shifting</doc>
+**/
 INT32_OP(shr,>>);
+/** 
+	int32_mod : #int32 -> #int32 -> #int32
+	<doc>Return the modulo of one integer by the other. Error on modulo by 0</doc>
+**/
 INT32_OP_ZERO(mod,%);
+/** 
+	int32_neg : #int32 -> #int32
+	<doc>Return the negative value of an integer</doc>
+**/
 INT32_UNOP(neg,-);
+/** 
+	int32_complement : #int32 -> #int32 -> #int32
+	<doc>Return the one-complement bitwised integer</doc>
+**/
 INT32_UNOP(complement,~);
+/** 
+	int32_or : #int32 -> #int32 -> #int32
+	<doc>Return the bitwise or of two integers</doc>
+**/
 INT32_OP(or,|);
+/** 
+	int32_and : #int32 -> #int32 -> #int32
+	<doc>Return the bitwise and of two integers</doc>
+**/
 INT32_OP(and,&);
+/** 
+	int32_xor : #int32 -> #int32 -> #int32
+	<doc>Return the bitwise xor of two integers</doc>
+**/
 INT32_OP(xor,^);
 
 DEFINE_PRIM(int32_new,1);
