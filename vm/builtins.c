@@ -31,26 +31,21 @@
 
 extern value *neko_builtins;
 
-static value builtin_print( value *args, int nargs ) {
-	buffer b;
-	int i;
-	if( nargs == 1 && val_is_string(*args) ) {
-		val_print(*args);
-		return val_true;
-	}
-	b = alloc_buffer(NULL);
-	for(i=0;i<nargs;i++)
-		val_buffer(b,args[i]);
-	val_print(buffer_to_string(b));
-	return val_true;
-}
+/**
+	<doc>
+		<h1>Builtins</h1>
+		<p>
+			Builtins are basic operations that can be optimized by the Neko compiler.
+		</p>
+	</doc>
+**/
 
-static value builtin_new( value o ) {
-	if( !val_is_null(o) && !val_is_object(o) )
-		neko_error();
-	return alloc_object(o);
-}
+/**	<doc><h2>Array Builtins</h2></doc> **/
 
+/**
+	$array : any* -> array
+	<doc>Create an array from a list of values</doc>
+**/
 static value builtin_array( value *args, int nargs ) {
 	value a = alloc_array(nargs);
 	int i;
@@ -59,6 +54,10 @@ static value builtin_array( value *args, int nargs ) {
 	return a;
 }
 
+/**
+	$amake : n:int -> array
+	<doc>Create an array of size [n]</doc>
+**/
 static value builtin_amake( value size ) {
 	value a;
 	int i,s;
@@ -70,6 +69,10 @@ static value builtin_amake( value size ) {
 	return a;
 }
 
+/**
+	$acopy : array -> array
+	<doc>Make a copy of an array</doc>
+**/
 static value builtin_acopy( value a ) {
 	int i;
 	value a2;
@@ -80,11 +83,22 @@ static value builtin_acopy( value a ) {
 	return a2;
 }
 
+/**
+	$asize : array -> int
+	<doc>Return the size of an array</doc>
+**/
 static value builtin_asize( value a ) {
 	val_check(a,array);
 	return alloc_int( val_array_size(a) );
 }
 
+/**
+	$asub : array -> p:int -> l:int -> array
+	<doc>
+	Return [l] elements starting at position [p] of an array.
+	An error occurs if out of array bounds.
+	</doc>
+**/
 static value builtin_asub( value a, value p, value l ) {
 	value a2;
 	int i;
@@ -95,13 +109,20 @@ static value builtin_asub( value a, value p, value l ) {
 	pp = val_int(p);
 	ll = val_int(l);
 	if( pp < 0 || ll < 0 || pp+ll < 0 || pp+ll > val_array_size(a) )
-		return val_null;
+		neko_error();
 	a2 = alloc_array(ll);
 	for(i=0;i<ll;i++)
 		val_array_ptr(a2)[i] = val_array_ptr(a)[pp+i];
 	return a2;
 }
 
+/**
+	$ablit : dst:array -> dst_pos:int -> src:array -> src_pos:int -> len:int -> array
+	<doc>
+	Copy [len] elements from [src_pos] of [src] to [dst_pos] of [dst].
+	An error occurs if out of arrays bounds.
+	</doc>
+**/
 static value builtin_ablit( value dst, value dp, value src, value sp, value l ) {
 	int dpp, spp, ll;
 	val_check(dst,array);
@@ -113,26 +134,57 @@ static value builtin_ablit( value dst, value dp, value src, value sp, value l ) 
 	spp = val_int(sp);
 	ll = val_int(l);
 	if( dpp < 0 || spp < 0 || ll < 0 || dpp + ll < 0 || spp + ll  < 0 || dpp + ll > val_array_size(dst) || spp + ll > val_array_size(src) )
-		return val_null;
+		neko_error();
 	memcpy(val_array_ptr(dst)+dpp,val_array_ptr(src)+spp,ll * sizeof(value));
 	return val_true;
 }
 
+/**	<doc><h2>String Builtins</h2></doc> **/
+
+/**
+	$string : any -> string
+	<doc>Convert any value to a string. This will make a copy of string.</doc>
+**/
+static value builtin_string( value v ) {
+	buffer b = alloc_buffer(NULL);
+	val_buffer(b,v);
+	return buffer_to_string(b);
+}
+
+/**
+	$smake : n:int -> string
+	<doc>Return an uninitialized string of size [n]</doc>
+**/
 static value builtin_smake( value l ) {
 	val_check(l,int);
 	return alloc_empty_string( val_int(l) );
 }
 
+/**
+	$ssize : string -> int
+	<doc>Return the size of a string</doc>
+**/
 static value builtin_ssize( value s ) {
 	val_check(s,string);
 	return alloc_int(val_strlen(s));
 }
 
+/**
+	$scopy : string -> string
+	<doc>Make a copy of a string</doc>
+**/
 static value builtin_scopy( value s ) {
 	val_check(s,string);
 	return copy_string( val_string(s), val_strlen(s) );
 }
 
+/**
+	$ssub : string -> p:int -> l:int -> string
+	<doc>
+	Return [l] chars starting at position [p] of a string.
+	An error occurs if out of string bounds.
+	</doc>
+**/
 static value builtin_ssub( value s, value p, value l ) {
 	int pp , ll;
 	val_check(s,string);
@@ -141,10 +193,14 @@ static value builtin_ssub( value s, value p, value l ) {
 	pp = val_int(p);
 	ll = val_int(l);
 	if( pp < 0 || ll < 0 || pp + ll < 0 || pp + ll > val_strlen(s) )
-		return val_null;
+		neko_error();
 	return copy_string( val_string(s) + pp , ll );
 }
 
+/**
+	$sget : string -> n:int -> int?
+	<doc>Return the [n]th char of a string or [null] if out of bounds</doc> 
+**/
 static value builtin_sget( value s, value p ) {
 	int pp;
 	val_check(s,string);
@@ -155,6 +211,13 @@ static value builtin_sget( value s, value p ) {
 	return alloc_int( val_string(s)[pp] );
 }
 
+/**
+	$sset : string -> n:int -> c:int -> int?
+	<doc>
+	Set the [n]th char of a string to ([c] & 255).
+	Returns the char set or [null] if out of bounds.
+	</doc>
+**/
 static value builtin_sset( value s, value p, value c ) {
 	int pp;
 	unsigned char cc;
@@ -169,6 +232,13 @@ static value builtin_sset( value s, value p, value c ) {
 	return alloc_int(cc);
 }
 
+/**
+	$sblit : dst:string -> dst_pos:int -> src:string -> src_pos:int -> len:int -> string
+	<doc>
+	Copy [len] chars from [src_pos] of [src] to [dst_pos] of [dst].
+	An error occurs if out of strings bounds.
+	</doc>
+**/
 static value builtin_sblit( value dst, value dp, value src, value sp, value l ) {
 	int dpp, spp, ll;
 	val_check(dst,string);
@@ -180,96 +250,28 @@ static value builtin_sblit( value dst, value dp, value src, value sp, value l ) 
 	spp = val_int(sp);
 	ll = val_int(l);
 	if( dpp < 0 || spp < 0 || ll < 0 || dpp + ll < 0 || spp + ll  < 0 || dpp + ll > val_strlen(dst) || spp + ll > val_strlen(src) )
-		return val_null;
+		neko_error();
 	memcpy(val_string(dst)+dpp,val_string(src)+spp,ll);
 	return val_true;
 }
 
-static value builtin_throw( value v ) {
-	val_throw(v);
-	return val_null;
-}
+/** <doc><h2>Object Builtins</h2></doc> **/
 
-static value builtin_rethrow( value v ) {
-	val_rethrow(v);
-	return val_null;
-}
-
-static value builtin_nargs( value f ) {
-	if( !val_is_function(f) )
+/**
+	$new : object? -> object
+	<doc>Return a copy of the object or a new object if [null]</doc>
+**/
+static value builtin_new( value o ) {
+	if( !val_is_null(o) && !val_is_object(o) )
 		neko_error();
-	return alloc_int( val_fun_nargs(f) );
+	return alloc_object(o);
 }
 
-static value builtin_call( value f, value ctx, value args ) {
-	value old;
-	value ret;
-	neko_vm *vm;
-	val_check(args,array);
-	vm = NEKO_VM();
-	old = vm->vthis;
-	vm->vthis = ctx;
-	ret = val_callN(f,val_array_ptr(args),val_array_size(args));
-	vm->vthis = old;
-	return ret;
-}
 
-static value builtin_iadd( value a, value b ) {
-	return alloc_int( val_int(a) + val_int(b) );
-}
-
-static value builtin_isub( value a, value b ) {
-	return alloc_int( val_int(a) - val_int(b) );
-}
-
-static value builtin_imult( value a, value b ) {
-	return alloc_int( val_int(a) * val_int(b) );
-}
-
-static value builtin_idiv( value a, value b ) {
-	if( b == (value)1 )
-		failure("Integer division by 0");
-	return alloc_int( val_int(a) / val_int(b) );
-}
-
-typedef union {
-	double d;
-	struct {
-		unsigned int l;
-		unsigned int h;
-	} i;
-} qw;
-
-static value builtin_isnan( value f ) {
-	qw q;
-	unsigned int h, l;
-	if( !val_is_float(f) )
-		return val_false;
-	q.d = val_float(f);
-	h = q.i.h; 
-	l = q.i.l;
-	l = l | (h & 0xFFFFF);
-	h = h & 0x7FF00000;
-	return alloc_bool( h == 0x7FF00000 && l != 0 );
-}
-
-static value builtin_isinfinite( value f ) {
-	qw q;
-	unsigned int h, l;
-	if( !val_is_float(f) )
-		return val_false;
-	q.d = val_float(f);
-	h = q.i.h; 
-	l = q.i.l;
-	l = l | (h & 0xFFFFF);
-	h = h & 0x7FF00000;
-	return alloc_bool( h == 0x7FF00000 && l == 0 );
-}
-
-static value builtin_istrue( value f ) {
-	return alloc_bool(f != val_false && f != val_null && f != alloc_int(0));
-}
-
+/**
+	$objget : o:any -> f:int -> any
+	<doc>Return the field [f] of [o] or [null] if doesn't exists or [o] is not an object</doc>
+**/
 static value builtin_objget( value o, value f ) {
 	if( !val_is_object(o) )
 		return val_null; // keep dot-access semantics
@@ -277,6 +279,10 @@ static value builtin_objget( value o, value f ) {
 	return val_field(o,val_int(f));
 }
 
+/**
+	$objset : o:any -> f:int -> v:any -> any
+	<doc>Set the field [f] of [o] to [v] and return [v] if [o] is an object or [null] if not</doc>
+**/
 static value builtin_objset( value o, value f, value v ) {
 	if( !val_is_object(o) )
 		return val_null; // keep dot-access semantics
@@ -285,6 +291,10 @@ static value builtin_objset( value o, value f, value v ) {
 	return v;
 }
 
+/**
+	$objcall : o:any -> f:int -> args:array -> any
+	<doc>Call the field [f] of [o] with [args] and return the value or [null] is [o] is not an object</doc>
+**/
 static value builtin_objcall( value o, value f, value args ) {
 	if( !val_is_object(o) )
 		return val_null; // keep dot-access semantics
@@ -293,10 +303,19 @@ static value builtin_objcall( value o, value f, value args ) {
 	return val_ocallN(o,val_int(f),val_array_ptr(args),val_array_size(args));
 }
 
+/**
+	$objfield : o:any -> f:int -> bool
+	<doc>Return true if [o] is an object which have field [f]</doc>
+**/
 static value builtin_objfield( value o, value f ) {
-	return alloc_bool( val_is_object(o) && val_is_int(f) && otable_find(((vobject*)o)->table, val_int(f)) != NULL );
+	val_check(f,int);
+	return alloc_bool( val_is_object(o) && otable_find(((vobject*)o)->table, val_int(f)) != NULL );
 }
 
+/**
+	$objremove : o:object -> f:int -> bool
+	<doc>Remove the field [f] from object [o]. Return [true] on success</doc>
+**/
 static value builtin_objremove( value o, value f ) {
 	val_check(o,object);
 	val_check(f,int);
@@ -307,6 +326,10 @@ static void builtin_objfields_rec( value d, field id, void *a ) {
 	*((*(value**)a)++) = alloc_int((int)id);
 }
 
+/**
+	$objfields : o:object -> int array
+	<doc>Return all fields of the object</doc>
+**/
 static value builtin_objfields( value o ) {
 	value a;
 	value *aptr;
@@ -319,73 +342,50 @@ static value builtin_objfields( value o ) {
 	return a;
 }
 
+/**
+	$hash : string -> int
+	<doc>Return the hashed value of a field name</doc>
+**/
 static value builtin_hash( value f ) {
 	val_check(f,string);
 	return alloc_int( (int)val_id(val_string(f)) );
 }
 
+/**
+	$field : int -> string
+	<doc>Reverse the hashed value of a field name. Return [null] on failure</doc>
+**/
 static value builtin_field( value f ) {
 	val_check(f,int);
 	return val_field_name(val_int(f));
 }
 
-static value builtin_int( value f ) {
-	if( val_is_string(f) ) {
-		char *c = val_string(f);
-		if( val_strlen(f) >= 2 && c[0] == '0' && c[1] == 'x' ) {
-			int h = 0;
-			c += 2;
-			while( *c ) {
-				char k = *c++;
-				if( k >= '0' && k <= '9' )
-					h = (h << 4) | (k - '0');
-				else if( k >= 'A' && k <= 'F' )
-					h = (h << 4) | ((k - 'A') + 10);
-				else if( k >= 'a' && k <= 'f' )
-					h = (h << 4) | ((k - 'a') + 10);
-				else
-					return alloc_int(0);
-			}
-			return alloc_int(h);
-		}
-		return alloc_int( atoi(val_string(f)) );
-	}
-	if( val_is_number(f) )
-		return alloc_int( (int)val_number(f) );
-	return val_null;
+/** <doc><h2>Function Builtins</h2></doc> **/
+
+/**
+	$nargs : function -> int
+	<doc>Return the number of arguments of a function</doc>
+**/
+static value builtin_nargs( value f ) {
+	val_check(f,function);
+	return alloc_int( val_fun_nargs(f) );
 }
 
-static value builtin_float( value f ) {
-	if( val_is_string(f) )
-		return alloc_float( atof(val_string(f)) );
-	if( val_is_float(f) )
-		return alloc_float( val_number(f) );
-	return val_null;
-}
-
-static value builtin_typeof( value v ) {
-	switch( val_type(v) ) {
-	case VAL_INT:
-		return alloc_int(1);
-	case VAL_NULL:
-		return alloc_int(0);
-	case VAL_FLOAT:
-		return alloc_int(2);
-	case VAL_BOOL:
-		return alloc_int(3);
-	case VAL_STRING:
-		return alloc_int(4);
-	case VAL_OBJECT:
-		return alloc_int(5);
-	case VAL_ARRAY:
-		return alloc_int(6);
-	case VAL_FUNCTION:
-		return alloc_int(7);
-	case VAL_ABSTRACT:
-		return alloc_int(8);
-	default:
-		neko_error();
-	}
+/**
+	$call : f:function -> this:any -> args:array -> any
+	<doc>Call [f] with [this] context and [args] arguments</doc>
+**/
+static value builtin_call( value f, value ctx, value args ) {
+	value old;
+	value ret;
+	neko_vm *vm;
+	val_check(args,array);
+	vm = NEKO_VM();
+	old = vm->vthis;
+	vm->vthis = ctx;
+	ret = val_callN(f,val_array_ptr(args),val_array_size(args));
+	vm->vthis = old;
+	return ret;
 }
 
 static value closure_callback( value *args, int nargs ) {
@@ -412,6 +412,10 @@ static value closure_callback( value *args, int nargs ) {
 	return val_callEx(o,f,a,nargs+cargs,NULL);
 }
 
+/**
+	$closure : function -> any* -> function
+	<doc>Build a closure by applying a given number of arguments to a function</doc>
+**/
 static value builtin_closure( value *args, int nargs ) {
 	value f;
 	value env;
@@ -431,6 +435,13 @@ static value builtin_closure( value *args, int nargs ) {
 	return f;
 }
 
+/**
+	$apply : function -> any* -> any
+	<doc>
+	Apply the function to several arguments.
+	Return a function asking for more arguments or the function result if more args needed.
+	</doc>
+**/
 static value builtin_apply( value *args, int nargs ) {
 	value f, env;
 	int fargs;
@@ -458,42 +469,142 @@ static value builtin_apply( value *args, int nargs ) {
 	return alloc_apply(fargs-nargs,env);
 }
 
-static value builtin_compare( value a, value b ) {
-	int r = val_compare(a,b);
-	return (r == invalid_comparison)?val_null:alloc_int(r);
+/** <doc><h2>Number Builtins</h2></doc> **/
+
+/**
+	$iadd : any -> any -> int
+	<doc>Add two integers</doc>
+**/
+static value builtin_iadd( value a, value b ) {
+	return alloc_int( val_int(a) + val_int(b) );
 }
 
-static value builtin_not( value f ) {
-	return alloc_bool(f == val_false || f == val_null || f == alloc_int(0));
+/**
+	$isub : any -> any -> int
+	<doc>Subtract two integers</doc>
+**/
+static value builtin_isub( value a, value b ) {
+	return alloc_int( val_int(a) - val_int(b) );
 }
 
-static value builtin_string( value v ) {
-	buffer b = alloc_buffer(NULL);
-	val_buffer(b,v);
-	return buffer_to_string(b);
+/**
+	$imult : any -> any -> int
+	<doc>Multiply two integers</doc>
+**/
+static value builtin_imult( value a, value b ) {
+	return alloc_int( val_int(a) * val_int(b) );
 }
 
-static value builtin_pcompare( value a, value b ) {
-	int_val ia = (int_val)a;
-	int_val ib = (int_val)b;
-	if( ia > ib )
-		return alloc_int(1);
-	else if( ia < ib )
-		return alloc_int(-1);
-	else
-		return alloc_int(0);
+/**
+	$idiv : any -> any -> int
+	<doc>Divide two integers. An error occurs if division by 0</doc>
+**/
+static value builtin_idiv( value a, value b ) {
+	if( b == (value)1 )
+		neko_error();
+	return alloc_int( val_int(a) / val_int(b) );
 }
 
-static value builtin_args() {
-	return NEKO_VM()->args;
+typedef union {
+	double d;
+	struct {
+		unsigned int l;
+		unsigned int h;
+	} i;
+} qw;
+
+/**
+	$isnan : any -> bool
+	<doc>Return if a value is the float NaN</doc>
+**/
+static value builtin_isnan( value f ) {
+	qw q;
+	unsigned int h, l;
+	if( !val_is_float(f) )
+		return val_false;
+	q.d = val_float(f);
+	h = q.i.h; 
+	l = q.i.l;
+	l = l | (h & 0xFFFFF);
+	h = h & 0x7FF00000;
+	return alloc_bool( h == 0x7FF00000 && l != 0 );
 }
 
+/**
+	$isinfinite : any -> bool
+	<doc>Return if a value is the float +Infinite</doc>
+**/
+static value builtin_isinfinite( value f ) {
+	qw q;
+	unsigned int h, l;
+	if( !val_is_float(f) )
+		return val_false;
+	q.d = val_float(f);
+	h = q.i.h; 
+	l = q.i.l;
+	l = l | (h & 0xFFFFF);
+	h = h & 0x7FF00000;
+	return alloc_bool( h == 0x7FF00000 && l == 0 );
+}
+
+/**
+	$int : any -> int?
+	<doc>Convert the value to the corresponding integer or return [null]</doc>
+**/
+static value builtin_int( value f ) {
+	if( val_is_string(f) ) {
+		char *c = val_string(f);
+		if( val_strlen(f) >= 2 && c[0] == '0' && c[1] == 'x' ) {
+			int h = 0;
+			c += 2;
+			while( *c ) {
+				char k = *c++;
+				if( k >= '0' && k <= '9' )
+					h = (h << 4) | (k - '0');
+				else if( k >= 'A' && k <= 'F' )
+					h = (h << 4) | ((k - 'A') + 10);
+				else if( k >= 'a' && k <= 'f' )
+					h = (h << 4) | ((k - 'a') + 10);
+				else
+					return alloc_int(0);
+			}
+			return alloc_int(h);
+		}
+		return alloc_int( atoi(val_string(f)) );
+	}
+	if( val_is_number(f) )
+		return alloc_int( (int)val_number(f) );
+	return val_null;
+}
+
+/**
+	$float : any -> float?
+	<doc>Convert the value to the corresponding float or return [null]</doc>
+**/
+static value builtin_float( value f ) {
+	if( val_is_string(f) )
+		return alloc_float( atof(val_string(f)) );
+	if( val_is_float(f) )
+		return alloc_float( val_number(f) );
+	return val_null;
+}
+
+/** <doc><h2>Hashtable Builtins</h2></doc> **/
+
+/**
+	$hkey : any -> int
+	<doc>Return the hash of any value</doc>
+**/
 static value builtin_hkey( value v ) {
 	return alloc_int(val_hash(v));
 }
 
 #define HASH_DEF_SIZE 7
 
+/**
+	$hnew : s:int -> 'hash
+	<doc>Create an hashtable with [s] slots</doc>
+**/
 static value builtin_hnew( value size ) {
 	vhash *h;
 	int i;
@@ -519,6 +630,10 @@ static void add_rec( hcell **cc, int size, hcell *c ) {
 	cc[k] = c;
 }
 
+/**
+	$hresize : 'hash -> int -> void
+	<doc>Resize an hashtable</doc>
+**/
 static value builtin_hresize( value vh, value size ) {
 	vhash *h;
 	hcell **cc;
@@ -538,6 +653,14 @@ static value builtin_hresize( value vh, value size ) {
 	return val_true;
 }
 
+/**
+	$hget : 'hash -> k:any -> cmp:function:2? -> any
+	<doc>
+		Look for the value bound to the key [k] in the hashtable.
+		Use the comparison function [cmp] or [$compare] if [null].
+		Return [null] if no value is found.
+	</doc>
+**/
 static value builtin_hget( value vh, value key, value cmp ) {
 	vhash *h;
 	hcell *c;
@@ -562,6 +685,14 @@ static value builtin_hget( value vh, value key, value cmp ) {
 	return val_null;
 }
 
+/**
+	$hmem : 'hash -> k:any -> cmp:function:2? -> bool
+	<doc>
+		Look for the value bound to the key [k] in the hashtable.
+		Use the comparison function [cmp] or [$compare] if [null].
+		Return true if such value exists, false either.
+	</doc>
+**/
 static value builtin_hmem( value vh, value key, value cmp ) {
 	vhash *h;
 	hcell *c;
@@ -586,6 +717,14 @@ static value builtin_hmem( value vh, value key, value cmp ) {
 	return val_false;
 }
 
+/**
+	$hremove : 'hash -> k:any -> cmp:function:2? -> bool
+	<doc>
+		Look for the value bound to the key [k] in the hashtable.
+		Use the comparison function [cmp] or [$compare] if [null].
+		Return true if such value exists and remove it from the hash, false either.
+	</doc>
+**/
 static value builtin_hremove( value vh, value key, value cmp ) {
 	vhash *h;
 	hcell *c, *prev = NULL;
@@ -626,6 +765,13 @@ static value builtin_hremove( value vh, value key, value cmp ) {
 	return val_false;
 }
 
+/**
+	$hset : 'hash -> k:any -> v:any -> cmp:function:2? -> bool
+	<doc>
+	Set the value bound to key [k] to [v] or add it to the hashtable if not found.
+	Return true if the value was added to the hashtable.
+	</doc>
+**/
 static value builtin_hset( value vh, value key, value val, value cmp ) {
 	vhash *h;
 	hcell *c;
@@ -666,6 +812,12 @@ static value builtin_hset( value vh, value key, value val, value cmp ) {
 	return val_true;
 }
 
+/**
+	$hadd : 'hash -> k:any -> v:any -> void
+	<doc>
+	Add the value [v] with key [k] to the hashtable. Previous binding is masked but not removed.
+	</doc>
+**/
 static value builtin_hadd( value vh, value key, value val ) {
 	vhash *h;
 	hcell *c;
@@ -688,6 +840,10 @@ static value builtin_hadd( value vh, value key, value val ) {
 	return val_true;
 }
 
+/**
+	$hiter : 'hash -> f:function:2 -> void
+	<doc>Call the function [f] with every key and value in the hashtable</doc>
+**/
 static value builtin_hiter( value vh, value f ) {
 	int i;
 	hcell *c;
@@ -705,20 +861,172 @@ static value builtin_hiter( value vh, value f ) {
 	return val_null;
 }
 
+/**
+	$hcount : 'hash -> int
+	<doc>Return the number of elements in the hashtable</doc>
+**/
 static value builtin_hcount( value vh ) {
 	val_check_kind(vh,k_hash);
 	return alloc_int( val_hdata(vh)->nitems );
 }
 
+/**
+	$hsize : 'hash -> int
+	<doc>Return the size of the hashtable</doc>
+**/
 static value builtin_hsize( value vh ) {
 	val_check_kind(vh,k_hash);
 	return alloc_int( val_hdata(vh)->ncells );
 }
 
+/** <doc><h2>Other Builtins</h2></doc> **/
+
+/**
+	$print : any* -> void
+	<doc>Can print any value</doc>
+**/
+static value builtin_print( value *args, int nargs ) {
+	buffer b;
+	int i;
+	if( nargs == 1 && val_is_string(*args) ) {
+		val_print(*args);
+		return val_true;
+	}
+	b = alloc_buffer(NULL);
+	for(i=0;i<nargs;i++)
+		val_buffer(b,args[i]);
+	val_print(buffer_to_string(b));
+	return val_true;
+}
+
+/**
+	$throw : any -> any
+	<doc>Throw any value as an exception. Never returns</doc>
+**/
+static value builtin_throw( value v ) {
+	val_throw(v);
+	return val_null;
+}
+
+/**
+	$rethrow : any -> any
+	<doc>Throw any value as an exception while keeping previous exception stack. Never returns</doc>
+**/
+static value builtin_rethrow( value v ) {
+	val_rethrow(v);
+	return val_null;
+}
+
+/**
+	$istrue : v:any -> bool
+	<doc>Return true if [v] is not [false], not [null] and not 0</doc>
+**/
+static value builtin_istrue( value f ) {
+	return alloc_bool(f != val_false && f != val_null && f != alloc_int(0));
+}
+
+/**
+	$not : any -> bool
+	<doc>Return true if [v] is [false] or [null] or [0]</doc>
+**/
+static value builtin_not( value f ) {
+	return alloc_bool(f == val_false || f == val_null || f == alloc_int(0));
+}
+
+/**
+	$typeof : any -> int
+	<doc>
+		Return the type of a value. The following builtins are defined :
+		<ul>
+			<li>[$tnull] = 0</li>
+			<li>[$tint] = 1</li>
+			<li>[$tfloat] = 2</li>
+			<li>[$tbool] = 3</li>
+			<li>[$tstring] = 4</li>
+			<li>[$tobject] = 5</li>
+			<li>[$tarray] = 6</li>
+			<li>[$tfunction] = 7</li>
+			<li>[$tabstract] = 8</li>
+		</ul>
+	</doc>
+**/
+static value builtin_typeof( value v ) {
+	switch( val_type(v) ) {
+	case VAL_INT:
+		return alloc_int(1);
+	case VAL_NULL:
+		return alloc_int(0);
+	case VAL_FLOAT:
+		return alloc_int(2);
+	case VAL_BOOL:
+		return alloc_int(3);
+	case VAL_STRING:
+		return alloc_int(4);
+	case VAL_OBJECT:
+		return alloc_int(5);
+	case VAL_ARRAY:
+		return alloc_int(6);
+	case VAL_FUNCTION:
+		return alloc_int(7);
+	case VAL_ABSTRACT:
+		return alloc_int(8);
+	default:
+		neko_error();
+	}
+}
+
+/**
+	$compare : any -> any -> int?
+	<doc>Compare two values and return 1, -1 or 0. Return [null] if comparison is not possible</doc>
+**/
+static value builtin_compare( value a, value b ) {
+	int r = val_compare(a,b);
+	return (r == invalid_comparison)?val_null:alloc_int(r);
+}
+
+/**
+	$pcompare : any -> any -> int
+	<doc>Physically compare two values. Same as [$compare] for integers.</doc>
+**/
+static value builtin_pcompare( value a, value b ) {
+	int_val ia = (int_val)a;
+	int_val ib = (int_val)b;
+	if( ia > ib )
+		return alloc_int(1);
+	else if( ia < ib )
+		return alloc_int(-1);
+	else
+		return alloc_int(0);
+}
+
+/**
+	$args : void -> string array
+	<doc>Return the commandline arguments</doc> 
+**/
+static value builtin_args() {
+	return NEKO_VM()->args;
+}
+
+/**
+	$excstack : void -> array
+	<doc>
+	Return the stack between the place the last exception was raised and the place it was catched.
+	The stack is composed of the following items :
+	<ul>
+		<li>[null] when it's a C function</li>
+		<li>a string when it's a module without debug informations</li>
+		<li>an array of two elements (usually file and line) if debug informations where available</li>
+	</ul>
+	</doc>
+**/
 static value builtin_excstack() {
 	return NEKO_VM()->exc_stack;
 }
 
+/**
+	$callstack : void -> array
+	<doc>Return the current callstack. Same format as [$excstack]</doc>
+**/
 static value builtin_callstack() {
 	return neko_call_stack(NEKO_VM());
 }
