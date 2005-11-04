@@ -2,19 +2,22 @@
 	vm : 
 		ports to FreeBSD, PPC (big endian) and AMD64
 		added stack conservation check at VM loadtime : less checks at VM runtime
-		some more opcodes
+		some more opcodes for better speed
 		added exception and call stack traces
 		added debug informations for bytecode
-		added dispatch tables
+		added dispatch tables (for integer switchs)
+		reorganized VM apis
 	neko:
 		added labels in the language specification 
 		added $goto 
 		added switchs
+		added documentation generator
 	nekoml:
 		added NekoML
 		bootstrapped the language (no more need for ocaml)
 	libs:
-		rewrote and completed standard libraries
+		rewrote and completed standard library
+		added generated documentation
 
 2005-08-17 : 1.0
 	compiler in ocaml
