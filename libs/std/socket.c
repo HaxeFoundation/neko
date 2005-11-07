@@ -333,7 +333,7 @@ static value socket_set_timeout( value o, value t ) {
 	return val_true;
 }
 
-DEFINE_PRIM(socket_new,0);
+DEFINE_PRIM(socket_new,1);
 DEFINE_PRIM(socket_send,4);
 DEFINE_PRIM(socket_send_char,2);
 DEFINE_PRIM(socket_recv,4);
