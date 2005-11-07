@@ -194,7 +194,7 @@ static value socket_connect( value o, value host, value port ) {
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(val_int(port));
 	*(int*)&addr.sin_addr.s_addr = val_int32(host);
-	if( connect(val_sock(o),(struct sockaddr*)&addr,sizeof(addr)) <= 0 )
+	if( connect(val_sock(o),(struct sockaddr*)&addr,sizeof(addr)) != 0 )
 		neko_error();
 	return val_true;
 }
