@@ -22,7 +22,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
-#include <sys/stat.h> 
+#include <sys/stat.h>
 #ifndef _WIN32
 #	include <dlfcn.h>
 #endif
@@ -48,14 +48,14 @@ static void profile_total( const char *name, neko_module *m, int *tot ) {
 	unsigned int n = 0;
 	for(i=0;i<m->codesize;i++)
 		n += (int)m->code[PROF_SIZE+i];
-	*tot += n;	
+	*tot += n;
 }
 
 static void profile_summary( const char *name, neko_module *m, int *ptr ) {
 	unsigned int i;
 	unsigned int tot = 0;
 	for(i=0;i<m->codesize;i++)
-		tot += (int)m->code[PROF_SIZE+i];	
+		tot += (int)m->code[PROF_SIZE+i];
 	printf("%10d    %-4.1f%%  %s\n",tot,(tot * 100.0f) / (*ptr),name);
 }
 
@@ -81,7 +81,7 @@ static void profile_functions( const char *name, neko_module *m, int *tot ) {
 		value v = m->globals[i];
 		if( val_is_function(v) && val_type(v) == VAL_FUNCTION && ((vfunction*)v)->module == m ) {
 			int pos = (int)(((int_val)((vfunction*)v)->addr - (int_val)m->code) / sizeof(int_val));
-			if( m->code[PROF_SIZE+pos] > 0 ) {				
+			if( m->code[PROF_SIZE+pos] > 0 ) {
 				printf("%-8d    %-4d %-20s %X ",m->code[PROF_SIZE+pos],i,name,pos);
 				if( dbg )
 					val_print(dbg[pos]);
@@ -98,7 +98,7 @@ static void dump_module( value v, field f, void *p ) {
 		return;
 	vname = val_field_name(f);
 	name = val_is_null(vname)?"???":val_string(vname);
-	((dump_param*)p)->callb( name, (neko_module*)val_data(v), &((dump_param*)p)->tot );	
+	((dump_param*)p)->callb( name, (neko_module*)val_data(v), &((dump_param*)p)->tot );
 }
 
 static value dump_prof() {
@@ -171,7 +171,7 @@ static void open_module( value path, const char *mname, reader *r, readp *p ) {
 		bfailure(b);
 	}
 	*r = neko_file_reader;
-	*p = f;	
+	*p = f;
 }
 
 static void close_module( readp p ) {
@@ -188,7 +188,7 @@ typedef value (*PRIM0)();
 
 static void *load_primitive( const char *prim, int nargs, value path, liblist **libs ) {
 	char *pos = strchr(prim,'@');
-	int len;	
+	int len;
 	liblist *l;
 	PRIM0 ptr;
 	if( pos == NULL )
@@ -285,26 +285,21 @@ static value loader_loadprim( value prim, value nargs ) {
 	val_check_kind(libs,k_loader_libs);
 	if( val_int(nargs) >= 10 || val_int(nargs) < -1 )
 		neko_error();
-	{		
+	{
 		void *ptr = load_primitive(val_string(prim),val_int(nargs),val_field(o,id_path),(liblist**)&val_data(libs));
 		if( ptr == NULL ) {
 			buffer b = alloc_buffer("Primitive not found : ");
 			val_buffer(b,prim);
+			buffer_append(b,"(");
+			val_buffer(b,nargs);
+			buffer_append(b,")");
 			bfailure(b);
 		}
 		return alloc_function(ptr,val_int(nargs),val_string(copy_string(val_string(prim),val_strlen(prim))));
 	}
 }
 
-static value loader_execute( value vm ) {
-	neko_module *m;
-	val_check_kind(vm,neko_kind_module);
-	m = (neko_module*)val_data(vm);
-	neko_vm_execute(neko_vm_current(),m);
-	return m->exports;
-}
-
-static value loader_readmodule( value mname, value vthis ) {
+static value loader_loadmodule( value mname, value vthis ) {
 	value o = val_this();
 	value cache;
 	val_check(o,object);
@@ -315,12 +310,13 @@ static value loader_readmodule( value mname, value vthis ) {
 	{
 		reader r;
 		readp p;
-		value vm;
-		neko_module *m;	
+		neko_module *m;
 		field mid = val_id(val_string(mname));
-		vm = val_field(cache,mid);
-		if( val_is_kind(vm,neko_kind_module) )			
-			return vm;		
+		value mv = val_field(cache,mid);
+		if( val_is_kind(mv,neko_kind_module) ) {
+			m = (neko_module*)val_data(mv);
+			return m->exports;
+		}
 		open_module(val_field(o,id_path),val_string(mname),&r,&p);
 		m = neko_read_module(r,p,vthis);
 		close_module(p);
@@ -330,19 +326,11 @@ static value loader_readmodule( value mname, value vthis ) {
 			bfailure(b);
 		}
 		m->name = alloc_string(val_string(mname));
-		vm = alloc_abstract(neko_kind_module,m);
-		alloc_field(cache,mid,vm);
-		return vm;
+		mv = alloc_abstract(neko_kind_module,m);
+		alloc_field(cache,mid,mv);
+		neko_vm_execute(neko_vm_current(),m);
+		return m->exports;
 	}
-}
-
-static value loader_loadmodule( value mname, value vthis ) {
-	value vm = loader_readmodule(mname,vthis);
-	neko_module *m = ((neko_module*)val_data(vm));
-	m->load_count++;
-	if( m->load_count == 1 )
-		return loader_execute(vm);
-	return m->exports;
 }
 
 EXTERN value neko_default_loader() {
@@ -350,8 +338,6 @@ EXTERN value neko_default_loader() {
 	alloc_field(o,id_path,init_path(getenv("NEKOPATH")));
 	alloc_field(o,id_cache,alloc_object(NULL));
 	alloc_field(o,id_loader_libs,alloc_abstract(k_loader_libs,NULL));
-	alloc_field(o,val_id("execute"),alloc_function(loader_execute,1,"execute"));
-	alloc_field(o,val_id("readmodule"),alloc_function(loader_readmodule,2,"readmodule"));
 	alloc_field(o,val_id("loadprim"),alloc_function(loader_loadprim,2,"loadprim"));
 	alloc_field(o,val_id("loadmodule"),alloc_function(loader_loadmodule,2,"loadmodule"));
 #ifdef NEKO_PROF
