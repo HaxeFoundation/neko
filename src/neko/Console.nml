@@ -1,0 +1,73 @@
+
+function read() {
+	var buf = Buffer.create();
+	function rec loop() {
+		var l = IO.read_line IO.stdin;
+		if l != "!" then {
+			Buffer.add buf l;
+			Buffer.add_char buf '\n';
+			loop();
+		}
+	}
+	loop();
+	Buffer.string buf
+}
+
+function run() {
+	var ctx = Hashtbl.create();
+	function loop() {
+		// read input
+		print "> ";
+		var code = read();
+		// parse and compile
+		var input = IO.read_string code;
+		var lex = Lexer.create Buffer.create();
+		Lexer.input lex "@console" input 1 0;
+		var ast = Neko.Parser.parse lex;
+		var bytecode = Neko.Compile.compile ast;
+		var output , str = IO.write_string();
+		Neko.Bytecode.write output bytecode;
+		// read compiled module
+		var m = Reflex.read (IO.input (IO.read_string str()));
+		// set module environement
+		var globals = fst bytecode;
+		Array.iteri (function(i,g) {
+			match g {
+			| Neko.Bytecode.GlobalVar v ->
+				try {
+					var v = Hashtbl.find ctx v;
+					Reflex.set_global m i v 
+				} catch {
+					Not_found -> ()
+				}
+			| _ -> ()
+			}
+		}) globals;
+		// execute
+		nprint Reflex.neko_value(Reflex.mexecute m);
+		nprint "\n";
+		// save environment
+		Array.iteri (function(i,g) {
+			match g {
+			| Neko.Bytecode.GlobalVar v ->
+				Hashtbl.replace ctx v (Reflex.get_global m i)
+			| _ ->
+				()
+			}
+		}) globals;
+	}
+	while true {
+		try
+			while true {
+				loop()
+			}
+		catch {
+			e -> 
+				var st = Stack.exc();
+				Stack.dump IO.stdout (if Array.length st > 3 then Array.sub st 3 (Array.length st - 3) else st);
+				print "Exception : ";
+				nprint e;
+				print "\n";
+		}
+	}
+}

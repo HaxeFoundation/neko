@@ -117,6 +117,7 @@ try {
 		("-p", Args.String (function(f) { print_ast f }), "<file> : parse and print neko source");
 		("-doc", Args.String (function(f) { documentation f }) , "<file> : make documentation");
 		("-o", Args.String (function(f) { dir := Some (complete f) }),"<dir> : set output directory"); 
+		("-console", Args.Void (function() { Neko.Console.run() }),": run the console");
 		("-v", Args.Void (function() { verbose := true }) , ": verbose mode");
 	];
 	Args.parse head decl (function(f) { compile f });

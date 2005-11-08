@@ -70,6 +70,9 @@
 				RelativePath=".\core\Map.nml">
 			</File>
 			<File
+				RelativePath=".\core\Reflex.nml">
+			</File>
+			<File
 				RelativePath=".\core\Set.nml">
 			</File>
 			<File
@@ -96,6 +99,9 @@
 			</File>
 			<File
 				RelativePath=".\neko\Compile.nml">
+			</File>
+			<File
+				RelativePath=".\neko\Console.nml">
 			</File>
 			<File
 				RelativePath=".\neko\Doc.nml">
