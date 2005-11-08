@@ -107,13 +107,13 @@ EXTERN void *neko_vm_custom( neko_vm *vm ) {
 	return vm->custom;
 }
 
-EXTERN void neko_vm_execute( neko_vm *vm, void *_m ) {
+EXTERN value neko_vm_execute( neko_vm *vm, void *_m ) {
 	unsigned int i;
 	neko_module *m = (neko_module*)_m;
 	neko_vm_select(vm);
 	for(i=0;i<m->nfields;i++)
 		val_id(val_string(m->fields[i]));
-	neko_interp(vm,m,(int_val)val_null,m->code,alloc_array(0));
+	return neko_interp(vm,m,(int_val)val_null,m->code,alloc_array(0));
 }
 
 EXTERN value neko_exc_stack( neko_vm *vm ) {

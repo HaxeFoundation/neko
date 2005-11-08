@@ -45,7 +45,7 @@ EXTERN neko_vm *neko_vm_current();
 EXTERN value neko_exc_stack( neko_vm *vm );
 EXTERN value neko_call_stack( neko_vm *vm );
 EXTERN void *neko_vm_custom( neko_vm *vm );
-EXTERN void neko_vm_execute( neko_vm *vm, void *module );
+EXTERN value neko_vm_execute( neko_vm *vm, void *module );
 EXTERN void neko_vm_select( neko_vm *vm );
 EXTERN void neko_clean_thread();
 EXTERN value neko_default_loader();
