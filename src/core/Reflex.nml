@@ -1,0 +1,107 @@
+type neko_value;
+type neko_object;
+type neko_abstract;
+type neko_function;
+type neko_array;
+type module;
+
+type value { 
+	VNull;
+	VInt : int;
+	VFloat : float;
+	VBool : bool;
+	VString : string;
+	VObject : neko_object;
+	VAbstract : neko_abstract;
+	VFunction : neko_function;
+	VArray : neko_array;
+}
+
+neko("
+	module_read = $loader.loadprim('std@module_read',2);
+	module_name = $loader.loadprim('std@module_name',1);
+	module_exports = $loader.loadprim('std@module_exports',1);
+	module_loader = $loader.loadprim('std@module_loader',1);
+	module_exec = $loader.loadprim('std@module_exec',1);
+	module_nglobals = $loader.loadprim('std@module_nglobals',1);
+	module_global_get = $loader.loadprim('std@module_global_get',2);
+	module_global_set = $loader.loadprim('std@module_global_set',3);
+");
+
+function value( n : neko_value ) : value {
+	var i = function() { invalid_arg() }; 
+	neko("
+		switch $typeof(n) {
+		$tnull => VNull
+		$tint => VInt(n)
+		$tfloat => VFloat(n)
+		$tbool => VBool(n)
+		$tstring => VString(n)
+		$tobject => VObject(n)
+		$tabstract => VAbstract(n)
+		$tfunction => VFunction(n)
+		$tarray => VArray(n)
+		default => i()
+		}
+	");
+}
+
+function neko_value(v) : neko_value {
+	match v {
+	| VNull -> neko("null")
+	| VInt i -> magic i
+	| VFloat f -> magic f
+	| VBool b -> magic b
+	| VString s -> magic s
+	| VObject o -> magic o
+	| VAbstract a -> magic a
+	| VFunction f -> magic f
+	| VArray a -> magic a
+	}
+}
+
+function asize(a : neko_array) : int {
+	neko("$asize(a)");
+}
+
+function aget(a : neko_array, p : int) : value {
+	value(neko("a[p]"));
+}
+
+function aset(a : neko_array, p : int, v : value) : void {
+	var v = neko_value v;
+	neko("a[p] = v");
+}
+
+function read( fread : string -> int -> int -> int ) : module {
+	neko("module_read(fread,$loader)");
+}
+
+function mname( m : module ) : string {
+	neko("module_name(m)");
+}
+
+function mexecute( m : module ) {
+	value neko("module_exec(m)");
+}
+
+function mexports( m : module ) {
+	value neko("module_exports(m)")
+}
+
+function mloader( m : module ) {
+	value neko("module_loader(m)")
+}
+
+function nglobals( m : module ) : int {
+	neko("module_nglobals(m)");
+}
+
+function get_global( m : module, n : int ) {
+	value neko("module_global_get(m,n)");
+}
+
+function set_global( m : module, n : int, v : value ) : void {
+	var v = neko_value v;
+	neko("module_global_set(m,n,v)");
+}
