@@ -22,7 +22,7 @@ open Neko.Bytecode;
 
 type label {
 	lname : string;
-	ltraps : int;
+	ltraps : int list;
 	lstack : int;
 	mutable lpos : int option;
 	mutable lwait : (void -> void) list;
@@ -38,7 +38,7 @@ type context {
 	mutable stack : int;
 	mutable loop_limit : int;
 	mutable limit : int;
-	mutable ntraps : int;
+	mutable traps : int list;
 	mutable breaks : (void -> void, pos) list;
 	mutable continues : (void -> void, pos) list;
 	mutable functions : (opcode array, (string,int) array, int , int) list;
@@ -83,7 +83,6 @@ function stack_delta(o) {
 	| SetEnv _
 	| SetThis
 	| Bool
-	| EndTrap
 	| IsNull
 	| IsNotNull
 	| Not
@@ -123,6 +122,7 @@ function stack_delta(o) {
 	| ObjCall nargs -> -(nargs + 1)
 	| MakeEnv size | MakeArray size -> -size
 	| Trap _ -> trap_stack_delta
+	| EndTrap -> -trap_stack_delta
 	}
 }
 
@@ -154,6 +154,14 @@ function cjmp(cond,ctx) {
 	write ctx (Jump 0);
 	function() {
 		Array.set ctx.ops p (if cond then JumpIf else JumpIfNot)(pos ctx - p)
+	}
+}
+
+function trap(ctx) {
+	var p = pos ctx;
+	write ctx (Trap 0);
+	function() {
+		Array.set ctx.ops p Trap(pos ctx - p)
 	}
 }
 
@@ -216,12 +224,12 @@ function rec scan_labels(ctx,supported,e) {
 	match fst e {
 	| EFunction (args,e) ->
 		var nargs = List.length args;
-		var ntraps = ctx.ntraps;
-		ctx.ntraps := 0;
+		var traps = ctx.traps;
+		ctx.traps := [];
 		ctx.stack := ctx.stack + nargs;
 		scan_labels ctx supported e;
 		ctx.stack := ctx.stack - nargs;
-		ctx.ntraps := ntraps
+		ctx.traps := traps
 	| EBlock _ ->
 		var old = ctx.stack;
 		Neko.Ast.iter (scan_labels ctx supported) e;
@@ -241,7 +249,7 @@ function rec scan_labels(ctx,supported,e) {
 	| ELabel l ->
 		var label = {
 			lname = l;
-			ltraps = ctx.ntraps;
+			ltraps = List.rev ctx.traps;
 			lstack = ctx.stack;
 			lpos = None;
 			lwait = [];
@@ -249,10 +257,10 @@ function rec scan_labels(ctx,supported,e) {
 		Hashtbl.add ctx.labels l label
 	| ETry (e,_,e2) ->
 		ctx.stack := ctx.stack + trap_stack_delta;
-		ctx.ntraps := ctx.ntraps + 1;
+		ctx.traps := ctx.stack :: ctx.traps;
 		scan_labels ctx supported e;
 		ctx.stack := ctx.stack - trap_stack_delta;
-		ctx.ntraps := ctx.ntraps - 1;
+		ctx.traps := match ctx.traps { [] -> assert() | _ :: l -> l };
 		ctx.stack := ctx.stack + 1;
 		scan_labels ctx supported e2;
 		ctx.stack := ctx.stack - 1;
@@ -478,7 +486,7 @@ function rec compile_function(ctx,params,e) {
 	var locals = ctx.locals;
 	var env = ctx.env;
 	var nenv = ctx.nenv;
-	var ntraps = ctx.ntraps;
+	var traps = ctx.traps;
 	var pos = ctx.pos;
 	ctx.pos := Array.create();
 	ctx.ops := Array.create();
@@ -486,7 +494,7 @@ function rec compile_function(ctx,params,e) {
 	ctx.continues := [];
 	ctx.env := Map.empty();
 	ctx.nenv := 0;
-	ctx.ntraps := 0;
+	ctx.traps := [];
 	ctx.limit := ctx.stack;
 	List.iter (function(v) {
 		ctx.stack := ctx.stack + 1;
@@ -510,7 +518,7 @@ function rec compile_function(ctx,params,e) {
 	var local_env = ctx.env;
 	var local_nenv = ctx.nenv;
 	ctx.env := env;
-	ctx.ntraps := ntraps;
+	ctx.traps := traps;
 	ctx.nenv := nenv;
 	if local_nenv > 0 then {
 		var a = Array.make local_nenv "";
@@ -552,35 +560,41 @@ function rec compile_builtin(ctx,b,el,p) {
 	| ("goto" , [(EConst (Ident l) , _)] ) ->
 		var l = try Hashtbl.find ctx.labels l catch { Not_found -> error ("Unknown label " + l) p };
 		var os = ctx.stack;
-		var ntraps = &ctx.ntraps;
-		var etraps = &[];
-		while *ntraps > l.ltraps {
+		function rec loop(l1,l2) {
+			match (l1,l2) {
+			| (x :: l1 , y :: l2) when x == y -> loop l1 l2
+			| _ -> (l1,l2)
+			}
+		}
+		var straps , dtraps = loop List.rev(ctx.traps) l.ltraps;
+		List.iter (function(l) {
+			if ctx.stack != l then write ctx Pop(ctx.stack - l);
 			write ctx EndTrap;
-			ctx.stack := ctx.stack - trap_stack_delta;
-			ntraps := *ntraps - 1;
-		};
-		while *ntraps < l.ltraps {
-			etraps := (pos ctx) :: *etraps;
-			write ctx (Trap 0);
-			ntraps := *ntraps + 1;
-		};
-		if ctx.stack > l.lstack then write ctx (Pop (ctx.stack - l.lstack));
-		while ctx.stack < l.lstack {
-			write ctx Push;
-		};
+		}) List.rev(straps);
+		var dtraps = List.map (function(l) {
+			var l = l - trap_stack_delta;
+			if l < ctx.stack then write ctx Pop(ctx.stack - l);
+			while ctx.stack < l {
+				write ctx Push;
+			}
+			trap ctx
+		}) dtraps;
+		if l.lstack < ctx.stack then write ctx Pop(ctx.stack - l.lstack);
+		while l.lstack > ctx.stack { write ctx Push };
 		ctx.stack := os;
 		match l.lpos {
 		| None -> l.lwait := jmp ctx :: l.lwait
 		| Some p -> write ctx (Jump p)
 		};
-		if *etraps != [] then {
-			List.iter (function(p) {
-				Array.set ctx.ops p (Trap (pos ctx - p));
-			}) (*etraps);
+		List.iter (function(t) { 
+			t();
 			write ctx Push;
 			compile_constant ctx (Builtin "throw") p;
 			write ctx (Call 1);
-		}
+			// insert an infinite loop in order to 
+			// comply with bytecode checker
+			ignore(jmp ctx)
+		}) dtraps;
 	| ("goto" , _) ->
 		error "Invalid $goto statement" p
 	| ("array",_) ->
@@ -708,15 +722,13 @@ function rec compile(ctx,(e,p)) {
 			jend()
 		};
 	| ETry (e,v,ecatch) ->
-		var start = pos ctx;
-		write ctx (Trap 0);
-		ctx.ntraps := ctx.ntraps + 1;
+		var trap = trap ctx;
+		ctx.traps := ctx.stack :: ctx.traps;
 		compile ctx e;
-		ctx.ntraps := ctx.ntraps - 1;
-		ctx.stack := ctx.stack - trap_stack_delta;
 		write ctx EndTrap;
+		ctx.traps := match ctx.traps { [] -> assert() | _ :: l -> l };
 		var jend = jmp ctx;
-		Array.set ctx.ops start (Trap (pos ctx - start));
+		trap();
 		write ctx Push;
 		var locals = ctx.locals;
 		ctx.locals := Map.add ctx.locals v ctx.stack;
@@ -728,24 +740,18 @@ function rec compile(ctx,(e,p)) {
 		compile ctx (EConst (Int (-i)),p)
 	| EBinop (op,e1,e2) ->
 		compile_binop ctx op e1 e2 p
-	| EReturn None ->
-		write ctx AccNull;
+	| EReturn e ->
+		match e { None -> write ctx AccNull | Some e -> compile ctx e };
 		var i = &0;
-		while *i < ctx.ntraps {
+		var stack = ctx.stack;
+		List.iter (function(t) {
+			if ctx.stack > t then write ctx Pop(ctx.stack - t);
 			write ctx EndTrap;
-			i := *i + 1;
-		}
+		}) ctx.traps;
 		write ctx (Ret (ctx.stack - ctx.limit));
-	| EReturn (Some e) ->
-		compile ctx e;
-		var i = &0;
-		while *i < ctx.ntraps {
-			write ctx EndTrap;
-			i := *i + 1;
-		}
-		write ctx (Ret (ctx.stack - ctx.limit - ctx.ntraps * trap_stack_delta));
+		ctx.stack := stack
 	| EBreak e ->
-		if ctx.ntraps != 0 then assert();
+		if ctx.traps != [] then assert();
 		match e {
 		| None -> ()
 		| Some e -> compile ctx e
@@ -757,7 +763,7 @@ function rec compile(ctx,(e,p)) {
 		}
 		ctx.breaks := (jmp ctx , p) :: ctx.breaks
 	| EContinue ->
-		if ctx.ntraps != 0 then assert();
+		if ctx.traps != [] then assert();
 		if ctx.loop_limit != ctx.stack then {
 			var s = ctx.stack;
 			write ctx Pop(ctx.stack - ctx.loop_limit);
@@ -793,7 +799,7 @@ function rec compile(ctx,(e,p)) {
 		write ctx (Pop 1)
 	| ELabel l ->
 		var l = try Hashtbl.find ctx.labels l catch { Not_found -> assert() };
-		if ctx.stack != l.lstack || ctx.ntraps != l.ltraps then error (sprintf "Label failure %d %d %d %d" (ctx.stack,l.lstack,ctx.ntraps,l.ltraps)) p;
+		if ctx.stack != l.lstack || List.rev(ctx.traps) != l.ltraps then error (sprintf "Label failure %d %d %s %s" (ctx.stack,l.lstack,string List.rev(ctx.traps),string l.ltraps)) p;
 		List.iter (function(f) { f() }) l.lwait;
 		l.lwait := [];
 		l.lpos := Some (pos ctx)
@@ -871,7 +877,7 @@ function compile(ast) {
 		functions = [];
 		env = Map.empty();
 		nenv = 0;
-		ntraps = 0;
+		traps = [];
 		labels = Hashtbl.create();
 		pos = Array.create();
 		curpos = ("",0);
