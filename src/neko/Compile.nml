@@ -850,10 +850,7 @@ function rec compile(ctx,(e,p)) {
 				jmp ctx;
 			}) jumps;
 			jump_end();
-			match List.rev jumps {
-			| [] -> ()
-			| _ :: l -> List.iter (function(j) { j() }) l
-			}
+			List.iter (function(j) { j() }) jumps;
 			write ctx (Pop 1)
 		}
 	}
