@@ -42,7 +42,7 @@ static INLINE int fcmp( tfloat a, tfloat b ) {
 }
 
 static INLINE int scmp( const char *s1, int l1, const char *s2, int l2 ) {
-	int r = memcmp(s1,s2,(l1 < l2)?l1:l2); 
+	int r = memcmp(s1,s2,(l1 < l2)?l1:l2);
 	return r?r:icmp(l1,l2);
 }
 
@@ -53,7 +53,7 @@ EXTERN int val_compare( value a, value b ) {
 		return icmp(val_int(a),val_int(b));
 	case C(VAL_INT,VAL_FLOAT):
 		return fcmp(val_int(a),val_float(b));
-	case C(VAL_INT,VAL_STRING): 
+	case C(VAL_INT,VAL_STRING):
 		return scmp(tmp_buf,sprintf(tmp_buf,"%d",val_int(a)),val_string(b),val_strlen(b));
 	case C(VAL_FLOAT,VAL_INT):
 		return fcmp(val_float(a),val_int(b));
@@ -105,7 +105,7 @@ EXTERN buffer alloc_buffer( const char *init ) {
 	return b;
 }
 
-EXTERN void buffer_append_sub( buffer b, const char *s, int_val _len ) {	
+EXTERN void buffer_append_sub( buffer b, const char *s, int_val _len ) {
 	stringitem it;
 	int len = (int)_len;
 	if( s == NULL || len <= 0 )
@@ -145,6 +145,28 @@ typedef struct vlist {
 	struct vlist *next;
 } vlist;
 
+typedef struct vlist2 {
+	value v;
+	struct vlist *next;
+	buffer b;
+	int prev;
+} vlist2;
+
+static void val_buffer_rec( buffer b, value v, vlist *stack );
+
+static void val_buffer_fields( value v, field f, void *_l ) {
+	vlist2 *l = (vlist2*)_l;
+	if( l->prev )
+		buffer_append_sub(l->b,", ",2);
+	else {
+		buffer_append_sub(l->b," ",1);
+		l->prev = 1;
+	}
+	val_buffer(l->b,val_field_name(f));
+	buffer_append_sub(l->b," => ",4);
+	val_buffer_rec(l->b,v,(vlist*)l);
+}
+
 static void val_buffer_rec( buffer b, value v, vlist *stack ) {
 	char buf[32];
 	int i, l;
@@ -177,14 +199,27 @@ static void val_buffer_rec( buffer b, value v, vlist *stack ) {
 		break;
 	case VAL_FUNCTION:
 		buffer_append_sub(b,buf,sprintf(buf,"#function:%d",val_fun_nargs(v)));
-		break;	
-	case VAL_OBJECT:
-		v = val_ocall0(v,id_string);
-		if( val_is_string(v) )
-			buffer_append_sub(b,val_string(v),val_strlen(v));
-		else
-			buffer_append_sub(b,"#object",7);
 		break;
+	case VAL_OBJECT:
+		{
+			value s = val_ocall0(v,id_string);
+			if( val_is_string(s) )
+				buffer_append_sub(b,val_string(s),val_strlen(s));
+			else {
+				vlist2 vtmp;
+				vtmp.v = v;
+				vtmp.next = stack;
+				vtmp.b = b;
+				vtmp.prev = 0;
+				buffer_append_sub(b,"{",1);
+				val_iter_fields(v,val_buffer_fields,&vtmp);
+				if( vtmp.prev )
+					buffer_append_sub(b," }",2);
+				else
+					buffer_append_sub(b,"}",1);
+			}
+			break;
+		}
 	case VAL_ARRAY:
 		buffer_append_sub(b,"[",1);
 		l = val_array_size(v);
@@ -217,8 +252,8 @@ EXTERN void val_buffer( buffer b, value v ) {
 	val_buffer_rec(b,v,NULL);
 }
 
-// theses two 'append' function belongs here because we don't want 
-// them to be inlined in interp.c by GCC since this will break 
+// theses two 'append' function belongs here because we don't want
+// them to be inlined in interp.c by GCC since this will break
 // register allocation
 
 value append_int( neko_vm *vm, value str, int x, bool way ) {
@@ -258,12 +293,12 @@ int neko_stack_expand( int_val *sp, int_val *csp, neko_vm *vm ) {
 	}
 
 	nsp = (int_val*)alloc(size * sizeof(int_val));
-	
+
 	// csp size
 	i = (int)(((int_val)(csp + 1) - (int_val)vm->spmin) / sizeof(int_val));
 	memcpy(nsp,vm->spmin,sizeof(int_val) * i);
 	vm->csp = nsp + i - 1;
-	
+
 	// sp size
 	i = (int)(((int_val)vm->spmax - (int_val)sp) / sizeof(int_val));
 	memcpy(nsp+size-i,sp,sizeof(int_val) * i);
@@ -351,7 +386,7 @@ EXTERN void val_throw( value v ) {
 }
 
 EXTERN void val_rethrow( value v ) {
-	neko_vm *vm = NEKO_VM();	
+	neko_vm *vm = NEKO_VM();
 	vm->vthis = v;
 	longjmp(vm->start,1);
 }
