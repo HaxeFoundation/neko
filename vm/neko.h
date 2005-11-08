@@ -240,6 +240,8 @@ typedef struct {
 #define val_iter_fields		neko_val_iter_fields
 #define val_field_name		neko_val_field_name
 #define val_hash			neko_val_hash
+#define k_int32				neko_k_int32
+#define k_hash				neko_k_hash
 
 C_FUNCTION_BEGIN
 
