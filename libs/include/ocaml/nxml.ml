@@ -130,18 +130,34 @@ let rec to_xml_rec p2 ast =
 let to_xml ast =
 	to_xml_rec null_pos ast
 
-let rec write_rec tabs ch x =
+let rec write_fmt_rec tabs ch x =
 	match x with
 	| CData s ->
-		IO.printf ch "<![CDATA[%s]]>" s
+		IO.printf ch "%s<![CDATA[%s]]>" tabs s
 	| Node (name,att,childs) ->
 		IO.printf ch "%s<%s%s" tabs name (String.concat "" (List.map (fun(a,v) -> " " ^ a ^ "=\"" ^ escape v ^ "\"") att));
 		match childs with
 		| [] -> IO.nwrite ch "/>"
 		| l ->
 			IO.nwrite ch ">\n";
-			List.iter (fun(x) -> write_rec (tabs ^ " ") ch x; IO.write ch '\n') l;
+			List.iter (fun(x) -> write_fmt_rec (tabs ^ " ") ch x; IO.write ch '\n') l;
 			IO.printf ch "%s</%s>" tabs name
 
+let write_fmt ch x =
+	write_fmt_rec "" ch (node "nxml" [] [x])
+
+let rec write_rec ch x =
+	match x with
+	| CData s ->
+		IO.printf ch "<![CDATA[%s]]>" s
+	| Node (name,att,childs) ->
+		IO.printf ch "<%s%s" name (String.concat "" (List.map (fun(a,v) -> " " ^ a ^ "=\"" ^ escape v ^ "\"") att));
+		match childs with
+		| [] -> IO.nwrite ch "/>"
+		| l ->
+			IO.nwrite ch ">";
+			List.iter (fun(x) -> write_rec ch x) l;
+			IO.printf ch "</%s>" name
+
 let write ch x =
-	write_rec "" ch (node "nxml" [] [x])
+	write_rec ch (node "nxml" [] [x])
