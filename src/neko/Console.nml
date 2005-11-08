@@ -3,7 +3,10 @@ function read() {
 	var buf = Buffer.create();
 	function rec loop() {
 		var l = IO.read_line IO.stdin;
-		if l != "!" then {
+		var len = String.length l; 
+		if len > 0 && String.get l (len - 1) == '!' then
+			Buffer.add buf (String.sub l 0 (len - 1))
+		else {
 			Buffer.add buf l;
 			Buffer.add_char buf '\n';
 			loop();
@@ -19,16 +22,30 @@ function run() {
 		// read input
 		print "> ";
 		var code = read();
-		// parse and compile
-		var input = IO.read_string code;
-		var lex = Lexer.create Buffer.create();
-		Lexer.input lex "@console" input 1 0;
-		var ast = Neko.Parser.parse lex;
-		var bytecode = Neko.Compile.compile ast;
-		var output , str = IO.write_string();
-		Neko.Bytecode.write output bytecode;
+		var bytecode , module = 
+		if String.length code > 6 && String.sub code 0 6 == "#load " then {
+			// load bytecode
+			var file = String.sub code 6 (String.length code - 6);
+			var input = IO.read_file file true;
+			var bytecode = Neko.Bytecode.read input;
+			IO.close_in input;
+			var input = IO.read_file file true;
+			var str = IO.read_all input;
+			IO.close_in input;
+			(bytecode, str)
+		} else {
+			// parse and compile
+			var input = IO.read_string code;
+			var lex = Lexer.create Buffer.create();
+			Lexer.input lex "@console" input 1 0;
+			var ast = Neko.Parser.parse lex;
+			var bytecode = Neko.Compile.compile ast;
+			var output , str = IO.write_string();
+			Neko.Bytecode.write output bytecode;
+			(bytecode , str())
+		}
 		// read compiled module
-		var m = Reflex.read (IO.input (IO.read_string str()));
+		var m = Reflex.read (IO.input (IO.read_string module));
 		// set module environement
 		var globals = fst bytecode;
 		Array.iteri (function(i,g) {
@@ -64,9 +81,9 @@ function run() {
 		catch {
 			e -> 
 				var st = Stack.exc();
-				Stack.dump IO.stdout (if Array.length st > 3 then Array.sub st 3 (Array.length st - 3) else st);
+				Stack.dump IO.stdout st;
 				print "Exception : ";
-				nprint e;
+				if neko("$typeof(e) == $tarray && $typeof(e[0]) == $tint && $typeof(e[1]) == $tfunction") then print e else nprint e;
 				print "\n";
 		}
 	}
