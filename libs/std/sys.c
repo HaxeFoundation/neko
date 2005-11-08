@@ -335,7 +335,9 @@ static value sys_exe_path() {
 #endif
 }
 
+#ifndef _WIN32
 extern char **environ;
+#endif
 
 static value sys_env() {
 	value h = val_null;
