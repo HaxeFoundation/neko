@@ -201,6 +201,20 @@ function read_all(i : input) : string {
 	}
 }
 
+function read_line(i : input) : string {
+	var buf = Buffer.create();
+	try {
+		while true {
+			var ch = i.in_read();
+			if ch == '\n' then throw Exit;
+			Buffer.add_char buf ch;
+		}
+		assert()
+	} catch {
+		Exit -> Buffer.string buf
+	}
+}
+
 function read_i32(i) : int {
 	var ch1 = read_byte i;
 	var ch2 = read_byte i;
