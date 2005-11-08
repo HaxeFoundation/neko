@@ -48,6 +48,7 @@ neko("
 ");
 
 var file_open : string -> string -> file = neko("@load('file_open',2)");
+var file_contents : string -> string = neko("@load('file_contents',1)");
 var file_close : file -> void = neko("@load('file_close',1)");
 var file_read : file -> string -> int -> int -> int = neko("@load('file_read',4)");
 var file_read_char : file -> char = neko("@load('file_read_char',1)");
