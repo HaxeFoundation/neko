@@ -193,7 +193,7 @@ function read_all(i : input) : string {
 	var maxlen = 4096;	
 	try {
 		while true {
-			Buffer.add b (read i maxlen);
+			Buffer.add b (read_buf i maxlen);
 		}
 		magic();
 	} catch {
