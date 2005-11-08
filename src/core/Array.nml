@@ -183,3 +183,11 @@ function append( src : 'a array, dst : 'a array ) : void {
 	");
 }
 
+function sub( a : 'a array, p : int, l : int ) : 'a array {
+	neko("
+		var al = a[2];
+		if( p + l > al ) $throw('$asub');
+		$array($asub(a[0],p,l),string,l)
+	");
+}
+
