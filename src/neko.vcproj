@@ -73,6 +73,9 @@
 				RelativePath=".\core\Reflex.nml">
 			</File>
 			<File
+				RelativePath=".\core\Regexp.nml">
+			</File>
+			<File
 				RelativePath=".\core\Set.nml">
 			</File>
 			<File

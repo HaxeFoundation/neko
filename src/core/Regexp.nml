@@ -1,0 +1,16 @@
+type t
+
+neko("
+	 regexp_matched_pos = $loader.loadprim('regexp@regexp_matched_pos',2);
+");
+
+var build : string -> t = neko("$loader.loadprim('regexp@regexp_new',1)");
+var find : t -> string -> bool = neko("$loader.loadprim('regexp@regexp_match',2)");
+var matched : t -> int -> string = neko("$loader.loadprim('regexp@regexp_matched',2)");
+
+function matched_pos( r : t, n : int ) : (int , int) {
+	neko("
+		var s = regexp_matched_pos(r,n);
+		$array(s.pos,s.len);
+	");
+}
