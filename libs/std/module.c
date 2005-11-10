@@ -25,6 +25,15 @@
 
 #define READ_BUFSIZE 64
 
+/**
+	<doc>
+	<h1>Module</h1>
+	<p>
+	An API for reflexion of Neko bytecode modules. 
+	</p>
+	</doc>
+**/
+
 static int read_proxy( readp p, void *buf, int size ) {
 	value fread = val_array_ptr(p)[0];
 	value vbuf = val_array_ptr(p)[1];
@@ -44,6 +53,12 @@ static int read_proxy( readp p, void *buf, int size ) {
 	return len;
 }
 
+/**
+	module_read : fread:(buf:string -> pos:int -> len:int -> int) -> loader:object -> 'module
+	<doc>
+	Read a module using the specified read function and the specified loader.
+	</doc>
+**/
 static value module_read( value fread, value loader ) {
 	value p;
 	neko_module *m;
@@ -58,6 +73,10 @@ static value module_read( value fread, value loader ) {
 	return alloc_abstract(neko_kind_module,m);
 }
 
+/**
+	module_exec : 'module -> any
+	<doc>Execute the module, return the calculated value</doc>
+**/
 static value module_exec( value mv ) {
 	neko_module *m;
 	val_check_kind(mv,neko_kind_module);
@@ -65,6 +84,10 @@ static value module_exec( value mv ) {
 	return neko_vm_execute(neko_vm_current(),m);
 }
 
+/**
+	module_name : 'module -> string
+	<doc>Return the module name</doc>
+**/
 static value module_name( value mv ) {
 	neko_module *m;
 	val_check_kind(mv,neko_kind_module);
@@ -72,6 +95,10 @@ static value module_name( value mv ) {
 	return m->name;
 }
 
+/**
+	module_exports : 'module -> object
+	<doc>Return the module export table</doc>
+**/
 static value module_exports( value mv ) {
 	neko_module *m;
 	val_check_kind(mv,neko_kind_module);
@@ -79,6 +106,10 @@ static value module_exports( value mv ) {
 	return m->exports;
 }
 
+/**
+	module_loader : 'module -> object
+	<doc>Return the module loader</doc>
+**/
 static value module_loader( value mv ) {
 	neko_module *m;
 	val_check_kind(mv,neko_kind_module);
@@ -86,6 +117,10 @@ static value module_loader( value mv ) {
 	return m->loader;
 }
 
+/**
+	module_nglobals : 'module -> int
+	<doc>Return the number of globals for this module</doc>
+**/
 static value module_nglobals( value mv ) {
 	neko_module *m;
 	val_check_kind(mv,neko_kind_module);
@@ -93,6 +128,10 @@ static value module_nglobals( value mv ) {
 	return alloc_int(m->nglobals);
 }
 
+/**
+	module_global_get : 'module -> n:int -> any
+	<doc>Get the [n]th global</doc>
+**/
 static value module_global_get( value mv, value p ) {
 	neko_module *m;
 	unsigned int pp;
@@ -105,6 +144,10 @@ static value module_global_get( value mv, value p ) {
 	return m->globals[pp];
 }
 
+/**
+	module_global_set : 'module -> n:int -> any -> void
+	<doc>Set the [n]th global</doc>
+**/
 static value module_global_set( value mv, value p, value v ) {
 	neko_module *m;
 	unsigned int pp;
