@@ -1,76 +1,69 @@
 
-<h1>Neko Beginner's Guide</h1>
+<h1>Neko Starter's Guide</h1>
 
 <p>
 	So you want to learn about Neko ? Here's a step-by-step guide to be able to run your first neko program. But first choose a distribution, download it and get ready to install it. But first, you should now that the pronunciation of "Neko" is <code>n[e]ko</code> and not <code>niko</code>.
 </p>
 
+<h2>Installation</h2>
+
+<p>
+	Decompress the archive and put it into the folder you want :
+</p>
+
 <ul>
-	<li>Installing on <a href="#linux">Linux</a></li>
-	<li>Installing on <a href="#windows">Windows</a></li>
-	<li>Compiling from <a href="#sources">Sources</a></li>
+	<li>on Linux systems, the <code>/usr/lib/neko</code> is recommanded</li>
+	<li>on Windows, you can use <code>c:\neko</code></li>
 </ul>
 
-<a name="linux"></a>
-<h2>Linux Binaries</h2>
+<p>
+	The archive contain :
+</p>
+
+<ul>
+	<li><code>nekovm</code> : the virtual machine boot binary</li>
+	<li><code>libneko.so</code> (<code>neko.dll + neko.lib<code> on Windows) : the NekoVM library</li>
+	<li>several <code>.ndll</code> files : the Neko standard libraries</li>
+	<li><code>include/</code> : this directory contains the .H files needed for embedding and extending the VM</li>
+	<li><code>std/</code> : this directory contains the precompiled Neko and NekoML compilers</li>
+	<li><code>gc.dll</code> (on Windows only) : the garbage collector used by Neko</li>
+	<li><code>LICENCE</code> and <code>CHANGES</code> : some text documents</li>
+</ul>
+
+<h2>Configuration</h2>
 
 <p>
-	Decompress the archive and copy the files into a folder you want, for example <code>/usr/lib/neko/</code>. Setup your system so it will look for executable in this path, and shared libraries too (using <code>export LD_LIBRARY_PATH=/usr/lib/neko</code> for example). Set also the <code>NEKOPATH</code> environment variable to the same path.
+	Once Neko is installed on your system you have to setup a few things :
+</p>
+
+<ul class="large">
+	<li><strong>On Linux</strong> : Setup your system so it will look for shared libraries in the install path (using <code>export LD_LIBRARY_PATH=/usr/lib/neko</code> for example). Put <code>nekovm</code> in <code>/usr/bin</code> or other directory that you are using. Install the <code>libgc1</code> package on your system.
+	</li>
+	<li><strong>On Windows</strong> : Add the <code>c:\neko</code> directory to your <code>PATH</code> environment variable. Here are instructions for <a href="http://support.microsoft.com/default.aspx?scid=kb;en-us;310519&sd=tech">Windows XP</a> and <a href="http://support.microsoft.com/default.aspx?scid=kb;en-us;311843&sd=tech">Windows 2000</a>.</li>
+</ul>
+
+<p>
+	Once this is done you should be able to run the <code>nekovm</code> command from any directory. Please check that <code>nekovm</code> is working. (On Windows you can you can open a command terminal using <code>Start / Run..</code> and entering <code>cmd</code> then OK).
+
 </p>
 
 <p>
-	You also need to install the garbage collector which is in a separate library (<code>libgc-dev</code> or <code>libgc1</code>).
-</p>
-
-<div class="plink">
-	<a href="#next">Continue...</a>
-</div>
-
-<a name="windows"></a>
-<h2>Windows Binaries</h2>
-
-<p>
-	Unzip the archive and copy the files into the folder you want. Modify your <code>PATH</code> environment variable in order to add that folder to the list of searched paths. Here are instructions for <a href="http://support.microsoft.com/default.aspx?scid=kb;en-us;310519&sd=tech">Windows XP</a> and <a href="http://support.microsoft.com/default.aspx?scid=kb;en-us;311843&sd=tech">Windows 2000</a>. Add also a new environment variable called <code>NEKOPATH</code> and set its value to the same path.
+	Now you need to setup the <code>NEKOPATH</code> environment variable so it can find the Neko compiler. Set it to <code>c:\neko\std</code> on Windows or <code>/usr/lib/neko/std</code> on Linux. You can have several different directories if they are separated by <code>:</code> (Except windows drive letters which are handled differently).
 </p>
 
 <p>
-	You can now open a command terminal using <code>Start / Run..</code> and entering <code>cmd</code> then OK.
+	You should now be able to run the test : execute <code>nekovm test</code> to check that everything is setup correctly. Now you can start using Neko.
 </p>
 
-<div class="plink">
-	<a href="#next">Continue...</a>
-</div>
-
-<a name="sources"></a>
-<h2>From Sources</h2>
+<h2>Compiling from Sources</h2>
 
 <p>
-	Compiling Neko directly from sources is a little more difficult. You need first to install the following packages: <a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc">libgc-dev</a> and <a href="http://caml.inria.fr">ocaml</a> (3.08 required). Then try edit <code>Makefile</code> with your paths to include headers for <code>APACHE</code>, <code>MYSQL</code> and <code>REGEXP</code> (pcre3). Once done, you can run <code>make extlib</code> to compile an ocaml library needed. Then <code>make</code> to compile the sources. All the compiled files should be compiled inside the <code>bin</code> subdirectory.
+	Compiling Neko directly from sources is a little more difficult. You need first to install <a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc">libgc-dev</a>. Then try to run <code>make</code>. All the compiled files should be compiled inside the <code>bin</code> subdirectory.
 </p>
 
 <p>
-	Please note that right now <code>mod_neko</code> will only compile using Apache 1.3 API. If you have Apache 2 installed, remove mod_neko from the Makefile so its compilation does not fail.
+	Compiling for Windows from sources is possible using the Visual Studio project files. You need to compile the <code>neko.sln</code> project (nekovm only) as well as the <code>libs/libs.sln</code> project.
 </p>
-
-<p>
-	Compiling for Windows from sources is possible but the VisualStudio Projects file are not part of the release yet.
-</p>
-
-<div class="plink">
-	<a href="#next">Continue...</a>
-</div>
-
-<a name="next"></a>
-<h2>Neko Test</h2>
-
-<p>
-	If install have been correctly done, you should be able to run the test script by executing <code>nekovm test</code>.
-</p>
-
-<p>
-	If the test is successful, that means that Neko is correctly installed.
-</p>
-
 
 <h2>Hello World</h2>
 
@@ -80,15 +73,15 @@
 </p>
 
 <pre>
-	$print("hello neko world !");
+	$print("hello neko world !\n");
 </pre>
 
 <p>
-	Compile your <code>hello.neko</code> file into a <code>hello.n</code> file using the neko commandline compiler <code>neko</code> by calling <code>neko hello.neko</code>. If you didn't make any syntax error this will produce a <code>.n</code> file containing the compiled bytecode of your sources.
+	Compile your <code>hello.neko</code> file into a <code>hello.n</code> file using the neko commandline compiler by calling <code>nekovm neko/Main hello.neko</code>. If you didn't make any syntax error this will produce a <code>hello.n</code> file containing the compiled bytecode of your sources.
 </p>
 
 <p>
-	 You can now run this bytecode "module" by calling <code>nekovm hello</code> (without <code>.n</code>). This should print some funny string.
+	 You can now run this bytecode "module" by calling <code>nekovm hello</code>. This should print the usual funny string to the standard output.
 </p>
 
 <h2>From here...</h2>
@@ -100,6 +93,3 @@
 <p>
 	Congratulations !
 </p>
-
-<br/><br/><br/><br/>
-<br/><br/><br/><br/>

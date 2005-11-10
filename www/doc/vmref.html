@@ -4,25 +4,18 @@
 	Before reading this part of the documentation, it is recommend to have already read the <a href="/?doc=doc/cffi">C FFI</a> Documentation or to have a good knowledge of it.
 </p>
 
-<h2>Commandline Tools</h2>
+<h2>Running the VM</h2>
 
 <p>
-	There is two commandline tools available with the Neko distribution :
+	The Neko Virtual Machine is one binary called <code>nekovm</code> included in the Neko distribution. You can call it anytime using <code>nekovm (file)</code> in order to execute the specified bytecode file.
 </p>
 
-<ul class="large">
-	<li><code>neko</code> which is the compiler : it will compile a <code>.neko</code> file source into a <code>.n</code> bytecode module.
-	<pre>    neko hello.neko</pre>
-	</li>
-	<li><code>nekovm</code> which is the virtual machine : it will run a compiled bytecode module.
-	<pre>    nekovm hello</pre>
-	</li>
-</ul>
-
-<h2>Modules</h2>
+<p>
+	Bytecode files are precompiled Neko sources and have the <code>.n</code> extension. They are searched in local directories but also using the <code>NEKOPATH</code> environment variable which can list several search paths separated by <code>:</code>. Each bytecode <code>.n</code> file is also called a <em>Module</em>.
+</p>
 
 <p>
-	Each <code>.n</code> file is a module. When started, the virtual machine will look for the module specified from the commandline (module name doesn't include the <code>.n</code> extension). The lookup is done first into the current directory and then among all paths specified into the <code>NEKOPATH</code> environment variable, which are separated by <code>;</code>.
+	For example, the Neko Compiler is a Neko bytecode file that you can start using <code>nekovm neko/Main</code>. It will compile all the bytecode files that are listed after, so for exemple <code>nekom neko/Main file1.neko file2.neko</code> will compile the two files in that order.
 </p>
 
 <h2>Libraries</h2>
@@ -84,8 +77,7 @@
 <pre>
 
     #include &lt;stdio.h&gt;
-    #include &lt;load.h&gt;
-    #include &lt;interp.h&gt;
+    #include &lt;neko_vm.h&gt;
 
     value execute( char *module ) {
         neko_vm *vm;
@@ -97,7 +89,7 @@
         neko_global_init();
         vm = neko_vm_alloc(NULL);
 
-        loader = neko_default_loader(NULL);
+        loader = neko_default_loader();
         args[0] = alloc_string(file);
         args[1] = loader;
         neko_vm_select(vm);
@@ -119,7 +111,7 @@
 <h3>NekoVM API</h3>
 
 <p>
-	The Neko VM API is declared into the <code>load.h</code> and <code>interp.h</code> files. It will be fully documented later.
+	The Neko VM API is declared into the <code>neko_vm.h</code> file. It will be fully documented later. There is also the <code>neko_mod.h</code> file for low level module access.
 </p>
 
 <h3>Multithreading</h3>
