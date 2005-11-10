@@ -236,8 +236,89 @@ static value test() {
 	return val_null;
 }
 
+/**
+	url_decode : string -> string
+	<doc>Decode an url using escaped format</doc>
+**/
+static value url_decode( value v ) {
+	val_check(v,string);
+	{
+		int pin = 0;
+		int pout = 0;
+		const char *in = val_string(v);
+		int len = val_strlen(v);
+		value v2 = alloc_empty_string(len);
+		char *out = (char*)val_string(v2);
+		while( len-- > 0 ) {
+			char c = in[pin++];
+			if( c == '+' )
+				c = ' ';
+			else if( c == '%' ) {
+				int p1, p2;
+				if( len < 2 )
+					break;
+				p1 = in[pin++];
+				p2 = in[pin++];
+				len -= 2;
+				if( p1 >= '0' && p1 <= '9' )
+					p1 -= '0';
+				else if( p1 >= 'a' && p1 <= 'f' )
+					p1 -= 'a' - 10;
+				else if( p1 >= 'A' && p1 <= 'F' )
+					p1 -= 'A' - 10;
+				else
+					continue;
+				if( p2 >= '0' && p2 <= '9' )
+					p2 -= '0';
+				else if( p2 >= 'a' && p2 <= 'f' )
+					p2 -= 'a' - 10;
+				else if( p2 >= 'A' && p2 <= 'F' )
+					p2 -= 'A' - 10;
+				else
+					continue;
+				c = (char)((unsigned char)((p1 << 4) + p2));
+			}
+			out[pout++] = c;
+		}
+		out[pout] = 0;
+		val_set_size(v2,pout);		
+		return v2;
+	}
+}
+
+/**
+	url_encode : string -> string
+	<doc>Encode an url using escaped format</doc>
+**/
+static value url_encode( value v ) {
+	val_check(v,string);
+	{
+		int pin = 0;
+		int pout = 0;
+		const unsigned char *in = (const unsigned char*)val_string(v);
+		int len = val_strlen(v);
+		value v2 = alloc_empty_string(len * 3);
+		unsigned char *out = (unsigned char*)val_string(v2);
+		while( len-- > 0 ) {
+			unsigned char c = in[pin++];
+			if( (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' )
+				out[pout++] = c;
+			else {
+				out[pout++] = '%';
+				out[pout++] = '0' + (c >> 4);
+				out[pout++] = '0' + (c & 0xF);
+			}
+		}
+		out[pout] = 0;
+		val_set_size(v2,pout);
+		return v2;
+	}
+}
+
 DEFINE_PRIM(sprintf,2);
 DEFINE_PRIM(string_split,2);
 DEFINE_PRIM(test,0);
+DEFINE_PRIM(url_decode,1);
+DEFINE_PRIM(url_encode,1);
 
 /* ************************************************************************ */
