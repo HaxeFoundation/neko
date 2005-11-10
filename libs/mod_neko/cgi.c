@@ -41,77 +41,19 @@
 		bfailure(b); \
 	}
 
-static value url_decode( value v ) {
-	val_check(v,string);
-	{
-		int pin = 0;
-		int pout = 0;
-		const char *in = val_string(v);
-		int len = val_strlen(v);
-		value v2 = alloc_empty_string(len);
-		char *out = (char*)val_string(v2);
-		while( len-- > 0 ) {
-			char c = in[pin++];
-			if( c == '+' )
-				c = ' ';
-			else if( c == '%' ) {
-				int p1, p2;
-				if( len < 2 )
-					break;
-				p1 = in[pin++];
-				p2 = in[pin++];
-				len -= 2;
-				if( p1 >= '0' && p1 <= '9' )
-					p1 -= '0';
-				else if( p1 >= 'a' && p1 <= 'f' )
-					p1 -= 'a' - 10;
-				else if( p1 >= 'A' && p1 <= 'F' )
-					p1 -= 'A' - 10;
-				else
-					continue;
-				if( p2 >= '0' && p2 <= '9' )
-					p2 -= '0';
-				else if( p2 >= 'a' && p2 <= 'f' )
-					p2 -= 'a' - 10;
-				else if( p2 >= 'A' && p2 <= 'F' )
-					p2 -= 'A' - 10;
-				else
-					continue;
-				c = (char)((unsigned char)((p1 << 4) + p2));
-			}
-			out[pout++] = c;
-		}
-		out[pout] = 0;
-		val_set_size(v2,pout);		
-		return v2;
-	}
-}
+/**
+	<doc>
+	<h1>Mod_neko</h1>
+	<p>
+	Apache access when running inside mod_neko.
+	</p>
+	</doc>
+**/
 
-static value url_encode( value v ) {
-	val_check(v,string);
-	{
-		int pin = 0;
-		int pout = 0;
-		const unsigned char *in = (const unsigned char*)val_string(v);
-		int len = val_strlen(v);
-		value v2 = alloc_empty_string(len * 3);
-		unsigned char *out = (unsigned char*)val_string(v2);
-		while( len-- > 0 ) {
-			unsigned char c = in[pin++];
-			if( (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' )
-				out[pout++] = c;
-			else {
-				out[pout++] = '%';
-				out[pout++] = '0' + (c >> 4);
-				out[pout++] = '0' + (c & 0xF);
-			}
-		}
-		out[pout] = 0;
-		val_set_size(v2,pout);
-		return v2;
-	}
-}
-
+/**
+	get_cookies : void -> #list
+	<doc>Return a cookie list as a (name,value) chained list</doc>
+**/
 static value get_cookies() {
 	const char *k = ap_table_get(CONTEXT()->r->headers_in,"Cookie");
 	char *start, *end;
@@ -137,6 +79,10 @@ static value get_cookies() {
 	return p;
 }
 
+/**
+	set_cookie : name:string -> val:string -> void
+	<doc>Set a cookie</doc>
+**/
 static value set_cookie( value name, value v ) {
 	mcontext *c = CONTEXT();
 	buffer b;
@@ -154,10 +100,18 @@ static value set_cookie( value name, value v ) {
 	return val_true;
 }
 
+/**
+	get_content_type : void -> string
+	<doc>Get the current content type of the page</doc>
+**/
 static value get_content_type() {
 	return alloc_string( CONTEXT()->r->content_type );
 }
 
+/**
+	set_content_type : string -> void
+	<doc>Set the current content type of the page</doc>
+**/
 static value set_content_type( value s ) {
 	mcontext *c = CONTEXT();
 	val_check(s,string);
@@ -166,16 +120,28 @@ static value set_content_type( value s ) {
 	return val_true;
 }
 
+/**
+	get_host_name : void -> string
+	<doc>Get the local host IP</doc>
+**/
 static value get_host_name() {
 	mcontext *c = CONTEXT();
 	const char *h = c->r->connection->local_host;
 	return alloc_string( h?h:c->r->connection->local_ip );
 }
 
+/**
+	get_client_ip : void -> string
+	<doc>Get the connected client IP</doc>
+**/
 static value get_client_ip() {
 	return alloc_string( CONTEXT()->r->connection->remote_ip );
 }
 
+/**
+	get_uri : void -> string
+	<doc>Get the original URI requested by the client (before any internal redirection)</doc>
+**/
 static value get_uri() {
 	request_rec *r = CONTEXT()->r;
 	while( r->prev != NULL )
@@ -183,6 +149,10 @@ static value get_uri() {
 	return alloc_string( r->uri );
 }
 
+/**
+	redirect : string -> void
+	<doc>Redirect the client to another page (Location header)</doc>
+**/
 static value redirect( value s ) {
 	mcontext *c = CONTEXT();
 	val_check(s,string);
@@ -192,6 +162,10 @@ static value redirect( value s ) {
 	return val_true;
 }
 
+/**
+	set_header : name:string -> val:string -> void
+	<doc>Set a HTTP header value</doc>
+**/
 static value set_header( value s, value k ) {
 	mcontext *c = CONTEXT();
 	val_check(s,string);
@@ -201,16 +175,28 @@ static value set_header( value s, value k ) {
 	return val_true;
 }
 
+/**
+	get_client_header : name:string -> string?
+	<doc>Get a HTTP header sent by the client</doc>
+**/
 static value get_client_header( value s ) {
 	mcontext *c = CONTEXT();
 	val_check(s,string);
 	return alloc_string( ap_table_get(c->r->headers_in,val_string(s)) );
 }
 
+/**
+	get_params_string : void -> string
+	<doc>Return the whole parameters string</doc>
+**/
 static value get_params_string() {	
 	return alloc_string(CONTEXT()->r->args);
 }
 
+/**
+	get_post_data : void -> string
+	<doc>Return the whole unparsed POST string</doc>
+**/
 static value get_post_data() {
 	return CONTEXT()->post_data;
 }
@@ -226,7 +212,7 @@ static char *memfind( char *mem, int mlen, const char *v ) {
 		if( memcmp(found,v,len) == 0 )
 			return found;
 		mlen -= (int)(found - mem + 1);
-		mem = found + 1;		
+		mem = found + 1;
 	}
 	return NULL;
 }
@@ -287,6 +273,48 @@ static void parse_multipart( mcontext *c, const char *ctype, const char *args, i
 	*bend = old;
 }
 
+static value url_decode( const char *in ) {
+	int pin = 0;
+	int pout = 0;
+	int len = strlen(in);
+	value v = alloc_empty_string(len);
+	char *out = (char*)val_string(v);
+	while( len-- > 0 ) {
+		char c = in[pin++];
+		if( c == '+' )
+			c = ' ';
+		else if( c == '%' ) {
+			int p1, p2;
+			if( len < 2 )
+				break;
+			p1 = in[pin++];
+			p2 = in[pin++];
+			len -= 2;
+			if( p1 >= '0' && p1 <= '9' )
+				p1 -= '0';
+			else if( p1 >= 'a' && p1 <= 'f' )
+				p1 -= 'a' - 10;
+			else if( p1 >= 'A' && p1 <= 'F' )
+				p1 -= 'A' - 10;
+			else
+				continue;
+			if( p2 >= '0' && p2 <= '9' )
+				p2 -= '0';
+			else if( p2 >= 'a' && p2 <= 'f' )
+				p2 -= 'a' - 10;
+			else if( p2 >= 'A' && p2 <= 'F' )
+				p2 -= 'A' - 10;
+			else
+				continue;
+			c = (char)((unsigned char)((p1 << 4) + p2));
+		}
+		out[pout++] = c;
+	}
+	out[pout] = 0;
+	val_set_size(v,pout);
+	return v;
+}
+
 static void parse_get( value *p, const char *args ) {
 	char *aand, *aeq, *asep;
 	value tmp;
@@ -307,7 +335,7 @@ static void parse_get( value *p, const char *args ) {
 			*aeq = 0;
 			tmp = alloc_array(3);
 			val_array_ptr(tmp)[0] = copy_string(args,(int)(aeq-args));
-			val_array_ptr(tmp)[1] = url_decode(alloc_string(aeq+1));
+			val_array_ptr(tmp)[1] = url_decode(aeq+1);
 			val_array_ptr(tmp)[2] = *p;
 			*p = tmp;
 			*aeq = '=';
@@ -319,6 +347,10 @@ static void parse_get( value *p, const char *args ) {
 	}
 }
 
+/**
+	get_params : void -> #list
+	<doc>parse all GET and POST params and return them into a chained list</doc>
+**/
 static value get_params() {
 	mcontext *c = CONTEXT();
 	const char *args = c->r->args;
@@ -340,6 +372,10 @@ static value get_params() {
 	return p;
 }
 
+/**
+	cgi_get_cwd : void -> string
+	<doc>Return current bytecode file working directory</doc>
+**/
 static value cgi_get_cwd() {
 	mcontext *c = CONTEXT();
 	char *s = strrchr(c->r->filename,'/');
@@ -355,6 +391,10 @@ static value cgi_get_cwd() {
 	return v;
 }
 
+/**
+	cgi_set_main : function:0 -> void
+	<doc>Set the main entry point function</doc>
+**/
 static value cgi_set_main( value f ) {
 	val_check_function(f,0);
 	CONTEXT()->main = f;
@@ -376,7 +416,5 @@ DEFINE_PRIM(get_params_string,0);
 DEFINE_PRIM(get_post_data,0);
 DEFINE_PRIM(set_header,2);
 DEFINE_PRIM(get_client_header,1);
-DEFINE_PRIM(url_decode,1);
-DEFINE_PRIM(url_encode,1);
 
 /* ************************************************************************ */

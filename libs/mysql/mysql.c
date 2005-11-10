@@ -25,6 +25,15 @@
 typedef int SOCKET;
 #include <mysql.h>
 
+/**
+	<doc>
+	<h1>MySQL</h1>
+	<p>
+	API to connect and use MySQL database
+	</p>
+	</doc>
+**/
+
 #define MYSQLDATA(o)	((MYSQL*)val_data(o))
 #define RESULT(o)		((result*)val_data(o))
 
@@ -40,6 +49,10 @@ static void error( MYSQL *m, const char *msg ) {
 
 // ---------------------------------------------------------------
 // Result
+
+/**
+	<doc><h2>Result</h2></doc>
+**/
 
 #undef CONV_FLOAT
 typedef enum {
@@ -67,6 +80,11 @@ static void free_result( value o ) {
 	mysql_free_result(r->r);
 }
 
+/**
+	result_sev_conv_data : 'result -> function:1 -> void
+	<doc>Set the function that will convert a Date or DateTime string
+	to the corresponding value.</doc>
+**/
 static value result_set_conv_date( value o, value c ) {
 	val_check_function(c,1);
 	if( val_is_int(o) )
@@ -76,6 +94,10 @@ static value result_set_conv_date( value o, value c ) {
 	return val_true;
 }
 
+/**
+	result_get_length : 'result -> int
+	<doc>Return the number of rows returned or affected</doc>
+**/
 static value result_get_length( value o ) {
 	if( val_is_int(o) )
 		return o;
@@ -83,11 +105,26 @@ static value result_get_length( value o ) {
 	return alloc_int( (int)mysql_num_rows(RESULT(o)->r) );
 }
 
+/**
+	result_get_nfields : 'result -> int
+	<doc>Return the number of fields in a result row</doc>
+**/
 static value result_get_nfields( value o ) {
 	val_check_kind(o,k_result);
 	return alloc_int(RESULT(o)->nfields);
 }
 
+/**
+	result_next : 'result -> object?
+	<doc>
+	Return the next row if available. A row is represented
+	as an object, which fields have been converted to the
+	corresponding Neko value (int, float or string). For
+	Date and DateTime you can specify your own conversion
+	function using [result_set_conv_date]. By default they're
+	returned as plain strings.
+	</doc>
+**/
 static value result_next( value o ) {
 	result *r;
 	unsigned long *lengths = NULL;
@@ -159,6 +196,10 @@ static value result_next( value o ) {
 	}
 }
 
+/**
+	result_get : 'result -> n:int -> string
+	<doc>Return the [n]th field of the current row</doc>
+**/
 static value result_get( value o, value n ) {
 	result *r;
 	const char *s;
@@ -176,6 +217,10 @@ static value result_get( value o, value n ) {
 	return alloc_string( s?s:"" );
 }
 
+/**
+	result_get_int : 'result -> n:int -> int
+	<doc>Return the [n]th field of the current row as an integer (or 0)</doc>
+**/
 static value result_get_int( value o, value n ) {
 	result *r;
 	const char *s;
@@ -193,6 +238,10 @@ static value result_get_int( value o, value n ) {
 	return alloc_int( s?atoi(s):0 );
 }
 
+/**
+	result_get_float : 'result -> n:int -> float
+	<doc>Return the [n]th field of the current row as a float (or 0)</doc>
+**/
 static value result_get_float( value o, value n ) {
 	result *r;
 	const char *s;
@@ -270,6 +319,12 @@ static value alloc_result( MYSQL_RES *r ) {
 // ---------------------------------------------------------------
 // Connection
 
+/** <doc><h2>Connection</h2></doc> **/
+
+/**
+	close : 'connection -> void
+	<doc>Close the connection. Any subsequent operation will fail on it</doc>
+**/
 static value close( value o ) {
 	val_check_kind(o,k_connection);
 	mysql_close(MYSQLDATA(o));
@@ -279,7 +334,11 @@ static value close( value o ) {
 	return val_true;
 }
 
-static value selectDB( value o, value db ) {
+/**
+	select_db : 'connection -> string -> void
+	<doc>Select the database</doc>
+**/
+static value select_db( value o, value db ) {
 	val_check_kind(o,k_connection);
 	val_check(db,string);
 	if( mysql_select_db(MYSQLDATA(o),val_string(db)) != 0 )
@@ -287,6 +346,10 @@ static value selectDB( value o, value db ) {
 	return val_true;
 }
 
+/**
+	request : 'connection -> string -> 'result
+	<doc>Execute an SQL request. Exception on error</doc>
+**/
 static value request( value o, value r )  {
 	MYSQL_RES *res;
 	val_check_kind(o,k_connection);
@@ -303,6 +366,10 @@ static value request( value o, value r )  {
 	return alloc_result(res);
 }
 
+/**
+	escape : string -> string
+	<doc>Escape the string for inserting into a SQL request</doc>
+**/
 static value escape( value o, value s ) {
 	int len;
 	value sout;
@@ -323,6 +390,10 @@ static void free_connection( value o ) {
 	mysql_close(MYSQLDATA(o));
 }
 
+/**
+	connect : { host => string, port => int, user => string, pass => string, socket => string? } -> 'connection
+	<doc>Connect to a database using the connection informations</doc>
+**/
 static value connect( value params  ) {
 	value host, port, user, pass, socket;
 	val_check(params,object);
@@ -364,7 +435,7 @@ DEFINE_ENTRY_POINT(init);
 DEFINE_PRIM(connect,1);
 DEFINE_PRIM(close,1);
 DEFINE_PRIM(request,2);
-DEFINE_PRIM(selectDB,2);
+DEFINE_PRIM(select_db,2);
 DEFINE_PRIM(escape,2);
 
 DEFINE_PRIM(result_get_length,1);

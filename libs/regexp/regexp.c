@@ -38,10 +38,23 @@ DEFINE_KIND(k_regexp);
 static field id_pos;
 static field id_len;
 
+/**
+	<doc>
+	<h1>Regexp</h1>
+	<p>
+	Regular expressions using PCRE engine.
+	</p>
+	</doc>
+**/
+
 static void free_regexp( value p ) {	
 	pcre_free( PCRE(p)->r );
 }
 
+/**
+	regexp_new : string -> 'regexp
+	<doc>Build a new regexp</doc>
+**/
 static value regexp_new( value s ) {
 	val_check(s,string);
 	{
@@ -68,31 +81,35 @@ static value regexp_new( value s ) {
 	}	
 }
 
-static value regexp_match( value o, value s ) {
+/**
+	regexp_match : 'regexp -> string -> pos:int -> len:int -> bool
+	<doc>Match [len] chars of a string starting at [pos] using the regexp.
+	Return true if match found</doc>
+**/
+static value regexp_match( value o, value s, value p, value len ) {
 	pcredata *d;
+	int pp,ll;
 	val_check_kind(o,k_regexp);
 	val_check(s,string);
+	val_check(p,int);
+	val_check(len,int);
+	pp = val_int(p);
+	ll = val_int(len);
+	if( pp < 0 || ll < 0 || pp > val_strlen(s) || pp + ll > val_strlen(s) )
+		neko_error();
 	d = PCRE(o);
-	if( pcre_exec(d->r,NULL,val_string(s),val_strlen(s),0,0,d->matchs,NMATCHS) >= 0 ) {
+	if( pcre_exec(d->r,NULL,val_string(s)+pp,ll,0,0,d->matchs,NMATCHS) >= 0 ) {
+		if( pp > 0 ) {
+			int i;
+			for(i=0;i<NMATCHS;i+=2)
+				d->matchs[i] += pp;
+		}
 		d->str = s;
 		return val_true;
 	} else {
 		d->str = val_null;
 		return val_false;
 	}
-}
-
-static value regexp_exact_match( value o, value s ) {
-	value v = regexp_match(o,s);
-	if( v == val_true ) {
-		pcredata *d = PCRE(o);
-		if( d->matchs[0] == 0 && d->matchs[1] == val_strlen(s) )
-			return val_true;
-		d->str = val_null;
-		return val_false;
-	}
-	return v;
-	
 }
 
 static value do_replace( value o, value s, value s2, bool all ) {	
@@ -120,14 +137,27 @@ static value do_replace( value o, value s, value s2, bool all ) {
 	}
 }
 
+/**
+	regexp_replace : 'regexp -> from:string -> by:string -> string
+	<doc>Perform a replacement using a regexp</doc>
+**/
 static value regexp_replace( value o, value s, value s2 ) {	
 	return do_replace(o,s,s2,false);
 }
 
+/**
+	regexp_replace_all : 'regexp -> from:string -> by:string -> string
+	<doc>Perform a replacement of all matched substrings using a regexp</doc>
+**/
 static value regexp_replace_all( value o, value s, value s2 ) {
 	return do_replace(o,s,s2,true);
 }
 
+/**
+	regexp_matched : 'regexp -> n:int -> string
+	<doc>Return the [n]th matched block by the regexp. If [n] is 0 then return 
+	the whole matched substring</doc>
+**/
 static value regexp_matched( value o, value n ) {
 	pcredata *d;
 	int m;
@@ -146,6 +176,11 @@ static value regexp_matched( value o, value n ) {
 	}
 }
 
+/**
+	regexp_matched_pos : 'regexp -> n:int -> { pos => int, len => int }
+	<doc>Return the [n]th matched block position by the regexp. If [n] is 0 then
+	return the whole matched substring position</doc>
+**/
 static value regexp_matched_pos( value o, value n ) {
 	pcredata *d;
 	int m;
@@ -171,8 +206,7 @@ static void init() {
 }
 
 DEFINE_PRIM(regexp_new,1);
-DEFINE_PRIM(regexp_match,2);
-DEFINE_PRIM(regexp_exact_match,2);
+DEFINE_PRIM(regexp_match,4);
 DEFINE_PRIM(regexp_replace,3);
 DEFINE_PRIM(regexp_replace_all,3);
 DEFINE_PRIM(regexp_matched,2);
