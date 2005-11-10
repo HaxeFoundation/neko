@@ -208,7 +208,7 @@ static value builtin_sget( value s, value p ) {
 	pp = val_int(p);
 	if( pp < 0 || pp >= val_strlen(s) )
 		return val_null;
-	return alloc_int( val_string(s)[pp] );
+	return alloc_int( (unsigned char)(val_string(s)[pp]) );
 }
 
 /**
