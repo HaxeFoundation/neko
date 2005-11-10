@@ -1,0 +1,51 @@
+
+	<h1>Mod_neko</h1>
+	<p>
+	Apache access when running inside mod_neko.
+	</p>
+	
+<doc_blk>
+  <doc_type>#list</doc_type> <doc_name>get_cookies</doc_name><doc_type>()</doc_type> <doc_doc>Return a cookie list as a (name,value) chained list</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>void</doc_type> <doc_name>set_cookie</doc_name><doc_type>(name : string, val : string)</doc_type> <doc_doc>Set a cookie</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>string</doc_type> <doc_name>get_content_type</doc_name><doc_type>()</doc_type> <doc_doc>Get the current content type of the page</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>void</doc_type> <doc_name>set_content_type</doc_name><doc_type>(string)</doc_type> <doc_doc>Set the current content type of the page</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>string</doc_type> <doc_name>get_host_name</doc_name><doc_type>()</doc_type> <doc_doc>Get the local host IP</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>string</doc_type> <doc_name>get_client_ip</doc_name><doc_type>()</doc_type> <doc_doc>Get the connected client IP</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>string</doc_type> <doc_name>get_uri</doc_name><doc_type>()</doc_type> <doc_doc>Get the original URI requested by the client (before any internal redirection)</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>void</doc_type> <doc_name>redirect</doc_name><doc_type>(string)</doc_type> <doc_doc>Redirect the client to another page (Location header)</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>void</doc_type> <doc_name>set_header</doc_name><doc_type>(name : string, val : string)</doc_type> <doc_doc>Set a HTTP header value</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>string?</doc_type> <doc_name>get_client_header</doc_name><doc_type>(name : string)</doc_type> <doc_doc>Get a HTTP header sent by the client</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>string</doc_type> <doc_name>get_params_string</doc_name><doc_type>()</doc_type> <doc_doc>Return the whole parameters string</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>string</doc_type> <doc_name>get_post_data</doc_name><doc_type>()</doc_type> <doc_doc>Return the whole unparsed POST string</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>#list</doc_type> <doc_name>get_params</doc_name><doc_type>()</doc_type> <doc_doc>parse all GET and POST params and return them into a chained list</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>string</doc_type> <doc_name>cgi_get_cwd</doc_name><doc_type>()</doc_type> <doc_doc>Return current bytecode file working directory</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>void</doc_type> <doc_name>cgi_set_main</doc_name><doc_type>(function:0)</doc_type> <doc_doc>Set the main entry point function</doc_doc>
+</doc_blk>
