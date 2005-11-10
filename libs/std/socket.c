@@ -43,6 +43,19 @@ DEFINE_KIND(k_addr);
 
 #define val_sock(o)		((SOCKET)(int_val)val_data(o))
 
+/**
+	<doc>
+	<h1>Socket</h1>
+	<p>
+	TCP and UDP sockets
+	</p>
+	</doc>
+**/
+
+/**
+	socket_new : udp:bool -> 'socket
+	<doc>Create a new socket, TCP or UDP</doc>
+**/
 static value socket_new( value udp ) {
 	SOCKET s;
 	val_check(udp,bool);
@@ -61,6 +74,10 @@ static value socket_new( value udp ) {
 	return alloc_abstract(k_socket,(value)(int_val)s);
 }
 
+/**
+	socket_close : 'socket -> void
+	<doc>Close a socket. Any subsequent operation on this socket will fail</doc>
+**/
 static value socket_close( value o ) {
 	val_check_kind(o,k_socket);
 	closesocket(val_sock(o));
@@ -68,6 +85,10 @@ static value socket_close( value o ) {
 	return val_true;
 }
 
+/**
+	socket_send_char : 'socket -> int -> void
+	<doc>Send a character over a connected socket. Must be in the range 0..255</doc>
+**/
 static value socket_send_char( value o, value v ) {
 	int c;
 	unsigned char cc;
@@ -82,6 +103,11 @@ static value socket_send_char( value o, value v ) {
 	return val_true;
 }
 
+/**
+	socket_send : 'socket -> buf:string -> pos:int -> len:int -> int
+	<doc>Send up to [len] bytes from [buf] starting at [pos] over a connected socket. 
+	Return the number of bytes sent.</doc>
+**/
 static value socket_send( value o, value data, value pos, value len ) {
 	int p,l,dlen;
 	val_check_kind(o,k_socket);
@@ -99,6 +125,11 @@ static value socket_send( value o, value data, value pos, value len ) {
 	return alloc_int(dlen);
 }
 
+/**
+	socket_rec : 'socket -> buf:string -> pos:int -> len:int -> int
+	<doc>Read up to [len] bytes from [buf] starting at [pos] from a connected socket. 
+	Return the number of bytes readed.</doc>
+**/
 static value socket_recv( value o, value data, value pos, value len ) {
 	int p,l,dlen;
 	val_check_kind(o,k_socket);
@@ -116,6 +147,10 @@ static value socket_recv( value o, value data, value pos, value len ) {
 	return alloc_int(dlen);
 }
 
+/**
+	socket_recv_char : 'socket -> int
+	<doc>Read a single char from a connected socket.</doc>
+**/
 static value socket_recv_char( value o ) {
 	unsigned char cc;
 	val_check_kind(o,k_socket);
@@ -125,6 +160,10 @@ static value socket_recv_char( value o ) {
 }
 
 
+/**
+	socket_write : 'socket -> string -> void
+	<doc>Send the whole content of a string over a connected socket.</doc>
+**/
 static value socket_write( value o, value data ) {
 	const char *cdata;
 	int datalen, slen;
@@ -142,6 +181,13 @@ static value socket_write( value o, value data ) {
 	return val_true;
 }
 
+
+/**
+	socket_read : 'socket -> string
+	<doc>Read the whole content of a the data available from a socket. 
+	If the socket hasn't been close by the other side, the function might block.
+	</doc>
+**/
 static value socket_read( value o ) {
 	buffer b;
 	char buf[256];
@@ -159,6 +205,10 @@ static value socket_read( value o ) {
 	return buffer_to_string(b);
 }
 
+/**
+	host_resolve : string -> 'int32
+	<doc>Resolve the given host string into an IP address.</doc>
+**/
 static value host_resolve( value host ) {
 	unsigned int ip;	
 	val_check(host,string);
@@ -172,6 +222,10 @@ static value host_resolve( value host ) {
 	return alloc_int32(ip);
 }
 
+/**
+	host_to_string : 'int32 -> string
+	<doc>Return a string representation of the IP address.</doc>
+**/
 static value host_to_string( value ip ) {
 	struct in_addr i;
 	val_check(ip,int32);
@@ -179,6 +233,10 @@ static value host_to_string( value ip ) {
 	return alloc_string( inet_ntoa(i) );
 }
 
+/**
+	host_local : void -> string
+	<doc>Return the local host name.</doc>
+**/
 static value host_local() {
 	char buf[256];
 	if( gethostname(buf,256) == SOCKET_ERROR )
@@ -186,6 +244,10 @@ static value host_local() {
 	return alloc_string(buf);
 }
 
+/**
+	socket_connect : 'socket -> host:'int32 -> port:int -> void
+	<doc>Connect the socket the given [host] and [port]</doc>
+**/
 static value socket_connect( value o, value host, value port ) {
 	struct sockaddr_in addr;
 	val_check_kind(o,k_socket);
@@ -199,6 +261,10 @@ static value socket_connect( value o, value host, value port ) {
 	return val_true;
 }
 
+/**
+	socket_listen : 'socket -> int -> void
+	<doc>Listen for a number of connections</doc>
+**/
 static value socket_listen( value o, value n ) {
 	val_check_kind(o,k_socket);
 	val_check(n,int);
@@ -243,6 +309,10 @@ static value make_array_result( value a, fd_set *tmp ) {
 	return r;
 }
 
+/**
+	socket_select : read : 'socket array -> write : 'socket array -> others : 'socket array -> timeout:number? -> 'socket array array
+	<doc>Perform the [select] operation</doc>
+**/
 static value socket_select( value rs, value ws, value es, value timeout ) {
 	struct timeval tval;
 	struct timeval *tt;
@@ -273,6 +343,10 @@ static value socket_select( value rs, value ws, value es, value timeout ) {
 	return r;
 }
 
+/**
+	socket_bind : 'socket -> host : 'int32 -> port:int -> void
+	<doc>Bind the socket for server usage on the given host and port</doc>
+**/
 static value socket_bind( value o, value host, value port ) {
 	struct sockaddr_in addr;
 	val_check_kind(o,k_socket);
@@ -286,6 +360,10 @@ static value socket_bind( value o, value host, value port ) {
 	return val_true;
 }
 
+/**
+	socket_accept : 'socket -> 'socket
+	<doc>Accept an incoming connection request</doc>
+**/
 static value socket_accept( value o ) {
 	struct sockaddr_in addr;
 	unsigned int addrlen = sizeof(addr);
@@ -297,6 +375,10 @@ static value socket_accept( value o ) {
 	return alloc_abstract(k_socket,(value)(int_val)s);
 }
 
+/**
+	socket_peer : 'socket -> #address
+	<doc>Return the socket connected peer address composed of an (host,port) array</doc>
+**/
 static value socket_peer( value o ) {
 	struct sockaddr_in addr;
 	unsigned int addrlen = sizeof(addr);
@@ -306,10 +388,14 @@ static value socket_peer( value o ) {
 		neko_error();
 	ret = alloc_array(2);
 	val_array_ptr(ret)[0] = alloc_int32(*(int*)&addr.sin_addr);
-	val_array_ptr(ret)[1] = alloc_int(addr.sin_port);
+	val_array_ptr(ret)[1] = alloc_int(ntohs(addr.sin_port));
 	return ret;
 }
 
+/**
+	socket_host : 'socket -> #address
+	<doc>Return the socket local address composed of an (host,port) array</doc>
+**/
 static value socket_host( value o ) {
 	struct sockaddr_in addr;
 	unsigned int addrlen = sizeof(addr);
@@ -319,10 +405,14 @@ static value socket_host( value o ) {
 		neko_error();
 	ret = alloc_array(2);
 	val_array_ptr(ret)[0] = alloc_int32(*(int*)&addr.sin_addr);
-	val_array_ptr(ret)[1] = alloc_int(addr.sin_port);
+	val_array_ptr(ret)[1] = alloc_int(ntohs(addr.sin_port));
 	return ret;
 }
 
+/**
+	socket_set_timeout : 'socket -> int -> void
+	<doc>Set the socket send and recv timeout to the given value (0 for blocking)</doc>
+**/
 static value socket_set_timeout( value o, value t ) {
 	int time;
 	val_check_kind(o,k_socket);

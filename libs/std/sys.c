@@ -36,6 +36,19 @@
 #	include <sys/times.h>
 #endif
 
+/**
+	<doc>
+	<h1>System</h1>
+	<p>
+	Interactions with the operating system.
+	</p>
+	</doc>
+**/
+
+/**
+	get_env : string -> string?
+	<doc>Get some environment variable if exists</doc> 
+**/
 static value get_env( value v ) {
 	char *s;
 	val_check(v,string);
@@ -45,6 +58,10 @@ static value get_env( value v ) {
 	return alloc_string(s);
 }
 
+/**
+	put_env : var:string -> val:string -> void
+	<doc>Set some environment variable value</doc> 
+**/
 static value put_env( value e, value v ) {
 	buffer b;
 	val_check(e,string);
@@ -58,6 +75,10 @@ static value put_env( value e, value v ) {
 	return val_true;
 }
 
+/**
+	sys_sleep : float -> void
+	<doc>Sleep a given number of seconds</doc> 
+**/
 static value sys_sleep( value f ) {
 	val_check(f,float);
 #ifdef _WIN32
@@ -70,11 +91,19 @@ static value sys_sleep( value f ) {
 	return val_true;
 }
 
+/**
+	set_time_local : string -> bool
+	<doc>Set the locale for LC_TIME, returns true on success</doc> 
+**/
 static value set_time_locale( value l ) {
 	val_check(l,string);
 	return alloc_bool(setlocale(LC_TIME,val_string(l)) != NULL);
 }
 
+/**
+	get_cwd : void -> string
+	<doc>Return current working directory</doc>
+**/
 static value get_cwd() {
 	char buf[256];
 	int l;
@@ -88,6 +117,10 @@ static value get_cwd() {
 	return alloc_string(buf);
 }
 
+/**
+	set_cwd : string -> void
+	<doc>Set current working directory</doc>
+**/
 static value set_cwd( value d ) {
 	val_check(d,string);
 	if( chdir(val_string(d)) )
@@ -95,6 +128,19 @@ static value set_cwd( value d ) {
 	return val_true;
 }
 
+
+/**
+	sys_string : void -> string
+	<doc>
+	Return the local system string. The current value are possible :
+	<ul>
+	<li>[Windows]</li>
+	<li>[Linux]</li>
+	<li>[BSD]</li>
+	<li>[Mac]</li>
+	</ul>
+	</doc>
+**/
 static value sys_string() {
 #if defined(_WIN32)
 	return alloc_string("Windows");
@@ -109,6 +155,10 @@ static value sys_string() {
 #endif
 }
 
+/**
+	sys_command : string -> int
+	<doc>Run the shell command and return exit code</doc>
+**/
 static value sys_command( value cmd ) {
 	val_check(cmd,string);
 	if( val_strlen(cmd) == 0 )
@@ -116,18 +166,30 @@ static value sys_command( value cmd ) {
 	return alloc_int( system(val_string(cmd)) );
 }
 
+/**
+	sys_exit : int -> void
+	<doc>Exit with the given errorcode. Never returns.</doc>
+**/
 static value sys_exit( value ecode ) {
 	val_check(ecode,int);
 	exit(val_int(ecode));
 	return val_true;
 }
 
+/**
+	file_exists : string -> bool
+	<doc>Returns true if the file or directory exists</doc>
+**/
 static value file_exists( value path ) {
 	struct stat st;
 	val_check(path,string);
 	return alloc_bool(stat(val_string(path),&st) == 0);
 }
 
+/**
+	file_delete : string -> void
+	<doc>Delete the file. Exception on error.</doc>
+**/
 static value file_delete( value path ) {
 	val_check(path,string);
 	if( unlink(val_string(path)) != 0 )
@@ -135,6 +197,10 @@ static value file_delete( value path ) {
 	return val_true;
 }
 
+/**
+	file_rename : from:string -> to:string -> void
+	<doc>Rename the file. Exception on error.</doc>
+**/
 static value file_rename( value path, value newname ) {
 	val_check(path,string);
 	val_check(newname,string);
@@ -146,6 +212,21 @@ static value file_rename( value path, value newname ) {
 #define STATF(f) alloc_field(o,val_id(#f),alloc_int(s.st_##f))
 #define STATF32(f) alloc_field(o,val_id(#f),alloc_int32(s.st_##f))
 
+/**
+	sys_stat : string -> {
+		gid => int,
+		uid => int,
+		atime => 'int32,
+		mtime => 'int32,
+		ctime => 'int32,
+		dev => int,
+		ino => int,
+		nlink => int,
+		rdev => int,
+		size => int
+	}
+	<doc>Run the [stat] command on the given file or directory.</doc>
+**/
 static value sys_stat( value path ) {
 	struct stat s;
 	value o;
@@ -171,6 +252,21 @@ static value sys_stat( value path ) {
 	return o;
 }
 
+/**
+	sys_file_type : string -> string
+	<doc>
+	Return the type of the file. The current values are possible :
+	<ul>
+	<li>[file]</li>
+	<li>[dir]</li>
+	<li>[symlink]</li>
+	<li>[sock]</li>
+	<li>[char]</li>
+	<li>[block]</li>
+	<li>[fifo]</li>
+	</ul>
+	</doc>
+**/
 static value sys_file_type( value path ) {
 	struct stat s;
 	val_check(path,string);
@@ -195,6 +291,10 @@ static value sys_file_type( value path ) {
 	neko_error();
 }
 
+/**
+	sys_create_dir : string -> mode:int -> void
+	<doc>Create a directory with the specified rights</doc>
+**/
 static value sys_create_dir( value path, value mode ) {
 	val_check(path,string);
 	val_check(mode,int);
@@ -207,6 +307,10 @@ static value sys_create_dir( value path, value mode ) {
 	return val_true;
 }
 
+/**
+	sys_remove_dir : string -> void
+	<doc>Remove a directory. Exception on error</doc>
+**/
 static value sys_remove_dir( value path ) {
 	val_check(path,string);
 	if( rmdir(val_string(path)) != 0 )
@@ -214,6 +318,10 @@ static value sys_remove_dir( value path ) {
 	return val_true;
 }
 
+/**
+	sys_time : void -> float
+	<doc>Return the most accurate CPU time spent since the process started</doc>
+**/
 static value sys_time() {
 #ifdef _WIN32
 	FILETIME unused;
@@ -229,6 +337,10 @@ static value sys_time() {
 #endif
 }
 
+/**
+	sys_read_dir : string -> string list
+	<doc>Return the content of a directory</doc>
+**/
 static value sys_read_dir( value path ) {
 	value h = val_null;
 	value cur = NULL, tmp;
@@ -292,6 +404,10 @@ static value sys_read_dir( value path ) {
 	return h;
 }
 
+/**
+	file_full_path : string -> string
+	<doc>Return an absolute path from a relative one. The file or directory must exists</doc>
+**/
 static value file_full_path( value path ) {
 #ifdef _WIN32
 	char buf[MAX_PATH+1];
@@ -308,6 +424,10 @@ static value file_full_path( value path ) {
 #endif
 }
 
+/**
+	sys_exe_path : void -> string
+	<doc>Return the path of the executable</doc>
+**/
 static value sys_exe_path() {
 #ifdef _WIN32
 	char path[MAX_PATH];
@@ -339,6 +459,10 @@ static value sys_exe_path() {
 extern char **environ;
 #endif
 
+/**
+	sys_env : string -> #list
+	<doc>Return all the (key,value) pairs in the environment as a chained list</doc>
+**/
 static value sys_env() {
 	value h = val_null;
 	value cur = NULL, tmp, key;

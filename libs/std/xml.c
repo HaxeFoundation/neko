@@ -304,6 +304,31 @@ static void do_parse_xml( const char *xml, const char **lp, int *line, value cal
 
 // ----------------------------------------------
 
+/**
+	<doc>
+	<h1>Xml</h1>
+	<p>
+	The standard event-driven XML parser.
+	</p>
+	</doc>
+**/
+
+/**
+	parse_xml : xml:string -> events:object -> void
+	<doc>
+	The [parse_xml] parse a string and for each parsed element call the
+	corresponding object method in [events] :
+	<ul>
+	<li>[void xml( name : string, attribs : object)] when an XML node is found</li>
+	<li>[void done()] when an XML node is closed</li>
+	<li>[void pcdata(string)] when PCData chars found</li>
+	<li>[void cdata(string)] when a CData session is found</li>
+	<li>[void comment(string)] when some comment or special header is found</li>
+	</ul>
+	You can then implement the events so they build the appropriate XML data
+	structure needed by your language.
+	</doc>
+**/
 static value parse_xml( value str, value callb ) {
 	const char *p;
 	int line = 0;
