@@ -1,0 +1,32 @@
+
+	<h1>Module</h1>
+	<p>
+	An API for reflexion of Neko bytecode modules. 
+	</p>
+	
+<doc_blk>
+  <doc_type>'module</doc_type> <doc_name>module_read</doc_name><doc_type>(fread : ((buf : string -> pos : int -> len : int -> int)), loader : object)</doc_type> <doc_doc>
+	Read a module using the specified read function and the specified loader.
+	</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>any</doc_type> <doc_name>module_exec</doc_name><doc_type>('module)</doc_type> <doc_doc>Execute the module, return the calculated value</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>string</doc_type> <doc_name>module_name</doc_name><doc_type>('module)</doc_type> <doc_doc>Return the module name</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>object</doc_type> <doc_name>module_exports</doc_name><doc_type>('module)</doc_type> <doc_doc>Return the module export table</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>object</doc_type> <doc_name>module_loader</doc_name><doc_type>('module)</doc_type> <doc_doc>Return the module loader</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>int</doc_type> <doc_name>module_nglobals</doc_name><doc_type>('module)</doc_type> <doc_doc>Return the number of globals for this module</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>any</doc_type> <doc_name>module_global_get</doc_name><doc_type>('module, n : int)</doc_type> <doc_doc>Get the <doc_code>n</doc_code>th global</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>void</doc_type> <doc_name>module_global_set</doc_name><doc_type>('module, n : int, any)</doc_type> <doc_doc>Set the <doc_code>n</doc_code>th global</doc_doc>
+</doc_blk>
