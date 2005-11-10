@@ -1,7 +1,7 @@
 <h1>A Quick Guide to NekoML</h1>
 
 <p>
-	NekoML is an high order functional language with type inference. It can be seen as Neko with a powerful static type system. It is very suitable for complex data structures manipulation such as compilers. NekoML is inspired by OCaml but make different choices at some point.
+	NekoML is an high order functional language with type inference. It can be seen as Neko with a powerful static type system. It is very suitable for complex data structures manipulation such as compilers. NekoML is inspired by OCaml but walks different ways for some points.
 </p>
 
 <h2>Types</h2>
@@ -19,6 +19,7 @@
     1.234 : float
     "hello" : string
     true : bool
+    '\n' : char
     () : void
 </pre>
 
@@ -43,10 +44,11 @@
         D : (int , string);
     }
 
-    A : t ;
-    B : t ;
-    C(0) : t ;
-    D(1,"") : t ;
+    A : t;
+    B : t;
+    C(0) : t;
+    D(1,"") : t;
+    D : int -> string -> t;
 </pre>
 
 <p>
@@ -102,12 +104,23 @@
 </pre>
 
 <p>
+	Parametrized types :
+<p>
+
+<pre>
+    type ('a,'b) pair {
+        fst : 'a;
+        snd : 'b;
+    }
+</pre>
+
+<p>
 	Function Types :
 </p>
 
 <pre>
-	function() { } : void -> void;
-	function(x,y) { x + y } : int -> int -> int
+    function() { } : void -> void;
+    function(x,y) { x + y } : int -> int -> int
 </pre>
 
 <p>
@@ -115,7 +128,17 @@
 </p>
 
 <pre>
-	[1; 2; 3] : int list
+    [1; 2; 3] : int list
+</pre>
+
+<p>
+	Lists contructors :
+</p>
+
+<pre>
+    [] : 'a list;
+    0 :: [] : int list;
+    "a" :: "" :: [] : string list
 </pre>
 
 <h2>Syntax</h2>
@@ -137,7 +160,7 @@
 </p>
 
 <pre>
-	var x = <em>value</em>;
+    var x = <em>expr</em>;
 </pre>
 
 <p>
@@ -145,27 +168,68 @@
 </p>
 
 <pre>
-	if <em>value</em> <em>value</em> [else <em>value</em>]
+    if <em>expr</em> then <em>expr</em> [else <em>expr</em>]
 </pre>
 
 <p>
-	Calls :
+	Calls using parenthesis :
 </p>
 
 <pre>
-	f(1,2,3);
-	g();
-	h((1,2)); // call with a tuple
+    f(1,2,3);
+    g();
+    h((1,2)); // call with a tuple
 </pre>
-
 
 <p>
-	Function déclarations : you can declare a function anonymously or with a name to add it to the local scope. If several functions are declared successively in the same block, they can be mutualy recursive :
+	Calls using spaces :
 </p>
 
 <pre>
-	var f = function() { };
-	// equivalent to
-	function f() {
-	}
+    f 1 2 3;
+    g ();
+    h (1,2); // call with a tuple
 </pre>
+
+<p>
+	Mixed calls :
+</p>
+
+<pre>
+    f (1,2) g() h (1,2);
+    // means
+    f((1,2),g(),h,(1,2));
+</pre>
+
+<p>
+	Function declarations : you can declare a function anonymously or with a name to add it to the local scope
+</p>
+
+<pre>
+    var f = function() { ... };
+    // equivalent to
+    function f() {
+        ...
+    }
+</pre>
+
+<p>
+	Recursive functions. When several following functions are declared recursive (using <code>rec</code>), they're mutually recursive so they can call each other :
+</p>
+
+<pre>
+    function rec f() {
+        g()
+    }
+
+    function rec g() {
+        f()
+    }
+</pre>
+
+
+<h2>More later...</h2>
+
+<p>
+	That's all for now since not so much time to write a complete manual. If you're interested by NekoML you can watch the Neko and NekoML compilers sources as well as the NekoML standard library which are on the Neko CVS. You can also ask on the Neko mailling list.
+</p>
