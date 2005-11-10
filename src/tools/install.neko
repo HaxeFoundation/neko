@@ -212,7 +212,7 @@ compile_lib = function(lib) {
 
 // MAIN LOOP
 
-rights = 0;
+rights = 493; // octal 755
 base = "../bin/std";
 
 try { mkdir(base,rights); } catch e { };
