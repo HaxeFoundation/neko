@@ -33,7 +33,7 @@ function compile(file) {
 	var str = IO.file_contents file;
 	var rnxml = Regexp.build "^<nxml>([^\\255]*)</nxml>[ \n\r\t]*$";
 	var ast = 
-		if Regexp.find rnxml str then {
+		if Regexp.find rnxml str 0 (String.length str) then {
 			Neko.Xml.parse (Regexp.matched rnxml 1) Lexer.null_pos
 		} else {
 			var i = IO.read_string str;

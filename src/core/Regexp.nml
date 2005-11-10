@@ -5,7 +5,7 @@ neko("
 ");
 
 var build : string -> t = neko("$loader.loadprim('regexp@regexp_new',1)");
-var find : t -> string -> bool = neko("$loader.loadprim('regexp@regexp_match',2)");
+var find : t -> string -> int -> int -> bool = neko("$loader.loadprim('regexp@regexp_match',4)");
 var matched : t -> int -> string = neko("$loader.loadprim('regexp@regexp_matched',2)");
 
 function matched_pos( r : t, n : int ) : (int , int) {
