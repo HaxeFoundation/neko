@@ -1,15 +1,16 @@
-2005-??-?? : 1.1
+2005-11-10 : 1.1
 	vm : 
-		ports to FreeBSD, PPC (big endian) and AMD64
-		added stack conservation check at VM loadtime : less checks at VM runtime
+		ports PPC (big endian) and AMD64
+		added stack conservation check at bytecode loadtime : faster VM runtime
 		some more opcodes for better speed
 		added exception and call stack traces
 		added debug informations for bytecode
 		added dispatch tables (for integer switchs)
+		tuned GC usage
 		reorganized VM apis
 	neko:
 		added labels in the language specification 
-		added $goto 
+		added $goto and $apply 
 		added switchs
 		added documentation generator
 	nekoml:
