@@ -41,6 +41,10 @@ libs:
 doc:
 	(cd src; ${NEKO_EXEC} neko/Main tools/makedoc.neko)
 	(cd src; ${NEKO_EXEC} tools/makedoc)
+	
+test:
+	(cd src; ${NEKO_EXEC} neko/Main tools/test.neko)
+	(cd src; ${NEKO_EXEC} tools/test)
 
 nekovm: bin/nekovm
 
@@ -72,4 +76,4 @@ clean:
 .c.o :
 	${CC} ${CFLAGS} -c $< -o $@
 
-.PHONY: all libneko libs nekovm std compiler clean doc
+.PHONY: all libneko libs nekovm std compiler clean doc test
