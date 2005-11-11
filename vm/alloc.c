@@ -65,7 +65,7 @@ void neko_gc_init() {
 	GC_dont_expand = 1;
 #endif
 	GC_clear_roots();
-	GC_set_warn_proc((GC_warn_proc)null_warn_proc);
+	GC_set_warn_proc((GC_warn_proc)(void*)null_warn_proc);
 }
 
 EXTERN void neko_gc_loop() {
@@ -77,11 +77,11 @@ EXTERN void neko_gc_major() {
 }
 
 EXTERN char *alloc( unsigned int nbytes ) {
-	return GC_MALLOC(nbytes);
+	return (char*)GC_MALLOC(nbytes);
 }
 
 EXTERN char *alloc_private( unsigned int nbytes ) {
-	return GC_MALLOC_ATOMIC(nbytes);
+	return (char*)GC_MALLOC_ATOMIC(nbytes);
 }
 
 EXTERN value alloc_empty_string( unsigned int size ) {

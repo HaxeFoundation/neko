@@ -162,6 +162,8 @@ typedef struct {
 #	define EXTERN IMPORT
 #endif
 
+#define VEXTERN extern EXTERN
+
 #ifdef __cplusplus
 #	define C_FUNCTION_BEGIN extern "C" {
 #	define C_FUNCTION_END	};
@@ -245,12 +247,12 @@ typedef struct {
 
 C_FUNCTION_BEGIN
 
-	EXTERN vkind k_int32;
-	EXTERN vkind k_hash;
+	VEXTERN vkind k_int32;
+	VEXTERN vkind k_hash;
 
-	EXTERN value val_null;
-	EXTERN value val_true;
-	EXTERN value val_false;
+	VEXTERN value val_null;
+	VEXTERN value val_true;
+	VEXTERN value val_false;
 
 	EXTERN value alloc_float( tfloat t );
 
@@ -278,7 +280,7 @@ C_FUNCTION_BEGIN
 	EXTERN value val_ocall1( value o, field f, value arg );
 	EXTERN value val_ocall2( value o, field f, value arg1, value arg2 );
 	EXTERN value val_ocallN( value o, field f, value *args, int nargs );
-	EXTERN value val_callEx( value this, value f, value *args, int nargs, value *exc );
+	EXTERN value val_callEx( value vthis, value f, value *args, int nargs, value *exc );
 
 	EXTERN value *alloc_root( unsigned int nvals );
 	EXTERN void free_root( value *r );
