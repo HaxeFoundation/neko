@@ -22,7 +22,7 @@
 #define _NEKO_H
 
 #include <stddef.h>
-#ifndef _WIN32
+#ifndef _MSC_VER
 #	include <stdint.h>
 #endif
 

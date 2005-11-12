@@ -54,7 +54,7 @@ static int execute( neko_vm *vm, char *file ) {
 	return 0;
 }
 
-#ifdef _WIN32
+#ifdef _MSC_VER
 #	include <crtdbg.h>
 #else
 #	define _CrtSetDbgFlag(x)
