@@ -34,6 +34,7 @@
 #	include <unistd.h>
 #	include <dirent.h>
 #	include <sys/times.h>
+#	include <sys/syslimits.h>
 #endif
 
 /**
@@ -333,7 +334,7 @@ static value sys_time() {
 #else
 	struct tms t;
 	times(&t);
-	return alloc_float( ((tfloat)(t.tms_utime + t.tms_stime)) / CLK_TCK );
+	return alloc_float( ((tfloat)(t.tms_utime + t.tms_stime)) / CLOCKS_PER_SEC );
 #endif
 }
 
@@ -435,8 +436,8 @@ static value sys_exe_path() {
 		neko_error();
 	return alloc_string(path);
 #elif __APPLE__
-	char path[MAXPATHLEN+1];
-	unsigned long path_len = MAXPATHLEN;
+	char path[PATH_MAX+1];
+	unsigned long path_len = PATH_MAX;
 	if( _NSGetExecutablePath(path, &path_len) )
 		neko_error();
 	return alloc_string(path);
