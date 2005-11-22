@@ -456,6 +456,10 @@ static value sys_exe_path() {
 #endif
 }
 
+#ifdef __APPLE__
+#	define environ (*_NSGetEnviron())
+#endif
+
 #ifndef _WIN32
 extern char **environ;
 #endif
