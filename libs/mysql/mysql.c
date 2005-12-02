@@ -61,7 +61,8 @@ typedef enum {
 	CONV_FLOAT,
 	CONV_BINARY,
 	CONV_DATE,
-	CONV_DATETIME
+	CONV_DATETIME,
+	CONV_BOOL
 } CONV;
 
 typedef struct {
@@ -147,6 +148,12 @@ static value result_next( value o ) {
 					break;
 				case CONV_STRING:
 					v = alloc_string(row[i]);
+					break;
+				case CONV_BOOL:
+					if( (*row[i] == '0' || *row[i] == '1') && row[i][1] == 0 )
+						v = alloc_bool( *row[i] == '1' );
+					else
+						v = alloc_string(row[i]);
 					break;
 				case CONV_FLOAT:
 					v = alloc_float(atof(row[i]));
@@ -277,6 +284,8 @@ static CONV convert_type( enum enum_field_types t ) {
 		return CONV_DATETIME;
 	case FIELD_TYPE_DATE:
 		return CONV_DATE;
+	case FIELD_TYPE_ENUM:
+		return CONV_BOOL;
 	default:
 		return CONV_STRING;
 	}
