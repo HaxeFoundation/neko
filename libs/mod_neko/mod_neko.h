@@ -36,6 +36,7 @@ typedef struct {
 	request_rec *r;
 	value main;
 	value post_data;
+	value content_type;
 	bool headers_sent;
 	bool allow_write;
 } mcontext;

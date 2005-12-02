@@ -94,7 +94,8 @@ static int neko_handler_rec( request_rec *r ) {
 	ctx.post_data = val_null;
 	ctx.allow_write = true;
 	ctx.headers_sent = false;
-    r->content_type = "text/html";
+	ctx.content_type = alloc_string("text/html");
+    r->content_type = val_string(ctx.content_type);
 
 	if( ap_setup_client_block(r,REQUEST_CHUNKED_ERROR) != 0 ) {
 		send_headers(&ctx);
