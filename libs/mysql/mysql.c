@@ -123,7 +123,9 @@ static value result_get_nfields( value o ) {
 	corresponding Neko value (int, float or string). For
 	Date and DateTime you can specify your own conversion
 	function using [result_set_conv_date]. By default they're
-	returned as plain strings.
+	returned as plain strings. Additionally, if a MySQL ENUM
+	type has a value "0" or "1" it will return the corresponding
+	boolean.
 	</doc>
 **/
 static value result_next( value o ) {
