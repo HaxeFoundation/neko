@@ -315,10 +315,107 @@ static value url_encode( value v ) {
 	}
 }
 
+/**
+	base_encode : s:string -> base:string -> string
+	<doc>
+	Encode a string using the specified base. 
+	The base length must be a power of two.
+	</doc>
+**/
+static value base_encode( value s, value base ) {
+	int nbits;
+	int len;
+	int size;
+	int mask;
+	unsigned int buf;
+	int curbits;
+	value out;
+	unsigned char *cin, *cout, *chars;
+	val_check(s,string);
+	val_check(base,string);
+	len = val_strlen(base);
+	cin = (unsigned char *)val_string(s);
+	chars = (unsigned char *)val_string(base);
+	nbits = 1;
+	while( len > 1 << nbits )
+		nbits++;
+	if( nbits > 8 || len != 1 << nbits )
+		neko_error();
+	size = (val_strlen(s) * 8 + nbits - 1) / nbits;
+	out = alloc_empty_string(size);
+	cout = (unsigned char *)val_string(out);
+	buf = 0;
+	curbits = 0;
+	mask = ((1 << nbits) - 1);
+	while( size-- > 0 ) {
+		while( curbits < nbits ) {
+			curbits += 8;
+			buf <<= 8;
+			buf |= *cin++;
+		}
+		curbits -= nbits;
+		*cout++ = chars[(buf >> curbits) & mask];
+	}
+	return out;
+}
+
+/**
+	base_decode : s:string -> base:string -> string
+	<doc>
+	Decode a string encode in the specified base. 
+	The base length must be a power of two.
+	</doc>
+**/
+static value base_decode( value s, value base ) {
+	int nbits;
+	int len;
+	int size;
+	unsigned int buf;
+	int curbits;
+	value out;
+	int i;
+	int tbl[256];
+	unsigned char *cin, *cout, *chars;
+	val_check(s,string);
+	val_check(base,string);
+	len = val_strlen(base);
+	cin = (unsigned char *)val_string(s);
+	chars = (unsigned char *)val_string(base);
+	nbits = 1;
+	while( len > 1 << nbits )
+		nbits++;
+	if( nbits > 8 || len != 1 << nbits )
+		neko_error();
+	for(i=0;i<256;i++)
+		tbl[i] = -1;
+	for(i=0;i<len;i++)
+		tbl[chars[i]] = i;
+	size = (val_strlen(s) * nbits) / 8;
+	out = alloc_empty_string(size);
+	cout = (unsigned char *)val_string(out);
+	buf = 0;
+	curbits = 0;
+	while( size-- > 0 ) {
+		while( curbits < 8 ) {
+			curbits += nbits;
+			buf <<= nbits;
+			i = tbl[*cin++];
+			if( i == -1 )
+				neko_error();
+			buf |= i;
+		}
+		curbits -= 8;
+		*cout++ = (buf >> curbits) & 0xFF;
+	}
+	return out;
+}
+
 DEFINE_PRIM(sprintf,2);
 DEFINE_PRIM(string_split,2);
 DEFINE_PRIM(test,0);
 DEFINE_PRIM(url_decode,1);
 DEFINE_PRIM(url_encode,1);
+DEFINE_PRIM(base_encode,2);
+DEFINE_PRIM(base_decode,2);
 
 /* ************************************************************************ */
