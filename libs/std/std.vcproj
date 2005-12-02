@@ -135,6 +135,9 @@
 			RelativePath=".\math.c">
 		</File>
 		<File
+			RelativePath=".\md5.c">
+		</File>
+		<File
 			RelativePath=".\module.c">
 		</File>
 		<File
