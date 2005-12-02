@@ -101,26 +101,6 @@ static value set_cookie( value name, value v ) {
 }
 
 /**
-	get_content_type : void -> string
-	<doc>Get the current content type of the page</doc>
-**/
-static value get_content_type() {
-	return alloc_string( CONTEXT()->r->content_type );
-}
-
-/**
-	set_content_type : string -> void
-	<doc>Set the current content type of the page</doc>
-**/
-static value set_content_type( value s ) {
-	mcontext *c = CONTEXT();
-	val_check(s,string);
-	HEADERS_NOT_SENT("Content Type");
-	c->r->content_type = val_string(s);
-	return val_true;
-}
-
-/**
 	get_host_name : void -> string
 	<doc>Get the local host IP</doc>
 **/
@@ -163,6 +143,17 @@ static value redirect( value s ) {
 }
 
 /**
+	set_return_code : int -> void
+	<doc>Set the HTTP return code</doc>
+**/
+static value set_return_code( value i ) {
+	mcontext *c = CONTEXT();
+	val_check(i,int);
+	c->r->status = val_int(i);
+	return val_true;
+}
+
+/**
 	set_header : name:string -> val:string -> void
 	<doc>Set a HTTP header value</doc>
 **/
@@ -171,7 +162,11 @@ static value set_header( value s, value k ) {
 	val_check(s,string);
 	val_check(k,string);
 	HEADERS_NOT_SENT("Header");
-	ap_table_set(c->r->headers_out,val_string(s),val_string(k));
+	if( strcmp(val_string(s),"Content-Type") == 0 ) {
+		c->content_type = alloc_string(val_string(k));
+		c->r->content_type = val_string(c->content_type);
+	} else
+		ap_table_set(c->r->headers_out,val_string(s),val_string(k));
 	return val_true;
 }
 
@@ -405,8 +400,6 @@ DEFINE_PRIM(cgi_get_cwd,0);
 DEFINE_PRIM(cgi_set_main,1);
 DEFINE_PRIM(get_cookies,0);
 DEFINE_PRIM(set_cookie,2);
-DEFINE_PRIM(get_content_type,0);
-DEFINE_PRIM(set_content_type,1);
 DEFINE_PRIM(get_host_name,0);
 DEFINE_PRIM(get_client_ip,0);
 DEFINE_PRIM(get_uri,0);
@@ -415,6 +408,7 @@ DEFINE_PRIM(get_params,0);
 DEFINE_PRIM(get_params_string,0);
 DEFINE_PRIM(get_post_data,0);
 DEFINE_PRIM(set_header,2);
+DEFINE_PRIM(set_return_code,1);
 DEFINE_PRIM(get_client_header,1);
 
 /* ************************************************************************ */
