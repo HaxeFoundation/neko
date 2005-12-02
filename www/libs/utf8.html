@@ -1,0 +1,49 @@
+
+	<h1>UTF8</h1>
+	<p>
+	Operations on UTF8 strings. 
+	Most of the operations are optimized for speed so they might still 
+	succeed on some malformed UTF8 string. The only function that completely
+	check the UTF8 format is <doc_code>utf8_validate</doc_code>. Other functions might raise
+	some exception or not depending on the malformed data.
+	</p>
+	
+<doc_blk>
+  <doc_type>'ubuf</doc_type> <doc_name>utf8_buf_alloc</doc_name><doc_type>(size : int)</doc_type> <doc_doc>Create a new buffer with an initial size in bytes</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>void</doc_type> <doc_name>utf8_buf_add</doc_name><doc_type>('buf, int)</doc_type> <doc_doc>Add a valid UTF8 char (0 - 0x10FFFF) to the buffer</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>string</doc_type> <doc_name>utf8_buf_content</doc_name><doc_type>('buf)</doc_type> <doc_doc>
+	Return the current content of the buffer.
+	This is not a copy of the buffer but the shared content.
+	Retreiving content and then continuing to add chars is 
+	possible but not very efficient.
+	</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>int</doc_type> <doc_name>utf8_buf_length</doc_name><doc_type>('buf)</doc_type> <doc_doc>Return the number of UTF8 chars stored in the buffer</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>int</doc_type> <doc_name>utf8_buf_size</doc_name><doc_type>('buf)</doc_type> <doc_doc>Return the current size in bytes of the buffer</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>bool</doc_type> <doc_name>utf8_validate</doc_name><doc_type>(string)</doc_type> <doc_doc>Validate if a string is encoded using the UTF8 format</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>int</doc_type> <doc_name>utf8_length</doc_name><doc_type>(string)</doc_type> <doc_doc>Returns the number of UTF8 chars in the string.</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>string</doc_type> <doc_name>utf8_sub</doc_name><doc_type>(string, pos : int, len : int)</doc_type> <doc_doc>Returns a part of an UTF8 string.</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>int</doc_type> <doc_name>utf8_get</doc_name><doc_type>(string, n : int)</doc_type> <doc_doc>Returns the <doc_code>n</doc_code>th char in an UTF8 string. 
+	This might be inefficient if <doc_code>n</doc_code> is big.</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>void</doc_type> <doc_name>utf8_iter</doc_name><doc_type>(string, f : ((int -> void)))</doc_type> <doc_doc>Call <doc_code>f</doc_code> with each of UTF8 char of the string.</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>int</doc_type> <doc_name>utf8_compare</doc_name><doc_type>(s1 : string, s2 : string)</doc_type> <doc_doc>Compare two UTF8 strings according to UTF8 char codes.</doc_doc>
+</doc_blk>
