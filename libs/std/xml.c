@@ -48,6 +48,7 @@ typedef enum {
 	WAIT_END,
 	WAIT_END_RET,
 	PCDATA,
+	HEADER,
 	COMMENT,
 	CDATA,
 } STATE;
@@ -143,8 +144,11 @@ static void do_parse_xml( const char *xml, const char **lp, int *line, value cal
 					start = p + 1;
 					break;
 				}
-			case '?':
 				state = COMMENT;
+				start = p;
+				break;
+			case '?':
+				state = HEADER;
 				start = p;
 				break;
 			case '/':
@@ -280,7 +284,15 @@ static void do_parse_xml( const char *xml, const char **lp, int *line, value cal
 			}
 			break;
 		case COMMENT:
-			if( c == '>' ) {
+			if( c == '-' && p[1] == '-' && p[2] == '>' ) {
+				p += 2;
+				val_ocall1(callb,id_comment,copy_string(start,p-start));
+				state = BEGIN;
+			}
+			break;
+		case HEADER:
+			if( c == '?' && p[1] == '>' ) {
+				p++;
 				val_ocall1(callb,id_comment,copy_string(start,p-start));
 				state = BEGIN;
 			}
