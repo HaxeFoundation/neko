@@ -23,12 +23,17 @@
 #include "objtable.h"
 #include "opcodes.h"
 #include "vm.h"
-#ifdef _WIN32
-#	define GC_DLL
-#	define GC_THREADS
-#	define GC_WIN32_THREADS
+//#define NEKO_GC
+#ifdef NEKO_GC
+#	include "gc.h"
+#else
+#	ifdef _WIN32
+#		define GC_DLL
+#		define GC_THREADS
+#		define GC_WIN32_THREADS
+#	endif
+#	include "gc/gc.h"
 #endif
-#include "gc/gc.h"
 
 static int_val op_last = Last;
 static value *apply_string = NULL;
@@ -59,7 +64,9 @@ EXTERN field neko_id_module;
 static void null_warn_proc( char *msg, int arg ) {
 }
 
-void neko_gc_init() {
+#ifndef NEKO_GC
+
+void neko_gc_init( void *ptr ) {
 	GC_no_dls = 1;
 #ifdef LOW_MEM
 	GC_dont_expand = 1;
@@ -67,6 +74,14 @@ void neko_gc_init() {
 	GC_clear_roots();
 	GC_set_warn_proc((GC_warn_proc)(void*)null_warn_proc);
 }
+
+void neko_gc_close() {
+}
+
+void neko_gc_set_stack_base( void *ptr ) {
+}
+
+#endif
 
 EXTERN void neko_gc_loop() {
 	GC_collect_a_little();
@@ -239,59 +254,21 @@ static void __on_finalize(value v, void *f ) {
 EXTERN void val_gc(value v, finalizer f ) {
 	if( !val_is_abstract(v) )
 		failure("val_gc");
+#ifdef NEKO_GC
+	neko_gc_finalizer(v,f);
+#else
 	if( f )
 		GC_register_finalizer(v,(GC_finalization_proc)__on_finalize,f,0,0);
 	else
 		GC_register_finalizer(v,NULL,NULL,0,0);
+#endif
 }
 
-#ifdef _DEBUG
-#include <stdio.h>
-
-typedef struct root_list {
-	value *v;
-	int size;
-	int thread;
-	struct root_list *next;
-} root_list;
-static _context *roots_context = NULL;
-static root_list *roots = NULL;
-static int thread_count = 0;
-#endif
-
 EXTERN value *alloc_root( unsigned int size ) {
-	value *v = (value*)GC_MALLOC_UNCOLLECTABLE(size*sizeof(value));
-#ifdef _DEBUG
-	root_list *r = malloc(sizeof(root_list));
-	if( roots_context == NULL )
-		roots_context = context_new();
-	if( context_get(roots_context) == NULL )
-		context_set(roots_context,(void*)(int_val)++thread_count);
-	r->v = v;
-	r->size = size;
-	r->next = roots;
-	r->thread = (int)(int_val)context_get(roots_context);
-	roots = r;
-#endif
-	return v;
+	return (value*)GC_MALLOC_UNCOLLECTABLE(size*sizeof(value));
 }
 
 EXTERN void free_root(value *v) {
-#ifdef _DEBUG
-	root_list *r = roots;
-	root_list *prev = NULL;
-	if( v == NULL )
-		return;
-	while( r != NULL && r->v != v ) {
-		prev = r;
-		r = r->next;
-	}
-	if( prev == NULL )
-		roots = r->next;
-	else
-		prev->next = r->next;
-	free(r);
-#endif
 	GC_free(v);
 }
 
@@ -300,8 +277,8 @@ extern void neko_init_fields();
 
 #define INIT_ID(x)	id_##x = val_id("__" #x)
 
-EXTERN void neko_global_init() {
-	neko_gc_init();
+EXTERN void neko_global_init( void *s ) {
+	neko_gc_init(s);
 	neko_vm_context = context_new();
 	neko_fields_context = context_new();
 	neko_init_builtins();
@@ -334,16 +311,14 @@ EXTERN void neko_global_free() {
 	free_root(apply_string);
 	free_root(neko_builtins);
 	apply_string = NULL;
-#ifdef _DEBUG
-	if( roots != NULL ) {
-		printf("Some roots are not free");
-		*(char*)NULL = 0;
-	}
-	context_delete(roots_context);
-#endif
 	context_delete(neko_vm_context);
 	context_delete(neko_fields_context);
 	neko_gc_major();
+	neko_gc_close();
+}
+
+EXTERN void neko_set_stack_base( void *s ) {
+	neko_gc_set_stack_base(s);
 }
 
 /* ************************************************************************ */
