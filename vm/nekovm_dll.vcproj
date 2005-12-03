@@ -133,6 +133,9 @@
 				RelativePath=".\context.c">
 			</File>
 			<File
+				RelativePath=".\gc.c">
+			</File>
+			<File
 				RelativePath=".\hash.c">
 			</File>
 			<File
@@ -157,6 +160,9 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}">
 			<File
 				RelativePath=".\context.h">
+			</File>
+			<File
+				RelativePath=".\gc.h">
 			</File>
 			<File
 				RelativePath=".\neko.h">
