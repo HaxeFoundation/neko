@@ -646,6 +646,7 @@ static value builtin_hresize( value vh, value size ) {
 	if( nsize <= 0 )
 		nsize = HASH_DEF_SIZE;
 	cc = (hcell**)alloc(sizeof(hcell*)*nsize);
+	memset(cc,0,sizeof(hcell*)*nsize);
 	for(i=0;i<h->ncells;i++)
 		add_rec(cc,nsize,h->cells[i]);
 	h->cells = cc;
