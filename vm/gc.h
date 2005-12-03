@@ -24,6 +24,7 @@
 typedef void (*gc_final_fun)( void *blk );
 
 void neko_gc_init( void *stack_base );
+void neko_gc_set_stack_base( void *s );
 void neko_gc_close();
 void neko_gc_collect();
 void *neko_gc_alloc( unsigned int size );

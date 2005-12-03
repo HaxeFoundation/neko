@@ -114,6 +114,10 @@ void neko_gc_init( void *s ) {
 #endif
 }
 
+void neko_gc_set_stack_base( void *s ) {
+	base_stack = s;
+}
+
 static int DELTA[4] = { 0, 3, 2, 1 };
 
 static void dump_full_stats() {
