@@ -58,13 +58,13 @@ compiler:
 	cp src/nekoml/*.n bin/std/nekoml
 
 bin/libneko.so: ${LIBNEKO_OBJECTS}
-	${MAKESO} ${LIBNEKO_OBJECTS} ${LIBNEKO_LIBS} -o $@
+	${MAKESO} -o $@ ${LIBNEKO_OBJECTS} ${LIBNEKO_LIBS}
 
 bin/nekovm: $(VM_OBJECTS)
-	${CC} ${CFLAGS} ${VM_OBJECTS} ${LIBNEKO} -o $@
+	${CC} ${CFLAGS} -o $@ ${VM_OBJECTS} ${LIBNEKO}
 
 bin/std.ndll: ${STD_OBJECTS}
-	${MAKESO} ${STD_OBJECTS} ${LIBNEKO} -o $@
+	${MAKESO} -o $@ ${STD_OBJECTS} ${LIBNEKO}
 
 clean:
 	rm -rf bin/libneko.so bin/nekovm ${LIBNEKO_OBJECTS} ${VM_OBJECTS}
@@ -74,6 +74,6 @@ clean:
 .SUFFIXES : .c .o
 
 .c.o :
-	${CC} ${CFLAGS} -c $< -o $@
+	${CC} ${CFLAGS} -o $@ -c $<
 
 .PHONY: all libneko libs nekovm std compiler clean doc test
