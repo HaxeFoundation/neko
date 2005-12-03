@@ -35,7 +35,8 @@ typedef struct _neko_vm neko_vm;
 
 C_FUNCTION_BEGIN
 
-EXTERN void neko_global_init();
+EXTERN void neko_global_init( void *s );
+EXTERN void neko_set_stack_base( void *s );
 EXTERN void neko_global_free();
 EXTERN void neko_gc_major();
 EXTERN void neko_gc_loop();
