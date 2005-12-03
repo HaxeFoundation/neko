@@ -1,3 +1,23 @@
+/* ************************************************************************ */
+/*																			*/
+/*  Neko Virtual Machine													*/
+/*  Copyright (c)2005 Nicolas Cannasse										*/
+/*																			*/
+/*  This program is free software; you can redistribute it and/or modify	*/
+/*  it under the terms of the GNU General Public License as published by	*/
+/*  the Free Software Foundation; either version 2 of the License, or		*/
+/*  (at your option) any later version.										*/
+/*																			*/
+/*  This program is distributed in the hope that it will be useful,			*/
+/*  but WITHOUT ANY WARRANTY; without even the implied warranty of			*/
+/*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the			*/
+/*  GNU General Public License for more details.							*/
+/*																			*/
+/*  You should have received a copy of the GNU General Public License		*/
+/*  along with this program; if not, write to the Free Software				*/
+/*  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
+/*																			*/
+/* ************************************************************************ */
 #include "gc.h"
 #ifndef _MSC_VER
 #	include <stdint.h>
@@ -10,7 +30,7 @@
 #include <stdio.h>
 #include <setjmp.h>
 
-#define PAGE_BITS	16
+#define PAGE_BITS	20
 #define PAGE_SIZE	(1 << PAGE_BITS)
 #define PAGE_COUNT	(1 << (32 - PAGE_BITS))
 #define GC_BITS		2
@@ -22,22 +42,21 @@
 #define ASSERT()		*(char*)NULL = 0
 #define DELTA(ptr,x)	((bheader*)(((char*)ptr) + x))
 
-#define USE_STATS
+//#define USE_STATS
 
 #ifdef USE_STATS
+#define NSIZES	8
 struct stats {
-	int npages;
-	int real_npages;
-	int sweep_blocks;
-	int mark_blocks;
-	int total_bytes;
-	int alloc_bytes;
-	int alloc_blocks;
+	int current_pages;
 	int current_bytes;
 	int current_blocks;	
-	double living_ratio;
-	int last_gc;
-	int next_gc;
+	int current_finalizers;
+	int current_roots;
+	int total_requested_bytes;
+	int total_blocks;
+	int total_finalizers;
+	int total_roots;
+	int blocks_by_size[NSIZES];
 } stats;
 #	define STATS_SET(s,v)	stats.s = v
 #	define STATS(s,dec)	stats.s += dec
@@ -45,6 +64,14 @@ struct stats {
 #	define STATS_SET(s,v)
 #	define STATS(s,dec)
 #endif
+
+struct infos {
+	int sweep_blocks;
+	int mark_blocks;
+	double living_ratio;
+	int last_gc;
+	int next_gc;
+} infos;
 
 typedef struct {
 	unsigned int magic;
@@ -74,13 +101,14 @@ static char **base_stack;
 static void gc_mark();
 static void gc_sweep();
 
-void gc_init( void *s ) {
+void neko_gc_init( void *s ) {
 	int i;
 	for(i=0;i<PAGE_COUNT;i++)
 		page_bits[i] = 0;
 	base_stack = s;
-	prev_gc = 0xFFFFFFFF;
+	prev_gc = 0;
 	cur_gc = MAGIC;
+	memset(&infos,0,sizeof(infos));
 #ifdef USE_STATS
 	memset(&stats,0,sizeof(struct stats));
 #endif
@@ -88,22 +116,43 @@ void gc_init( void *s ) {
 
 static int DELTA[4] = { 0, 3, 2, 1 };
 
-static void dump_stats() {
+static void dump_full_stats() {
 #ifdef USE_STATS
-	printf("pages = %d, mem = %d/%d, tot = %d, living = %d, gc = %d\ngc_ratio = %f, ratio = %f, next = %d\n",
-		stats.npages,
+	int i;
+	printf("pages = %d, mem_req = %d, mem_cur = %d / %d\n",
+		stats.current_pages,
+		stats.total_requested_bytes >> 10,
 		stats.current_bytes >> 10,
-		stats.total_bytes >> 10,
-		stats.alloc_blocks,
-		stats.mark_blocks,
-		stats.sweep_blocks,
-		stats.sweep_blocks * 1.0 / stats.mark_blocks,
-		stats.living_ratio,
-		stats.next_gc
+		(stats.current_pages * PAGE_SIZE) >> 10
 	);
+	printf("blocks = %d / %d, roots = %d / %d, final = %d / %d\n",
+		stats.current_blocks,
+		stats.total_blocks,
+		stats.current_roots,
+		stats.total_roots,
+		stats.current_finalizers,
+		stats.total_finalizers
+	);
+	for(i=0;i<NSIZES;i++) {
+		int n = stats.blocks_by_size[i];
+		if( n > 0 ) 
+			printf("blocks[%d] = %d (%.2f%%)\n",i,n,n * 100.0 / stats.total_blocks);
+	}
 #endif
 }
 
+static void dump_stats() {
+#ifdef USE_STATS
+	printf("pages = %d, mem = %d/%d, tot = %d, living = %d, gc = %d\n",
+		stats.current_pages,
+		stats.current_bytes >> 10,
+		(stats.current_pages * PAGE_SIZE) >> 10,
+		stats.total_blocks,
+		infos.mark_blocks,
+		infos.sweep_blocks
+	);
+#endif
+}
 static void *alloc_page( int npages ) {	
 	while( 1 ) {
 		void *addr =  (void*)(uintptr_t)(page_count * PAGE_SIZE);
@@ -121,9 +170,7 @@ static void *alloc_page( int npages ) {
 			if( pc < page_count )
 				ASSERT();
 			page_count = pc;
-			STATS(npages,1);
-			STATS(real_npages,npages);
-			STATS(total_bytes,npages * PAGE_SIZE);
+			STATS(current_pages,npages);
 			while( npages-- )
 				page_bits[page_count++] = 1;
 			return addr;
@@ -131,18 +178,29 @@ static void *alloc_page( int npages ) {
 	}
 }
 
-void gc_major() {
+void neko_gc_collect() {
+	while( pages != NULL ) {
+		gc_page *tmp = pages->next;
+		pages->next = full_pages;
+		full_pages = pages;
+		pages = tmp;
+	}
 	gc_mark();
 	gc_sweep();
-	if( stats.current_blocks > 0 )
-		stats.living_ratio = stats.living_ratio * 0.2 + (stats.sweep_blocks * 1.0 / (stats.sweep_blocks + stats.current_blocks)) * 0.8;
-	stats.next_gc = (int)(0.25 / stats.living_ratio) * (stats.last_gc ? stats.last_gc : 1);
-	stats.next_gc = (stats.last_gc + stats.next_gc) / 2;
-	stats.last_gc = stats.next_gc;
+	if( infos.mark_blocks > 0 )
+		infos.living_ratio = infos.living_ratio * 0.2 + (infos.sweep_blocks * 1.0 / (infos.sweep_blocks + infos.mark_blocks)) * 0.8;
+	infos.next_gc = (int)(0.25 / infos.living_ratio) * (infos.last_gc ? infos.last_gc : 1);
+	infos.next_gc = (infos.last_gc + infos.next_gc) / 2;
+	infos.last_gc = infos.next_gc;
 	dump_stats();
 }
 
-bheader *gc_alloc_block( unsigned int start_size, int can_gc ) {
+void neko_gc_close() {
+	neko_gc_collect();
+	dump_full_stats();
+}
+
+static bheader *gc_alloc_block( unsigned int start_size, int can_gc ) {
 	gc_page *p = pages;
 	int npages;
 	unsigned int size = start_size + sizeof(bheader);
@@ -155,12 +213,6 @@ bheader *gc_alloc_block( unsigned int start_size, int can_gc ) {
 			c = DELTA(c,c->size);
 		}
 		if( c != p->end ) {
-			int i;
-			if( ((uintptr_t)c) & 3 )
-				ASSERT();
-			i = (int)(((uintptr_t)c) >> PAGE_BITS);
-			if( i >= page_count || !page_bits[i] )
-				ASSERT();
 			c->magic = cur_gc;
 			if( c->size - size > sizeof(bheader) + 4 ) {
 				p->ptr = DELTA(c,size);
@@ -171,8 +223,12 @@ bheader *gc_alloc_block( unsigned int start_size, int can_gc ) {
 				size = c->size;
 				p->ptr = DELTA(c,size);
 			}
-			STATS(alloc_blocks,1);
-			STATS(alloc_bytes,start_size);
+#ifdef USE_STATS
+			if( (start_size & 3) == 0 && (start_size >> 2) < NSIZES )
+				stats.blocks_by_size[start_size>>2]++;
+#endif
+			STATS(total_blocks,1);
+			STATS(total_requested_bytes,start_size);
 			STATS(current_blocks,1);
 			STATS(current_bytes,size);
 			return c;
@@ -184,8 +240,8 @@ bheader *gc_alloc_block( unsigned int start_size, int can_gc ) {
 		p = pages;
 	}
 	// run a gc phase ?
-	if( can_gc && stats.next_gc-- == 0 ) {
-		gc_major();
+	if( can_gc && infos.next_gc-- == 0 ) {
+		neko_gc_collect();
 		return gc_alloc_block(start_size,0);
 	}
 	// alloc a new page
@@ -205,29 +261,38 @@ bheader *gc_alloc_block( unsigned int start_size, int can_gc ) {
 	return gc_alloc_block(start_size,0);
 }
 
-void *gc_alloc( unsigned int size ) {
+void *neko_gc_alloc( unsigned int size ) {
 	bheader *c = gc_alloc_block(size,1);
 	return c + 1;
 }
 
-void *gc_alloc_private( unsigned int size ) {
+void *neko_gc_alloc_private( unsigned int size ) {
 	bheader *c = gc_alloc_block(size,1);
-	//c->magic |= NO_SCAN;
+	c->magic |= NO_SCAN;
 	return c + 1;
 }
 
-void gc_add_root( void *gc_block ) {
+static void gc_add_root( void *gc_block ) {
 	gc_root *r = (gc_root*)malloc(sizeof(gc_root));
 	r->ptr = gc_block;
 	r->next = roots;
 	roots = r;	
 }
 
-void gc_free_root( void *gc_block ) {
+void *neko_gc_alloc_root( unsigned int size ) {
+	bheader *r = neko_gc_alloc(size);
+	gc_add_root(r);
+	STATS(current_roots,1);
+	STATS(total_roots,1);
+	return r;
+}
+
+void neko_gc_free_root( void *gc_block ) {
 	gc_root *r = roots;
 	gc_root *prev = NULL;
 	while( r != NULL ) {
 		if( r->ptr == gc_block ) {
+			STATS(current_roots,-1);
 			if( prev == NULL ) {
 				roots = roots->next;
 				free(r);
@@ -243,14 +308,14 @@ void gc_free_root( void *gc_block ) {
 	}
 }
 
-void gc_finalizer( void *gc_block, gc_final_fun f ) {
+void neko_gc_finalizer( void *gc_block, gc_final_fun f ) {
+	STATS(current_finalizers,1);
+	STATS(total_finalizers,1);
 }
 
 // --------- MARK & SWEEP --------------------------
 
-static int max_depth = 0;
-
-static void gc_mark_block( void *_p, int depth ) {
+static void gc_mark_block( void *_p ) {
 	bheader *c = ((bheader*)_p) - 1;
 	int i;
 	if( ((uintptr_t)c) & 3 )
@@ -258,32 +323,31 @@ static void gc_mark_block( void *_p, int depth ) {
 	i = (int)(((uintptr_t)c) >> PAGE_BITS);
 	if( i >= page_count || !page_bits[i] )
 		return;
-	if( c->magic != prev_gc )
+	i = c->magic & ~NO_SCAN;
+	if( i != prev_gc || i == cur_gc )
 		return;
-	if( c->magic == cur_gc )
+	i = c->magic & NO_SCAN;
+	c->magic = cur_gc | i;
+	infos.mark_blocks++;
+	if( i )
 		return;
-	c->magic = cur_gc;
-	STATS(mark_blocks,1);
 	i = (c->size - sizeof(bheader)) / sizeof(void*);
-	depth++;
-	if( depth > max_depth * 3 / 2 )
-		max_depth = depth;
 	switch( i ) {
 	case 5:
-		gc_mark_block( ((void**)_p)[4], depth );
+		gc_mark_block( ((void**)_p)[4] );
 	case 4:
-		gc_mark_block( ((void**)_p)[3], depth );
+		gc_mark_block( ((void**)_p)[3] );
 	case 3:
-		gc_mark_block( ((void**)_p)[2], depth );
+		gc_mark_block( ((void**)_p)[2] );
 	case 2:
-		gc_mark_block( ((void**)_p)[1], depth );
+		gc_mark_block( ((void**)_p)[1] );
 	case 1:
-		gc_mark_block( ((void**)_p)[0], depth );
+		gc_mark_block( ((void**)_p)[0] );
 	case 0:
 		break;
 	default:
 		while( i-- )
-			gc_mark_block( ((void**)_p)[i], depth );
+			gc_mark_block( ((void**)_p)[i] );
 		break;
 
 	}
@@ -294,9 +358,9 @@ static void gc_mark() {
 	gc_root *r = roots;
 	prev_gc = cur_gc;
 	cur_gc = MAGIC | ((cur_gc + 1) & GC_MASK);
-	STATS_SET(mark_blocks,0);
+	infos.mark_blocks = 0;
 	while( r != NULL ) {
-		gc_mark_block(r->ptr,0);
+		gc_mark_block(r->ptr);
 		r = r->next;
 	}
 	if( setjmp(b) )
@@ -304,7 +368,7 @@ static void gc_mark() {
 	{
 		char **pos = base_stack;
 		while( pos > (char**)&pos ) {
-			gc_mark_block(*pos,0);
+			gc_mark_block(*pos);
 			pos--;
 		}
 	}
@@ -312,21 +376,19 @@ static void gc_mark() {
 }
 
 static void gc_sweep() {
+	int nsweeps = 0;
 	gc_page *p = full_pages, *tmp;
-	STATS_SET(sweep_blocks,0);
 	full_pages = NULL;
 	while( p != NULL ) {
 		bheader *c = p->base;
 		bheader *prev = NULL;
 		while( c != p->end ) {
-			if( c->magic != cur_gc ) {
-#ifdef USE_STATS
+			if( (c->magic & ~NO_SCAN) != cur_gc ) {
 				if( c->magic != MAGIC_FREE ) {
-					stats.sweep_blocks++;
-					stats.current_bytes -= c->size;
+					c->magic = MAGIC_FREE;
+					nsweeps++;
+					STATS(current_bytes, -(int)c->size);
 				}
-#endif
-				c->magic = MAGIC_FREE;
 				if( prev != NULL )
 					prev->size += c->size;
 				else
@@ -343,5 +405,8 @@ static void gc_sweep() {
 		pages = p;
 		p = tmp;
 	}
-	STATS(current_blocks,-stats.sweep_blocks);
+	infos.sweep_blocks = nsweeps;
+	STATS(current_blocks,-nsweeps);
 }
+
+/* ************************************************************************ */
