@@ -65,7 +65,7 @@ int main( int argc, char *argv[] ) {
 	neko_params p;
 	int r;
 	_CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_DELAY_FREE_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
-	neko_global_init();
+	neko_global_init(&vm);
 	p.args = (const char **)argv + 1;
 	p.nargs = argc - 1;
 	p.custom = NULL;

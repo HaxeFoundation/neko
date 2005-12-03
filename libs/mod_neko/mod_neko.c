@@ -89,6 +89,7 @@ static int neko_handler_rec( request_rec *r ) {
 	neko_params params;
 	value exc = NULL;
 
+	neko_set_stack_base(&ctx);
 	ctx.r = r;
 	ctx.main = cache_find(r);
 	ctx.post_data = val_null;
@@ -192,7 +193,7 @@ static int neko_handler( request_rec *r ) {
 static void neko_init(server_rec *s, pool *p) {
 	cache_root = context_new();
 	putenv("MOD_NEKO=1");
-	neko_global_init();
+	neko_global_init(&s);
 }
 
 static const handler_rec neko_handlers[] = {
