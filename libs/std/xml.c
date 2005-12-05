@@ -50,6 +50,7 @@ typedef enum {
 	PCDATA,
 	HEADER,
 	COMMENT,
+	DOCTYPE,
 	CDATA,
 } STATE;
 
@@ -58,6 +59,7 @@ extern field id_xml;
 extern field id_done;
 extern field id_comment;
 extern field id_cdata;
+extern field id_doctype;
 
 static void xml_error( const char *xml, const char *p, int *line, const char *msg ) {
 	buffer b = alloc_buffer("Xml parse error : ");
@@ -138,14 +140,36 @@ static void do_parse_xml( const char *xml, const char **lp, int *line, value cal
 			case '!':
 				if( p[1] == '[' ) {
 					p += 2;
-					if( *p++ != 'C' || *p++ != 'D' || *p++ != 'A' || *p++ != 'T' || *p++ != 'A' || *p != '[' )
+					if( (p[0] != 'C' && p[0] != 'c') || 
+						(p[1] != 'D' && p[1] != 'd') ||
+						(p[2] != 'A' && p[2] != 'a') ||
+						(p[3] != 'T' && p[3] != 't') ||
+						(p[4] != 'A' && p[4] != 'a') ||
+						(p[5] != '[') )
 						ERROR("Expected <![CDATA[");
+					p += 5;
 					state = CDATA;
 					start = p + 1;
 					break;
 				}
+				if( p[1] == 'D' || p[1] == 'd' ) {
+					if( (p[2] != 'O' && p[2] != 'o') ||
+						(p[3] != 'C' && p[3] != 'c') ||
+						(p[4] != 'T' && p[4] != 't') ||
+						(p[5] != 'Y' && p[5] != 'y') ||
+						(p[6] != 'P' && p[6] != 'p') ||
+						(p[7] != 'E' && p[7] != 'e') )
+						ERROR("Expected <!DOCTYPE");
+					p += 7;
+					state = DOCTYPE;
+					start = p + 1;
+					break;
+				}
+				if( p[1] != '-' || p[2] != '-' )
+					ERROR("Expected <!--");
+				p += 2;
 				state = COMMENT;
-				start = p;
+				start = p + 1;
 				break;
 			case '?':
 				state = HEADER;
@@ -285,8 +309,14 @@ static void do_parse_xml( const char *xml, const char **lp, int *line, value cal
 			break;
 		case COMMENT:
 			if( c == '-' && p[1] == '-' && p[2] == '>' ) {
-				p += 2;
 				val_ocall1(callb,id_comment,copy_string(start,p-start));
+				p += 2;
+				state = BEGIN;
+			}
+			break;
+		case DOCTYPE:
+			if( c == '>' ) {
+				val_ocall1(callb,id_doctype,copy_string(start,p-start));
 				state = BEGIN;
 			}
 			break;
