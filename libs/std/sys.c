@@ -34,6 +34,8 @@
 #	include <unistd.h>
 #	include <dirent.h>
 #	include <sys/times.h>
+#endif
+#ifdef __APPLE__
 #	include <sys/syslimits.h>
 #endif
 
