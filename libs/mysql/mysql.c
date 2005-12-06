@@ -321,7 +321,7 @@ static value alloc_result( MYSQL_RES *r ) {
 				bfailure(b);
 			}
 		res->fields_ids[i] = id;
-		res->fields_convs[i] = convert_type(fields[i].type); 
+		res->fields_convs[i] = convert_type((fields[i].flags & ENUM_FLAG)?FIELD_TYPE_ENUM:fields[i].type); 
 	}
 	val_gc(o,free_result);
 	return o;
