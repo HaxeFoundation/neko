@@ -21,7 +21,7 @@ TIME = @c:/progra~1/cygwin/bin/times -f %e make
 all: clean pass1 pass2 pass3
 
 source: clean
-	${NEKOVM1} nekoml/Main -n neko/Main.nml nekoml/Main.nml
+	${NEKOVM1} nekoml -n neko/Main.nml nekoml/Main.nml
 
 link:
 	${NEKOVM} neko/Main -link neko.n neko/Main
@@ -31,11 +31,11 @@ pass1:
 	${TIME} tpass1
 	
 spass1:
-	${NEKOVM1} nekoml/Main -v -n neko/Main.nml nekoml/Main.nml
-	${NEKOVM1} neko/Main -v *.neko neko/*.neko nekoml/*.neko
+	${NEKOVM1} nekoml -v -n neko/Main.nml nekoml/Main.nml
+	${NEKOVM1} neko -v *.neko neko/*.neko nekoml/*.neko
 
 tpass1:
-	${NEKOVM1} nekoml/Main neko/Main.nml nekoml/Main.nml
+	${NEKOVM1} nekoml neko/Main.nml nekoml/Main.nml
 	
 pass2:
 	${TIME} tpass2
@@ -66,10 +66,8 @@ neko3:
 nekoml: clean
 	${NEKOVM1} nekoml/Main nekoml/Main.nml
 
-install:
-	-cp *.n ../boot
-	-cp neko/*.n ../boot/neko
-	-cp nekoml/*.n ../boot/nekoml
+install: link
+	-cp neko.n nekoml.n ../boot
 
 clean:
 	rm -rf *.n
@@ -81,4 +79,4 @@ cleanall: clean
 	rm -rf neko/*.neko
 	rm -rf nekoml/*.neko
 	
-.PHONY: all pass1 tpass1 pass2 tpass2 pass3 tpass3 neko nekoml install clean
+.PHONY: all pass1 tpass1 pass2 tpass2 pass3 tpass3 neko nekoml install clean link
