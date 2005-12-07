@@ -76,6 +76,7 @@ int main( int argc, char *argv[] ) {
 		r = 1;
 	} else
 		r = execute(vm,argv[1]);
+	vm = NULL;
 	neko_global_free();
 	return r;
 }
