@@ -25,7 +25,8 @@
 	<li><code>libneko.so</code> (<code>neko.dll + neko.lib<code> on Windows) : the NekoVM library</li>
 	<li>several <code>.ndll</code> files : the Neko standard libraries</li>
 	<li><code>include/</code> : this directory contains the .H files needed for embedding and extending the VM</li>
-	<li><code>std/</code> : this directory contains the precompiled Neko and NekoML compilers</li>
+	<li><code>neko.n</code> : the precompiled Neko compiler</li>
+	<li><code>nekoml.n</code> : the precompiled NekoML compiler</li>
 	<li><code>gc.dll</code> (on Windows only) : the garbage collector used by Neko</li>
 	<li><code>LICENCE</code> and <code>CHANGES</code> : some text documents</li>
 </ul>
@@ -48,7 +49,7 @@
 </p>
 
 <p>
-	Now you need to setup the <code>NEKOPATH</code> environment variable so it can find the Neko compiler. Set it to <code>c:\neko\std</code> on Windows or <code>/usr/lib/neko/std</code> on Linux. You can have several different directories if they are separated by <code>:</code> (Except windows drive letters which are handled differently).
+	Now you need to setup the <code>NEKOPATH</code> environment variable so it can find the Neko compiler. Set it to <code>c:\neko</code> on Windows or <code>/usr/lib/neko</code> on Linux. You can have several different directories if they are separated by <code>:</code> (Except windows drive letters which are handled differently).
 </p>
 
 <p>
