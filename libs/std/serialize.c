@@ -410,6 +410,8 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 			if( b->error ) 
 				return val_null;
 			h->cells = (hcell**)alloc(sizeof(hcell*)*h->ncells);
+			for(i=0;i<h->ncells;i++)
+				h->cells[i] = NULL;
 			for(i=0;i<h->nitems;i++) {
 				hcell **p;
 				hcell *c = (hcell*)alloc(sizeof(hcell));
