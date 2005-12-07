@@ -113,6 +113,9 @@
 				RelativePath=".\neko\Lexer.nml">
 			</File>
 			<File
+				RelativePath=".\neko\Linker.nml">
+			</File>
+			<File
 				RelativePath=".\neko\Main.nml">
 			</File>
 			<File

@@ -1,0 +1,182 @@
+/*
+ *  Neko Compiler
+ *  Copyright (c)2005 Nicolas Cannasse
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+open Neko.Bytecode;
+
+type context {
+	globals : global array;
+	opcodes : opcode array;	
+	debug : (string, int) array;
+	loaded : (string, int option) Hashtbl.t;
+	mutable have_debug : bool;
+}
+
+var neko_path : string list = neko "@List.@make($loader.path)";
+
+function file_open(file) {
+	function rec loop(l) {
+		match l {
+		| [] -> throw Error("File not found : " + file)
+		| p :: l ->
+			try
+				IO.read_file (p + file) true;
+			catch { _ -> loop l }
+		}
+	}	
+	loop ("" :: neko_path)
+}
+
+function rec do_link(ctx,module) {
+	print (module + "\n");
+	var ch = file_open (module + ".n");	
+	var globals, opcodes = Neko.Bytecode.read ch;
+	IO.close_in ch;
+	var debug = &None;
+	var funcs = &[];
+	var gtbl = Array.map (function(g) {
+		match g {
+		| GlobalVar _ ->
+			var k = Array.length ctx.globals;
+			Array.add ctx.globals g;
+			k
+		| GlobalFunction (p,nargs) ->
+			var k = Array.length ctx.globals;
+			Array.add ctx.globals g;
+			funcs := (p,nargs,k) :: *funcs;
+			k
+		| GlobalString _
+		| GlobalFloat _ ->
+			try
+				Array.index ctx.globals g
+			catch {
+				Not_found ->
+					var k = Array.length ctx.globals;
+					Array.add ctx.globals g;
+					k
+			}
+		| GlobalDebug d ->
+			ctx.have_debug := true;
+			debug := Some d;
+			-1
+		}
+	}) globals;
+	var mid = Array.length ctx.globals;
+	Array.add ctx.globals (GlobalVar module);
+	List.iter (Array.add ctx.opcodes) [AccNull; Push; AccBuiltin "new"; Call 1; SetGlobal mid];
+	Array.append (Array.make 8 (module,0)) ctx.debug;
+	Hashtbl.add ctx.loaded module None;
+	var nops = Array.length opcodes;
+	var opmap = Array.make nops (-1);
+	var debug = match *debug { None -> Array.make (nops*2) (module,0) | Some d -> d };
+	var debug_pos = &0;
+	var jumps = &[];
+	function op(o) {
+		Array.add ctx.opcodes o;
+		Array.add ctx.debug (Array.get debug (*debug_pos));
+		debug_pos := *debug_pos + 1;
+		if Neko.Bytecode.op_param o then {
+			Array.add ctx.debug (Array.get debug (*debug_pos));
+			debug_pos := *debug_pos + 1;
+		}
+	}
+	function jump(mkop,p,i) {
+		var k = Array.length ctx.opcodes;
+		op (Jump 0);
+		jumps := (mkop,k,p,i) :: *jumps
+	}	
+	function rec loop((p,l)) {
+		match l {
+		| [] -> assert()
+		// $loader.loadmodule("name",$loader)
+		| (AccGlobal str) ::
+		  Push ::
+		  (AccBuiltin "loader") ::
+		  Push ::
+		  (AccBuiltin "loader") ::
+		  Push ::
+		  (AccField "loadmodule") ::
+		  (ObjCall 2) ::
+		  l ->
+			match Array.get globals str {
+			| GlobalString s ->
+				var mid = try Hashtbl.find ctx.loaded s catch { Not_found -> Some (do_link ctx s) };
+				match mid {
+				| None -> throw Error("Recursive loading " + module + " => " + s)
+				| Some i ->
+					op (AccGlobal i);
+					debug_pos := *debug_pos + 11;
+					(p + 8, l)
+				}
+			| _ -> 
+				throw Error("Cannot link not constant file")
+			}
+		| o :: l ->
+			Array.set opmap p (Array.length ctx.opcodes);
+			match o {
+			| AccBuiltin "exports" ->
+				op (AccGlobal mid)
+			| AccGlobal g ->
+				op (AccGlobal (Array.get gtbl g));
+			| SetGlobal g ->
+				op (SetGlobal (Array.get gtbl g));
+			| Jump i ->
+				jump Jump p i
+			| JumpIf i ->
+				jump JumpIf p i
+			| JumpIfNot i ->
+				jump JumpIfNot p i
+			| Trap i ->
+				jump Trap p i
+			| _ ->
+				op o
+			}
+			(p+1 , l)
+		}
+	}
+	var l = &(0,Array.list opcodes);
+	while snd (*l) != [] {
+		l := loop (*l)
+	}
+	List.iter (function((op,k,p,i)) {
+		var ik = Array.get opmap (p + i) - Array.get opmap p;
+		Array.set ctx.opcodes k op(ik)
+	}) (*jumps);
+	List.iter (function((p,nargs,k)) {
+		Array.set ctx.globals k (GlobalFunction (Array.get opmap p) nargs)
+	}) (*funcs);
+	Hashtbl.replace ctx.loaded module (Some mid);
+	Array.add ctx.opcodes (AccGlobal mid);
+	Array.add ctx.debug (module,0);
+	Array.add ctx.debug (module,0);
+	mid
+}
+
+function link(output,modules) {
+	var ctx = {
+		globals = Array.create();
+		opcodes = Array.create();
+		debug = Array.create();
+		loaded = Hashtbl.create();
+		have_debug = false;
+	};
+	List.iter (function(m) { ignore(do_link ctx m) }) modules;
+	if ctx.have_debug then Array.add ctx.globals (GlobalDebug ctx.debug);
+	var ch = IO.write_file output true;
+	Neko.Bytecode.write ch (ctx.globals,ctx.opcodes);
+	IO.close_out ch
+}

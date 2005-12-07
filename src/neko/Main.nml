@@ -117,6 +117,8 @@ function complete(dir) {
 
 try {
 	var head = "Neko v1.0 - (c)2005 Nicolas Cannasse\n Usage : neko [options] files...";
+	var link = &None;
+	var links = &[];
 	var decl = [
 		("-d", Args.String (function(f) { dump f }) , "<file> : dump bytecode");
 		("-z", Args.String (function(f) { release f }), "<file> : make bytecode release");
@@ -124,9 +126,16 @@ try {
 		("-doc", Args.String (function(f) { documentation f }) , "<file> : make documentation");
 		("-o", Args.String (function(f) { dir := Some (complete f) }),"<dir> : set output directory"); 
 		("-console", Args.Void (function() { Neko.Console.run() }),": run the console");
+		("-link", Args.String (function(f) { link := Some f }),"<file> : link bytecodes files");
 		("-v", Args.Void (function() { verbose := true }) , ": verbose mode");
 	];
-	Args.parse head decl (function(f) { compile f });
+	Args.parse head decl (function(f) { 
+		match *link {
+		| None -> compile f
+		| Some _ -> links := f :: *links
+		}
+	});
+	match *link { None -> () | Some f -> Neko.Linker.link f List.rev(*links) };
 } catch {
 	| Neko.Lexer.Error(msg,pos) -> report Neko.Lexer.error_msg(msg) pos
 	| Neko.Parser.Error(msg,pos) -> report Neko.Parser.error_msg(msg) pos
