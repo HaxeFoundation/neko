@@ -35,15 +35,15 @@ all: libneko nekovm std compiler libs
 libneko: bin/libneko.so
 
 libs:
-	(cd src; ${NEKO_EXEC} neko/Main tools/install.neko)
+	(cd src; ${NEKO_EXEC} neko tools/install.neko)
 	(cd src; ${NEKO_EXEC} tools/install)
 
 doc:
-	(cd src; ${NEKO_EXEC} neko/Main tools/makedoc.neko)
+	(cd src; ${NEKO_EXEC} neko tools/makedoc.neko)
 	(cd src; ${NEKO_EXEC} tools/makedoc)
 	
 test:
-	(cd src; ${NEKO_EXEC} neko/Main tools/test.neko)
+	(cd src; ${NEKO_EXEC} neko tools/test.neko)
 	(cd src; ${NEKO_EXEC} tools/test)
 
 nekovm: bin/nekovm
@@ -51,11 +51,9 @@ nekovm: bin/nekovm
 std: bin/std.ndll
 
 compiler:
-	(cd src; ${NEKO_EXEC} nekoml/Main -v neko/Main.nml nekoml/Main.nml)
-	-mkdir bin/std bin/std/neko bin/std/nekoml
-	cp src/*.n bin/std
-	cp src/neko/*.n bin/std/neko
-	cp src/nekoml/*.n bin/std/nekoml
+	(cd src; ${NEKO_EXEC} nekoml -v neko/Main.nml nekoml/Main.nml)
+	(cd src: ${NEKO_EXEC} neko -link ../bin/neko neko/Main)
+	(cd src: ${NEKO_EXEC} neko -link ../bin/nekoml nekoml/Main)
 
 bin/libneko.so: ${LIBNEKO_OBJECTS}
 	${MAKESO} -o $@ ${LIBNEKO_OBJECTS} ${LIBNEKO_LIBS}
