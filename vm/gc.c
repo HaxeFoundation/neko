@@ -19,10 +19,10 @@
 /*																			*/
 /* ************************************************************************ */
 #include "gc.h"
-#ifndef _MSC_VER
-#	include <stdint.h>
-#else
+#ifdef _WIN32
 #	include <windows.h>
+#else
+#	include <stdint.h>
 #endif
 
 #include <stddef.h>
@@ -90,16 +90,27 @@ typedef struct gc_root {
 	struct gc_root *next;
 } gc_root;
 
+typedef struct gc_final {
+	bheader *blk;
+	gc_final_fun callb;
+	struct gc_final *next;
+} gc_final;
+
 static gc_page *pages = NULL;
 static gc_page *full_pages = NULL;
 static gc_root *roots = NULL;
+static gc_final *finals = NULL;
 static int prev_gc, cur_gc;
 static int page_bits[PAGE_COUNT];
 static int page_count = 0;
 static char **base_stack;
+#ifdef _WIN32
+static CRITICAL_SECTION plock;
+#endif
 
 static void gc_mark();
 static void gc_sweep();
+static void gc_finalize();
 
 void neko_gc_init( void *s ) {
 	int i;
@@ -112,8 +123,12 @@ void neko_gc_init( void *s ) {
 #ifdef USE_STATS
 	memset(&stats,0,sizeof(struct stats));
 #endif
+#ifdef _WIN32
+	InitializeCriticalSection(&plock);
+#endif
 }
 
+// multiple threads = multiple stacks !
 void neko_gc_set_stack_base( void *s ) {
 	base_stack = s;
 }
@@ -182,7 +197,17 @@ static void *alloc_page( int npages ) {
 	}
 }
 
+static void gc_lock( int flag ) {
+#ifdef _WIN32
+	if( flag )
+		EnterCriticalSection(&plock);
+	else
+		LeaveCriticalSection(&plock);
+#endif
+}
+
 void neko_gc_collect() {
+	gc_lock(1);
 	while( pages != NULL ) {
 		gc_page *tmp = pages->next;
 		pages->next = full_pages;
@@ -191,17 +216,22 @@ void neko_gc_collect() {
 	}
 	gc_mark();
 	gc_sweep();
+	gc_finalize();
 	if( infos.mark_blocks > 0 )
 		infos.living_ratio = infos.living_ratio * 0.2 + (infos.sweep_blocks * 1.0 / (infos.sweep_blocks + infos.mark_blocks)) * 0.8;
 	infos.next_gc = (int)(0.25 / infos.living_ratio) * (infos.last_gc ? infos.last_gc : 1);
 	infos.next_gc = (infos.last_gc + infos.next_gc) / 2;
 	infos.last_gc = infos.next_gc;
 	dump_stats();
+	gc_lock(0);
 }
 
 void neko_gc_close() {
 	neko_gc_collect();
 	dump_full_stats();
+#ifdef _WIN32
+	DeleteCriticalSection(&plock);
+#endif
 }
 
 static bheader *gc_alloc_block( unsigned int start_size, int can_gc ) {
@@ -266,43 +296,57 @@ static bheader *gc_alloc_block( unsigned int start_size, int can_gc ) {
 }
 
 void *neko_gc_alloc( unsigned int size ) {
-	bheader *c = gc_alloc_block(size,1);
-	return c + 1;
+	bheader *c;
+	gc_lock(1);
+	c = gc_alloc_block(size,1);
+	c++;
+	gc_lock(0);
+	return c;
 }
 
 void *neko_gc_alloc_private( unsigned int size ) {
-	bheader *c = gc_alloc_block(size,1);
+	bheader *c;
+	gc_lock(1);
+	c = gc_alloc_block(size,1);
 	c->magic |= NO_SCAN;
-	return c + 1;
+	c++;
+	gc_lock(0);
+	return c;
 }
 
 static void gc_add_root( void *gc_block ) {
 	gc_root *r = (gc_root*)malloc(sizeof(gc_root));
 	r->ptr = gc_block;
 	r->next = roots;
-	roots = r;	
+	roots = r;
 }
 
 void *neko_gc_alloc_root( unsigned int size ) {
 	bheader *r = neko_gc_alloc(size);
+	gc_lock(1);
 	gc_add_root(r);
 	STATS(current_roots,1);
 	STATS(total_roots,1);
+	gc_lock(0);
 	return r;
 }
 
 void neko_gc_free_root( void *gc_block ) {
-	gc_root *r = roots;
+	gc_root *r;
 	gc_root *prev = NULL;
+	gc_lock(1);
+	r = roots;
 	while( r != NULL ) {
 		if( r->ptr == gc_block ) {
 			STATS(current_roots,-1);
 			if( prev == NULL ) {
 				roots = roots->next;
+				gc_lock(0);
 				free(r);
 				return;
 			} else {
 				prev->next = r->next;
+				gc_lock(0);
 				free(r);
 				return;
 			}
@@ -310,11 +354,41 @@ void neko_gc_free_root( void *gc_block ) {
 		prev = r;
 		r = r->next;
 	}
+	gc_lock(0);
 }
 
-void neko_gc_finalizer( void *gc_block, gc_final_fun f ) {
-	STATS(current_finalizers,1);
-	STATS(total_finalizers,1);
+void neko_gc_finalizer( void *gc_block, gc_final_fun callb ) {
+	gc_final *f, *prev = NULL;
+	bheader *blk = (bheader*)gc_block - 1;
+	gc_lock(1);
+	f = finals;
+	while( f != NULL ) {
+		if( f->blk == blk ) {
+			if( callb != NULL ) {
+				f->callb = callb;
+				return;
+			}
+			if( prev == NULL )
+				finals = f->next;
+			else
+				prev->next = f->next;
+			STATS(current_finalizers,-1);
+			gc_lock(0);
+			free(f);
+			return;
+		}
+		f = f->next;
+	}
+	if( callb != NULL ) {
+		f = (gc_final*)malloc(sizeof(gc_final));
+		f->blk = blk;
+		f->callb = callb;
+		f->next = finals;
+		finals = f;
+		STATS(current_finalizers,1);
+		STATS(total_finalizers,1);
+	}
+	gc_lock(0);
 }
 
 // --------- MARK & SWEEP --------------------------
@@ -411,6 +485,29 @@ static void gc_sweep() {
 	}
 	infos.sweep_blocks = nsweeps;
 	STATS(current_blocks,-nsweeps);
+}
+
+static void gc_finalize() {
+	gc_final *f = finals, *prev = NULL;
+	while( f != NULL ) {
+		if( (f->blk->magic & ~NO_SCAN) != cur_gc ) {
+			if( prev == NULL )
+				finals = f;
+			else
+				prev->next = f->next;
+			// don't unlock in order to prevent GC calls 
+			// from being done inside the finalizer
+			// we don't want to have our block data erased...
+			f->callb(f->blk + 1);
+			STATS(current_finalizers,-1);
+			free(f);
+			if( prev == NULL)
+				f = finals;
+			else
+				f = prev->next;
+		} else
+			f = f->next;
+	}
 }
 
 /* ************************************************************************ */
