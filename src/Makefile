@@ -58,13 +58,13 @@ tpass3:
 	${NEKOVM} nekoml/Main neko/Main.nml nekoml/Main.nml
 
 neko: clean
-	${NEKOVM1} nekoml/Main neko/Main.nml
+	${NEKOVM1} nekoml neko/Main.nml
 
 neko3:
 	${NEKOVM} nekoml/Main neko/Main.nml
 
 nekoml: clean
-	${NEKOVM1} nekoml/Main nekoml/Main.nml
+	${NEKOVM1} nekoml nekoml/Main.nml
 
 install: link
 	-cp neko.n nekoml.n ../boot
