@@ -191,3 +191,17 @@ function sub( a : 'a array, p : int, l : int ) : 'a array {
 	");
 }
 
+function index( a : 'a array, it : 'a ) : int {
+	neko("
+		var al = a[2];
+		a = a[0];
+		var i = 0;
+		while( i < al ) {
+			if( @Core.@compare(a[i],it) == 0 )
+				return i;
+			i = i + 1;
+		}
+	");
+	throw Not_found
+}
+
