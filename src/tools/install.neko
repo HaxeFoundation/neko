@@ -226,7 +226,7 @@ map(sources,function(s) {
 			mkdir(path,rights);
 		dir = dir[1];
 	}
-	exec(nekovm+" neko/Main "+s+".neko");
+	exec(nekovm+" neko "+s+".neko");
 	copy(s+".n ",path);
 });
 
