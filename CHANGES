@@ -1,3 +1,13 @@
+2006-??-?? : 1.2
+	neko:
+		added linker : provide linked versions of neko & nekoml compilers
+	libs:
+		added md5 digest , utf8 api and base_encode/base_decode in std
+		some changes in mod_neko api
+		mysql api now threat enum "0" as false and enum "1" as true
+		improved xml parser : support for doctype
+		some fixes for OSX and C++ compilation
+
 2005-11-10 : 1.1
 	vm : 
 		ports PPC (big endian) and AMD64
