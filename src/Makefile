@@ -23,6 +23,10 @@ all: clean pass1 pass2 pass3
 source: clean
 	${NEKOVM1} nekoml/Main -n neko/Main.nml nekoml/Main.nml
 
+link:
+	${NEKOVM} neko/Main -link neko.n neko/Main
+	${NEKOVM} neko/Main -link nekoml.n nekoml/Main
+
 pass1:
 	${TIME} tpass1
 	
