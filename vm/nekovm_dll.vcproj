@@ -133,9 +133,6 @@
 				RelativePath=".\context.c">
 			</File>
 			<File
-				RelativePath=".\gc.c">
-			</File>
-			<File
 				RelativePath=".\hash.c">
 			</File>
 			<File
