@@ -17,6 +17,7 @@
 			<li><a href="#bitwise">Bitwise Operations</a></li>
 			<li><a href="#boolops">Boolean Operations</a></li>
 			<li><a href="#compares">Equality and Comparisons</a></li>
+			<li><a href="#assigns">Assigns</a></li>
 			<li><a href="#converts">Conversions</a></li>
 			<li><a href="#optim">Optimized Operations</a></li>
 		</ul>
@@ -778,6 +779,17 @@ Operations substract ( - ) divide ( / ) multiply ( * ) and modulo ( % ) :
 <p>
 	The builtin <code>$pcompare</code> will compare two values physicaly. It will be the same result as <code>$compare</code> for integers, and other values will be compared using their memory address. You can use <code>$pcompare</code> instead of <code>$compare</code> if you want to optimize your integer comparisons.
 </p>
+
+<a name="assigns"></a>
+<h3>Assigns</h3>
+
+<p>
+	The following operations are also available in order to modify the value of a variable, object field, array content...
+</p>
+
+<pre>
+	= += -= *= /= %= &lt;&lt;= &gt;&gt;= &gt;&gt;&gt;= |= &= ^=
+</pre>
 
 <a name="converts"></a>
 <h3>Conversions</h3>
