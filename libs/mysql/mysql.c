@@ -123,9 +123,8 @@ static value result_get_nfields( value o ) {
 	corresponding Neko value (int, float or string). For
 	Date and DateTime you can specify your own conversion
 	function using [result_set_conv_date]. By default they're
-	returned as plain strings. Additionally, if a MySQL ENUM
-	type has a value "0" or "1" it will return the corresponding
-	boolean.
+	returned as plain strings. Additionally, the TINYINT(1) will
+	be converted to either true or false if equal to 0.
 	</doc>
 **/
 static value result_next( value o ) {
@@ -152,10 +151,7 @@ static value result_next( value o ) {
 					v = alloc_string(row[i]);
 					break;
 				case CONV_BOOL:
-					if( (*row[i] == '0' || *row[i] == '1') && row[i][1] == 0 )
-						v = alloc_bool( *row[i] == '1' );
-					else
-						v = alloc_string(row[i]);
+					v = alloc_bool( *row[i] != '0' );
 					break;
 				case CONV_FLOAT:
 					v = alloc_float(atof(row[i]));
@@ -268,9 +264,11 @@ static value result_get_float( value o, value n ) {
 	return alloc_float( s?atof(s):0 );
 }
 
-static CONV convert_type( enum enum_field_types t ) {
+static CONV convert_type( enum enum_field_types t, unsigned int length ) {
 	switch( t ) {
 	case FIELD_TYPE_TINY:
+		if( length == 1 )
+			return CONV_BOOL;
 	case FIELD_TYPE_SHORT:
 	case FIELD_TYPE_LONG:
 	case FIELD_TYPE_INT24:
@@ -286,8 +284,6 @@ static CONV convert_type( enum enum_field_types t ) {
 		return CONV_DATETIME;
 	case FIELD_TYPE_DATE:
 		return CONV_DATE;
-	case FIELD_TYPE_ENUM:
-		return CONV_BOOL;
 	default:
 		return CONV_STRING;
 	}
@@ -321,7 +317,7 @@ static value alloc_result( MYSQL_RES *r ) {
 				bfailure(b);
 			}
 		res->fields_ids[i] = id;
-		res->fields_convs[i] = convert_type((fields[i].flags & ENUM_FLAG)?FIELD_TYPE_ENUM:fields[i].type); 
+		res->fields_convs[i] = convert_type(fields[i].type,fields[i].length); 
 	}
 	val_gc(o,free_result);
 	return o;

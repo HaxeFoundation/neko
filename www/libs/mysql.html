@@ -22,9 +22,8 @@
 	corresponding Neko value (int, float or string). For
 	Date and DateTime you can specify your own conversion
 	function using <doc_code>result_set_conv_date</doc_code>. By default they're
-	returned as plain strings. Additionally, if a MySQL ENUM
-	type has a value "0" or "1" it will return the corresponding
-	boolean.
+	returned as plain strings. Additionally, the TINYINT(1) will
+	be converted to either true or false if equal to 0.
 	</doc_doc>
 </doc_blk>
 <doc_blk>

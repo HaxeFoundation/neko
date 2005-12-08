@@ -4,7 +4,7 @@
 	libs:
 		added md5 digest , utf8 api and base_encode/base_decode in std
 		some changes in mod_neko api
-		mysql api now threat enum "0" as false and enum "1" as true
+		mysql api now threat tinyint(1) as booleans
 		improved xml parser : support for doctype
 		some fixes for OSX and C++ compilation
 
