@@ -159,7 +159,9 @@ expr := Lexer.build [
 		(NXml(Buffer.string buf) , Lexer.punion p1 p2)		
 	});
 	(binop + binop + "?",function(l) { mk l (Binop (Lexer.current l)) });
+	(binop + binop + "=",function(l) { mk l (Binop (Lexer.current l)) });
 	(">>>",function(l) { mk l (Binop ">>>") });
+	(">>>=",function(l) { mk l (Binop ">>>=") });
 ]
 	(function(l) { 
 		match Lexer.char l {

@@ -497,6 +497,17 @@ function rec compile_binop(ctx,op,e1,e2,p) {
 		var jnext = cjmp true ctx;
 		compile ctx e2;
 		jnext()
+	| "++="
+	| "--=" ->
+		var a = compile_access ctx e1;
+		compile_access_get ctx a;
+		write ctx Push;
+		write ctx Push;
+		compile ctx e2;
+		write_op ctx (String.sub op 0 (String.length op - 2)) p;
+		compile_access_set ctx a;
+		write ctx (AccStack 0);
+		write ctx (Pop 1);
 	| "+="
 	| "-="
 	| "/="

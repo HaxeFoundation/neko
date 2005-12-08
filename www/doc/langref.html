@@ -787,8 +787,23 @@ Operations substract ( - ) divide ( / ) multiply ( * ) and modulo ( % ) :
 	The following operations are also available in order to modify the value of a variable, object field, array content...
 </p>
 
+<p>
+	The standard assign operation is <code>=</code>. There is also the following assigns that perform an operation at the same time. The return value is always the assigned value :
+</p>
+
 <pre>
-	= += -= *= /= %= &lt;&lt;= &gt;&gt;= &gt;&gt;&gt;= |= &= ^=
+	+= -= *= /= %= &lt;&lt;= &gt;&gt;= &gt;&gt;&gt;= |= &= ^=
+</pre>
+
+<p>
+	There is two additional operations <code>++=</code> and <code>--=</code> that are doing the same as <code>+=</code> and <code>-=</code> except that the returned value is the value of the variable before it was modified :
+</p>
+
+<pre>
+	a = 0;
+	$print(a ++= 1); // 0
+	$print(a ++= 1); // 1
+	$print(a); // 2
 </pre>
 
 <a name="converts"></a>
