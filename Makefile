@@ -52,8 +52,8 @@ std: bin/std.ndll
 
 compiler:
 	(cd src; ${NEKO_EXEC} nekoml -v neko/Main.nml nekoml/Main.nml)
-	(cd src: ${NEKO_EXEC} neko -link ../bin/neko neko/Main)
-	(cd src: ${NEKO_EXEC} neko -link ../bin/nekoml nekoml/Main)
+	(cd src; ${NEKO_EXEC} neko -link ../bin/neko neko/Main)
+	(cd src; ${NEKO_EXEC} neko -link ../bin/nekoml nekoml/Main)
 
 bin/libneko.so: ${LIBNEKO_OBJECTS}
 	${MAKESO} -o $@ ${LIBNEKO_OBJECTS} ${LIBNEKO_LIBS}
