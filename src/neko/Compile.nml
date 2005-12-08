@@ -20,6 +20,16 @@
 open Neko.Ast;
 open Neko.Bytecode;
 
+type access {
+	XEnv : int;
+	XStack : int;
+	XGlobal : int;
+	XField : string;
+	XIndex : int;
+	XArray;
+	XThis;
+}
+
 type label {
 	lname : string;
 	ltraps : int list;
@@ -379,53 +389,104 @@ function compile_constant(ctx,c,p) {
 	}
 }
 
+function rec compile_access(ctx,e) {
+	match fst e {
+	| EConst (Ident s) ->
+		try {
+			var l = Map.find ctx.locals s;
+			if l <= ctx.limit then {
+				var e = try {
+					Map.find ctx.env s
+				} catch { Not_found ->
+					var e = ctx.nenv;
+					ctx.nenv := ctx.nenv + 1;
+					ctx.env := Map.add ctx.env s e;
+					e
+				};
+				XEnv e
+			} else
+				XStack l
+		} catch { Not_found ->
+			var g = global ctx (GlobalVar s);
+			XGlobal g
+		}
+	| EField (e,f) ->
+		compile ctx e;
+		write ctx Push;
+		XField f
+	| EArray (e1,(EConst (Int n),_)) ->
+		compile ctx e1;
+		write ctx Push;
+		XIndex n
+	| EArray (ea,ei) ->
+		compile ctx ei;
+		write ctx Push;
+		compile ctx ea;
+		write ctx Push;
+		XArray
+	| EConst This ->
+		XThis
+	| _ ->
+		error "Invalid access" (snd e)
+	}
+}
+
+function rec compile_access_set(ctx,a) {
+	match a {
+	| XEnv n -> write ctx (SetEnv n)
+	| XStack l -> write ctx (SetStack (ctx.stack - l))
+	| XGlobal g -> write ctx (SetGlobal g)
+	| XField f -> write ctx (SetField f)
+	| XIndex i -> write ctx (SetIndex i)
+	| XThis -> write ctx SetThis
+	| XArray -> write ctx SetArray
+	}
+}
+
+function rec compile_access_get(ctx,a) {
+	match a {
+	| XEnv n -> write ctx (AccEnv n)
+	| XStack l -> write ctx (AccStack (ctx.stack - l))
+	| XGlobal g -> write ctx (AccGlobal g)
+	| XField f -> write ctx (AccField f)
+	| XIndex i -> write ctx (AccIndex i)
+	| XThis -> write ctx AccThis
+	| XArray -> 
+		write ctx Push;
+		write ctx (AccStack 2);
+		write ctx AccArray
+	}
+}
+
+function rec write_op(ctx,op,p) {
+	match op {
+	| "+" -> write ctx Add
+	| "-" -> write ctx Sub
+	| "/" -> write ctx Div
+	| "*" -> write ctx Mult
+	| "%" -> write ctx Mod
+	| "<<" -> write ctx Shl
+	| ">>" -> write ctx Shr
+	| ">>>" -> write ctx UShr
+	| "|" -> write ctx Or
+	| "&" -> write ctx And
+	| "^" -> write ctx Xor
+	| "==" -> write ctx Eq
+	| "!=" -> write ctx Neq
+	| ">" -> write ctx Gt
+	| ">=" -> write ctx Gte
+	| "<" -> write ctx Lt
+	| "<=" -> write ctx Lte
+	| _ -> error "Unknown operation" p
+	}
+}
+
 function rec compile_binop(ctx,op,e1,e2,p) {
 	match op {
 	| "=" ->
-		match fst e1 {
-		| EConst (Ident s) ->
-			compile ctx e2;
-			try {
-				var l = Map.find ctx.locals s;
-				if l <= ctx.limit then {
-					var e = try {
-						Map.find ctx.env s
-					} catch { Not_found ->
-						var e = ctx.nenv;
-						ctx.nenv := ctx.nenv + 1;
-						ctx.env := Map.add ctx.env s e;
-						e
-					};
-					write ctx (SetEnv e);
-				} else
-					write ctx (SetStack (ctx.stack - l))
-			} catch { Not_found ->
-				var g = global ctx (GlobalVar s);
-				write ctx (SetGlobal g)
-			}
-		| EField (e,f) ->
-			compile ctx e;
-			write ctx Push;
-			compile ctx e2;
-			write ctx (SetField f)
-		| EArray (e1,(EConst (Int n),_)) ->
-			compile ctx e1;
-			write ctx Push;
-			compile ctx e2;
-			write ctx (SetIndex n)
-		| EArray (ea,ei) ->
-			compile ctx ei;
-			write ctx Push;
-			compile ctx ea;
-			write ctx Push;
-			compile ctx e2;
-			write ctx SetArray
-		| EConst This ->
-			compile ctx e2;
-			write ctx SetThis
-		| _ ->
-			error "Invalid assign" p
-		}
+		var a = compile_access ctx e1;
+		compile ctx e2;
+		compile_access_set ctx a
 	| "&&" ->
 		compile ctx e1;
 		var jnext = cjmp false ctx;
@@ -436,6 +497,23 @@ function rec compile_binop(ctx,op,e1,e2,p) {
 		var jnext = cjmp true ctx;
 		compile ctx e2;
 		jnext()
+	| "+="
+	| "-="
+	| "/="
+	| "*="
+	| "%="
+	| "<<="
+	| ">>="
+	| ">>>="
+	| "|="
+	| "&="
+	| "^=" ->
+		var a = compile_access ctx e1;
+		compile_access_get ctx a;
+		write ctx Push;
+		compile ctx e2;
+		write_op ctx (String.sub op 0 (String.length op - 1)) p;
+		compile_access_set ctx a
 	| _ ->
 		match (op , e1 , e2) {
 		| ("==" , _ , (EConst Null,_)) ->
@@ -450,30 +528,13 @@ function rec compile_binop(ctx,op,e1,e2,p) {
 		| ("!=" , (EConst Null,_) , _) ->
 			compile ctx e2;
 			write ctx IsNotNull
+		| ("-", (EConst (Int 0),_) , (EConst (Int i),_)) ->
+			compile ctx (EConst (Int (-i)),p)
 		| _ ->
 			compile ctx e1;
 			write ctx Push;
 			compile ctx e2;
-			match op {
-			| "+" -> write ctx Add
-			| "-" -> write ctx Sub
-			| "/" -> write ctx Div
-			| "*" -> write ctx Mult
-			| "%" -> write ctx Mod
-			| "<<" -> write ctx Shl
-			| ">>" -> write ctx Shr
-			| ">>>" -> write ctx UShr
-			| "|" -> write ctx Or
-			| "&" -> write ctx And
-			| "^" -> write ctx Xor
-			| "==" -> write ctx Eq
-			| "!=" -> write ctx Neq
-			| ">" -> write ctx Gt
-			| ">=" -> write ctx Gte
-			| "<" -> write ctx Lt
-			| "<=" -> write ctx Lte
-			| _ -> error "Unknown operation" p
-			}
+			write_op ctx op p
 		}
 	}
 }
@@ -736,8 +797,6 @@ function rec compile(ctx,(e,p)) {
 		write ctx (Pop 1);
 		ctx.locals := locals;
 		jend()
-	| EBinop ("-",(EConst (Int 0),_),(EConst (Int i),_)) ->
-		compile ctx (EConst (Int (-i)),p)
 	| EBinop (op,e1,e2) ->
 		compile_binop ctx op e1 e2 p
 	| EReturn e ->
