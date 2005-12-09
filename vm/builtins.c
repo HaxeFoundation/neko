@@ -255,6 +255,34 @@ static value builtin_sblit( value dst, value dp, value src, value sp, value l ) 
 	return val_true;
 }
 
+/**
+	$sfind : src:string -> pos:int -> pat:string -> int
+	<doc>
+	Return the first position starting at [pos] in [src] where [pat] was found.
+	Return null if not found. Error if [pos] is outside [src] bounds.
+	</doc>
+**/
+static value builtin_sfind( value src, value pos, value pat ) {
+	int p, l, l2;
+	const char *ptr;
+	val_check(src,string);
+	val_check(pos,int);
+	val_check(pat,string);
+	p = val_int(pos);
+	l = val_strlen(src);
+	l2 = val_strlen(pat);
+	if( p < 0 || p >= l )
+		neko_error();
+	ptr = val_string(src) + p;	
+	while( l - p >= l2 ) {
+		if( memcmp(ptr,val_string(pat),l2) == 0 )
+			return alloc_int(p);
+		p++;
+		ptr++;
+	}
+	return val_null;
+}
+
 /** <doc><h2>Object Builtins</h2></doc> **/
 
 /**
@@ -1056,6 +1084,7 @@ void neko_init_builtins() {
 	BUILTIN(sget,2);
 	BUILTIN(sset,3);
 	BUILTIN(sblit,5);
+	BUILTIN(sfind,3);
 
 	BUILTIN(new,1);	
 	BUILTIN(objget,2);
