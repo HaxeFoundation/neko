@@ -124,9 +124,14 @@ let iter f (e,p) =
 	| ELabel _
 	| EConst _ -> ()
 
+let do_escape = ref true
+
 let is_printable c = c >= '\032' && c <= '\126'
 
 let escape s =
+	if not !do_escape then
+		s
+	else
 	let b = Buffer.create (String.length s) in
 	for i = 0 to (String.length s) - 1 do
 		match s.[i] with
