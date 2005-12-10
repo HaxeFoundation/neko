@@ -150,7 +150,7 @@ function rec parse_xml(p,x) {
 				};
 				cases := c :: *cases;
 			| "default" ->
-				if *def != None then error()
+				if *def != None then error();
 				def := Some (parse_xml p firstNode(x));
 			| _ ->
 				if *e != None then error();
