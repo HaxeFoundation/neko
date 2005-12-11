@@ -338,13 +338,9 @@ static value neko_flush_stack( int_val *cspup, int_val *csp, value old ) {
 }
 
 void neko_setup_trap( neko_vm *vm, int_val where ) {
-	int_val acc = 0;
-	int_val *sp, *csp;
 	vm->sp -= 6;
-	csp = vm->csp;
-	sp = vm->sp;
 	if( vm->sp <= vm->csp )
-		STACK_EXPAND;
+		Error( !neko_stack_expand(vm->sp,vm->csp,vm) , OVERFLOW );
 	vm->sp[0] = (int_val)alloc_int((int_val)(vm->csp - vm->spmin));
 	vm->sp[1] = (int_val)vm->vthis;
 	vm->sp[2] = (int_val)vm->env;
