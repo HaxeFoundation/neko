@@ -296,6 +296,7 @@ static value url_encode( value v ) {
 		int pin = 0;
 		int pout = 0;
 		const unsigned char *in = (const unsigned char*)val_string(v);
+		static const char *hex = "0123456789ABCDEF";
 		int len = val_strlen(v);
 		value v2 = alloc_empty_string(len * 3);
 		unsigned char *out = (unsigned char*)val_string(v2);
@@ -305,8 +306,8 @@ static value url_encode( value v ) {
 				out[pout++] = c;
 			else {
 				out[pout++] = '%';
-				out[pout++] = '0' + (c >> 4);
-				out[pout++] = '0' + (c & 0xF);
+				out[pout++] = hex[c >> 4];
+				out[pout++] = hex[c & 0xF];
 			}
 		}
 		out[pout] = 0;
