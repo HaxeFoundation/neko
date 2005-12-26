@@ -191,7 +191,13 @@ static int neko_check_stack( neko_module *m, unsigned char *tmp, unsigned int i,
 			return 1;
 		case ObjCall:
 			stack--;
+			if( stack < istack )
+				return 0;
 			break;
+		case TailCall:
+			if( stack - (m->code[i+1] & 7) < istack || (m->code[i+1]>>3) != stack )
+				return 0;	
+			return 1;
 		}
 		i += parameter_table[c]?2:1;
 	}
@@ -419,6 +425,10 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 		case Call:
 		case ObjCall:
 			if( itmp > CALL_MAX_ARGS )
+				ERROR();
+			break;
+		case TailCall:
+			if( (itmp&7) > CALL_MAX_ARGS )
 				ERROR();
 			break;
 		case Apply:

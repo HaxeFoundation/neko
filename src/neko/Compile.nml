@@ -128,7 +128,7 @@ function stack_delta(o) {
 	| SetArray -> -2
 	| Push -> 1
 	| Pop x -> -x
-	| Apply nargs | Call nargs -> -nargs
+	| Apply nargs | Call nargs | TailCall (nargs,_) -> -nargs
 	| ObjCall nargs -> -(nargs + 1)
 	| MakeEnv size | MakeArray size -> -size
 	| Trap _ -> trap_stack_delta
@@ -411,17 +411,17 @@ function rec compile_access(ctx,e) {
 			XGlobal g
 		}
 	| EField (e,f) ->
-		compile ctx e;
+		compile ctx false e;
 		write ctx Push;
 		XField f
 	| EArray (e1,(EConst (Int n),_)) ->
-		compile ctx e1;
+		compile ctx false e1;
 		write ctx Push;
 		XIndex n
 	| EArray (ea,ei) ->
-		compile ctx ei;
+		compile ctx false ei;
 		write ctx Push;
-		compile ctx ea;
+		compile ctx false ea;
 		write ctx Push;
 		XArray
 	| EConst This ->
@@ -481,21 +481,21 @@ function rec write_op(ctx,op,p) {
 	}
 }
 
-function rec compile_binop(ctx,op,e1,e2,p) {
+function rec compile_binop(ctx,tail,op,e1,e2,p) {
 	match op {
 	| "=" ->
 		var a = compile_access ctx e1;
-		compile ctx e2;
+		compile ctx false e2;
 		compile_access_set ctx a
 	| "&&" ->
-		compile ctx e1;
+		compile ctx false e1;
 		var jnext = cjmp false ctx;
-		compile ctx e2;
+		compile ctx tail e2;
 		jnext()
 	| "||" ->
-		compile ctx e1;
+		compile ctx false e1;
 		var jnext = cjmp true ctx;
-		compile ctx e2;
+		compile ctx tail e2;
 		jnext()
 	| "++="
 	| "--=" ->
@@ -503,7 +503,7 @@ function rec compile_binop(ctx,op,e1,e2,p) {
 		compile_access_get ctx a;
 		write ctx Push;
 		write ctx Push;
-		compile ctx e2;
+		compile ctx false e2;
 		write_op ctx (String.sub op 0 (String.length op - 2)) p;
 		compile_access_set ctx a;
 		write ctx (AccStack 0);
@@ -522,29 +522,29 @@ function rec compile_binop(ctx,op,e1,e2,p) {
 		var a = compile_access ctx e1;
 		compile_access_get ctx a;
 		write ctx Push;
-		compile ctx e2;
+		compile ctx false e2;
 		write_op ctx (String.sub op 0 (String.length op - 1)) p;
 		compile_access_set ctx a
 	| _ ->
 		match (op , e1 , e2) {
 		| ("==" , _ , (EConst Null,_)) ->
-			compile ctx e1;
+			compile ctx false e1;
 			write ctx IsNull
 		| ("!=" , _ , (EConst Null,_)) ->
-			compile ctx e1;
+			compile ctx false e1;
 			write ctx IsNotNull
 		| ("==" , (EConst Null,_) , _) ->
-			compile ctx e2;
+			compile ctx false e2;
 			write ctx IsNull
 		| ("!=" , (EConst Null,_) , _) ->
-			compile ctx e2;
+			compile ctx false e2;
 			write ctx IsNotNull
 		| ("-", (EConst (Int 0),_) , (EConst (Int i),_)) ->
-			compile ctx (EConst (Int (-i)),p)
+			compile ctx tail (EConst (Int (-i)),p)
 		| _ ->
-			compile ctx e1;
+			compile ctx false e1;
 			write ctx Push;
-			compile ctx e2;
+			compile ctx false e2;
 			write_op ctx op p
 		}
 	}
@@ -573,7 +573,7 @@ function rec compile_function(ctx,params,e) {
 		ctx.locals := Map.add ctx.locals v ctx.stack;
 	}) params;
 	var s = ctx.stack;
-	compile ctx e;
+	compile ctx true e;
 	write ctx (Ret (ctx.stack - ctx.limit));
 	if ctx.stack != s then assert();
 	check_breaks ctx;
@@ -605,29 +605,29 @@ function rec compile_function(ctx,params,e) {
 		write ctx (AccGlobal gid);
 }
 
-function rec compile_builtin(ctx,b,el,p) {
+function rec compile_builtin(ctx,tail,b,el,p) {
 	match (b , el) {
 	| ("istrue" , [e]) ->
-		compile ctx e;
+		compile ctx false e;
 		write ctx Bool
 	| ("not" , [e]) ->
-		compile ctx e;
+		compile ctx false e;
 		write ctx Not
 	| ("typeof" , [e]) ->
-		compile ctx e;
+		compile ctx false e;
 		write ctx TypeOf
 	| ("hash" , [e]) ->
-		compile ctx e;
+		compile ctx false e;
 		write ctx Hash
 	| ("compare" , [e1;e2]) ->
-		compile ctx e1;
+		compile ctx false e1;
 		write ctx Push;
-		compile ctx e2;
+		compile ctx false e2;
 		write ctx Compare
 	| ("pcompare" , [e1;e2]) ->
-		compile ctx e1;
+		compile ctx false e1;
 		write ctx Push;
-		compile ctx e2;
+		compile ctx false e2;
 		write ctx PhysCompare
 	| ("goto" , [(EConst (Ident l) , _)] ) ->
 		var l = try Hashtbl.find ctx.labels l catch { Not_found -> error ("Unknown label " + l) p };
@@ -671,7 +671,7 @@ function rec compile_builtin(ctx,b,el,p) {
 		error "Invalid $goto statement" p
 	| ("array",_) ->
 		List.iter (function(e) {
-			compile ctx e;
+			compile ctx false e;
 			write ctx Push;
 		}) el;
 		write ctx (MakeArray (List.length el))
@@ -679,30 +679,33 @@ function rec compile_builtin(ctx,b,el,p) {
 		var apply = (EConst (Builtin "apply"),p);
 		if bname == "apply" then {
 			var app = ECall apply [a;b;c;d;x1];
-			compile ctx (ECall apply ((app,p) :: x2 :: l),p)
+			compile ctx tail (ECall apply ((app,p) :: x2 :: l),p)
 		} else {
 			var app = ECall apply [(EConst (Builtin bname),p);a;b;c;d];
-			compile ctx (ECall (app,p) (x1 :: x2 :: l) ,p)
+			compile ctx tail (ECall (app,p) (x1 :: x2 :: l) ,p)
 		}
 	| ("apply",e :: el) ->
 		List.iter (function(e) {
-			compile ctx e;
+			compile ctx false e;
 			write ctx Push;
 		}) el;
-		compile ctx e;
+		compile ctx false e;
 		var nargs = List.length el;
 		if nargs > 0 then write ctx (Apply nargs);
 	| _ ->
 		List.iter (function(e) {
-			compile ctx e;
+			compile ctx false e;
 			write ctx Push;
 		}) el;
 		compile_constant ctx (Builtin b) p;
-		write ctx (Call (List.length el))
+		if tail then
+			write ctx TailCall(List.length el,ctx.stack - ctx.limit)
+		else
+			write ctx Call(List.length el)
 	}
 }
 
-function rec compile(ctx,(e,p)) {
+function rec compile(ctx,tail,(e,p)) {
 	set_pos ctx p;
 	match e {
 	| EConst c ->
@@ -712,59 +715,74 @@ function rec compile(ctx,(e,p)) {
 	| EBlock el ->
 		var locals = ctx.locals;
 		var stack = ctx.stack;
-		List.iter (compile ctx) el;
+		function rec loop(el) {
+			match el {
+			| [] -> assert()
+			| [e] -> compile ctx tail e
+			| [e; (ELabel _,_) as f] ->
+				compile ctx tail e;
+				compile ctx tail f
+			| e :: el ->
+				compile ctx false e;
+				loop el
+			}
+		}
+		loop el;
 		if stack < ctx.stack then write ctx (Pop (ctx.stack - stack));
 		if stack != ctx.stack then assert();
 		ctx.locals := locals
 	| EParenthesis e ->
-		compile ctx e
+		compile ctx tail e
 	| EField (e,f) ->
-		compile ctx e;
+		compile ctx false e;
 		write ctx (AccField f)
 	| ECall ((EConst (Builtin b),_),el) ->
-		compile_builtin ctx b el p
+		compile_builtin ctx tail b el p
 	| ECall (e,a :: b :: c :: d :: x1 :: x2 :: l) ->
 		var app = ECall (EConst (Builtin "apply"),p) [e;a;b;c;d];
-		compile ctx (ECall (app,p) (x1 :: x2 :: l) ,p)
+		compile ctx tail (ECall (app,p) (x1 :: x2 :: l) ,p)
 	| ECall ((EField (e,f),_),el) ->
 		List.iter (function(e) {
-			compile ctx e;
+			compile ctx false e;
 			write ctx Push;
 		}) el;
-		compile ctx e;
+		compile ctx false e;
 		write ctx Push;
 		write ctx (AccField f);
-		write ctx (ObjCall (List.length el))
+		write ctx ObjCall(List.length el)
 	| ECall (e,el) ->
 		List.iter (function(e) {
-			compile ctx e;
+			compile ctx false e;
 			write ctx Push;
 		}) el;
-		compile ctx e;
-		write ctx (Call (List.length el))
+		compile ctx false e;
+		if tail then
+			write ctx TailCall(List.length el,ctx.stack - ctx.limit)
+		else
+			write ctx Call(List.length el)
 	| EArray (e1,(EConst (Int n),_)) ->
-		compile ctx e1;
+		compile ctx false e1;
 		write ctx (if n == 0 then AccIndex0 else if n == 1 then AccIndex1 else AccIndex n)
 	| EArray (e1,e2) ->
-		compile ctx e1;
+		compile ctx false e1;
 		write ctx Push;
-		compile ctx e2;
+		compile ctx false e2;
 		write ctx AccArray
 	| EVars vl ->
 		List.iter (function((v,o)) {
 			match o {
 			| None -> write ctx AccNull
-			| Some e -> compile ctx e
+			| Some e -> compile ctx false e
 			};
 			write ctx Push;
 			ctx.locals := Map.add ctx.locals v ctx.stack;
 		}) vl
 	| EWhile (econd,e,NormalWhile) ->
 		var start = pos ctx;
-		compile ctx econd;
+		compile ctx false econd;
 		var jend = cjmp false ctx;
 		var save = save_breaks ctx;
-		compile ctx e;
+		compile ctx false e;
 		process_continues save;
 		goto ctx start;
 		process_breaks save;
@@ -772,16 +790,16 @@ function rec compile(ctx,(e,p)) {
 	| EWhile (econd,e,DoWhile) ->
 		var start = pos ctx;
 		var save = save_breaks ctx;
-		compile ctx e;
+		compile ctx false e;
 		process_continues save;
-		compile ctx econd;
+		compile ctx false econd;
 		write ctx (JumpIf (start - pos ctx));
 		process_breaks save
 	| EIf (e,e1,e2) ->
 		var stack = ctx.stack;
-		compile ctx e;
+		compile ctx false e;
 		var jelse = cjmp false ctx;
-		compile ctx e1;
+		compile ctx tail e1;
 		if stack != ctx.stack then assert();
 		match e2 {
 		| None ->
@@ -789,14 +807,14 @@ function rec compile(ctx,(e,p)) {
 		| Some e2 ->
 			var jend = jmp ctx;
 			jelse();
-			compile ctx e2;
+			compile ctx tail e2;
 			if stack != ctx.stack then assert();
 			jend()
 		};
 	| ETry (e,v,ecatch) ->
 		var trap = trap ctx;
 		ctx.traps := ctx.stack :: ctx.traps;
-		compile ctx e;
+		compile ctx false e;
 		write ctx EndTrap;
 		ctx.traps := match ctx.traps { [] -> assert() | _ :: l -> l };
 		var jend = jmp ctx;
@@ -804,14 +822,14 @@ function rec compile(ctx,(e,p)) {
 		write ctx Push;
 		var locals = ctx.locals;
 		ctx.locals := Map.add ctx.locals v ctx.stack;
-		compile ctx ecatch;
+		compile ctx tail ecatch;
 		write ctx (Pop 1);
 		ctx.locals := locals;
 		jend()
 	| EBinop (op,e1,e2) ->
-		compile_binop ctx op e1 e2 p
+		compile_binop ctx tail op e1 e2 p
 	| EReturn e ->
-		match e { None -> write ctx AccNull | Some e -> compile ctx e };
+		match e { None -> write ctx AccNull | Some e -> compile ctx (ctx.traps == []) e };
 		var i = &0;
 		var stack = ctx.stack;
 		List.iter (function(t) {
@@ -824,7 +842,7 @@ function rec compile(ctx,(e,p)) {
 		if ctx.traps != [] then assert();
 		match e {
 		| None -> ()
-		| Some e -> compile ctx e
+		| Some e -> compile ctx false e
 		};
 		if ctx.loop_limit != ctx.stack then {
 			var s = ctx.stack;
@@ -843,8 +861,8 @@ function rec compile(ctx,(e,p)) {
 	| EFunction (params,e) ->
 		compile_function ctx params e
 	| ENext (e1,e2) ->
-		compile ctx e1;
-		compile ctx e2
+		compile ctx false e1;
+		compile ctx tail e2
 	| EObject [] ->
 		write ctx AccNull;
 		write ctx New
@@ -862,7 +880,7 @@ function rec compile(ctx,(e,p)) {
 		write ctx Push;
 		List.iter (function((f,e)) {
 			write ctx Push;
-			compile ctx e;
+			compile ctx false e;
 			write ctx (SetField f);
 			write ctx AccStack0;
 		}) fl;
@@ -874,11 +892,11 @@ function rec compile(ctx,(e,p)) {
 		l.lwait := [];
 		l.lpos := Some (pos ctx)
 	| ESwitch (e,[(econd,exec)],eo) ->
-		compile ctx (EIf (EBinop "==" e econd,p) exec eo,p)
+		compile ctx tail (EIf (EBinop "==" e econd,p) exec eo,p)
 	| ESwitch (e,cases,eo) ->
 		try {
 			var ints , size = get_cases_ints cases;
-			compile ctx e;
+			compile ctx false e;
 			write ctx (JumpTable size);
 			var tbl = Array.make size None;
 			List.iter (function((i,e)) {
@@ -890,14 +908,14 @@ function rec compile(ctx,(e,p)) {
 			}) tbl;
 			match eo {
 			| None -> write ctx AccNull
-			| Some e -> compile ctx e
+			| Some e -> compile ctx tail e
 			}
 			var jump_end = jmp ctx;
 			var tbl = Array.map (function((j,e)) {
 				match e {
 				| Some e ->
 					j();
-					compile ctx e;
+					compile ctx tail e;
 					jmp ctx
 				| None ->
 					function() { }
@@ -906,23 +924,23 @@ function rec compile(ctx,(e,p)) {
 			jump_end();
 			Array.iter (function(j) { j() }) tbl
 		} catch { Exit ->
-			compile ctx e;
+			compile ctx false e;
 			write ctx Push;
 			var jumps = List.map (function((e1,e2)) {
 				write ctx AccStack0;
 				write ctx Push;
-				compile ctx e1;
+				compile ctx false e1;
 				write ctx Eq;
 				(cjmp true ctx , e2)
 			}) cases;
 			match eo {
 			| None -> write ctx AccNull
-			| Some e -> compile ctx (EBlock [e],p)
+			| Some e -> compile ctx tail (EBlock [e],p)
 			}
 			var jump_end = jmp ctx;
 			var jumps = List.map (function((j,e)) {
 				j();
-				compile ctx (EBlock [e],p);
+				compile ctx tail (EBlock [e],p);
 				jmp ctx;
 			}) jumps;
 			jump_end();
@@ -953,7 +971,7 @@ function compile(ast) {
 		curpos = ("",0);
 	};
 	scan_labels ctx true ast;
-	compile ctx ast;
+	compile ctx false ast;
 	check_breaks ctx;
 	if ctx.functions != [] || Hashtbl.length ctx.gobjects != 0 then {
 		var ctxops = ctx.ops;

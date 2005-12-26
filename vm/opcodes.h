@@ -85,6 +85,7 @@ enum OPCODE {
 	AccIndex0,
 	AccIndex1,
 	PhysCompare,
+	TailCall,
 
 	Last,
 };
@@ -155,6 +156,7 @@ static int parameter_table[] = {
 	0, // AccIndex0
 	0, // AccIndex1
 	0, // PhysCompare
+	1, // TailCall
 };
 
 #define P	0xFF
@@ -223,6 +225,7 @@ static int stack_table[] = {
 	0, // AccIndex0
 	0, // AccIndex1
 	-1, // PhysCompare
+	0, // TailCall
 
 	0, // Last
 };

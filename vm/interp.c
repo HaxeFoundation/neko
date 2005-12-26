@@ -159,7 +159,7 @@ typedef int_val (*c_primN)(value*,int);
 			sp = vm->sp; \
 			csp = vm->csp; \
 		} \
-		*++csp = (int_val)(pc+1); \
+		*++csp = (int_val)pc; \
 		*++csp = (int_val)env; \
 		*++csp = (int_val)vm->vthis; \
 		*++csp = (int_val)m;
@@ -191,20 +191,19 @@ typedef int_val (*c_primN)(value*,int);
 		EndCall(); \
 		PopInfos(false);
 
-#define DoCall(this_arg) \
-		if( acc & 1 ) { \
-			CallFailure(); \
-			PopMacro(*pc++); \
-		} else if( val_tag(acc) == VAL_FUNCTION && *pc == ((vfunction*)acc)->nargs ) { \
+#define DoCall(this_arg,pc_args) \
+		if( acc & 1 ) \
+			CallFailure() \
+		else if( val_tag(acc) == VAL_FUNCTION && pc_args == ((vfunction*)acc)->nargs ) { \
 			PushInfos(); \
 			m = (neko_module*)((vfunction*)acc)->module; \
 			pc = (int_val*)((vfunction*)acc)->addr; \
 			vm->vthis = this_arg; \
 			env = ((vfunction*)acc)->env; \
 		} else if( val_tag(acc) == VAL_PRIMITIVE ) { \
-			if( *pc == ((vfunction*)acc)->nargs ) { \
+			if( pc_args == ((vfunction*)acc)->nargs ) { \
 				SetupBeforeCall(this_arg); \
-				switch( *pc ) { \
+				switch( pc_args ) { \
 				case 0: \
 					acc = ((c_prim0)((vfunction*)acc)->addr)(); \
 					break; \
@@ -230,18 +229,16 @@ typedef int_val (*c_primN)(value*,int);
 				int_val args[CALL_MAX_ARGS]; \
 				int_val tmp; \
 				SetupBeforeCall(this_arg); \
-				sp += *pc; \
-				for(tmp=0;tmp<*pc;tmp++) \
+				sp += pc_args; \
+				for(tmp=0;tmp<pc_args;tmp++) \
 					args[tmp] = *--sp; \
-				acc = ((c_primN)((vfunction*)acc)->addr)((value*)args,(int)*pc); \
+				acc = ((c_primN)((vfunction*)acc)->addr)((value*)args,(int)pc_args); \
 				RestoreAfterCall(); \
 			} else \
 				CallFailure(); \
-			PopMacro(*pc++); \
-		} else { \
-			CallFailure(); \
-			PopMacro(*pc++); \
-		}
+			PopMacro(pc_args); \
+		} else \
+			CallFailure();
 
 #define IntOp(op) \
 		if( (acc & 1) && (*sp & 1) ) \
@@ -425,8 +422,10 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 		if( val_is_object(acc) ) {
 			value *f = otable_find(((vobject*)acc)->table,(field)*pc);
 			acc = (int_val)(f?*f:val_null);
-		} else
+		} else {
+			pc++;
 			RuntimeError("Invalid field access");
+		}
 		pc++;
 		Next;
 	Instr(AccArray)
@@ -566,16 +565,36 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 				acc = (int_val)alloc_apply((int)(fargs - *pc++),env);
 			}
 		}
-		Next;		
+		Next;
+	Instr(TailCall)
+		{
+			int stack = (int)((*pc) >> 3);
+			int nargs = (int)((*pc) & 7);
+			int i = nargs;
+			stack -= nargs;
+			sp += nargs;
+			while( i > 0 ) {
+				sp--;
+				sp[stack] = *sp;
+				i--;
+			}
+			while( stack-- > 0 )
+				*sp++ = ERASE;			
+			PopInfos(true);
+			DoCall(vm->vthis,nargs);
+		}
+		Next;
 	Instr(Call)
 		do_call:
-		DoCall(vm->vthis);
+		pc++;
+		DoCall(vm->vthis,pc[-1]);
 		Next;
 	Instr(ObjCall)
 		{
 			value vtmp = (value)*sp;
 			*sp++ = ERASE;
-			DoCall(vtmp);
+			pc++;
+			DoCall(vtmp,pc[-1]);
 		}
 		Next;
 	Instr(Jump)

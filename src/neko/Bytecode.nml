@@ -86,6 +86,7 @@ type opcode {
 	AccIndex0;
 	AccIndex1;
 	PhysCompare;
+	TailCall : (int, int);
 };
 
 type global {
@@ -130,6 +131,7 @@ function op_param(x) {
 	| AccIndex _
 	| SetIndex _
 	| Apply _
+	| TailCall _
 		-> true
 	| AccNull
 	| AccTrue
@@ -345,6 +347,7 @@ function write(ch,(globals,ops)) {
 			| AccIndex0 -> 60
 			| AccIndex1 -> 61
 			| PhysCompare -> 62
+			| TailCall (args,st) -> pop := Some (args or (st << 3)); 63
 		});
 		match *pop {
 		| None -> IO.write_byte ch (opid << 2)
@@ -534,6 +537,7 @@ function read(ch) {
 				| 60 -> AccIndex0
 				| 61 -> AccIndex1
 				| 62 -> PhysCompare
+				| 63 -> TailCall (p and 7) (p >> 3)
 				| _ -> throw Invalid_file
 			};
 			pos.[*cpos] := Array.length ops;
