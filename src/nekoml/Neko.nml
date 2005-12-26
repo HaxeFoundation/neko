@@ -197,7 +197,7 @@ type match_context {
 
 var no_label = "<assert>"
 
-function rec gen_match_rec(mctx,fail,m) {
+function rec gen_match_rec(mctx,fail,next,m) {
 	try
 		ident (List.phys m mctx.cache)
 	catch { Not_found ->
@@ -213,17 +213,17 @@ function rec gen_match_rec(mctx,fail,m) {
 			call t_void (builtin "goto") [ident label] p
 	| MHandle (m1,m2) ->
 		var label = gen_label ctx;
-		var m1 = gen_rec label m1;
-		var m2 = gen_rec fail m2;
+		var m1 = gen_rec label true m1;
+		var m2 = gen_rec fail next m2;
 		(EBlock [m1; (ELabel label, p); m2] , p)
 	| MRoot ->
 		assert()
 	| MExecute (e,b) ->
 		if !b then {
 			var ematch = (EBinop "==" ident("@exc") (import ctx core "Stream_error" p) , p);
-			var stream_pos = (ECall (import ctx core "stream_pos" p) [gen_rec fail MRoot] , p);
+			var stream_pos = (ECall (import ctx core "stream_pos" p) [gen_rec fail true MRoot] , p);
 			var test = (EBinop "==" ident("@pos") stream_pos , p);
-			var reraise = (EIf (EBinop "&&" ematch test,p) gen_rec(fail,MFailure) Some((ECall (builtin "rethrow") [ident "@exc"],p)) , p);
+			var reraise = (EIf (EBinop "&&" ematch test,p) gen_rec(fail,true,MFailure) Some((ECall (builtin "rethrow") [ident "@exc"],p)) , p);
 			mctx.first := false;
 			match e.edecl {
 			| TConst _ -> gen_expr ctx e
@@ -231,37 +231,41 @@ function rec gen_match_rec(mctx,fail,m) {
 			}
 		} else {
 			mctx.first := true;
-			var out = call t_void (builtin "goto") [ident mctx.out] p;
-			(EBlock [gen_expr ctx e;out] , p)
+			if !next then 
+				gen_expr ctx e
+			else {
+				var out = call t_void (builtin "goto") [ident mctx.out] p;
+				(EBlock [gen_expr ctx e;out] , p)
+			}
 		}
 	| MConstants (m,[(TIdent v,m1)]) ->
-		var m = gen_rec fail m;
+		var m = gen_rec fail true m;
 		(EBlock [
 			(EVars [(v, Some m)] , p);
-			gen_rec fail m1
+			gen_rec fail next m1
 		] , p)
 	| MConstants (m,cl) ->
-		var e = gen_rec fail m;
+		var e = gen_rec fail true m;
 		var cases = List.map (function((c,m)) {
-			(gen_constant ctx c p, gen_rec fail m)
+			(gen_constant ctx c p, gen_rec fail next m)
 		}) cl;
-		(ESwitch e cases Some(gen_rec fail MFailure), p)
+		(ESwitch e cases Some(gen_rec fail next MFailure), p)
 	| MRecordField (m,f,t) ->
-		(EArray gen_rec(fail,m) int(record_index f t) , p)
+		(EArray gen_rec(fail,true,m) int(record_index f t) , p)
 	| MTuple (m,n) ->
-		(EArray gen_rec(fail,m) int(n) , p)
+		(EArray gen_rec(fail,true,m) int(n) , p)
 	| MField (m,n) ->
-		(EArray gen_rec(fail,m) int(n + 2) , p)
+		(EArray gen_rec(fail,true,m) int(n + 2) , p)
 	| MNext (m1,m2) ->
 		var old = mctx.next;
 		var label = gen_label ctx;
 		mctx.next := label;
-		var m1 = gen_rec fail m1;
+		var m1 = gen_rec fail true m1;
 		mctx.next := old;
-		var m2 = gen_rec fail m2;
+		var m2 = gen_rec fail next m2;
 		(EBlock [m1; (ELabel label, p); m2] , p)
 	| MSwitch (m,cl) ->
-		var e = (EArray (gen_rec fail m) int(0) , p);
+		var e = (EArray (gen_rec fail true m) int(0) , p);
 		var cases = List.map (function((c,m)) {
 			var path , c = match c {
 			| TModule (path,TConstr c) -> (path , c)
@@ -269,35 +273,35 @@ function rec gen_match_rec(mctx,fail,m) {
 			| _ ->
 				assert()
 			}
-			(int(construct_id ctx path c), gen_rec fail m)
+			(int(construct_id ctx path c), gen_rec fail next m)
 		}) cl;
-		(ESwitch e cases Some(gen_rec fail MFailure), p)
+		(ESwitch e cases Some(gen_rec fail next MFailure), p)
 	| MBind (v,m1,m2) ->
-		var e1 = gen_rec fail m1;
+		var e1 = gen_rec fail true m1;
 		var old = mctx.cache;
 		mctx.cache := (m1,v) :: mctx.cache;
-		var e2 = gen_rec fail m2;
+		var e2 = gen_rec fail next m2;
 		mctx.cache := old;
 		(EBlock [(EVars [(v, Some e1)] , p); e2] , p)
 	| MWhen (e,m) ->
 		var e = gen_expr ctx e;
-		var m = gen_rec fail m;
-		var fail = gen_rec fail MFailure;
+		var m = gen_rec fail next m;
+		var fail = gen_rec fail next MFailure;
 		(EIf e m Some(fail), p)
 	| MToken (m,n) ->
-		call t_void (import ctx core "stream_token" p) [gen_rec fail m; int n] p
+		call t_void (import ctx core "stream_token" p) [gen_rec fail true m; int n] p
 	| MJunk (m,n,m2) ->
-		var m = gen_rec fail m;
+		var m = gen_rec fail true m;
 		mctx.first := false;
 		(EBlock [
 			call t_void (import ctx core "stream_junk" p) [m; int n] p;
-			gen_rec fail m2
+			gen_rec fail next m2
 		] , p)
 	}
 	}
 }
 
-function rec gen_matching(ctx,v,m,p,stream,out) {
+function rec gen_matching(ctx,v,m,p,stream,next,out) {
 	var mctx = {
 		ctx = ctx;
 		cache = [(MRoot,v)];
@@ -307,7 +311,7 @@ function rec gen_matching(ctx,v,m,p,stream,out) {
 		next = no_label;
 	};
 	var label = (if stream then gen_label ctx else no_label);
-	var e = gen_match_rec mctx label m;
+	var e = gen_match_rec mctx label next m;
 	if stream then {
 		var vpos = "@pos";
 		var stream_pos = (ECall (import ctx core "stream_pos" p) [ident v] , p);
@@ -320,7 +324,7 @@ function rec gen_matching(ctx,v,m,p,stream,out) {
 function rec gen_match(ctx,e,m,stream,p) {
 	var out = gen_label ctx;
 	var v = gen_variable ctx;
-	var m = gen_matching ctx v m p stream out;
+	var m = gen_matching ctx v m p stream stream out;
 	var m = (ENext (EVars [(v,Some e)],p) m, p);
 	(EBlock [m; (ELabel out , p)] , p)
 }
@@ -508,7 +512,7 @@ function rec gen_expr(ctx,e) {
 		ENext printer (gen_constructor ctx e e (Hashtbl.hash (e :: ctx.current)) t p)
 	| TTry (e,m) ->
 		var out = gen_label ctx;
-		var matching = gen_matching ctx "@exc" m p false out;
+		var matching = gen_matching ctx "@exc" m p false true out;
 		var reraise = call t_void (builtin "rethrow") [ident "@exc"] p;
 		var handle = (EBlock [matching;reraise;(ELabel out , p)] , p);
 		ETry (gen_expr ctx e) "@exc" handle
