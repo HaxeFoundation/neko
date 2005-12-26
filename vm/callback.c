@@ -87,6 +87,8 @@ EXTERN value val_callEx( value vthis, value f, value *args, int nargs, value *ex
 			}
 		} else if( ((vfunction*)f)->nargs == -1 )
 			ret = (value)((c_primN)((vfunction*)f)->addr)(args,nargs);
+		else
+			val_throw(alloc_string("Invalid call"));
 		if( ret == NULL )
 			val_throw( (value)((vfunction*)f)->module );
 		vm->env = old_env;		
@@ -110,6 +112,8 @@ EXTERN value val_callEx( value vthis, value f, value *args, int nargs, value *ex
 				ret = neko_interp(vm,((vfunction*)f)->module,(int_val)val_null,(int_val*)((vfunction*)f)->addr,((vfunction*)f)->env);
 			}
 		}
+		else
+			val_throw(alloc_string("Invalid call"));
 	}
 	if( exc ) {
 		neko_process_trap(vm);

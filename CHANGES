@@ -7,6 +7,11 @@
 		mysql api now threat tinyint(1) as booleans
 		improved xml parser : support for doctype
 		some fixes for OSX and C++ compilation
+	nekovm:
+		runtime errors on :
+			- calls with invalid number of arguments
+			- field accesses of not-an-object
+			- binary operations on invalid types
 
 2005-11-10 : 1.1
 	vm : 
