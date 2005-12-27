@@ -32,14 +32,14 @@ typedef void (*printer)( const char *, int );
 #define CALL_MAX_ARGS	5
 
 struct _neko_vm {
-	int_val *spmin;
-	int_val *spmax;
 	int_val *sp;
 	int_val *csp;
-	int_val trap;
-	int ncalls;
 	value env;
 	value vthis;
+	int_val *spmin;
+	int_val *spmax;
+	int_val trap;
+	int ncalls;
 	value exc_stack;
 	printer print;
 	jmp_buf start;
