@@ -19,6 +19,7 @@
 
 type void;
 type int;
+type int32;
 type float;
 type char;
 type string;
