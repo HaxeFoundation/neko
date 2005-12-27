@@ -161,6 +161,31 @@ static value module_global_set( value mv, value p, value v ) {
 	return v;
 }
 
+/**
+	module_code_size : 'module -> int
+	<doc>return the codesize of the module</doc>
+**/
+static value module_code_size( value mv ) {
+	val_check_kind(mv,neko_kind_module);
+	return alloc_int( ((neko_module*)val_data(mv))->codesize );
+}
+
+/**
+	module_code_get : 'module -> n:int -> 'int32
+	<doc>return the [n]th code value of the module code</doc>
+**/
+static value module_code_get( value mv, value p ) {
+	neko_module *m;
+	unsigned int pp;
+	val_check_kind(mv,neko_kind_module);
+	m = (neko_module*)val_data(mv);
+	pp = val_int(p);
+	if( pp < 0 || pp >= m->codesize )
+		neko_error();
+	return alloc_int32(m->code[pp]);
+}
+
+
 DEFINE_PRIM(module_read,2);
 DEFINE_PRIM(module_exec,1);
 DEFINE_PRIM(module_name,1);
@@ -169,5 +194,7 @@ DEFINE_PRIM(module_loader,1);
 DEFINE_PRIM(module_nglobals,1);
 DEFINE_PRIM(module_global_get,2);
 DEFINE_PRIM(module_global_set,3);
+DEFINE_PRIM(module_code_size,1);
+DEFINE_PRIM(module_code_get,2);
 
 /* ************************************************************************ */
