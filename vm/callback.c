@@ -40,6 +40,7 @@ extern int neko_stack_expand( int_val *sp, int_val *csp, neko_vm *vm );
 EXTERN value val_callEx( value vthis, value f, value *args, int nargs, value *exc ) {
 	neko_vm *vm = NEKO_VM();
 	value old_this = vm->vthis;
+	value old_env = vm->env;
 	value ret = val_null;
 	jmp_buf oldjmp;
 	int old_ncalls = vm->ncalls++;
@@ -53,6 +54,7 @@ EXTERN value val_callEx( value vthis, value f, value *args, int nargs, value *ex
 			*exc = vm->vthis;
 			neko_process_trap(vm);
 			vm->vthis = old_this;
+			vm->env = old_env;
 			memcpy(&vm->start,&oldjmp,sizeof(jmp_buf));
 			vm->ncalls = old_ncalls;
 			return val_null;
@@ -60,7 +62,6 @@ EXTERN value val_callEx( value vthis, value f, value *args, int nargs, value *ex
 		neko_setup_trap(vm,0);
 	}
 	if( val_tag(f) == VAL_PRIMITIVE ) {
-		value old_env = vm->env;
 		if( nargs > CALL_MAX_ARGS )
 			failure("Too many arguments for a call");
 		vm->env = ((vfunction *)f)->env;
@@ -88,10 +89,9 @@ EXTERN value val_callEx( value vthis, value f, value *args, int nargs, value *ex
 		} else if( ((vfunction*)f)->nargs == -1 )
 			ret = (value)((c_primN)((vfunction*)f)->addr)(args,nargs);
 		else
-			val_throw(alloc_string("Invalid call"));
+			val_throw(alloc_string("Invalid call"));		
 		if( ret == NULL )
-			val_throw( (value)((vfunction*)f)->module );
-		vm->env = old_env;		
+			val_throw( (value)((vfunction*)f)->module );		
 	} else if( val_tag(f) == VAL_FUNCTION ) {
 		if( nargs == ((vfunction*)f)->nargs )  {
 			int n;
@@ -100,7 +100,6 @@ EXTERN value val_callEx( value vthis, value f, value *args, int nargs, value *ex
 					neko_process_trap(vm);
 					memcpy(&vm->start,&oldjmp,sizeof(jmp_buf));	
 				}
-				vm->vthis = old_this;
 				failure("Stack Overflow");
 			} else {
 				for(n=0;n<nargs;n++)
@@ -108,19 +107,22 @@ EXTERN value val_callEx( value vthis, value f, value *args, int nargs, value *ex
 				*++vm->csp = (int_val)callback_return;
 				*++vm->csp = 0;
 				*++vm->csp = (int_val)vm->vthis;
-				*++vm->csp = 0;
-				ret = neko_interp(vm,((vfunction*)f)->module,(int_val)val_null,(int_val*)((vfunction*)f)->addr,((vfunction*)f)->env);
+				*++vm->csp = (int_val)vm->env;
+				vm->env = ((vfunction*)f)->env;
+				ret = neko_interp(vm,((vfunction*)f)->module,(int_val)val_null,(int_val*)((vfunction*)f)->addr);
 			}
 		}
 		else
 			val_throw(alloc_string("Invalid call"));
-	}
+	} else
+		val_throw(alloc_string("Invalid call"));
 	if( exc ) {
 		neko_process_trap(vm);
 		memcpy(&vm->start,&oldjmp,sizeof(jmp_buf));	
 	}
 	vm->ncalls = old_ncalls;
 	vm->vthis = old_this;
+	vm->env = old_env;
 	return ret;
 }
 

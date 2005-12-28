@@ -110,10 +110,14 @@ EXTERN void *neko_vm_custom( neko_vm *vm ) {
 EXTERN value neko_vm_execute( neko_vm *vm, void *_m ) {
 	unsigned int i;
 	neko_module *m = (neko_module*)_m;
+	value old_env = vm->env, ret;
 	neko_vm_select(vm);
 	for(i=0;i<m->nfields;i++)
 		val_id(val_string(m->fields[i]));
-	return neko_interp(vm,m,(int_val)val_null,m->code,alloc_array(0));
+	vm->env = alloc_array(0);
+	ret = neko_interp(vm,m,(int_val)val_null,m->code);
+	vm->env = old_env;
+	return ret;
 }
 
 EXTERN value neko_exc_stack( neko_vm *vm ) {
@@ -160,7 +164,7 @@ typedef int_val (*c_primN)(value*,int);
 			csp = vm->csp; \
 		} \
 		*++csp = (int_val)pc; \
-		*++csp = (int_val)env; \
+		*++csp = (int_val)vm->env; \
 		*++csp = (int_val)vm->vthis; \
 		*++csp = (int_val)m;
 
@@ -169,7 +173,7 @@ typedef int_val (*c_primN)(value*,int);
 		*csp-- = ERASE; \
 		vm->vthis = (value)*csp; \
 		*csp-- = ERASE; \
-		env = (value)*csp; \
+		vm->env = (value)*csp; \
 		*csp-- = ERASE; \
 		if( restpc ) pc = (int_val*)*csp; \
 		*csp-- = ERASE;
@@ -199,7 +203,7 @@ typedef int_val (*c_primN)(value*,int);
 			m = (neko_module*)((vfunction*)acc)->module; \
 			pc = (int_val*)((vfunction*)acc)->addr; \
 			vm->vthis = this_arg; \
-			env = ((vfunction*)acc)->env; \
+			vm->env = ((vfunction*)acc)->env; \
 		} else if( val_tag(acc) == VAL_PRIMITIVE ) { \
 			if( pc_args == ((vfunction*)acc)->nargs ) { \
 				SetupBeforeCall(this_arg); \
@@ -377,7 +381,7 @@ void neko_process_trap( neko_vm *vm ) {
 		*vm->sp++ = ERASE;
 }
 
-static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *_pc, value env ) {
+static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *_pc ) {
 	register int_val acc ACC_REG = _acc;
 	register int_val *pc PC_REG = _pc;
 	register int_val *sp SP_REG = vm->sp;
@@ -415,8 +419,8 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 		acc = *(int_val*)(*pc++);
 		Next;
 	Instr(AccEnv)
-		Error( *pc >= val_array_size(env) , "Reading Outside Env" );
-		acc = (int_val)val_array_ptr(env)[*pc++];
+		Error( *pc >= val_array_size(vm->env) , "Reading Outside Env" );
+		acc = (int_val)val_array_ptr(vm->env)[*pc++];
 		Next;
 	Instr(AccField)
 		if( val_is_object(acc) ) {
@@ -485,8 +489,8 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 		*(int_val*)(*pc++) = acc;
 		Next;
 	Instr(SetEnv)
-		Error( *pc >= val_array_size(env) , "Writing Outside Env" );
-		val_array_ptr(env)[*pc++] = (value)acc;
+		Error( *pc >= val_array_size(vm->env) , "Writing Outside Env" );
+		val_array_ptr(vm->env)[*pc++] = (value)acc;
 		Next;
 	Instr(SetField)
 		if( val_is_object(*sp) ) {
@@ -621,7 +625,7 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 		}
 		sp[0] = (int_val)alloc_int((int_val)(csp - vm->spmin));
 		sp[1] = (int_val)vm->vthis;
-		sp[2] = (int_val)env;
+		sp[2] = (int_val)vm->env;
 		sp[3] = address_int(*pc);
 		sp[4] = address_int(m);
 		sp[5] = (int_val)alloc_int(vm->trap);
@@ -813,7 +817,7 @@ end:
 	return acc;
 }
 
-value neko_interp( neko_vm *vm, void *m, int_val acc, int_val *pc, value env ) {
+value neko_interp( neko_vm *vm, void *m, int_val acc, int_val *pc ) {
 	int_val *sp, *csp, *trap;
 	int_val init_sp = vm->spmax - vm->sp;
 	int old_ncalls = vm->ncalls;
@@ -843,7 +847,7 @@ value neko_interp( neko_vm *vm, void *m, int_val acc, int_val *pc, value env ) {
 
 		// restore state
 		vm->vthis = (value)trap[1];
-		env = (value)trap[2];
+		vm->env = (value)trap[2];
 		pc = int_address(trap[3]);
 		m = (void*)int_address(trap[4]);
 
@@ -853,7 +857,7 @@ value neko_interp( neko_vm *vm, void *m, int_val acc, int_val *pc, value env ) {
 		while( vm->sp < sp )
 			*vm->sp++ = ERASE;
 	}
-	acc = interp_loop(vm,(neko_module*)m,acc,pc,env);
+	acc = interp_loop(vm,(neko_module*)m,acc,pc);
 	memcpy(&vm->start,&old,sizeof(jmp_buf));
 	return (value)acc;
 }

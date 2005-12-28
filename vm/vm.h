@@ -54,7 +54,7 @@ extern _context *neko_vm_context;
 #define NEKO_VM()	((neko_vm*)context_get(neko_vm_context))
 
 extern value alloc_apply( int nargs, value env );
-extern value neko_interp( neko_vm *vm, void *m, int_val acc, int_val *pc, value env );
+extern value neko_interp( neko_vm *vm, void *m, int_val acc, int_val *pc );
 
 #endif
 /* ************************************************************************ */
