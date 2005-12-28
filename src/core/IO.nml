@@ -176,14 +176,14 @@ function read_buf(i,n) {
 		try {
 			while *len > 0 {
 				var n = i.in_input s (*p) (*len);
-				if n == 0 then throw (if *p == 0 then Blocked else Eof);			
+				if n == 0 then throw (if *p == 0 then Blocked else Eof);
 				p := *p + n;
 				len := *len - n;
 			};
 			s
 		} catch {
-			Eof -> 
-				if *p == 0 then throw Eof;				
+			Eof ->
+				if *p == 0 then throw Eof;
 				String.sub s 0 (*p)
 		}
 	}
@@ -191,7 +191,7 @@ function read_buf(i,n) {
 
 function read_all(i : input) : string {
 	var b = Buffer.create();
-	var maxlen = 4096;	
+	var maxlen = 4096;
 	try {
 		while true {
 			Buffer.add b (read_buf i maxlen);
@@ -220,14 +220,23 @@ function read_i32(i) : int {
 	var ch1 = read_byte i;
 	var ch2 = read_byte i;
 	var ch3 = read_byte i;
-	var ch4 = read_byte i;	
+	var ch4 = read_byte i;
 	if ch4 and 128 != 0 then {
 		if (ch4 and 64 == 0) then throw Overflow("read_i32");
-		ch1 or (ch2 << 8) or (ch3 << 16) or ((ch4 and 127) << 24)		
+		ch1 or (ch2 << 8) or (ch3 << 16) or ((ch4 and 127) << 24)
 	} else {
 		if (ch4 and 64 != 0) then throw Overflow("read_i32");
 		ch1 or (ch2 << 8) or (ch3 << 16) or (ch4 << 24)
 	}
+}
+
+function read_real_i32(i) : int32 {
+	var ch1 = read_byte i;
+	var ch2 = read_byte i;
+	var ch3 = read_byte i;
+	var base = Int32.of_int (ch1 or (ch2 << 8) or (ch3 << 16));
+	var big = Int32.shl Int32.of_int(read_byte(i)) 24;
+	Int32.bor base big
 }
 
 function read_ui16(i) {
@@ -261,8 +270,13 @@ function write_char(o : output, x : char) : void {
 	o.out_write x
 }
 
-function write_byte(o : output, x : int) : void {	
+function write_byte(o : output, x : int) : void {
 	o.out_write (chr (x and 255))
+}
+
+function write_i8(o : output, x : int) : void {
+	if x < 127 || x > 128 then invalid_arg();
+	write_byte o (x and 0xFF)
 }
 
 function output(o,s,p,n) {
@@ -287,6 +301,15 @@ function write_i32(o : output, x : int) : void {
 	write_byte o (x >> 8);
 	write_byte o (x >> 16);
 	write_byte o (x >>> 24)
+}
+
+function write_real_i32(o : output, x : int32) : void {
+	var base = Int32.to_int (Int32.band x (Int32.of_int 0xFFFFFF));
+	var big = Int32.to_int (Int32.ushr x 24);
+	write_byte o base;
+	write_byte o (base >> 8);
+	write_byte o (base >> 16);
+	write_byte o big
 }
 
 function write_ui16(o : output, x : int) : void {
