@@ -141,9 +141,6 @@
 			RelativePath=".\module.c">
 		</File>
 		<File
-			RelativePath=".\others.c">
-		</File>
-		<File
 			RelativePath=".\random.c">
 		</File>
 		<File
@@ -151,6 +148,9 @@
 		</File>
 		<File
 			RelativePath=".\socket.c">
+		</File>
+		<File
+			RelativePath=".\string.c">
 		</File>
 		<File
 			RelativePath=".\sys.c">
