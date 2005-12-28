@@ -163,6 +163,15 @@ var t_bool = {
 	});
 }
 
+function rec is_int(t) {
+	if t === t_int then
+		true
+	else match t.texpr {
+	| TLink t -> is_int t
+	| _ -> false
+	}
+}
+
 function t_mono(g) {
 	{
 		tid = -2;
