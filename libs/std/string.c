@@ -23,9 +23,9 @@
 
 /**
 	<doc>
-	<h1>Misc Functions</h1>
+	<h1>String Functions</h1>
 	<p>
-	Some other standard functions that don't belong to any particular module.
+	Some useful functions dealing with string manipulation.
 	</p>
 	</doc>
 **/
