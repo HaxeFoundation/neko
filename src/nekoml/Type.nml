@@ -146,6 +146,8 @@ function abstract(s) {
 	texpr = TNamed [s] [] t_abstract;
 }
 
+// theses are not really unique since they're declared
+// also in Core, so it's not possible to use physeq
 var t_void = abstract "void";
 var t_int = abstract "int";
 var t_float = abstract "float";
@@ -164,9 +166,8 @@ var t_bool = {
 }
 
 function rec is_int(t) {
-	if t === t_int then
-		true
-	else match t.texpr {
+	match t.texpr {
+	| TNamed(["int"],_,_) -> true
 	| TLink t -> is_int t
 	| _ -> false
 	}
