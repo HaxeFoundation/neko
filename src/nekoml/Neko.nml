@@ -231,7 +231,7 @@ function rec gen_match_rec(mctx,fail,next,m) {
 			}
 		} else {
 			mctx.first := true;
-			if !next then 
+			if !next then
 				gen_expr ctx e
 			else {
 				var out = call t_void (builtin "goto") [ident mctx.out] p;
@@ -420,19 +420,21 @@ function rec gen_binop(ctx,op,e1,e2,p) {
 		| _ ->
 			(EBinop "=" (EArray gen_expr(ctx,e1) int(0),e1.epos) gen_expr(ctx,e2) , p)
 		}
+	| "/" when is_int e1.etype && is_int e2.etype ->
+		builtin2 "idiv"
 	| _ ->
 		make op
 	}
 }
 
-function rec gen_call(ctx,e,el,p) {
+function rec gen_call(ctx,rt,e,el,p) {
 	match e.edecl {
-	| TConst (TIdent "neko") 
+	| TConst (TIdent "neko")
 	| TConst (TModule ([],TIdent "neko"))
 	| TConst (TModule (["Core"],TIdent "neko")) ->
 		match el {
 		| [{ edecl = TConst (TString s) }] ->
-			var ch = IO.read_string (String.concat "\"" (String.split s "'"));			
+			var ch = IO.read_string (String.concat "\"" (String.split s "'"));
 			var lex = Lexer.create Buffer.create();
 			Lexer.input lex p.psource ch p.pline p.pmin;
 			fst (Neko.Parser.parse lex)
@@ -447,7 +449,7 @@ function rec gen_call(ctx,e,el,p) {
 		| _ -> assert()
 		}
 	| _ ->
-		fst (call e.etype (gen_expr ctx e) (List.map (gen_expr ctx) el) p)
+		fst (call rt (gen_expr ctx e) (List.map (gen_expr ctx) el) p)
 	}
 }
 
@@ -457,7 +459,7 @@ function rec gen_expr(ctx,e) {
 	| TConst c -> fst (gen_constant ctx c p)
 	| TBlock el -> EBlock (gen_block ctx el p)
 	| TParenthesis e -> EParenthesis (gen_expr ctx e)
-	| TCall (e,el) -> gen_call ctx e el p
+	| TCall (f,el) -> gen_call ctx e.etype f el p
 	| TField (e,s) -> EArray gen_expr(ctx,e) int(record_index s e.etype)
 	| TArray (e1,e2) ->
 		ECall (import ctx core "@aget" p) [gen_expr ctx e1;gen_expr ctx e2]
