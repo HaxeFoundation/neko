@@ -47,6 +47,8 @@ neko("
 	module_global_set = $loader.loadprim('std@module_global_set',3);
 	module_code_size = $loader.loadprim('std@module_code_size',1);
 	module_code_get = $loader.loadprim('std@module_code_get',2);
+	module_code_address = $loader.loadprim('std@module_code_address',1);
+	module_register_fields = $loader.loadprim('std@module_register_fields',1);
 ");
 
 function value( n : neko_value ) : value {
@@ -127,10 +129,18 @@ function set_global( m : module, n : int, v : value ) : void {
 	neko("module_global_set(m,n,v)");
 }
 
-function codesize( m : module ) : int {
+function code_size( m : module ) : int {
 	neko("module_code_size(m)");
+}
+
+function code_address( m : module ) : int32 {
+	neko("module_code_address(m)");
 }
 
 function code_get( m : module, p : int ) : int32 {
 	neko("module_code_get(m,p)");
+}
+
+function register_fields( m : module ) : void {
+	neko("module_register_fields(m)");
 }
