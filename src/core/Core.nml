@@ -65,11 +65,12 @@ neko("
 	@sprintf = $loader.loadprim('std@sprintf',2);
 
 	@string = function(x) {
-		// constructor
-		if( $typeof(x[1]) == $tfunction )
-			return x[1](x);
 		// tuples
 		if( $typeof(x) == $tarray ) {
+			// constructor
+			var printer = x[1];
+			if( $typeof(printer) == $tfunction && $nargs(printer) == 1 )
+				return printer(x);
 			var s = '(';
 			var l = $asize(x);
 			var i = 0;
