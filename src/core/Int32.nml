@@ -39,3 +39,12 @@ var complement : t -> t = _load("complement",1);
 var bor : t -> t -> t = _load("or",2);
 var band : t -> t -> t = _load("and",2);
 var bxor : t -> t -> t = _load("xor",2);
+
+neko("_address = _load('address',1)");
+
+function address( x : 'a ) : t {
+	neko "_address(x)"
+}
+
+var zero = of_int 0;
+var one = of_int 1;
