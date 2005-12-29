@@ -111,12 +111,15 @@ EXTERN value neko_vm_execute( neko_vm *vm, void *_m ) {
 	unsigned int i;
 	neko_module *m = (neko_module*)_m;
 	value old_env = vm->env, ret;
+	value old_this = vm->vthis;
 	neko_vm_select(vm);
 	for(i=0;i<m->nfields;i++)
 		val_id(val_string(m->fields[i]));
 	vm->env = alloc_array(0);
+	vm->vthis = val_null;
 	ret = neko_interp(vm,m,(int_val)val_null,m->code);
 	vm->env = old_env;
+	vm->vthis = old_this;
 	return ret;
 }
 
