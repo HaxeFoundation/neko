@@ -177,9 +177,22 @@ INT32_OP(and,&);
 **/
 INT32_OP(xor,^);
 
+/**
+	int32_address : any -> #int32
+	<doc>
+	Return the address of the value. 
+	The address should not be considered constant. It is not unique
+	either unless you are sure you are running on a 32-bit platform.
+	</doc>
+**/
+static value int32_address( value v ) {
+	return alloc_best_int((int_val)v);
+}
+
 DEFINE_PRIM(int32_new,1);
 DEFINE_PRIM(int32_to_int,1);
 DEFINE_PRIM(int32_compare,2);
 DEFINE_PRIM(int32_ushr,2)
+DEFINE_PRIM(int32_address,1);
 
 /* ************************************************************************ */
