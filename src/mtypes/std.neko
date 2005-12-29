@@ -180,6 +180,33 @@ List.new = function() {
 	return l;
 }
 
+@List.filter = function(f) {
+	var l = List.new();
+	if( this.h != null ) {
+		var cur = this.h;
+		var last = null;
+		var count = 0;
+		l.h = null;
+		while( cur != null ) {
+			if( f(cur[0]) {
+				if( last == null ) {
+					last = $array(cur[0],null);
+					l.h = last;
+				} else {
+					var tmp = $array(cur[0])null);
+					last[1] = tmp;
+					last = tmp;
+				}
+				count += 1;
+			}
+			cur = cur[1];
+		}
+		l.q = last;
+		l.l = count;
+	}
+	return l;
+}
+
 $exports.List = List;
 
 // ----------------------------------------------------------------------
