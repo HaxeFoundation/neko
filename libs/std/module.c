@@ -67,9 +67,9 @@ static value module_read( value fread, value loader ) {
 	val_array_ptr(p)[0] = fread;
 	val_array_ptr(p)[1] = alloc_empty_string(READ_BUFSIZE);
 	m = neko_read_module(read_proxy,p,loader);
-	m->name = alloc_string("");
 	if( m == NULL )
 		neko_error();
+	m->name = alloc_string("");
 	return alloc_abstract(neko_kind_module,m);
 }
 
@@ -171,6 +171,15 @@ static value module_code_size( value mv ) {
 }
 
 /**
+	module_code_address : 'module -> 'int32
+	<doc>return the base address of the module code</doc>
+**/
+static value module_code_address( value mv ) {
+	val_check_kind(mv,neko_kind_module);
+	return alloc_int32( ((neko_module*)val_data(mv))->code );
+}
+
+/**
 	module_code_get : 'module -> n:int -> 'int32
 	<doc>return the [n]th code value of the module code</doc>
 **/
@@ -185,6 +194,19 @@ static value module_code_get( value mv, value p ) {
 	return alloc_int32(m->code[pp]);
 }
 
+/**
+	module_register_fields : 'module -> void
+	<doc>register all the fields used by the module with current thread</doc>
+**/
+static value module_register_fields( value mv ) {
+	neko_module *m;
+	unsigned int i;
+	val_check_kind(mv,neko_kind_module);
+	m = (neko_module*)val_data(mv);
+	for(i=0;i<m->nfields;i++)
+		val_id(val_string(m->fields[i]));
+	return val_true;
+}
 
 DEFINE_PRIM(module_read,2);
 DEFINE_PRIM(module_exec,1);
@@ -196,5 +218,7 @@ DEFINE_PRIM(module_global_get,2);
 DEFINE_PRIM(module_global_set,3);
 DEFINE_PRIM(module_code_size,1);
 DEFINE_PRIM(module_code_get,2);
+DEFINE_PRIM(module_code_address,1);
+DEFINE_PRIM(module_register_fields,1);
 
 /* ************************************************************************ */
