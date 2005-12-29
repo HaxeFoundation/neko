@@ -47,7 +47,7 @@ libs = {
 
 cflags = $array("-O3","-fPIC");
 linkcmd = switch system { "BSD" => "ld" default => "gcc" };
-linkoptions = switch system { default => "-shared -L../../bin -lneko" };
+linkoptions = switch system { "Mac" => "-bundle -undefined dynamic_lookup -L../../bin -lneko" default => "-shared -L../../bin -lneko" };
 nekovm = switch system { "Windows" => "..\\bin\\nekovm" default => "../bin/nekovm" };
 
 // COMMANDS
@@ -66,6 +66,7 @@ libraries = $array(
 	"/usr/lib",
 	"/usr/local/lib",
 	"/usr/local/lib/mysql",
+	"/usr/include/httpd",
 );
 
 exec = function(cmd) {
