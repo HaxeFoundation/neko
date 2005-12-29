@@ -2,19 +2,20 @@
 
 CFLAGS = -Wall -O3 -fPIC -fomit-frame-pointer -I vm -DCOMPACT_TABLE
 MAKESO = gcc -shared -WBsymbolic
+LIBNEKO_NAME = libneko.so
 LIBNEKO_LIBS = -ldl -lgc -lm
-LIBNEKO = -Lbin -lneko
+NEKOVM_FLAGS = -Lbin -lneko
+STD_NDLL_FLAGS = ${NEKOVM_FLAGS}
 
 NEKO_EXEC = LD_LIBRARY_PATH=../bin:${LD_LIBRARY_PATH} NEKOPATH=../boot ../bin/nekovm
+
+# For OSX
+#
+# MACOSX = 1
 
 # For 64 bit
 #
 # CFLAGS += -D_64BITS
-
-# For OSX
-#
-# MAKESO = gcc -dynamic
-# LIBNEKO = 
 
 # For profiling VM
 #
@@ -24,6 +25,18 @@ NEKO_EXEC = LD_LIBRARY_PATH=../bin:${LD_LIBRARY_PATH} NEKOPATH=../boot ../bin/ne
 #
 # CFLAGS += -DLOW_MEM
 
+### OSX SPECIFIC
+
+ifeq (${MACOSX}, 1)
+MACOSX_DEPLOYMENT_TARGET = 10.3
+MAKESO = gcc
+LIBNEKO_NAME = libneko.dylib
+LIBNEKO_INSTALL = -install_name @executable_path/${LIBNEKO_NAME}
+LIBNEKO_LIBS = -ldl -lgc -lm -dynamiclib -single_module ${LIBNEKO_INSTALL}
+NEKOVM_FLAGS = -L${PWD}/bin -lneko
+STD_NDLL_FLAGS = -bundle -undefined dynamic_lookup ${NEKOVM_FLAGS}
+endif
+
 ### MAKE
 
 VM_OBJECTS = vm/main.o
@@ -32,7 +45,7 @@ LIBNEKO_OBJECTS = vm/alloc.o vm/builtins.o vm/callback.o vm/context.o vm/interp.
 
 all: libneko nekovm std compiler libs
 
-libneko: bin/libneko.so
+libneko: bin/${LIBNEKO_NAME}
 
 libs:
 	(cd src; ${NEKO_EXEC} neko tools/install.neko)
@@ -41,7 +54,7 @@ libs:
 doc:
 	(cd src; ${NEKO_EXEC} neko tools/makedoc.neko)
 	(cd src; ${NEKO_EXEC} tools/makedoc)
-	
+
 test:
 	(cd src; ${NEKO_EXEC} neko tools/test.neko)
 	(cd src; ${NEKO_EXEC} tools/test)
@@ -55,19 +68,20 @@ compiler:
 	(cd src; ${NEKO_EXEC} neko -link ../bin/neko.n neko/Main)
 	(cd src; ${NEKO_EXEC} neko -link ../bin/nekoml.n nekoml/Main)
 
-bin/libneko.so: ${LIBNEKO_OBJECTS}
+bin/${LIBNEKO_NAME}: ${LIBNEKO_OBJECTS}
 	${MAKESO} -o $@ ${LIBNEKO_OBJECTS} ${LIBNEKO_LIBS}
 
 bin/nekovm: $(VM_OBJECTS)
-	${CC} ${CFLAGS} -o $@ ${VM_OBJECTS} ${LIBNEKO}
+	${CC} ${CFLAGS} -o $@ ${VM_OBJECTS} ${NEKOVM_FLAGS}
 
 bin/std.ndll: ${STD_OBJECTS}
-	${MAKESO} -o $@ ${STD_OBJECTS} ${LIBNEKO}
+	${MAKESO} -o $@ ${STD_OBJECTS} ${STD_NDLL_FLAGS}
 
 clean:
-	rm -rf bin/libneko.so bin/nekovm ${LIBNEKO_OBJECTS} ${VM_OBJECTS}
-	rm -rf bin/std bin/*.ndll libs/*/*.o
+	rm -rf bin/${LIBNEKO_NAME} bin/nekovm ${LIBNEKO_OBJECTS} ${VM_OBJECTS}
+	rm -rf bin/std bin/*.ndll bin/*.n libs/*/*.o
 	rm -rf src/*.n src/neko/*.n src/nekoml/*.n src/tools/*.n
+	rm -rf bin/mtypes bin/tools
 
 .SUFFIXES : .c .o
 
