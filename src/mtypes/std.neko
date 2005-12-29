@@ -188,7 +188,7 @@ List.new = function() {
 		var count = 0;
 		l.h = null;
 		while( cur != null ) {
-			if( f(cur[0]) {
+			if( f(cur[0]) ) {
 				if( last == null ) {
 					last = $array(cur[0],null);
 					l.h = last;
