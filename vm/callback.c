@@ -105,9 +105,9 @@ EXTERN value val_callEx( value vthis, value f, value *args, int nargs, value *ex
 				for(n=0;n<nargs;n++)
 					*--vm->sp = (int_val)args[n];
 				*++vm->csp = (int_val)callback_return;
-				*++vm->csp = 0;
-				*++vm->csp = (int_val)vm->vthis;
 				*++vm->csp = (int_val)vm->env;
+				*++vm->csp = (int_val)vm->vthis;
+				*++vm->csp = 0;
 				vm->env = ((vfunction*)f)->env;
 				ret = neko_interp(vm,((vfunction*)f)->module,(int_val)val_null,(int_val*)((vfunction*)f)->addr);
 			}
