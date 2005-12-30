@@ -141,8 +141,8 @@ typedef int_val (*c_prim4)(int_val,int_val,int_val,int_val);
 typedef int_val (*c_prim5)(int_val,int_val,int_val,int_val,int_val);
 typedef int_val (*c_primN)(value*,int);
 
-#define RuntimeError(err)	{ PushInfos(); BeginCall(); val_throw(alloc_string(err)); }
-#define CallFailure()		RuntimeError("Invalid call")
+#define RuntimeError(err)	{ pc++; PushInfos(); BeginCall(); val_throw(alloc_string(err)); }
+#define CallFailure()		{ pc--; RuntimeError("Invalid call"); }
 
 #define Instr(x)	case x:
 #define Next		break;
@@ -422,10 +422,8 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 		if( val_is_object(acc) ) {
 			value *f = otable_find(((vobject*)acc)->table,(field)*pc);
 			acc = (int_val)(f?*f:val_null);
-		} else {
-			pc++;
+		} else
 			RuntimeError("Invalid field access");
-		}
 		pc++;
 		Next;
 	Instr(AccArray)
@@ -493,10 +491,8 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 			ACC_BACKUP;
 			otable_replace(((vobject*)*sp)->table,(field)*pc,(value)acc);
 			ACC_RESTORE;
-		} else {
-			pc++;
+		} else
 			RuntimeError("Invalid field access");
-		}
 		*sp++ = ERASE;
 		pc++;
 		Next;
@@ -650,7 +646,10 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 				val_array_ptr(tmp)[n] = (value)*sp;
 				*sp++ = ERASE;
 			}
-			if( val_is_int(acc) || val_tag(acc) != VAL_FUNCTION ) RuntimeError("Invalid environment");
+			if( val_is_int(acc) || val_tag(acc) != VAL_FUNCTION ) {
+				pc--;
+				RuntimeError("Invalid environment");
+			}
 			acc = (int_val)alloc_module_function(((vfunction*)acc)->module,(int_val)((vfunction*)acc)->addr,((vfunction*)acc)->nargs);
 			((vfunction*)acc)->env = (value)tmp;
 		}
