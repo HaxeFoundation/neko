@@ -141,7 +141,7 @@ typedef struct {
 
 #define max_array_size		((1 << 29) - 1)
 #define max_string_size		((1 << 29) - 1)
-#define invalid_comparison	0xFF
+#define invalid_comparison	0xFE
 
 #undef EXTERN
 #undef EXPORT
