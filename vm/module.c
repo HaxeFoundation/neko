@@ -164,9 +164,11 @@ static int neko_check_stack( neko_module *m, unsigned char *tmp, unsigned int i,
 			i += itmp;	
 			while( itmp > 0 ) {
 				itmp -= 2;
+				if( m->code[i - itmp] != Jump )
+					return 0;
 				if( !neko_check_stack(m,tmp,i - itmp,stack,istack) )
 					return 0;
-			}			
+			}
 			break;
 		case AccStack:
 		case SetStack:
