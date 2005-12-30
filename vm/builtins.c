@@ -31,6 +31,45 @@
 
 extern value *neko_builtins;
 
+extern value NEKO_TYPEOF[];
+extern value alloc_module_function( void *m, int_val pos, int nargs );
+
+typedef value (*fjit)( neko_vm *vm, value param );
+
+static value builtin_jit( value code, value param ) {
+	neko_vm *vm = NEKO_VM();
+	val_check(code,string);
+	return ((fjit)val_string(code))(vm,param);
+}
+
+static value do_alloc_int32( int i ) {
+	return alloc_int32(i);
+}
+
+static value builtin_jit_functions() {
+	value a = alloc_array(13);
+	value *p = val_array_ptr(a);
+	*p++ = alloc_int32(neko_interp);
+	*p++ = alloc_int32(callback_return);
+	*p++ = alloc_int32(alloc_array);
+	*p++ = alloc_int32(NEKO_TYPEOF);
+	*p++ = alloc_int32(val_id);
+	*p++ = alloc_int32(alloc_object);
+#ifdef COMPACT_TABLE
+	*p++ = alloc_int32(otable_replace);
+	*p++ = alloc_int32(1);
+#else
+	*p++ = alloc_int32(_otable_replace);
+	*p++ = alloc_int32(0);
+#endif
+	*p++ = alloc_int32(otable_find);
+	*p++ = alloc_int32(val_throw);
+	*p++ = alloc_int32(do_alloc_int32);
+	*p++ = alloc_int32(alloc_module_function);
+	*p++ = alloc_int32(val_compare);
+	return a;
+}
+
 /**
 	<doc>
 		<h1>Builtins</h1>
@@ -392,7 +431,10 @@ static value builtin_field( value f ) {
 
 /**
 	$nargs : function -> int
-	<doc>Return the number of arguments of a function</doc>
+	<doc>
+	Return the number of arguments of a function. 
+	If the function have a variable number of arguments, it returns -1
+	</doc>
 **/
 static value builtin_nargs( value f ) {
 	val_check(f,function);
@@ -1132,6 +1174,8 @@ void neko_init_builtins() {
 
 	BUILTIN(excstack,0);
 	BUILTIN(callstack,0);
+	BUILTIN(jit,2);
+	BUILTIN(jit_functions,0);
 }
 
 /* ************************************************************************ */
