@@ -657,11 +657,14 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 	Instr(MakeArray)
 		{
 			int n = (int)*pc++;
-			acc = (int_val)alloc_array(n);
-			while( n-- ) {
-				val_array_ptr(acc)[n] = (value)*sp;
+			value arr = alloc_array(n+1);
+			while( n ) {
+				val_array_ptr(arr)[n] = (value)*sp;
 				*sp++ = ERASE;
+				n--;
 			}
+			val_array_ptr(arr)[0] = (value)acc;
+			acc = (int_val)arr;
 		}
 		Next;
 	Instr(Bool)
