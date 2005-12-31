@@ -116,7 +116,7 @@ function complete(dir) {
 }
 
 try {
-	var head = "Neko v1.0 - (c)2005 Nicolas Cannasse\n Usage : neko [options] files...";
+	var head = "Neko v1.2 - (c)2005 Nicolas Cannasse\n Usage : neko [options] files...";
 	var link = &None;
 	var links = &[];
 	var decl = [
