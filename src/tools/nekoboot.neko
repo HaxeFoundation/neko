@@ -1,0 +1,70 @@
+// primitives
+
+file_contents = $loader.loadprim("std@file_contents",1);
+file_open = $loader.loadprim("std@file_open",2);
+file_write = $loader.loadprim("std@file_write",4);
+file_write_char = $loader.loadprim("std@file_write_char",2);
+file_close = $loader.loadprim("std@file_close",1);
+system = $loader.loadprim("std@sys_string",0)();
+
+// find a substring from then end
+
+find = function(str,sub) {
+	var l1 = $ssize(str);
+	var l2 = $ssize(sub);
+	var i = l1 - l2;
+	while( i >= 0 ) {
+		if( $ssub(str,i,l2) == sub )
+			return i;
+		i -= 1;
+	}
+	return null;
+}
+
+// find a file in a path
+
+find_in_path = function(path,file) {
+	while( path != null ) {
+		try {
+			return file_contents(path[0]+file);
+		} catch e {
+			path = path[1];
+		}
+	}
+	$throw("File not found : "+file);
+}
+
+// bytecode = first argument
+
+var args = $args();
+if( $asize(args) != 2 )
+	$throw("Need bytecode argument");
+var file = args[1];
+var bytecode = file_contents(file);
+
+// load boot.bin
+
+var exe_ext = switch system { "Windows" => ".exe" default => "" };
+var boot = find_in_path($loader.path,"nekovm"+exe_ext);
+var pos = find(boot,"##BOOT_POS\000\000\000\000##");
+if( pos == null )
+	$throw("Invalid boot.bin file");
+var boot_size = $ssize(boot);
+
+//  create executable file :
+//  this is the content of boot.bin where was stored
+//  the size of the executable and append the Neko bytecode
+
+var dot_pos = find(file,".");
+if( dot_pos != null )
+	file = $ssub(file,0,dot_pos);
+var out = file_open(file+exe_ext,"wb");
+
+file_write(out,boot,0,pos+10);
+file_write_char(out,boot_size & 0xFF);
+file_write_char(out,(boot_size >> 8) & 0xFF);
+file_write_char(out,(boot_size >> 16) & 0xFF);
+file_write_char(out,boot_size >>> 24);
+file_write(out,boot,pos+14,boot_size-(pos+14));
+file_write(out,bytecode,0,$ssize(bytecode));
+file_close(out);
