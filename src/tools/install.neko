@@ -10,6 +10,7 @@ command = $loader.loadprim("std@sys_command",1);
 file_exists = $loader.loadprim("std@file_exists",1);
 split = $loader.loadprim("std@string_split",2);
 mkdir = $loader.loadprim("std@sys_create_dir",2);
+delete = $loader.loadprimt("std@file_delete",1);
 
 buffer_new = $loader.loadprim("std@buffer_new",0);
 buffer_add_char = $loader.loadprim("std@buffer_add_char",2);
@@ -19,6 +20,7 @@ buffer_string = $loader.loadprim("std@buffer_string",1);
 
 sources = $array(
 	"tools/test",
+	"tools/nekoboot",
 	"mtypes/std",
 );
 
@@ -168,6 +170,11 @@ compile = function(file) {
 	exec("gcc "+make("",cflags)+"-c "+make("-I",includes)+file+".c");
 }
 
+nekoboot = function(file) {
+	exec(nekovm+" nekoboot "+file);
+	delete(file);
+}
+
 link = function(files,target,params1,params2) {
 	files = make("",map(files,function(f){ f + ".o" }));
 	var cmd = linkcmd+" "+linkoptions+" "+make("-L",libraries);
@@ -230,6 +237,10 @@ map(sources,function(s) {
 	exec(nekovm+" neko "+s+".neko");
 	copy(s+".n ",path);
 });
+
+nekoboot(base+"/neko.n");
+nekoboot(base+"/nekoml.n");
+nekoboot(base+"/nekoboot.n");
 
 chdir("../libs");
 var libs = readdir(".");
