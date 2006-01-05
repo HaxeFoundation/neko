@@ -184,6 +184,8 @@ void serialize_rec( sbuffer *b, value o ) {
 			neko_module *m;
 			if( val_tag(o) == VAL_PRIMITIVE )
 				failure("Cannot Serialize Primitive");
+			if( val_tag(o) == VAL_JITFUN )
+				failure("Cannot Serialize JIT method");
 			write_char(b,'L');
 			m = (neko_module*)((vfunction*)o)->module;
 			serialize_rec(b,m->name);
