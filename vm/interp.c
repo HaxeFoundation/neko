@@ -140,9 +140,16 @@ typedef int_val (*c_prim3)(int_val,int_val,int_val);
 typedef int_val (*c_prim4)(int_val,int_val,int_val,int_val);
 typedef int_val (*c_prim5)(int_val,int_val,int_val,int_val,int_val);
 typedef int_val (*c_primN)(value*,int);
+typedef int_val (*jit_prim)( neko_vm *, void *, value );
 
-#define RuntimeError(err)	{ pc++; PushInfos(); BeginCall(); val_throw(alloc_string(err)); }
-#define CallFailure()		{ pc--; RuntimeError("Invalid call"); }
+
+static int_val jit_run( neko_vm *vm, vfunction *acc ) {	
+	neko_module *m = (neko_module*)acc->module;
+	return ((jit_prim)val_string(m->jit))(vm,acc->addr,(value)acc);
+}
+
+#define RuntimeError(err,param)	{ if( param ) pc++; PushInfos(); BeginCall(); val_throw(alloc_string(err)); }
+#define CallFailure()		RuntimeError("Invalid call",false)
 
 #define Instr(x)	case x:
 #define Next		break;
@@ -240,6 +247,14 @@ typedef int_val (*c_primN)(value*,int);
 			} else \
 				CallFailure(); \
 			PopMacro(pc_args); \
+		} else if( val_tag(acc) == VAL_JITFUN ) { \
+			if( pc_args == ((vfunction*)acc)->nargs ) { \
+				SetupBeforeCall(this_arg); \
+				acc = jit_run(vm,(vfunction*)acc); \
+				RestoreAfterCall(); \
+			} else \
+				CallFailure(); \
+			PopMacro(pc_args); \
 		} else \
 			CallFailure();
 
@@ -247,7 +262,7 @@ typedef int_val (*c_primN)(value*,int);
 		if( (acc & 1) && (*sp & 1) ) \
 			acc = (int_val)alloc_int(val_int(*sp) op val_int(acc)); \
 		else \
-			RuntimeError(#op); \
+			RuntimeError(#op,false); \
 		*sp++ = ERASE; \
 		Next
 
@@ -272,14 +287,14 @@ typedef int_val (*c_primN)(value*,int);
 			else if( val_tag(*sp) == VAL_OBJECT ) \
 			    ObjectOp(*sp,acc,id_op) \
 			else \
-				RuntimeError(#op); \
+				RuntimeError(#op,false); \
 		} else if( *sp & 1 ) { \
 			if( val_tag(acc) == VAL_FLOAT ) \
 				acc = (int_val)alloc_float(fop(val_int(*sp),val_float(acc))); \
 			else if( val_tag(acc) == VAL_OBJECT ) \
 				ObjectOp(acc,*sp,id_rop) \
 			else \
-				RuntimeError(#op); \
+				RuntimeError(#op,false); \
 		} else if( val_tag(acc) == VAL_FLOAT && val_tag(*sp) == VAL_FLOAT ) \
 			acc = (int_val)alloc_float(fop(val_float(*sp),val_float(acc))); \
 		else if( val_tag(*sp) == VAL_OBJECT ) \
@@ -287,7 +302,7 @@ typedef int_val (*c_primN)(value*,int);
 		else if( val_tag(acc) == VAL_OBJECT ) \
 			ObjectOp(acc,*sp,id_rop) \
 		else \
-			RuntimeError(#op); \
+			RuntimeError(#op,false); \
 		*sp++ = ERASE; \
 		Next;
 
@@ -415,7 +430,7 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 		acc = *(int_val*)(*pc++);
 		Next;
 	Instr(AccEnv)
-		if( *pc >= val_array_size(vm->env) ) RuntimeError("Reading Outside Env");
+		if( *pc >= val_array_size(vm->env) ) RuntimeError("Reading Outside Env",true);
 		acc = (int_val)val_array_ptr(vm->env)[*pc++];
 		Next;
 	Instr(AccField)
@@ -423,7 +438,7 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 			value *f = otable_find(((vobject*)acc)->table,(field)*pc);
 			acc = (int_val)(f?*f:val_null);
 		} else
-			RuntimeError("Invalid field access");
+			RuntimeError("Invalid field access",true);
 		pc++;
 		Next;
 	Instr(AccArray)
@@ -436,7 +451,7 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 		} else if( val_is_object(*sp) )
 			ObjectOp(*sp,acc,id_get)
 		else 
-			RuntimeError("Invalid array access");
+			RuntimeError("Invalid array access",false);
 		*sp++ = ERASE;
 		Next;
 	Instr(AccIndex0)
@@ -448,7 +463,7 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 		} else if( val_is_object(acc) )
 			ObjectOp(acc,alloc_int(0),id_get)
 		else
-			RuntimeError("Invalid array access");
+			RuntimeError("Invalid array access",false);
 		Next;
 	Instr(AccIndex1)
 		if( val_is_array(acc) ) {
@@ -459,7 +474,7 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 		} else if( val_is_object(acc) )
 			ObjectOp(acc,alloc_int(1),id_get)
 		else
-			RuntimeError("Invalid array access");
+			RuntimeError("Invalid array access",false);
 		Next;
 	Instr(AccIndex)
 		if( val_is_array(acc) ) {
@@ -470,7 +485,7 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 		} else if( val_is_object(acc) )
 			ObjectOp(acc,alloc_int(*pc),id_get)
 		else
-			RuntimeError("Invalid array access");
+			RuntimeError("Invalid array access",true);
 		*pc++;
 		Next;
 	Instr(AccBuiltin)
@@ -483,7 +498,7 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 		*(int_val*)(*pc++) = acc;
 		Next;
 	Instr(SetEnv)
-		if( *pc >= val_array_size(vm->env) ) RuntimeError("Writing Outside Env");
+		if( *pc >= val_array_size(vm->env) ) RuntimeError("Writing Outside Env",true);
 		val_array_ptr(vm->env)[*pc++] = (value)acc;
 		Next;
 	Instr(SetField)
@@ -492,7 +507,7 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 			otable_replace(((vobject*)*sp)->table,(field)*pc,(value)acc);
 			ACC_RESTORE;
 		} else
-			RuntimeError("Invalid field access");
+			RuntimeError("Invalid field access",true);
 		*sp++ = ERASE;
 		pc++;
 		Next;
@@ -542,13 +557,13 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 		Next;
 	Instr(Apply)
 		if( !val_is_function(acc) )
-			RuntimeError("$apply");
+			RuntimeError("$apply",true);
 		{
 			int fargs = val_fun_nargs(acc);
 			if( fargs == *pc || fargs == VAR_ARGS )
 				goto do_call;
 			if( *pc > fargs )
-				RuntimeError("$apply");
+				RuntimeError("$apply",true);
 			{
 				int i = fargs;
 				ACC_BACKUP
@@ -628,7 +643,7 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 		pc++;
 		Next;
 	Instr(EndTrap)
-		if( vm->spmax - vm->trap != sp ) RuntimeError("Invalid End Trap");
+		if( vm->spmax - vm->trap != sp ) RuntimeError("Invalid End Trap",false);
 		vm->trap = val_int(sp[5]);
 		PopMacro(6);
 		Next;
@@ -646,10 +661,8 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 				val_array_ptr(tmp)[n] = (value)*sp;
 				*sp++ = ERASE;
 			}
-			if( val_is_int(acc) || val_tag(acc) != VAL_FUNCTION ) {
-				pc--;
-				RuntimeError("Invalid environment");
-			}
+			if( val_is_int(acc) || val_tag(acc) != VAL_FUNCTION )				
+				RuntimeError("Invalid environment",false);			
 			acc = (int_val)alloc_module_function(((vfunction*)acc)->module,(int_val)((vfunction*)acc)->addr,((vfunction*)acc)->nargs);
 			((vfunction*)acc)->env = (value)tmp;
 		}
@@ -690,7 +703,7 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 			else if( val_tag(*sp) == VAL_OBJECT )
 				ObjectOp(*sp,acc,id_add)
 			else
-				RuntimeError("+");
+				RuntimeError("+",false);
 		} else if( *sp & 1 ) {
 			if( val_tag(acc) == VAL_FLOAT )
 				acc = (int_val)alloc_float(val_int(*sp) + val_float(acc));
@@ -699,7 +712,7 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 			else if( val_tag(acc) == VAL_OBJECT )
 				ObjectOp(acc,*sp,id_radd)
 			else
-				RuntimeError("+");
+				RuntimeError("+",false);
 		} else if( val_tag(acc) == VAL_FLOAT && val_tag(*sp) == VAL_FLOAT )
 			acc = (int_val)alloc_float(val_float(*sp) + val_float(acc));
 		else if( (val_tag(acc)&7) == VAL_STRING && (val_tag(*sp)&7) == VAL_STRING )
@@ -718,7 +731,7 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 		else if( val_tag(acc) == VAL_OBJECT )
 			ObjectOp(acc,*sp,id_radd)
 		else
-			RuntimeError("+");
+			RuntimeError("+",false);
 		*sp++ = ERASE;
 		Next;
 	Instr(Sub)
@@ -733,12 +746,12 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 		else if( val_is_object(*sp) )
 			ObjectOp(*sp,acc,id_div)
 		else
-			RuntimeError("/");
+			RuntimeError("/",false);
 		*sp++ = ERASE;
 		Next;
 	Instr(Mod)
-		if( acc == 1 ) {
-			acc	= (int_val)val_null;
+		if( acc == 1 && val_is_number(*sp) ) {
+			acc	= (int_val)alloc_float( fmod(((tfloat)val_number(*sp)),val_number(acc)) );
 			*sp++ = ERASE;
 			Next;
 		}
@@ -751,7 +764,7 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 		if( (acc & 1) && (*sp & 1) )
 			acc = (int_val)alloc_int(((unsigned int)val_int(*sp)) >> val_int(acc));
 		else
-			RuntimeError(">>>");
+			RuntimeError(">>>",false);
 		*sp++ = ERASE;
 		Next;
 	Instr(Or)
@@ -795,7 +808,7 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 			BeginCall();
 			acc = (int_val)alloc_int( val_id(val_string(acc)) );
 		} else
-			RuntimeError("$hash");
+			RuntimeError("$hash",false);
 		Next;
 	Instr(New)
 		acc = (int_val)alloc_object((value)acc);
@@ -850,6 +863,7 @@ value neko_interp( neko_vm *vm, void *m, int_val acc, int_val *pc ) {
 		// restore state
 		vm->vthis = (value)trap[1];
 		vm->env = (value)trap[2];
+
 		pc = int_address(trap[3]);
 		m = (void*)int_address(trap[4]);
 
@@ -858,6 +872,14 @@ value neko_interp( neko_vm *vm, void *m, int_val acc, int_val *pc ) {
 		vm->trap = val_int(trap[5]);
 		while( vm->sp < sp )
 			*vm->sp++ = ERASE;
+
+		// jit return ?
+		if( val_is_kind(m,neko_kind_module) ) {			
+			int_val code = (int_val)val_string((int_val)((neko_module*)val_data(m))->jit);
+			pc = (int_val*)((((int_val)pc)>>1) + code);
+			acc = ((jit_prim)code)(vm,pc,(value)acc);
+			return (value)acc;
+		}
 	}
 	acc = interp_loop(vm,(neko_module*)m,acc,pc);
 	memcpy(&vm->start,&old,sizeof(jmp_buf));
