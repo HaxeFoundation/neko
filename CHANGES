@@ -11,10 +11,14 @@
 		improved xml parser : support for doctype
 		some fixes for OSX and C++ compilation
 	nekovm:
+		jit support
+		makeboot can create standalone binaries
 		runtime errors on :
 			- calls with invalid number of arguments
 			- field accesses of not-an-object
 			- binary operations on invalid types
+			- array accesses on not-an-array and not-an-object
+	license change : from GPL to LGPL	
 
 2005-11-10 : 1.1
 	vm : 
