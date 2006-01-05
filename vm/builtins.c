@@ -20,6 +20,7 @@
 /* ************************************************************************ */
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
 #include "neko.h"
 #include "objtable.h"
 #include "vm.h"
@@ -30,45 +31,6 @@
 #endif
 
 extern value *neko_builtins;
-
-extern value NEKO_TYPEOF[];
-extern value alloc_module_function( void *m, int_val pos, int nargs );
-
-typedef value (*fjit)( neko_vm *vm, value param );
-
-static value builtin_jit( value code, value param ) {
-	neko_vm *vm = NEKO_VM();
-	val_check(code,string);
-	return ((fjit)val_string(code))(vm,param);
-}
-
-static value do_alloc_int32( int i ) {
-	return alloc_int32(i);
-}
-
-static value builtin_jit_functions() {
-	value a = alloc_array(13);
-	value *p = val_array_ptr(a);
-	*p++ = alloc_int32(neko_interp);
-	*p++ = alloc_int32(callback_return);
-	*p++ = alloc_int32(alloc_array);
-	*p++ = alloc_int32(NEKO_TYPEOF);
-	*p++ = alloc_int32(val_id);
-	*p++ = alloc_int32(alloc_object);
-#ifdef COMPACT_TABLE
-	*p++ = alloc_int32(otable_replace);
-	*p++ = alloc_int32(1);
-#else
-	*p++ = alloc_int32(_otable_replace);
-	*p++ = alloc_int32(0);
-#endif
-	*p++ = alloc_int32(otable_find);
-	*p++ = alloc_int32(val_throw);
-	*p++ = alloc_int32(do_alloc_int32);
-	*p++ = alloc_int32(alloc_module_function);
-	*p++ = alloc_int32(val_compare);
-	return a;
-}
 
 /**
 	<doc>
@@ -1102,6 +1064,40 @@ static value builtin_callstack() {
 	return neko_call_stack(NEKO_VM());
 }
 
+/**
+	$jit_functions : void -> 'int32 array
+	<doc>Return some internal functions addresses needed for JIT</doc>
+**/
+extern value NEKO_TYPEOF[];
+extern value alloc_module_function( void *m, int_val pos, int nargs );
+extern int neko_stack_expand( int_val *sp, int_val *csp, neko_vm *vm );
+
+static value builtin_jit_functions() {
+	value a = alloc_array(15);
+	value *p = val_array_ptr(a);
+	*p++ = alloc_int32(neko_interp);
+	*p++ = alloc_int32(callback_return);
+	*p++ = alloc_int32(alloc_array);
+	*p++ = alloc_int32(NEKO_TYPEOF);
+	*p++ = alloc_int32(val_id);
+	*p++ = alloc_int32(alloc_object);
+#ifdef COMPACT_TABLE
+	*p++ = alloc_int32(otable_replace);
+	*p++ = alloc_int32(1);
+#else
+	*p++ = alloc_int32(_otable_replace);
+	*p++ = alloc_int32(0);
+#endif
+	*p++ = alloc_int32(otable_find);
+	*p++ = alloc_int32(val_throw);
+	*p++ = alloc_int32(alloc_module_function);
+	*p++ = alloc_int32(val_compare);
+	*p++ = alloc_int32(neko_stack_expand);
+	*p++ = alloc_int32(alloc_float);
+	*p++ = alloc_int32(fmod);
+	return a;
+}
+
 #define BUILTIN(name,nargs)	\
 	alloc_field(neko_builtins[0],val_id(#name),alloc_function(builtin_##name,nargs,"$" #name));	
 
@@ -1174,7 +1170,6 @@ void neko_init_builtins() {
 
 	BUILTIN(excstack,0);
 	BUILTIN(callstack,0);
-	BUILTIN(jit,2);
 	BUILTIN(jit_functions,0);
 }
 
