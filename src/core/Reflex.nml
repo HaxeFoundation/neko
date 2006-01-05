@@ -49,6 +49,9 @@ neko("
 	module_code_get = $loader.loadprim('std@module_code_get',2);
 	module_code_address = $loader.loadprim('std@module_code_address',1);
 	module_register_fields = $loader.loadprim('std@module_register_fields',1);
+	module_set_jit = $loader.loadprim('std@module_set_jit',2);
+	module_fun_address = $loader.loadprim('std@module_fun_address',1);
+	module_fun_jit = $loader.loadprim('std@module_fun_jit',4);
 ");
 
 function value( n : neko_value ) : value {
@@ -144,3 +147,16 @@ function code_get( m : module, p : int ) : int32 {
 function register_fields( m : module ) : void {
 	neko("module_register_fields(m)");
 }
+
+function set_jit( m : module, p : string ) : void {
+	neko("module_set_jit(m,p)");
+}
+
+function function_address( f : neko_function ) : int {
+	neko("module_fun_address(f)");
+}
+
+function function_jit( f : neko_function, m : module, code : string, code_pos : int ) : neko_function {
+	neko("module_fun_jit(f,m,code,code_pos)");
+}
+
