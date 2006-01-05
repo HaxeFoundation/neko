@@ -39,6 +39,7 @@ typedef enum {
 	VAL_FUNCTION	= 6,
 	VAL_ABSTRACT	= 7,
 	VAL_PRIMITIVE	= 6 | 8,
+	VAL_JITFUN		= 6 | 16,
 	VAL_32_BITS		= 0xFFFFFFFF
 } val_type;
 
@@ -111,7 +112,7 @@ typedef struct {
 #define val_is_number(v)	(val_is_int(v) || val_tag(v) == VAL_FLOAT)
 #define val_is_float(v)		(!val_is_int(v) && val_tag(v) == VAL_FLOAT)
 #define val_is_string(v)	(!val_is_int(v) && (val_tag(v)&7) == VAL_STRING)
-#define val_is_function(v)	(!val_is_int(v) && (val_tag(v) == VAL_FUNCTION || val_tag(v) == VAL_PRIMITIVE))
+#define val_is_function(v)	(!val_is_int(v) && (val_tag(v)&7) == VAL_FUNCTION)
 #define val_is_object(v)	(!val_is_int(v) && val_tag(v) == VAL_OBJECT)
 #define val_is_array(v)		(!val_is_int(v) && (val_tag(v)&7) == VAL_ARRAY)
 #define val_is_abstract(v)  (!val_is_int(v) && val_tag(v) == VAL_ABSTRACT)
