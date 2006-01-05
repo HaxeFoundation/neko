@@ -22,6 +22,7 @@
 #include "neko.h"
 #include "objtable.h"
 #include "vm.h"
+#include "neko_mod.h"
 
 #define MAXCALLS	350
 
@@ -32,6 +33,7 @@ typedef value (*c_prim3)(value,value,value);
 typedef value (*c_prim4)(value,value,value,value);
 typedef value (*c_prim5)(value,value,value,value,value);
 typedef value (*c_primN)(value*,int);
+typedef value (*jit_prim)( neko_vm *, void *, value );
 
 extern void neko_setup_trap( neko_vm *vm, int_val where );
 extern void neko_process_trap( neko_vm *vm );
@@ -114,6 +116,12 @@ EXTERN value val_callEx( value vthis, value f, value *args, int nargs, value *ex
 		}
 		else
 			val_throw(alloc_string("Invalid call"));
+	} else if( val_tag(f) == VAL_JITFUN ) {
+		neko_module *m = (neko_module*)((vfunction*)f)->module;
+		if( nargs != ((vfunction*)f)->nargs )
+			val_throw(alloc_string("Invalid call"));
+		vm->env = ((vfunction *)f)->env;
+		ret = ((jit_prim)val_string(m->jit))(vm,((vfunction*)f)->addr,val_null);
 	} else
 		val_throw(alloc_string("Invalid call"));
 	if( exc ) {
