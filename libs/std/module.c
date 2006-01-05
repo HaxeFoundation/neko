@@ -208,6 +208,51 @@ static value module_register_fields( value mv ) {
 	return val_true;
 }
 
+/**
+	module_fun_address : function -> int
+	<doc>Return the position of a bytecode function in a module</doc>
+**/
+static value module_fun_address( value f ) {
+	neko_module *m;
+	if( val_is_int(f) || val_tag(f) != VAL_FUNCTION )
+		neko_error();
+	m = (neko_module*)((vfunction*)f)->module;
+	return alloc_int( (int_val*)((vfunction*)f)->addr - m->code );
+}
+
+/**
+	module_set_jit : 'module -> string -> void
+	<doc>change the JIT code of the module. Should be use with great care !</doc>
+**/
+static value module_set_jit( value mv, value jit ) {
+	neko_module *m;	
+	val_check_kind(mv,neko_kind_module);
+	val_check(jit,string);
+	m = (neko_module*)val_data(mv);
+	if( !val_is_null(m->jit) )
+		neko_error();
+	m->jit = jit;
+	return val_true;
+}
+
+/**
+	module_fun_jit : function -> 'module -> string -> int -> function
+	<doc>Make a JIT function from a Bytecode one. Should be use with great care !</doc>
+**/
+static value module_fun_jit( value f, value mv, value code, value binpos ) {
+	vfunction *fj;
+	val_check_kind(mv,neko_kind_module);
+	if( val_is_int(f) || val_tag(f) != VAL_FUNCTION )
+		neko_error();
+	val_check(code,string);
+	val_check(binpos,int);
+	fj = (vfunction*)alloc_function(module_fun_jit,val_fun_nargs(f),"");
+	fj->t = VAL_JITFUN;
+	fj->addr = val_string(code)+val_int(binpos);
+	fj->module = val_data(mv);	
+	return (value)fj;
+}
+
 DEFINE_PRIM(module_read,2);
 DEFINE_PRIM(module_exec,1);
 DEFINE_PRIM(module_name,1);
@@ -220,5 +265,8 @@ DEFINE_PRIM(module_code_size,1);
 DEFINE_PRIM(module_code_get,2);
 DEFINE_PRIM(module_code_address,1);
 DEFINE_PRIM(module_register_fields,1);
+DEFINE_PRIM(module_set_jit,2);
+DEFINE_PRIM(module_fun_address,1);
+DEFINE_PRIM(module_fun_jit,4);
 
 /* ************************************************************************ */
