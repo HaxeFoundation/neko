@@ -18,12 +18,6 @@ buffer_string = $loader.loadprim("std@buffer_string",1);
 
 // LIBS DATAS
 
-sources = $array(
-	"tools/test",
-	"tools/nekoboot",
-	"mtypes/std",
-);
-
 libs = {
 	mod_neko => {
 		src => $array("mod_neko","cgi"),
@@ -225,22 +219,23 @@ base = "../bin";
 
 try { mkdir(base,rights); } catch e { };
 
-map(sources,function(s) {
-	var dir = split(s,"/");
-	var path = base;
-	while( dir[1] != null ) {
-		path = path + "/" + dir[0];
-		if( $not(file_exists(path)) )
-			mkdir(path,rights);
-		dir = dir[1];
-	}
-	exec(nekovm+" neko "+s+".neko");
-	copy(s+".n ",path);
-});
+// compile some neko sources
+
+exec(nekovm+" neko tools/test.neko");
+copy("tools/test.n",base);
+
+exec(nekovm+" neko tools/nekoboot.neko");
+copy("tools/nekoboot.n",base);
+
+exec(nekovm+" neko mtypes/std.neko");
+try { mkdir(base+"/mtypes",rights); } catch e { };
+copy("mtypes/std.n",base+"/mtypes");
 
 nekoboot(base+"/neko.n");
 nekoboot(base+"/nekoml.n");
 nekoboot(base+"/nekoboot.n");
+
+// compile libs
 
 chdir("../libs");
 var libs = readdir(".");
