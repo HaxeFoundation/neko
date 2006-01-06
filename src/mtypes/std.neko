@@ -193,7 +193,7 @@ List.new = function() {
 					last = $array(cur[0],null);
 					l.h = last;
 				} else {
-					var tmp = $array(cur[0])null);
+					var tmp = $array(cur[0],null);
 					last[1] = tmp;
 					last = tmp;
 				}
