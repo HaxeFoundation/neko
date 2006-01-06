@@ -5,6 +5,7 @@ file_open = $loader.loadprim("std@file_open",2);
 file_write = $loader.loadprim("std@file_write",4);
 file_write_char = $loader.loadprim("std@file_write_char",2);
 file_close = $loader.loadprim("std@file_close",1);
+command = $loader.loadprim("std@sys_command",1);
 system = $loader.loadprim("std@sys_string",0)();
 
 // find a substring from then end
@@ -58,7 +59,9 @@ var boot_size = $ssize(boot);
 var dot_pos = find(file,".");
 if( dot_pos != null )
 	file = $ssub(file,0,dot_pos);
-var out = file_open(file+exe_ext,"wb");
+
+var out_name = file+exe_ext;
+var out = file_open(out_name,"wb");
 
 file_write(out,boot,0,pos+10);
 file_write_char(out,boot_size & 0xFF);
@@ -68,3 +71,11 @@ file_write_char(out,boot_size >>> 24);
 file_write(out,boot,pos+14,boot_size-(pos+14));
 file_write(out,bytecode,0,$ssize(bytecode));
 file_close(out);
+
+// set execution rights
+
+switch system {
+	"Windows" => null
+	default => command("chmod 755 "+out_name)
+}
+
