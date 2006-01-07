@@ -717,6 +717,10 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 			acc = (int_val)alloc_float(val_float(*sp) + val_float(acc));
 		else if( (val_tag(acc)&7) == VAL_STRING && (val_tag(*sp)&7) == VAL_STRING )
 			acc = (int_val)append_strings((value)*sp,(value)acc);
+		else if( val_tag(*sp) == VAL_OBJECT )
+			ObjectOp(*sp,acc,id_add)
+		else if( val_tag(acc) == VAL_OBJECT )
+			ObjectOp(acc,*sp,id_radd)
 		else if( (val_tag(acc)&7) == VAL_STRING || (val_tag(*sp)&7) == VAL_STRING ) {
 			ACC_BACKUP
 			buffer b = alloc_buffer(NULL);
@@ -726,11 +730,7 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 			val_buffer(b,(value)acc);
 			EndCall();
 			acc = (int_val)buffer_to_string(b);
-		} else if( val_tag(*sp) == VAL_OBJECT )
-			ObjectOp(*sp,acc,id_add)
-		else if( val_tag(acc) == VAL_OBJECT )
-			ObjectOp(acc,*sp,id_radd)
-		else
+		} else
 			RuntimeError("+",false);
 		*sp++ = ERASE;
 		Next;
@@ -741,10 +741,10 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 	Instr(Div)
 		if( val_is_number(acc) && val_is_number(*sp) )
 			acc = (int_val)alloc_float( ((tfloat)val_number(*sp)) / val_number(acc) );
-		else if( val_is_object(acc) )
-			ObjectOp(acc,*sp,id_rdiv)
 		else if( val_is_object(*sp) )
 			ObjectOp(*sp,acc,id_div)
+		else if( val_is_object(acc) )
+			ObjectOp(acc,*sp,id_rdiv)
 		else
 			RuntimeError("/",false);
 		*sp++ = ERASE;
