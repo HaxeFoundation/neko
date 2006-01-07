@@ -94,7 +94,7 @@ EXTERN value val_callEx( value vthis, value f, value *args, int nargs, value *ex
 			val_throw(alloc_string("Invalid call"));		
 		if( ret == NULL )
 			val_throw( (value)((vfunction*)f)->module );		
-	} else if( val_tag(f) == VAL_FUNCTION ) {
+	} else if( (val_tag(f)&7) == VAL_FUNCTION ) {
 		if( nargs == ((vfunction*)f)->nargs )  {
 			int n;
 			if( vm->csp + 4 >= vm->sp - nargs && !neko_stack_expand(vm->sp,vm->csp,vm) ) {
@@ -106,22 +106,21 @@ EXTERN value val_callEx( value vthis, value f, value *args, int nargs, value *ex
 			} else {
 				for(n=0;n<nargs;n++)
 					*--vm->sp = (int_val)args[n];
-				*++vm->csp = (int_val)callback_return;
-				*++vm->csp = (int_val)vm->env;
-				*++vm->csp = (int_val)vm->vthis;
-				*++vm->csp = 0;
 				vm->env = ((vfunction*)f)->env;
-				ret = neko_interp(vm,((vfunction*)f)->module,(int_val)val_null,(int_val*)((vfunction*)f)->addr);
+				if( val_tag(f) == VAL_FUNCTION ) {
+					*++vm->csp = (int_val)callback_return;
+					*++vm->csp = 0;
+					*++vm->csp = 0;
+					*++vm->csp = 0;
+					ret = neko_interp(vm,((vfunction*)f)->module,(int_val)val_null,(int_val*)((vfunction*)f)->addr);
+				} else {
+					neko_module *m = (neko_module*)((vfunction*)f)->module;
+					ret = ((jit_prim)val_string(m->jit))(vm,((vfunction*)f)->addr,val_null);
+				}
 			}
 		}
 		else
 			val_throw(alloc_string("Invalid call"));
-	} else if( val_tag(f) == VAL_JITFUN ) {
-		neko_module *m = (neko_module*)((vfunction*)f)->module;
-		if( nargs != ((vfunction*)f)->nargs )
-			val_throw(alloc_string("Invalid call"));
-		vm->env = ((vfunction *)f)->env;
-		ret = ((jit_prim)val_string(m->jit))(vm,((vfunction*)f)->addr,val_null);
 	} else
 		val_throw(alloc_string("Invalid call"));
 	if( exc ) {
