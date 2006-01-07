@@ -30,6 +30,7 @@
 	long _ftol2( double f) { return _ftol(f); };
 #endif
 
+static value bprint;
 extern value *neko_builtins;
 
 /**
@@ -923,13 +924,13 @@ static value builtin_print( value *args, int nargs ) {
 	int i;
 	if( nargs == 1 && val_is_string(*args) ) {
 		val_print(*args);
-		return val_true;
+		return bprint;
 	}
 	b = alloc_buffer(NULL);
 	for(i=0;i<nargs;i++)
 		val_buffer(b,args[i]);
 	val_print(buffer_to_string(b));
-	return val_true;
+	return bprint;
 }
 
 /**
@@ -1071,9 +1072,11 @@ static value builtin_callstack() {
 extern value NEKO_TYPEOF[];
 extern value alloc_module_function( void *m, int_val pos, int nargs );
 extern int neko_stack_expand( int_val *sp, int_val *csp, neko_vm *vm );
+extern value append_int( neko_vm *vm, value str, int x, bool way );
+extern value append_strings( value s1, value s2 );
 
 static value builtin_jit_functions() {
-	value a = alloc_array(15);
+	value a = alloc_array(22);
 	value *p = val_array_ptr(a);
 	*p++ = alloc_int32(neko_interp);
 	*p++ = alloc_int32(callback_return);
@@ -1095,6 +1098,13 @@ static value builtin_jit_functions() {
 	*p++ = alloc_int32(neko_stack_expand);
 	*p++ = alloc_int32(alloc_float);
 	*p++ = alloc_int32(fmod);
+	*p++ = alloc_int32(append_int);
+	*p++ = alloc_int32(append_strings);
+	*p++ = alloc_int32(alloc_buffer);
+	*p++ = alloc_int32(val_buffer);
+	*p++ = alloc_int32(buffer_to_string);
+	*p++ = alloc_int32(alloc_apply);
+	*p++ = alloc_int32(val_ocall1);
 	return a;
 }
 
@@ -1104,8 +1114,9 @@ static value builtin_jit_functions() {
 void neko_init_builtins() {
 	neko_builtins = alloc_root(1);
 	neko_builtins[0] = alloc_object(NULL);
+	bprint = alloc_function(builtin_print,VAR_ARGS,"$print");
 
-	BUILTIN(print,VAR_ARGS);
+	BUILTIN(print,VAR_ARGS);	
 	BUILTIN(args,0);
 	
 	BUILTIN(array,VAR_ARGS);
