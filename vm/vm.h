@@ -43,7 +43,6 @@ struct _neko_vm {
 	value exc_stack;
 	printer print;
 	jmp_buf start;
-	value args;
 	void *custom;
 	char tmp[100];
 };

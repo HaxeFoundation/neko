@@ -333,11 +333,16 @@ static value loader_loadmodule( value mname, value vthis ) {
 	}
 }
 
-EXTERN value neko_default_loader() {
+EXTERN value neko_default_loader( char **argv, int argc ) {
 	value o = alloc_object(NULL);
+	value args = alloc_array(argc);
+	int i;
+	for(i=0;i<argc;i++)
+		val_array_ptr(args)[i] = alloc_string(argv[i]);
 	alloc_field(o,id_path,init_path(getenv("NEKOPATH")));
 	alloc_field(o,id_cache,alloc_object(NULL));
 	alloc_field(o,id_loader_libs,alloc_abstract(k_loader_libs,NULL));
+	alloc_field(o,val_id("args"),args);
 	alloc_field(o,val_id("loadprim"),alloc_function(loader_loadprim,2,"loadprim"));
 	alloc_field(o,val_id("loadmodule"),alloc_function(loader_loadmodule,2,"loadmodule"));
 #ifdef NEKO_PROF

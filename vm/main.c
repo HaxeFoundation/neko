@@ -94,8 +94,7 @@ static value read_bytecode( value str, value pos, value len ) {
 
 */
 
-static int execute_self( neko_vm *vm ) {
-	value mload = neko_default_loader();
+static int execute_self( neko_vm *vm, value mload ) {	
 	value args[] = { alloc_string("std@module_read"), alloc_int(2) };
 	value args2[] = { alloc_string("std@module_exec"), alloc_int(1) };
 	value args3[] = { alloc_function(read_bytecode,3,"boot_read_bytecode"), mload };	
@@ -127,8 +126,7 @@ static int execute_self( neko_vm *vm ) {
 	return 0;
 }
 
-static int execute_file( neko_vm *vm, char *file ) {
-	value mload = neko_default_loader();
+static int execute_file( neko_vm *vm, char *file, value mload ) {	
 	value args[] = { alloc_string(file), mload };
 	value exc = NULL;
 	neko_vm_select(vm);
@@ -147,15 +145,15 @@ static int execute_file( neko_vm *vm, char *file ) {
 #	define _CrtSetDbgFlag(x)
 #endif
 
-static int execute( neko_vm *vm, char *file ) {
+static int execute( neko_vm *vm, char **argv, int argc ) {
 	int data_pos = *(int*)(data+10);
 	char *exe = executable_path();	
 	if( data_pos == 0 ) {
-		if( file == NULL ) {
+		if( argc == 1 ) {
 			printf("Usage : nekovm <file>\n");
 			return 1;
 		} else
-			return execute_file(vm,file);
+			return execute_file(vm,argv[1],neko_default_loader(argv+1,argc-1));
 	}
 	if( exe == NULL ) {
 		printf("Could not resolve current executable\n");
@@ -167,7 +165,7 @@ static int execute( neko_vm *vm, char *file ) {
 		return 2;
 	}
 	fseek(self,data_pos,0);
-	return execute_self(vm);
+	return execute_self(vm,neko_default_loader(argv,argc));
 }
 
 int main( int argc, char *argv[] ) {
@@ -176,12 +174,10 @@ int main( int argc, char *argv[] ) {
 	int r;
 	_CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_DELAY_FREE_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
 	neko_global_init(&vm);
-	p.args = (const char **)argv + 1;
-	p.nargs = argc - 1;
 	p.custom = NULL;
 	p.printer = NULL;
 	vm = neko_vm_alloc(&p);
-	r = execute(vm,(argc == 1)?NULL:argv[1]);
+	r = execute(vm,argv,argc);
 	vm = NULL;
 	neko_global_free();
 	return r;

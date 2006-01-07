@@ -86,12 +86,6 @@ EXTERN neko_vm *neko_vm_alloc( neko_params *p ) {
 	vm->csp = vm->spmin - 1;
 	vm->vthis = val_null;
 	vm->env = alloc_array(0);
-	vm->args = alloc_array(p?p->nargs:0);
-	if( p ) {
-		int i;
-		for(i=0;i<p->nargs;i++)
-			val_array_ptr(vm->args)[i] = alloc_string(p->args[i]);
-	}
 	return vm;
 }
 

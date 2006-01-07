@@ -18,12 +18,12 @@
  */
 
 neko("
-	
+
 	 @sys_exit = $loader.loadprim('std@sys_exit',1);
-	
+
 ");
 
-function without_extension(s) {	
+function without_extension(s) {
 	match List.rev (String.split s ".") {
 	| [] -> assert()
 	| [x] -> x
@@ -43,7 +43,7 @@ var array_dependency = Array.make
 
 function args() : string array {
 	neko("
-		@Array.@make($args())
+		@Array.@make($loader.args)
 	");
 }
 

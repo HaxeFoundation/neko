@@ -1034,14 +1034,6 @@ static value builtin_pcompare( value a, value b ) {
 }
 
 /**
-	$args : void -> string array
-	<doc>Return the commandline arguments</doc> 
-**/
-static value builtin_args() {
-	return NEKO_VM()->args;
-}
-
-/**
 	$excstack : void -> array
 	<doc>
 	Return the stack between the place the last exception was raised and the place it was catched.
@@ -1117,7 +1109,6 @@ void neko_init_builtins() {
 	bprint = alloc_function(builtin_print,VAR_ARGS,"$print");
 
 	BUILTIN(print,VAR_ARGS);	
-	BUILTIN(args,0);
 	
 	BUILTIN(array,VAR_ARGS);
 	BUILTIN(amake,1);

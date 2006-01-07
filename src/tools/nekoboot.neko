@@ -37,7 +37,7 @@ find_in_path = function(path,file) {
 
 // bytecode = first argument
 
-var args = $args();
+var args = $loader.args;
 if( $asize(args) != 2 )
 	$throw("Need bytecode argument");
 var file = args[1];

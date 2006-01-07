@@ -27,8 +27,6 @@ typedef void (*neko_printer)( const char *data, int size );
 typedef struct {
 	neko_printer printer;
 	void *custom;
-	const char **args;
-	int nargs;
 } neko_params;
 
 typedef struct _neko_vm neko_vm;
@@ -49,7 +47,7 @@ EXTERN void *neko_vm_custom( neko_vm *vm );
 EXTERN value neko_vm_execute( neko_vm *vm, void *module );
 EXTERN void neko_vm_select( neko_vm *vm );
 EXTERN void neko_clean_thread();
-EXTERN value neko_default_loader();
+EXTERN value neko_default_loader( char **argv, int argc );
 
 C_FUNCTION_END
 
