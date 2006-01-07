@@ -23,6 +23,7 @@
 #include "neko.h"
 
 typedef struct _neko_module {
+	value jit;
 	unsigned int nglobals;
 	unsigned int nfields;
 	unsigned int codesize;
@@ -33,7 +34,6 @@ typedef struct _neko_module {
 	value exports;
 	value debuginf;
 	int_val *code;
-	value jit;
 } neko_module;
 
 typedef void *readp;
