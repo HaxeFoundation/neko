@@ -64,6 +64,12 @@ static value cache_find( request_rec *r ) {
 	return NULL;
 }
 
+static char *request_base_uri( request_rec *r ) {
+	while( r->prev != NULL )
+		r = r->prev;
+	return r->unparsed_uri;
+}
+
 static void cache_module( request_rec *r, value main ) {
 	cache *c = (cache*)context_get(cache_root);
 	value fname = alloc_string(r->filename);
@@ -117,21 +123,14 @@ static int neko_handler_rec( request_rec *r ) {
 	params.custom = &ctx;
 	params.printer = request_print;
 
-	{
-		request_rec *tmp = r;
-		while( tmp->prev != NULL )
-			tmp = tmp->prev;
-		params.args = (const char**)&tmp->unparsed_uri;
-		params.nargs = 1;
-	}
-
 	vm = neko_vm_alloc(&params);
 	neko_vm_select(vm);
 	
 	if( ctx.main != NULL )
 		val_callEx(val_null,ctx.main,NULL,0,&exc);
 	else {
-		value mload = neko_default_loader();
+		char *base_uri = request_base_uri(r);
+		value mload = neko_default_loader(&base_uri,1);
 		value args[] = { alloc_string(r->filename), mload };
 		char *p = strrchr(val_string(args[0]),'.');
 		if( p != NULL )
