@@ -11,7 +11,8 @@
 		improved xml parser : support for doctype
 		some fixes for OSX and C++ compilation
 	nekovm:
-		jit support
+		experimental jit support
+		moved args from builtin ($args) to loader ($loader.args)
 		makeboot can create standalone binaries
 		runtime errors on :
 			- calls with invalid number of arguments
