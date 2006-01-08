@@ -51,6 +51,7 @@ EXTERN vkind neko_kind_module;
 EXTERN neko_module *neko_read_module( reader r, readp p, value loader );
 EXTERN int neko_file_reader( readp p, void *buf, int size ); // FILE *
 EXTERN int neko_string_reader( readp p, void *buf, int size ); // string_pos *
+EXTERN value neko_select_file( value path, const char *file, const char *ext );
 
 C_FUNCTION_END
 

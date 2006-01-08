@@ -134,7 +134,7 @@ static value dump_prof() {
 #	define dlsym(h,n)		GetProcAddress((HANDLE)h,n)
 #endif
 
-static value select_file( value path, const char *file, const char *ext ) {
+EXTERN value neko_select_file( value path, const char *file, const char *ext ) {
 	struct stat s;
 	value ff;
 	buffer b = alloc_buffer(file);
@@ -161,9 +161,9 @@ static void open_module( value path, const char *mname, reader *r, readp *p ) {
 	value fname;
 	char *ext = strrchr(mname,'.');
 	if( ext && ext[1] == 'n' && ext[2] == 0 )
-		fname = select_file(path,mname,"");
+		fname = neko_select_file(path,mname,"");
 	else
-		fname = select_file(path,mname,".n");
+		fname = neko_select_file(path,mname,".n");
 	f = fopen(val_string(fname),"rb");
 	if( f == NULL ) {
 		buffer b = alloc_buffer("Module not found : ");
@@ -204,7 +204,7 @@ static void *load_primitive( const char *prim, int nargs, value path, liblist **
 	if( l == NULL ) {
 		void *h;
 		value pname;
-		pname = select_file(path,prim,".ndll");
+		pname = neko_select_file(path,prim,".ndll");
 		h = dlopen(val_string(pname),RTLD_LAZY);
 		if( h == NULL ) {
 			buffer b = alloc_buffer("Library not found : ");
