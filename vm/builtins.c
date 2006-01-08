@@ -30,7 +30,6 @@
 	long _ftol2( double f) { return _ftol(f); };
 #endif
 
-static value bprint;
 extern value *neko_builtins;
 
 /**
@@ -924,13 +923,13 @@ static value builtin_print( value *args, int nargs ) {
 	int i;
 	if( nargs == 1 && val_is_string(*args) ) {
 		val_print(*args);
-		return bprint;
+		return neko_builtins[1];
 	}
 	b = alloc_buffer(NULL);
 	for(i=0;i<nargs;i++)
 		val_buffer(b,args[i]);
 	val_print(buffer_to_string(b));
-	return bprint;
+	return neko_builtins[1];
 }
 
 /**
@@ -1104,9 +1103,9 @@ static value builtin_jit_functions() {
 	alloc_field(neko_builtins[0],val_id(#name),alloc_function(builtin_##name,nargs,"$" #name));	
 
 void neko_init_builtins() {
-	neko_builtins = alloc_root(1);
+	neko_builtins = alloc_root(2);
 	neko_builtins[0] = alloc_object(NULL);
-	bprint = alloc_function(builtin_print,VAR_ARGS,"$print");
+	neko_builtins[1] = alloc_function(builtin_print,VAR_ARGS,"$print");
 
 	BUILTIN(print,VAR_ARGS);	
 	
