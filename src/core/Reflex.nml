@@ -22,6 +22,7 @@ type neko_object;
 type neko_abstract;
 type neko_function;
 type neko_array;
+type neko_loader;
 type module;
 
 type value {
@@ -52,6 +53,7 @@ neko("
 	module_set_jit = $loader.loadprim('std@module_set_jit',2);
 	module_fun_address = $loader.loadprim('std@module_fun_address',1);
 	module_fun_jit = $loader.loadprim('std@module_fun_jit',4);
+	module_read_path = $loader.loadprim('std@module_read_path',3);
 ");
 
 function value( n : neko_value ) : value {
@@ -101,6 +103,25 @@ function aset(a : neko_array, p : int, v : value) : void {
 
 function read( fread : string -> int -> int -> int ) : module {
 	neko("module_read(fread,$loader)");
+}
+
+var __list_dep = List.map
+
+function loader_path() : string list {
+	neko("@List.@make($loader.path)");
+}
+
+function read_path( path : string array, name : string, loader : neko_loader ) : module {
+	neko("
+		var h;
+		var n = path[2];
+		path = path[0];
+		while( n > 0 ) {
+			n -= 1;
+			h = $array(path[n],h);
+		}
+		module_read_path(h,name,loader);
+	");
 }
 
 function mname( m : module ) : string {
