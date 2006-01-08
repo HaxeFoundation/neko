@@ -22,6 +22,7 @@
 #include <neko.h>
 #include <neko_mod.h>
 #include <neko_vm.h>
+#include <stdio.h>
 
 #define READ_BUFSIZE 64
 
@@ -70,6 +71,42 @@ static value module_read( value fread, value loader ) {
 	if( m == NULL )
 		neko_error();
 	m->name = alloc_string("");
+	return alloc_abstract(neko_kind_module,m);
+}
+
+/**
+	module_read_path : string list -> name:string -> loader:object -> 'module
+	<doc>
+	Read a module using the specified search path.
+	</doc>
+**/
+static value module_read_path( value path, value name, value loader ) {
+	FILE *f;
+	value fname;
+	char *mname, *ext;
+	neko_module *m;
+	val_check(name,string);
+	val_check(loader,object);
+	mname = val_string(name);
+	ext = strrchr(mname,'.');
+	if( ext && ext[1] == 'n' && ext[2] == 0 )
+		fname = neko_select_file(path,mname,"");
+	else
+		fname = neko_select_file(path,mname,".n");
+	f = fopen(val_string(fname),"rb");
+	if( f == NULL ) {
+		buffer b = alloc_buffer("Module not found : ");
+		buffer_append(b,mname);
+		bfailure(b);
+	}
+	m = neko_read_module(neko_file_reader,f,loader);
+	fclose(f);
+	if( m == NULL ) {
+		buffer b = alloc_buffer("Invalid module : ");
+		val_buffer(b,name);
+		bfailure(b);
+	}
+	m->name = alloc_string(val_string(name));
 	return alloc_abstract(neko_kind_module,m);
 }
 
@@ -222,7 +259,7 @@ static value module_fun_address( value f ) {
 
 /**
 	module_set_jit : 'module -> string -> void
-	<doc>change the JIT code of the module. Should be use with great care !</doc>
+	<doc>change the JIT code of the module.</doc>
 **/
 static value module_set_jit( value mv, value jit ) {
 	neko_module *m;	
@@ -237,7 +274,11 @@ static value module_set_jit( value mv, value jit ) {
 
 /**
 	module_fun_jit : function -> 'module -> string -> int -> function
-	<doc>Make a JIT function from a Bytecode one. Should be use with great care !</doc>
+	<doc>
+	Make a JIT function from a Bytecode one.
+	Should be use with great care ! 
+	This is the only function that can crash the VM if used incorrectly.
+	</doc>
 **/
 static value module_fun_jit( value f, value mv, value code, value binpos ) {
 	vfunction *fj;
@@ -254,6 +295,7 @@ static value module_fun_jit( value f, value mv, value code, value binpos ) {
 }
 
 DEFINE_PRIM(module_read,2);
+DEFINE_PRIM(module_read_path,3);
 DEFINE_PRIM(module_exec,1);
 DEFINE_PRIM(module_name,1);
 DEFINE_PRIM(module_exports,1);
