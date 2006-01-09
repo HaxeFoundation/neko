@@ -119,7 +119,6 @@ static int execute_self( neko_vm *vm, value mload ) {
 		return 1;
 	}
 	val_callEx(val_null,module_exec,&module_val,1,&exc);
-	val_ocall0(mload,val_id("dump_prof"));
 	if( exc != NULL ) {
 		report(vm,exc);
 		return 1;
@@ -132,7 +131,6 @@ static int execute_file( neko_vm *vm, char *file, value mload ) {
 	value exc = NULL;
 	neko_vm_select(vm);
 	val_callEx(mload,val_field(mload,val_id("loadmodule")),args,2,&exc);
-	val_ocall0(mload,val_id("dump_prof"));
 	if( exc != NULL ) {
 		report(vm,exc);
 		return 1;
@@ -148,7 +146,9 @@ static int execute_file( neko_vm *vm, char *file, value mload ) {
 
 static int execute( neko_vm *vm, char **argv, int argc ) {
 	int data_pos = *(int*)(data+10);
-	char *exe = executable_path();	
+	char *exe = executable_path();
+	value mload;
+	int ret;
 	if( data_pos == 0 ) {
 		if( argc == 1 ) {
 			printf("Usage : neko <file>\n");
@@ -166,7 +166,11 @@ static int execute( neko_vm *vm, char **argv, int argc ) {
 		return 2;
 	}
 	fseek(self,data_pos,0);
-	return execute_self(vm,neko_default_loader(argv+1,argc-1));
+	mload = neko_default_loader(argv+1,argc-1);
+	ret = execute_self(vm,mload);
+	if( val_field(mload,val_id("dump_prof")) != val_null )
+		val_ocall0(mload,val_id("dump_prof"));
+	return ret;
 }
 
 int main( int argc, char *argv[] ) {
