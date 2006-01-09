@@ -13,9 +13,9 @@
 #
 
 
-NEKOVM = nekovm
-NEKOVM1 = NEKOPATH='../boot' nekovm1
-NEKOVM2 = NEKOPATH='' nekovm1
+NEKOVM = neko
+NEKOVM1 = NEKOPATH='../boot' neko1
+NEKOVM2 = NEKOPATH='' neko1
 TIME = @c:/progra~1/cygwin/bin/times -f %e make 
 
 all: clean pass1 pass2 pass3
@@ -24,8 +24,11 @@ source: clean
 	${NEKOVM1} nekoml -n neko/Main.nml nekoml/Main.nml
 
 link:
-	${NEKOVM} neko/Main -link neko.n neko/Main
+	${NEKOVM} neko/Main -link nekoc.n neko/Main
 	${NEKOVM} neko/Main -link nekoml.n nekoml/Main
+	${NEKOVM} neko/Main tools/nekoboot.neko
+	${NEKOVM} tools/nekoboot nekoc.n
+	${NEKOVM} tools/nekoboot nekoml.n
 
 pass1:
 	${TIME} tpass1
@@ -67,12 +70,14 @@ nekoml: clean
 	${NEKOVM1} nekoml nekoml/Main.nml
 
 install: link
-	-cp neko.n nekoml.n ../boot
+	-cp nekoc.n nekoml.n ../boot
+	-cp nekoc.exe nekoml.exe ../bin
 
 clean:
 	rm -rf *.n
 	rm -rf neko/*.n
 	rm -rf nekoml/*.n
+	rm -rf nekoc.exe nekoml.exe
 
 cleanall: clean
 	rm -rf *.neko

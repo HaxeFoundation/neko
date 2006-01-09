@@ -46,7 +46,7 @@ var bytecode = file_contents(file);
 // load boot.bin
 
 var exe_ext = switch system { "Windows" => ".exe" default => "" };
-var boot = find_in_path($loader.path,"nekovm"+exe_ext);
+var boot = find_in_path($loader.path,"neko"+exe_ext);
 var pos = find(boot,"##BOOT_POS\000\000\000\000##");
 if( pos == null )
 	$throw("Invalid boot.bin file");

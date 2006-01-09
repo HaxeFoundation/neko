@@ -32,7 +32,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="..\bin\neko.lib"
-				OutputFile="$(OutDir)/nekovm.exe"
+				OutputFile="$(OutDir)/neko.exe"
 				LinkIncremental="2"
 				GenerateDebugInformation="TRUE"
 				ProgramDatabaseFile="$(OutDir)/nekovm.pdb"
@@ -42,7 +42,7 @@
 				Name="VCMIDLTool"/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="copy Debug\nekovm.exe ..\bin"/>
+				CommandLine="copy Debug\neko.exe ..\bin"/>
 			<Tool
 				Name="VCPreBuildEventTool"/>
 			<Tool
@@ -80,7 +80,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="..\bin\neko.lib msvcrt60.lib"
-				OutputFile="$(OutDir)/nekovm.exe"
+				OutputFile="$(OutDir)/neko.exe"
 				LinkIncremental="1"
 				IgnoreDefaultLibraryNames="MSVCRT"
 				GenerateDebugInformation="TRUE"
@@ -92,7 +92,7 @@
 				Name="VCMIDLTool"/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="copy Release\nekovm.exe ..\bin"/>
+				CommandLine="copy Release\neko.exe ..\bin"/>
 			<Tool
 				Name="VCPreBuildEventTool"/>
 			<Tool

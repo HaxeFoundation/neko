@@ -1,5 +1,5 @@
 2006-??-?? : 1.2
-	neko:
+	nekoc:
 		added linker : provide linked versions of neko & nekoml compilers
 		added tail calls optimization
 	nekoml:
@@ -10,7 +10,8 @@
 		mysql api now threat tinyint(1) as booleans
 		improved xml parser : support for doctype
 		some fixes for OSX and C++ compilation
-	nekovm:
+	neko:
+		renamed 'nekovm' to 'neko'
 		experimental jit support
 		moved args from builtin ($args) to loader ($loader.args)
 		makeboot can create standalone binaries

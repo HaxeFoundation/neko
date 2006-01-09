@@ -150,7 +150,7 @@ static int execute( neko_vm *vm, char **argv, int argc ) {
 	char *exe = executable_path();	
 	if( data_pos == 0 ) {
 		if( argc == 1 ) {
-			printf("Usage : nekovm <file>\n");
+			printf("Usage : neko <file>\n");
 			return 1;
 		} else
 			return execute_file(vm,argv[1],neko_default_loader(argv+1,argc-1));

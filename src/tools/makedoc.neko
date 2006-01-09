@@ -10,7 +10,7 @@ exec = function(cmd) {
 }
 
 makedoc = function(file) {
-	exec("nekovm neko -o ../www/libs -doc ../"+file);
+	exec("nekoc -o ../www/libs -doc ../"+file);
 }
 
 files = $array(

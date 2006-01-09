@@ -7,7 +7,7 @@ LIBNEKO_LIBS = -ldl -lgc -lm
 NEKOVM_FLAGS = -Lbin -lneko
 STD_NDLL_FLAGS = ${NEKOVM_FLAGS}
 
-NEKO_EXEC = LD_LIBRARY_PATH=../bin:${LD_LIBRARY_PATH} NEKOPATH=../boot:../bin ../bin/nekovm
+NEKO_EXEC = LD_LIBRARY_PATH=../bin:${LD_LIBRARY_PATH} NEKOPATH=../boot:../bin ../bin/neko
 
 # For OSX
 #
@@ -43,7 +43,7 @@ VM_OBJECTS = vm/main.o
 STD_OBJECTS = libs/std/buffer.o libs/std/date.o libs/std/file.o libs/std/init.o libs/std/int32.o libs/std/math.o libs/std/string.o libs/std/random.o libs/std/serialize.o libs/std/socket.o libs/std/sys.o libs/std/xml.o libs/std/module.o libs/std/md5.o libs/std/utf8.o
 LIBNEKO_OBJECTS = vm/alloc.o vm/builtins.o vm/callback.o vm/context.o vm/interp.o vm/load.o vm/objtable.o vm/others.o vm/hash.o vm/module.o
 
-all: libneko nekovm std compiler libs
+all: libneko neko std compiler libs
 
 libneko: bin/${LIBNEKO_NAME}
 
@@ -59,26 +59,27 @@ test:
 	(cd src; ${NEKO_EXEC} neko tools/test.neko)
 	(cd src; ${NEKO_EXEC} tools/test)
 
-nekovm: bin/nekovm
+neko: bin/neko
 
 std: bin/std.ndll
 
 compiler:
 	(cd src; ${NEKO_EXEC} nekoml -v neko/Main.nml nekoml/Main.nml)
-	(cd src; ${NEKO_EXEC} neko -link ../bin/neko.n neko/Main)
+	(cd src; ${NEKO_EXEC} neko -link ../bin/nekoc.n neko/Main)
 	(cd src; ${NEKO_EXEC} neko -link ../bin/nekoml.n nekoml/Main)
 
 bin/${LIBNEKO_NAME}: ${LIBNEKO_OBJECTS}
 	${MAKESO} -o $@ ${LIBNEKO_OBJECTS} ${LIBNEKO_LIBS}
 
-bin/nekovm: $(VM_OBJECTS)
+bin/neko: $(VM_OBJECTS)
 	${CC} ${CFLAGS} -o $@ ${VM_OBJECTS} ${NEKOVM_FLAGS}
 
 bin/std.ndll: ${STD_OBJECTS}
 	${MAKESO} -o $@ ${STD_OBJECTS} ${STD_NDLL_FLAGS}
 
 clean:
-	rm -rf bin/${LIBNEKO_NAME} bin/nekovm ${LIBNEKO_OBJECTS} ${VM_OBJECTS}
+	rm -rf bin/${LIBNEKO_NAME} ${LIBNEKO_OBJECTS} ${VM_OBJECTS}
+	rm -rf bin/neko bin/nekoc bin/nekoml bin/nekoboot 
 	rm -rf bin/std bin/*.ndll bin/*.n libs/*/*.o
 	rm -rf src/*.n src/neko/*.n src/nekoml/*.n src/tools/*.n
 	rm -rf bin/mtypes bin/tools
@@ -88,4 +89,4 @@ clean:
 .c.o :
 	${CC} ${CFLAGS} -o $@ -c $<
 
-.PHONY: all libneko libs nekovm std compiler clean doc test
+.PHONY: all libneko libs neko std compiler clean doc test
