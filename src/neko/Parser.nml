@@ -1,20 +1,16 @@
 /*
  *  Neko Compiler
- *  Copyright (c)2005 Nicolas Cannasse
+ *  Copyright (c)2005 Motion-Twin
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Lesser General Public
+ *  License as published by the Free Software Foundation; either
+ *  version 2.1 of the License, or (at your option) any later version.
  *
- *  This program is distributed in the hope that it will be useful,
+ *  This library is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Lesser General Public License or the LICENSE file for more details.
  */
 open Lexer;
 open Neko.Ast;
@@ -96,7 +92,7 @@ function rec expr(s) {
 		| [< (ParentClose,p2) >] -> expr_next (EParenthesis e,punion p1 p2) s
 		| [< >] -> error (Unclosed "(") p1
 		}
-	| [< (Keyword Var,p1); v , p2 = variables p1 s >] ->		
+	| [< (Keyword Var,p1); v , p2 = variables p1 s >] ->
 		expr_next (EVars v,punion p1 p2) s
 	| [< (Keyword While,p1); cond = expr s; e = expr s >] ->
 		expr_next (EWhile cond e NormalWhile, punion p1 (pos e)) s
@@ -134,7 +130,7 @@ function rec expr(s) {
 		expr_next (ETry e name e2,punion p1 (pos e2)) s
 	| [< (NXml x,p) >] ->
 		var e = try Neko.Xml.parse x p catch { e -> error (Invalid_nxml e) p };
-		expr_next e s 
+		expr_next e s
 	}
 }
 
@@ -154,7 +150,7 @@ function rec expr_next(e,s) {
 		}
 	| [< (Binop op,_); e2 = expr s >] ->
 		make_binop op e e2
-	| [< >] -> 
+	| [< >] ->
 		e
 	}
 }
@@ -244,7 +240,7 @@ function parse(lexer) {
 	function rec next_token() {
 		var t = Lexer.token lexer (*Neko.Lexer.expr);
 		match fst t {
-		| Comment s | CommentLine s -> 
+		| Comment s | CommentLine s ->
 			next_token()
 		| _ ->
 			last := t;
@@ -252,7 +248,7 @@ function parse(lexer) {
 		}
 	}
 	try {
-		var p = program (stream next_token);		
+		var p = program (stream next_token);
 		(EBlock p,null_pos)
 	} catch {
 		Stream_error -> error Unexpected(fst(*last)) snd(*last)

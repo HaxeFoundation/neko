@@ -1,20 +1,16 @@
 /*
  *  NekoML Compiler
- *  Copyright (c)2005 Nicolas Cannasse
+ *  Copyright (c)2005 Motion-Twin
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Lesser General Public
+ *  License as published by the Free Software Foundation; either
+ *  version 2.1 of the License, or (at your option) any later version.
  *
- *  This program is distributed in the hope that it will be useful,
+ *  This library is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Lesser General Public License or the LICENSE file for more details.
  */
 
 /* -----
@@ -279,7 +275,7 @@ function divide_matching(m) {
 				(constants , always_add (make_token_match ((MToken curpath k) :: pathl)) constrs (stream_pattern p :: (PStream sl (k+1),pp) :: l, act) , others)
 			| ((PStream ((SMagicExpr ((PTuple _,_) as p,e)) :: sl,k),pp) :: l,act) :: rest ->
 				var constants , constrs, others = divide_rec rest;
-				var ebind = MExecute (mk TConst(TIdent "@tmp") t_void pp) false;				
+				var ebind = MExecute (mk TConst(TIdent "@tmp") t_void pp) false;
 				(constants , always_add (make_token_match (junk curpath k (MExecute magic(e) false) :: ebind :: pathl)) constrs ((PConst (Ident "@tmp"),pp) :: stream_pattern p :: (PStream sl 0,pp) :: l, act) , others)
 			| ((PStream ((SMagicExpr (p,e)) :: sl,k),pp) :: l,act) :: rest ->
 				var constants , constrs, others = divide_rec rest;

@@ -1,26 +1,22 @@
 /*
  *  Neko Compiler
- *  Copyright (c)2005 Nicolas Cannasse
+ *  Copyright (c)2005 Motion-Twin
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Lesser General Public
+ *  License as published by the Free Software Foundation; either
+ *  version 2.1 of the License, or (at your option) any later version.
  *
- *  This program is distributed in the hope that it will be useful,
+ *  This library is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Lesser General Public License or the LICENSE file for more details.
  */
 open Neko.Bytecode;
 
 type context {
 	globals : global array;
-	opcodes : opcode array;	
+	opcodes : opcode array;
 	debug : (string, int) array;
 	loaded : (string, int option) Hashtbl.t;
 	mutable have_debug : bool;
@@ -37,13 +33,13 @@ function file_open(file) {
 				IO.read_file (p + file) true;
 			catch { _ -> loop l }
 		}
-	}	
+	}
 	loop ("" :: neko_path)
 }
 
 function rec do_link(ctx,module) {
 	print (module + "\n");
-	var ch = file_open (module + ".n");	
+	var ch = file_open (module + ".n");
 	var globals, opcodes = Neko.Bytecode.read ch;
 	IO.close_in ch;
 	var debug = &None;
@@ -98,7 +94,7 @@ function rec do_link(ctx,module) {
 		var k = Array.length ctx.opcodes;
 		op (Jump 0);
 		jumps := (mkop,k,p,i) :: *jumps
-	}	
+	}
 	function rec loop((p,l)) {
 		match l {
 		| [] -> assert()
@@ -122,7 +118,7 @@ function rec do_link(ctx,module) {
 					debug_pos := *debug_pos + 11;
 					(p + 8, l)
 				}
-			| _ -> 
+			| _ ->
 				throw Error("Cannot link not constant file")
 			}
 		| o :: l ->

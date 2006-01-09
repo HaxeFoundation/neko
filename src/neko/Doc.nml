@@ -1,20 +1,16 @@
 /*
  *  Neko Compiler
- *  Copyright (c)2005 Nicolas Cannasse
+ *  Copyright (c)2005 Motion-Twin
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Lesser General Public
+ *  License as published by the Free Software Foundation; either
+ *  version 2.1 of the License, or (at your option) any later version.
  *
- *  This program is distributed in the hope that it will be useful,
+ *  This library is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Lesser General Public License or the LICENSE file for more details.
  */
 
 type doc_type {
@@ -129,7 +125,7 @@ var doc_content = &Lexer.empty();
 var doc_doc = &Lexer.empty();
 
 doc_token := Lexer.build [
-	("/\\*\\*" , function(l) { (Lexer.data l).doc := true; mk_tok l Begin }); 
+	("/\\*\\*" , function(l) { (Lexer.data l).doc := true; mk_tok l Begin });
 	("/" , function(l) { Lexer.token l (*doc_token) });
 	("[^/]+", function(l) { Lexer.token l (*doc_token) });
 ] (function(l) { mk_tok l Eof });
@@ -161,7 +157,7 @@ doc_content := Lexer.build [
 	("[ \t\r\n]+", function(l) { Lexer.token l (*doc_content) });
 	("[0-9]+", function(l) { mk_tok l Int(int (Lexer.current l)) });
 	("$?[a-zA-Z_@][a-zA-Z0-9_@]*", function(l) { mk_tok l Ident(Lexer.current l) });
-] (function(l) { 
+] (function(l) {
 	match Lexer.char l {
 	| None -> mk_tok l Eof
 	| Some c -> error Invalid_char(c) Lexer.curpos(l)
@@ -285,7 +281,7 @@ function rec type_write(ch,t) {
 		function rec loop(l) {
 			match l {
 			| [] -> ()
-			| [t] -> type_write_par ch t 
+			| [t] -> type_write_par ch t
 			| t :: l ->
 				type_write_par ch t;
 				IO.write ch " | ";
@@ -320,7 +316,7 @@ function rec type_write(ch,t) {
 		type_write_par ch t;
 		IO.printf ch " %s" s
 	| TFunction n ->
-		IO.printf ch "function:%d" n 
+		IO.printf ch "function:%d" n
 	}
 }
 
@@ -344,12 +340,12 @@ function format_xml(s) {
 function to_html(ch,doc) {
 	List.iter (function(d) {
 		match d {
-		| Document x -> 
+		| Document x ->
 			IO.write ch (format_xml Xml.to_string(x));
 			IO.write ch "\n"
 		| Function (f,t,doc) ->
 			IO.write ch "<doc_blk>\n";
-			function rec loop(t) {	
+			function rec loop(t) {
 				match t {
 				| TFun (p,r) ->
 					var args , r = loop r;

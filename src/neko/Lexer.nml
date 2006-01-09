@@ -1,20 +1,16 @@
 /*
  *  Neko Compiler
- *  Copyright (c)2005 Nicolas Cannasse
+ *  Copyright (c)2005 Motion-Twin
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Lesser General Public
+ *  License as published by the Free Software Foundation; either
+ *  version 2.1 of the License, or (at your option) any later version.
  *
- *  This program is distributed in the hope that it will be useful,
+ *  This library is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Lesser General Public License or the LICENSE file for more details.
  */
 open Neko.Ast;
 
@@ -154,16 +150,16 @@ expr := Lexer.build [
 			}
 		catch {
 			Continue false -> ()
-		}		
+		}
 		var p2 = Lexer.curpos l;
-		(NXml(Buffer.string buf) , Lexer.punion p1 p2)		
+		(NXml(Buffer.string buf) , Lexer.punion p1 p2)
 	});
 	(binop + binop + "?",function(l) { mk l (Binop (Lexer.current l)) });
 	(binop + binop + "=",function(l) { mk l (Binop (Lexer.current l)) });
 	(">>>",function(l) { mk l (Binop ">>>") });
 	(">>>=",function(l) { mk l (Binop ">>>=") });
 ]
-	(function(l) { 
+	(function(l) {
 		match Lexer.char l {
 		| None -> mk l Eof
 		| Some c -> error l (Invalid_character c)
@@ -186,7 +182,7 @@ estring := Lexer.build [
 		Buffer.add_char (Lexer.data l) '\\';
 		str l
 	});
-	("\\\\n", function(l) { 
+	("\\\\n", function(l) {
 		Buffer.add_char (Lexer.data l) '\n';
 		str l
 	});
@@ -198,7 +194,7 @@ estring := Lexer.build [
 		Buffer.add_char (Lexer.data l) '\r';
 		str l
 	});
-	("\\\\[0-9][0-9][0-9]", function(l) { 
+	("\\\\[0-9][0-9][0-9]", function(l) {
 		var k = int (String.sub (Lexer.current l) 1 3);
 		if k > 255 then error l (Invalid_escaped_character k);
 		Buffer.add_char (Lexer.data l) (chr k);

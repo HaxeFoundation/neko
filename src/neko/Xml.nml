@@ -1,20 +1,16 @@
 /*
  *  Neko Compiler
- *  Copyright (c)2005 Nicolas Cannasse
+ *  Copyright (c)2005 Motion-Twin
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Lesser General Public
+ *  License as published by the Free Software Foundation; either
+ *  version 2.1 of the License, or (at your option) any later version.
  *
- *  This program is distributed in the hope that it will be useful,
+ *  This library is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Lesser General Public License or the LICENSE file for more details.
  */
 open Lexer;
 open Neko.Ast;
@@ -30,7 +26,7 @@ function parse_pos(p,x) {
 		var f, l = match String.split a ":" {
 		| [] -> assert()
 		| [line] -> (p.psource, int line)
-		| l -> 
+		| l ->
 			match List.rev l {
 			| [] -> assert()
 			| line :: l ->
@@ -45,7 +41,7 @@ function parse_pos(p,x) {
 		}
 	} catch {
 		Not_found -> p
-	}	
+	}
 }
 
 function rec parse_xml(p,x) {
@@ -62,7 +58,7 @@ function rec parse_xml(p,x) {
 		}
 	}
 	match node_name x {
-	| "i" -> 
+	| "i" ->
 		var v = int (attrib x "v");
 		(EConst Int(v),p)
 	| "f" ->
@@ -101,9 +97,9 @@ function rec parse_xml(p,x) {
 			var e = try Some (firstNode x) catch { _ -> None };
 			(attrib x "v", match e { None -> None | Some x -> Some (parse_xml p x) })
 		}) nodes(x)),p)
-	| "while" -> 
+	| "while" ->
 		binop (function(a,b) { EWhile a b NormalWhile })
-	| "do" -> 
+	| "do" ->
 		binop (function(a,b) { EWhile b a DoWhile })
 	| "if" ->
 		match nodes x {
@@ -205,7 +201,7 @@ function rec to_xml_rec(p2,ast) {
 		}
 	| EBlock el ->
 		name := "b";
-		childs := List.map (to_xml_rec p) el; 
+		childs := List.map (to_xml_rec p) el;
 	| EParenthesis e ->
 		name := "p";
 		childs := [to_xml_rec p e];
@@ -218,7 +214,7 @@ function rec to_xml_rec(p2,ast) {
 		childs := to_xml_rec p e :: List.map (to_xml_rec p) el;
 	| EArray (a,b) ->
 		name := "a";
-		childs := [to_xml_rec p a; to_xml_rec p b]; 
+		childs := [to_xml_rec p a; to_xml_rec p b];
 	| EVars vl ->
 		name := "var";
 		childs := List.map (function((v,e)) {
