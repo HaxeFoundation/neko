@@ -29,6 +29,7 @@ link:
 	${NEKOVM} neko/Main tools/nekoboot.neko
 	${NEKOVM} tools/nekoboot nekoc.n
 	${NEKOVM} tools/nekoboot nekoml.n
+	${NEKOVM} tools/nekoboot tools/nekoboot.n
 
 pass1:
 	${TIME} tpass1
@@ -71,17 +72,19 @@ nekoml: clean
 
 install: link
 	-cp nekoc.n nekoml.n ../boot
-	-cp nekoc.exe nekoml.exe ../bin
+	-cp nekoc.exe nekoml.exe tools/nekoboot.exe ../bin
 
 clean:
 	rm -rf *.n
 	rm -rf neko/*.n
 	rm -rf nekoml/*.n
-	rm -rf nekoc.exe nekoml.exe
+	rm -rf tools/*.n
+	rm -rf nekoc.exe nekoml.exe tools/nekoboot.exe
 
 cleanall: clean
 	rm -rf *.neko
 	rm -rf neko/*.neko
 	rm -rf nekoml/*.neko
+	rm -rf tools/*.neko
 	
 .PHONY: all pass1 tpass1 pass2 tpass2 pass3 tpass3 neko nekoml install clean link
