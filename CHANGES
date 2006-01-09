@@ -13,6 +13,7 @@
 	neko:
 		renamed 'nekovm' to 'neko'
 		experimental jit support
+		object prototypes
 		moved args from builtin ($args) to loader ($loader.args)
 		makeboot can create standalone binaries
 		runtime errors on :
