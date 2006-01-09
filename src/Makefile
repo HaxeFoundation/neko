@@ -85,6 +85,5 @@ cleanall: clean
 	rm -rf *.neko
 	rm -rf neko/*.neko
 	rm -rf nekoml/*.neko
-	rm -rf tools/*.neko
 	
 .PHONY: all pass1 tpass1 pass2 tpass2 pass3 tpass3 neko nekoml install clean link
