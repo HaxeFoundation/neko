@@ -329,7 +329,7 @@
 	<li><code>alloc_object(o)</code> returns a copy of the object o, or an empty object if o is <code>NULL</code> or <code>val_null</code>.</li>
 	<li><code>val_is_object(v)</code> check that the value is an object.</li>
 	<li><code>val_id("fname")</code> : in the Neko specification, it is told that object tables does not contain directly fields names but a hashed identifier of the field name. <code>val_id</code> return a <code>field</code> identifier from a field name.</li>
-	<li><code>val_field(o,f)</code> access a field for reading. It returns <code>NULL</code> (0 in C) if <code>o</code> is not an object or if the field doesn't exists, or it returns the value of the field either. A field having a null value will then return <code>val_null</code>. <code>f</code> is the <code>field</code> identifier as retreived with <code>val_id</code>.</li>
+	<li><code>val_field(o,f)</code> access an object field for reading, returns <code>val_null</code> if the field is not found. <code>f</code> is the <code>field</code> identifier as retreived with <code>val_id</code>.</li>
 	<li><code>alloc_field(o,f,v)</code> will set or replace the value of the field <code>f</code> of object <code>o</code> by the value <code>v</code>.</li>
 </ul>
 
@@ -467,7 +467,7 @@
 </ul>
 
 <p>
-	The function <code>f</code> must have either a variable number of arguments (<code>VAR_ARGS</code>) or the exact <code>nargs</code> number of arguments, or it will not be called and <code>val_null</code> will be returned.
+	The function <code>f</code> must have either a variable number of arguments (<code>VAR_ARGS</code>) or the exact <code>nargs</code> number of arguments, or an exception will be raised.
 </p>
 
 <p>

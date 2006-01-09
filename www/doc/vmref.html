@@ -7,15 +7,11 @@
 <h2>Running the VM</h2>
 
 <p>
-	The Neko Virtual Machine is one binary called <code>nekovm</code> included in the Neko distribution. You can call it anytime using <code>nekovm (file)</code> in order to execute the specified bytecode file.
+	The Neko Virtual Machine is one binary called <code>neko</code> included in the Neko distribution. You can call it anytime using <code>neko (file)</code> in order to execute the specified bytecode file.
 </p>
 
 <p>
 	Bytecode files are precompiled Neko sources and have the <code>.n</code> extension. They are searched in local directories but also using the <code>NEKOPATH</code> environment variable which can list several search paths separated by <code>:</code>. Each bytecode <code>.n</code> file is also called a <em>Module</em>.
-</p>
-
-<p>
-	For example, the Neko Compiler is a Neko bytecode file that you can start using <code>nekovm neko</code>. It will compile all the bytecode files that are listed after, so for exemple <code>nekom neko file1.neko file2.neko</code> will compile the two files in that order.
 </p>
 
 <h2>Libraries</h2>
@@ -89,7 +85,7 @@
         neko_global_init();
         vm = neko_vm_alloc(NULL);
 
-        loader = neko_default_loader();
+        loader = neko_default_loader(NULL,0);
         args[0] = alloc_string(file);
         args[1] = loader;
         neko_vm_select(vm);

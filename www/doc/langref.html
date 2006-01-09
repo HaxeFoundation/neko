@@ -121,8 +121,7 @@ The syntax is parsed using a left-to-right LL(1) parser. That means that after r
 </p>
 
 <ul>
-<li><code>continue</code> and <code>break</code> outside a while are not specified.</li>
-<li><code>return</code> in the toplevel (outside a function) is an accepted way of interupting module execution without error.</li>
+<li><code>continue</code> and <code>break</code> outside a while are not allowed.</li>
 <li>There are some few ambiguous cases when two expressions follows each others (in while and if). If the second expression is inside parenthesis, it will be parsed as a call of first expression, while such a representation e1 (e2) exists in the AST (the semicolons are optional).</li>
 </ul>
 
@@ -362,7 +361,7 @@ When a variable is not found in the local context or in the local function envir
 <h2>Basic Types Operations</h2>
 
 <p>
-Basic types are numbers (int and float), booleans (bool), the null value, strings, objects, arrays and functions. There are several operations available to use them, see the following tables. On the row is first operand type and on the columns is second operand type. The result is either the type of the returned value, or "concat" if we use string concatenation (in that case the two values are converted to strings and then concatened together). The "-" means that the operation is invalid and will return <code>null</code>.
+Basic types are numbers (int and float), booleans (bool), the null value, strings, objects, arrays and functions. There are several operations available to use them, see the following tables. On the row is first operand type and on the columns is second operand type. The result is either the type of the returned value, or "concat" if we use string concatenation (in that case the two values are converted to strings and then concatened together). The "-" means that the operation is invalid and will raise an exception.
 </p>
 
 <a name="arithm"></a>
@@ -506,17 +505,17 @@ Operations substract ( - ) divide ( / ) multiply ( * ) and modulo ( % ) :
 </p>
 
 <p>
-	Dividing or doing modulo of one integer by the integer zero returns <code>null</code>. For floats, it's hardware dependant and usually return the float +infinity. You can test it using the builtin <code>$isinfinite</code>, and there is also <code>$isnan</code> for testing NaN :
-</p>
-
-<p>
-	Objects does also have theses operations overridable, see the Objects section.
+	Dividing or doing modulo of one integer by the integer or the float zero is hardware dependant and usually return the float +infinity for division and NaN for modulo. You can test it using the builtin <code>$isinfinite</code>, and there is also <code>$isnan</code> for testing NaN :
 </p>
 
 <pre>
 	$print($isinfinite(1/0)); // prints true
 	$print($isnan(0/0)); // prints true
 </pre>
+
+<p>
+	Objects does also have theses operations overridable, see the Objects section.
+</p>
 
 <p>
 	Please note also that overflow on integer operations does not convert them to floats and are not catchable errors. If you want to control overflow you can define your own functions for operations or use floats everywhere, or if you want exact arithmetic use an object with overridden operators.
@@ -539,7 +538,7 @@ Operations substract ( - ) divide ( / ) multiply ( * ) and modulo ( % ) :
 </ul>
 
 <p>
-	Using the operations if one of the two operands is not an integer returns null.
+	Using the operations if one of the two operands is not an integer raise an exception.
 </p>
 
 <a name="boolops"></a>
@@ -965,7 +964,7 @@ Defining new functions is easy, since functions are values, you can simply assig
 </pre>
 
 <p>
-	Functions are called by-value, that means that <code>foo(1)</code> calls the function which is the value of the variable foo. Calling a value that is not a function or that does not accept this number of arguments returns a <code>null</code> value.
+	Functions are called by-value, that means that <code>foo(1)</code> calls the function which is the value of the variable foo. Calling a value that is not a function or that does not accept this number of arguments will raise an exception.
 </p>
 
 <p>
@@ -1074,7 +1073,7 @@ Defining new functions is easy, since functions are values, you can simply assig
 
 <pre>
 	$objfield(o,$hash("field")); // true if o have "field"
-	$objfield(null,33); // exception
+	$objfield(null,33); // false
 </pre>
 
 <p>
@@ -1182,6 +1181,33 @@ Defining new functions is easy, since functions are values, you can simply assig
 	<li><b>array writing</b> : when an object is accessed as an array for writing, using <code>a[i] = v</code> actually calls <code>a.__set(i,v)</code>.</li>
 </ul>
 
+<p>
+	If the overloaded field is not defined when an operation occured, an exception is raised.
+</p>
+
+<h3>Prototypes</h3>
+
+<p>
+	Each object can have a <i>prototype</i> which is also an object. When a field is accessed for reading and is not found in an object, it is searched in its prototype, and like this recursively.
+</p>
+
+<p>
+	Prototypes can be accessed using <code>$objgetproto</code> and <code>$objsetproto</code> :
+</p>
+
+<pre>
+	var proto = $new(null);
+	proto.foo = function() { $print(this.msg) }
+
+	var o = $new(null);
+	o.msg = "hello";
+	$objsetproto(o,proto);
+	o.foo(); // print "hello"
+
+	$objsetproto(o,null); // remove proto
+	o.foo(); // exception
+</pre>
+
 <!-- ****************************************************************************** -->
 
 <a name="arrays"></a>
@@ -1206,7 +1232,7 @@ Defining new functions is easy, since functions are values, you can simply assig
 </pre>
 
 <p>
-	Arrays are accessed with integer key values, every other key value type will return <code>null</code>. If the integer is in the range of the array bounds (between 0 and <code>$asize(a) - 1</code>), then the value returned is the one stored at this index, else it's <code>null</code>. For writing, if a value is written outside the bounds of the array then the array is not modified. You can get the size of an array using the <code>$asize</code> builtin. Arrays are not resizable :
+	Arrays are accessed with integer key values, every other key value type will raise an exception. If the integer is in the range of the array bounds (between 0 and <code>$asize(a) - 1</code>), then the value returned is the one stored at this index, else it's <code>null</code>. For writing, if a value is written outside the bounds of the array then the array is not modified. You can get the size of an array using the <code>$asize</code> builtin. Arrays are not resizable :
 </p>
 
 <pre>
@@ -1274,7 +1300,7 @@ Defining new functions is easy, since functions are values, you can simply assig
 </pre>
 
 <p>
-	Please note that assigning a constant string does not makes a copy of it, so the constant content can be modified. Also, several same constant strings can be merged into the same string, so you might be careful about unexcepected side effects when modifying a constant string. You might want to use a <code>$scopy</code> or the <code>$ssub</code> builtins (similar to array ones) :
+	Please note that assigning a constant string does not makes a copy of it, so the constant content can be modified. Also, several same constant strings can be merged into the same string, so you might be careful about unexpected side effects when modifying a constant string. You might want to use a <code>$scopy</code> or the <code>$ssub</code> builtins (similar to array ones) :
 </p>
 
 <pre>
@@ -1301,6 +1327,16 @@ Defining new functions is easy, since functions are values, you can simply assig
 	s2 = $smake(14);
 	$sblit(s2,0,s,5,14);
 	$print(s2); // "string to blit"
+</pre>
+
+<p>
+	To find a substring in a string, you can use the <code>$sfind</code> builtin :
+</p>
+
+<pre>
+	s = "some string to search";
+	$print($sfind(s,0,"to")); // 12
+	$print($sfind(s,20,"to")); // starting a byte 20 : null
 </pre>
 
 <p>
