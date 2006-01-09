@@ -321,9 +321,12 @@ static void make_md5_rec( md5_context *m, value v, stack *cur ) {
 			loc.pos = cur?(cur->pos+1):0;
 			loc.next = cur;
 			loc.m = m;
-			if( val_is_object(v) )
+			if( val_is_object(v) ) {
 				val_iter_fields(v,make_md5_fields,&loc);
-			else {
+				v = (value)((vobject*)v)->proto;
+				if( v != NULL )
+					make_md5_rec(m,v,&loc);
+			} else {
 				int len = val_array_size(v);
 				md5_uint(m,(len << 3) | 6);
 				while( len-- > 0 )

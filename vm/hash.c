@@ -81,6 +81,9 @@ static void hash_rec( value v, int *h, vlist *l ) {
 			p.l.v = v;
 			p.l.next = l;
 			val_iter_fields(v,hash_obj_rec,&p);
+			v = (value)((vobject*)v)->proto;
+			if( v != NULL )
+				hash_rec(v,h,&p.l);
 		} else {
 			vlist cur;
 			int k = val_array_size(v);

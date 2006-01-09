@@ -229,10 +229,13 @@ EXTERN value alloc_object( value cpy ) {
 		failure("alloc_object");
 	v = (vobject*)GC_MALLOC(sizeof(vobject));
 	v->t = VAL_OBJECT;
-	if( cpy == NULL || val_is_null(cpy) )
+	if( cpy == NULL || val_is_null(cpy) ) {
+		v->proto = NULL;
 		v->table = otable_empty();
-	else
+	} else {
+		v->proto = ((vobject*)cpy)->proto;
 		v->table = otable_copy(((vobject*)cpy)->table);
+	}
 	return (value)v;
 }
 

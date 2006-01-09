@@ -63,6 +63,8 @@ EXTERN value val_callEx( value vthis, value f, value *args, int nargs, value *ex
 		}
 		neko_setup_trap(vm,0);
 	}
+	if( val_is_int(f) )
+		val_throw(alloc_string("Invalid call"));
 	if( val_tag(f) == VAL_PRIMITIVE ) {
 		if( nargs > CALL_MAX_ARGS )
 			failure("Too many arguments for a call");
@@ -138,11 +140,7 @@ EXTERN value val_callN( value f, value *args, int nargs ) {
 }
 
 EXTERN value val_ocallN( value o, field f, value *args, int nargs ) {
-	value *meth;
-	meth = otable_find(((vobject*)o)->table,f);
-	if( meth == NULL )
-		return val_null;
-	return val_callEx(o,*meth,args,nargs,NULL);
+	return val_callEx(o,val_field(o,f),args,nargs,NULL);
 }
 
 EXTERN value val_call0( value f ) {

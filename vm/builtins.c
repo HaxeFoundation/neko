@@ -389,6 +389,33 @@ static value builtin_field( value f ) {
 	return val_field_name(val_int(f));
 }
 
+/**
+	$objsetproto : o:object -> proto:object? -> void
+	<doc>Set the prototype of the object</doc>
+**/
+static value builtin_objsetproto( value o, value p ) {
+	val_check(o,object);
+	if( val_is_null(p) )
+		((vobject*)o)->proto = NULL;
+	else {
+		val_check(p,object);
+		((vobject*)o)->proto = (vobject*)p;
+	}
+	return val_true;
+}
+
+/**
+	$objgetproto : o:object -> object?
+	<doc>Get the prototype of the object</doc>
+**/
+static value builtin_objgetproto( value o ) {
+	val_check(o,object);
+	o = (value)((vobject*)o)->proto;
+	if( o == NULL )
+		return val_null;
+	return o;
+}
+
 /** <doc><h2>Function Builtins</h2></doc> **/
 
 /**
@@ -1134,6 +1161,8 @@ void neko_init_builtins() {
 	BUILTIN(objfields,1);
 	BUILTIN(hash,1);
 	BUILTIN(field,1);
+	BUILTIN(objsetproto,2);
+	BUILTIN(objgetproto,1);
 
 	BUILTIN(int,1);
 	BUILTIN(float,1);

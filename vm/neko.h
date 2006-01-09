@@ -63,9 +63,10 @@ typedef struct {
 	tfloat f;
 } vfloat;
 
-typedef struct {
+typedef struct _vobject {
 	val_type t;
 	objtable table;
+	struct _vobject *proto;
 } vobject;
 
 typedef struct {

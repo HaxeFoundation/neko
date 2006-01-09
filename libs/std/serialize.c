@@ -167,6 +167,13 @@ void serialize_rec( sbuffer *b, value o ) {
 			write_char(b,'o');
 			val_iter_fields(o,serialize_fields_rec,b);
 			write_int(b,0);
+			o = (value)((vobject*)o)->proto;
+			if( o == NULL )
+				write_char(b,'z');
+			else {
+				write_char(b,'p');
+				serialize_rec(b,o);
+			}
 		}
 		break;
 	case VAL_ARRAY:
@@ -311,6 +318,23 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 			while( (f = read_int(b)) != 0 ) {
 				value fval = unserialize_rec(b,loader);
 				alloc_field(o,(field)f,fval);
+			}
+			switch( read_char(b) ) {
+			case 'p':
+				{
+					value v = unserialize_rec(b,loader);
+					if( !val_is_object(v) ) {
+						b->error = true;
+						return val_null;
+					}
+					((vobject*)o)->proto = (vobject*)v;
+				}
+				break;
+			case 'z':
+				break;
+			default:
+				b->error = true;
+				return val_null;
 			}
 			return o;
 		}

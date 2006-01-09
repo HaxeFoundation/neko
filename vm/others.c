@@ -357,12 +357,16 @@ EXTERN void neko_clean_thread() {
 	context_set(neko_vm_context,NULL);
 }
 
-EXTERN value val_field( value o, field id ) {
+EXTERN value val_field( value _o, field id ) {
 	value *f;
-	f = otable_find(((vobject*)o)->table,id);
-	if( f == NULL )
-		return val_null;
-	return *f;
+	vobject *o = (vobject*)_o;
+	do {
+		f = otable_find(o->table,id);
+		if( f != NULL )
+			return *f;
+		o = o->proto;
+	} while( o );
+	return val_null;
 }
 
 EXTERN void val_iter_fields( value o, void f( value , field, void * ) , void *p ) {
