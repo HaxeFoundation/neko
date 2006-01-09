@@ -231,7 +231,7 @@ exec(nekovm+" nekoc mtypes/std.neko");
 try { mkdir(base+"/mtypes",rights); } catch e { };
 copy("mtypes/std.n",base+"/mtypes");
 
-nekoboot(base+"/neko.n");
+nekoboot(base+"/nekoc.n");
 nekoboot(base+"/nekoml.n");
 nekoboot(base+"/nekoboot.n");
 
@@ -251,3 +251,4 @@ next:
 }
 
 // END
+$print("Install done, all files are available in /bin directory\n");
