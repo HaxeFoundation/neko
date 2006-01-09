@@ -35,7 +35,7 @@ function help(head,decl) {
 }
 
 function parse_args(args,head,decl,def) {
-	var i = &1;
+	var i = &0;
 	var l = Array.length args;
 	var h = Hashtbl.create();
 	var hdecl = Void (function() { help head decl });

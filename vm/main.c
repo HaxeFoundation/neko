@@ -153,7 +153,7 @@ static int execute( neko_vm *vm, char **argv, int argc ) {
 			printf("Usage : neko <file>\n");
 			return 1;
 		} else
-			return execute_file(vm,argv[1],neko_default_loader(argv+1,argc-1));
+			return execute_file(vm,argv[1],neko_default_loader(argv+2,argc-2));
 	}
 	if( exe == NULL ) {
 		printf("Could not resolve current executable\n");
@@ -165,7 +165,7 @@ static int execute( neko_vm *vm, char **argv, int argc ) {
 		return 2;
 	}
 	fseek(self,data_pos,0);
-	return execute_self(vm,neko_default_loader(argv,argc));
+	return execute_self(vm,neko_default_loader(argv+1,argc-1));
 }
 
 int main( int argc, char *argv[] ) {

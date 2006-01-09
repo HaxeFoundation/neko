@@ -38,9 +38,9 @@ find_in_path = function(path,file) {
 // bytecode = first argument
 
 var args = $loader.args;
-if( $asize(args) != 2 )
+if( $asize(args) != 1 )
 	$throw("Need bytecode argument");
-var file = args[1];
+var file = args[0];
 var bytecode = file_contents(file);
 
 // load boot.bin
