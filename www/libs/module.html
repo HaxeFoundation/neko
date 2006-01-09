@@ -10,6 +10,11 @@
 	</doc_doc>
 </doc_blk>
 <doc_blk>
+  <doc_type>'module</doc_type> <doc_name>module_read_path</doc_name><doc_type>(string list, name : string, loader : object)</doc_type> <doc_doc>
+	Read a module using the specified search path.
+	</doc_doc>
+</doc_blk>
+<doc_blk>
   <doc_type>any</doc_type> <doc_name>module_exec</doc_name><doc_type>('module)</doc_type> <doc_doc>Execute the module, return the calculated value</doc_doc>
 </doc_blk>
 <doc_blk>
@@ -29,4 +34,29 @@
 </doc_blk>
 <doc_blk>
   <doc_type>void</doc_type> <doc_name>module_global_set</doc_name><doc_type>('module, n : int, any)</doc_type> <doc_doc>Set the <doc_code>n</doc_code>th global</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>int</doc_type> <doc_name>module_code_size</doc_name><doc_type>('module)</doc_type> <doc_doc>return the codesize of the module</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>'int32</doc_type> <doc_name>module_code_address</doc_name><doc_type>('module)</doc_type> <doc_doc>return the base address of the module code</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>'int32</doc_type> <doc_name>module_code_get</doc_name><doc_type>('module, n : int)</doc_type> <doc_doc>return the <doc_code>n</doc_code>th code value of the module code</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>void</doc_type> <doc_name>module_register_fields</doc_name><doc_type>('module)</doc_type> <doc_doc>register all the fields used by the module with current thread</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>int</doc_type> <doc_name>module_fun_address</doc_name><doc_type>(function)</doc_type> <doc_doc>Return the position of a bytecode function in a module</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>void</doc_type> <doc_name>module_set_jit</doc_name><doc_type>('module, string)</doc_type> <doc_doc>change the JIT code of the module.</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>function</doc_type> <doc_name>module_fun_jit</doc_name><doc_type>(function, 'module, string, int)</doc_type> <doc_doc>
+	Make a JIT function from a Bytecode one.
+	Should be use with great care ! 
+	This is the only function that can crash the VM if used incorrectly.
+	</doc_doc>
 </doc_blk>

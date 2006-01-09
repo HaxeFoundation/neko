@@ -63,6 +63,12 @@
 	An error occurs if out of strings bounds.
 	</doc_doc>
 </doc_blk>
+<doc_blk>
+  <doc_type>int</doc_type> <doc_name>$sfind</doc_name><doc_type>(src : string, pos : int, pat : string)</doc_type> <doc_doc>
+	Return the first position starting at <doc_code>pos</doc_code> in <doc_code>src</doc_code> where <doc_code>pat</doc_code> was found.
+	Return null if not found. Error if <doc_code>pos</doc_code> is outside <doc_code>src</doc_code> bounds.
+	</doc_doc>
+</doc_blk>
 <h2>Object Builtins</h2>
 <doc_blk>
   <doc_type>object</doc_type> <doc_name>$new</doc_name><doc_type>(object?)</doc_type> <doc_doc>Return a copy of the object or a new object if <doc_code>null</doc_code></doc_doc>
@@ -93,7 +99,10 @@
 </doc_blk>
 <h2>Function Builtins</h2>
 <doc_blk>
-  <doc_type>int</doc_type> <doc_name>$nargs</doc_name><doc_type>(function)</doc_type> <doc_doc>Return the number of arguments of a function</doc_doc>
+  <doc_type>int</doc_type> <doc_name>$nargs</doc_name><doc_type>(function)</doc_type> <doc_doc>
+	Return the number of arguments of a function. 
+	If the function have a variable number of arguments, it returns -1
+	</doc_doc>
 </doc_blk>
 <doc_blk>
   <doc_type>any</doc_type> <doc_name>$call</doc_name><doc_type>(f : function, this : any, args : array)</doc_type> <doc_doc>Call <doc_code>f</doc_code> with <doc_code>this</doc_code> context and <doc_code>args</doc_code> arguments</doc_doc>
@@ -222,9 +231,6 @@
   <doc_type>int</doc_type> <doc_name>$pcompare</doc_name><doc_type>(any, any)</doc_type> <doc_doc>Physically compare two values. Same as <doc_code>$compare</doc_code> for integers.</doc_doc>
 </doc_blk>
 <doc_blk>
-  <doc_type>string array</doc_type> <doc_name>$args</doc_name><doc_type>()</doc_type> <doc_doc>Return the commandline arguments</doc_doc>
-</doc_blk>
-<doc_blk>
   <doc_type>array</doc_type> <doc_name>$excstack</doc_name><doc_type>()</doc_type> <doc_doc>
 	Return the stack between the place the last exception was raised and the place it was catched.
 	The stack is composed of the following items :
@@ -237,4 +243,7 @@
 </doc_blk>
 <doc_blk>
   <doc_type>array</doc_type> <doc_name>$callstack</doc_name><doc_type>()</doc_type> <doc_doc>Return the current callstack. Same format as <doc_code>$excstack</doc_code></doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>'int32 array</doc_type> <doc_name>$jit_functions</doc_name><doc_type>()</doc_type> <doc_doc>Return some internal functions addresses needed for JIT</doc_doc>
 </doc_blk>
