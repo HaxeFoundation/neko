@@ -19,13 +19,15 @@
 List = $new(null);
 
 List.new = function() {
-	return $new(@List);
+	var o = $new(null);
+	$objsetproto(o,@List);
+	o.l = 0;
+	o.h = null;
+	o.q = null;
+	return o;
 };
 
 @List = $new(null);
-@List.l = 0;
-@List.h = null;
-@List.q = null;
 
 @List.get_length = function() {
 	return this.l;
@@ -92,10 +94,14 @@ List.new = function() {
 }
 
 @List.first = function() {
+	if( this.h == null )
+		return null;
 	return this.h[0];
 }
 
 @List.last = function() {
+	if( this.q == null )
+		return null;
 	return this.q[0];
 }
 
@@ -230,19 +236,20 @@ $exports.List = List;
 Array = $new(null);
 
 Array.new = function() {
-	var o = $new(@Array);
+	var o = $new(null);
+	$objsetproto(o,@Array);
 	o.@a = $array();
 	return o;
 }
 
 Array.new1 = function(a) {
-	var o = $new(@Array);
+	var o = $new(null);
+	$objsetproto(o,@Array);
 	o.@a = a;
 	return o;
 }
 
 @Array = $new(null);
-@Array.@a = null;
 
 @Array.get_length = function() {
 	return $asize(this.@a);
@@ -361,13 +368,14 @@ $exports.Array = Array;
 Hash = $new(null);
 
 Hash.new = function() {
-	var o = $new(@Hash);
+	var o = $new(null);
+	$objsetproto(o,@Hash);
 	o.@h = $hnew(3);
 	return o;
 }
 
 @Hash = $new(null);
-@Hash.@h = null;
+
 @Hash.get = function(k) {
 	return $hget(this.@h,k.@s,null);
 }
@@ -426,13 +434,13 @@ String.new = function(s) {
 	if( $typeof(s) != $tstring )
 		s = $string(s);
 
-	var o = $new(@String);
+	var o = $new(null);
+	$objsetproto(o,@String);
 	o.@s = s;
 	return o;
 }
 
 @String = $new(null);
-@String.@s = null;
 
 @String.get_length = function() {
 	return $ssize(this.@s);
@@ -519,13 +527,13 @@ buffer_string = $loader.loadprim("std@buffer_string",1);
 StringBuf = $new(null);
 
 StringBuf.new = function() {
-	var b = $new(@StringBuf);
+	var b = $new(null);
+	$objsetproto(b,@StringBuf);
 	b.@b = buffer_new();
 	return b;
 }
 
 @StringBuf = $new(null);
-@StringBuf.@b = null;
 
 @StringBuf.add = function(s) {
 	buffer_add(this.@b,s);
@@ -551,7 +559,8 @@ $exports.StringBuf = StringBuf;
 parse_xml = $loader.loadprim("std@parse_xml",2);
 
 fxml = function(name,att) {
-	var o = $new(@Xml);
+	var o = $new(null);
+	$objsetproto(o,@Xml);
 	var f = $objfields(att);
 
 	var i = 0;
@@ -569,7 +578,8 @@ fxml = function(name,att) {
 }
 
 fpcdata = function(text) {
-	var o = $new(@Xml);
+	var o = $new(null);
+	$objsetproto(o,@Xml);
 	o.text = String.new(text);
 	o.parent = this.cur;
 	o.cdata = false;
@@ -577,7 +587,8 @@ fpcdata = function(text) {
 }
 
 fcdata = function(text) {
-	var o = $new(@Xml);
+	var o = $new();
+	$objsetproto(o,@Xml);
 	o.text = String.new(text);
 	o.parent = this.cur;
 	o.cdata = true;
@@ -594,7 +605,8 @@ fdone = function() {
 Xml = $new(null);
 
 Xml.new = function(s) {
-	var doc = $new(@Xml);
+	var doc = $new(null);
+	$objsetproto(doc,@Xml);
 	doc.children = List.new();
 	parse_xml(s.@s,{
 		cur => doc,
@@ -608,11 +620,6 @@ Xml.new = function(s) {
 }
 
 @Xml = $new(null);
-@Xml.att = null;
-@Xml.parent = null;
-@Xml.text = null;
-@Xml.node = null;
-@Xml.children = null;
 
 @Xml.get = function(name) {
 	if( this.att == null )
