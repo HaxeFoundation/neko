@@ -145,6 +145,8 @@ static int execute( neko_vm *vm, char **argv, int argc ) {
 	char *exe = executable_path();
 	value mload;
 	int ret;
+	if( neko_is_big_endian() )
+		data_pos = (data_pos >> 24) | ((data_pos >> 8) & 0xFF00) | ((data_pos << 8) & 0xFF0000) | (data_pos << 24);	
 	if( data_pos == 0 ) {
 		if( argc == 1 ) {
 			printf("Usage : neko <file>\n");
