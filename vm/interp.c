@@ -270,8 +270,8 @@ static int_val jit_run( neko_vm *vm, vfunction *acc ) {
 
 #define ObjectOp(obj,param,id) { \
 		value _o = (value)obj; \
-		value _f = val_field(_o,id); \
 		value _arg = (value)param; \
+		value _f = val_field(_o,id); \
 		if( _f == val_null ) \
 			RuntimeError("Unsupported operation",false); \
 		BeginCall(); \
