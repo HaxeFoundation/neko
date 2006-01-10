@@ -303,7 +303,7 @@ static void make_md5_rec( md5_context *m, value v, stack *cur ) {
 		}
 		break;
 	case VAL_STRING:
-		md5_update(m,val_string(v),val_strlen(v));
+		md5_update(m,val_string(v),(uint32)val_strlen(v));
 		break;
 	case VAL_OBJECT:
 	case VAL_ARRAY:
