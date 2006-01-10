@@ -87,6 +87,14 @@ extern field id_exports;
 extern value *neko_builtins;
 extern value alloc_module_function( void *m, int_val pos, int nargs );
 
+EXTERN int neko_is_big_endian() {
+#if BYTE_ORDER == LITTLE_ENDIAN
+	return 0;
+#else
+	return 1;
+#endif
+}
+
 static int read_string( reader r, readp p, char *buf ) {
 	int i = 0;
 	char c;

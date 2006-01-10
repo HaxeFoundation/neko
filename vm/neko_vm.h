@@ -45,6 +45,8 @@ EXTERN void neko_vm_select( neko_vm *vm );
 EXTERN void neko_clean_thread();
 EXTERN value neko_default_loader( char **argv, int argc );
 
+EXTERN int neko_is_big_endian();
+
 C_FUNCTION_END
 
 #endif
