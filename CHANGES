@@ -1,6 +1,7 @@
 2006-??-?? : 1.3
 	neko : fixed endianness bug needed to boot, exported neko_is_big_endian
 	neko : fixed bug on Linux x86 gcc with object operators (eax get overwritten)
+	neko : fixed bug : error when __string or __compare does not exist
 	(planned) continuations
 	(planned) efficient JIT
 	
