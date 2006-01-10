@@ -70,7 +70,12 @@ EXTERN int val_compare( value a, value b ) {
 	case C(VAL_OBJECT,VAL_OBJECT):
 		if( a == b )
 			return 0;
-		a = val_ocall1(a,id_compare,b);
+		{
+			value tmp = val_field(a,id_compare);
+			if( tmp == val_null )
+				return invalid_comparison;
+			a = val_callEx(a,tmp,&b,1,NULL);
+		}
 		if( val_is_int(a) )
 			return val_int(a);
 		return invalid_comparison;
@@ -198,7 +203,9 @@ static void val_buffer_rec( buffer b, value v, vlist *stack ) {
 		break;
 	case VAL_OBJECT:
 		{
-			value s = val_ocall0(v,id_string);
+			value s = val_field(v,id_string);
+			if( s != val_null )
+				s = val_callEx(v,s,NULL,0,NULL);
 			if( val_is_string(s) )
 				buffer_append_sub(b,val_string(s),val_strlen(s));
 			else {
