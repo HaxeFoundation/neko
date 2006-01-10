@@ -652,6 +652,8 @@ Xml.new = function(s) {
 }
 
 @Xml.firstNode = function() {
+	if( this.children == null )
+		$throw(String.new("Xml.firstNode"));
 	if( this.node != null )
 		return this;
 	var s = this.children.h;
@@ -676,7 +678,10 @@ xml_string_rec = function(x,b) {
 			buffer_add(b,"]]>");
 		return;
 	}
-	var s = x.children.h;
+	var s = x.children;
+	if( s == null )
+		return;
+	s = s.h;
 	if( x.node != null ) {
 		buffer_add(b,"<");
 		buffer_add(b,x.node);
