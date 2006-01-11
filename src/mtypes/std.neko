@@ -29,6 +29,8 @@ List.new = function() {
 
 @List = $new(null);
 
+List.prototype = @List;
+
 @List.get_length = function() {
 	return this.l;
 };
@@ -251,6 +253,8 @@ Array.new1 = function(a) {
 
 @Array = $new(null);
 
+Array.prototype = @Array;
+
 @Array.get_length = function() {
 	return $asize(this.@a);
 }
@@ -376,6 +380,8 @@ Hash.new = function() {
 
 @Hash = $new(null);
 
+Hash.prototype = @Hash;
+
 @Hash.get = function(k) {
 	return $hget(this.@h,k.@s,null);
 }
@@ -441,6 +447,8 @@ String.new = function(s) {
 }
 
 @String = $new(null);
+
+String.prototype = @String;
 
 @String.get_length = function() {
 	return $ssize(this.@s);
@@ -535,6 +543,8 @@ StringBuf.new = function() {
 
 @StringBuf = $new(null);
 
+StringBuf.prototype = @StringBuf;
+
 @StringBuf.add = function(s) {
 	buffer_add(this.@b,s);
 }
@@ -620,6 +630,8 @@ Xml.new = function(s) {
 }
 
 @Xml = $new(null);
+
+Xml.prototype = @Xml;
 
 @Xml.get = function(name) {
 	if( this.att == null )
