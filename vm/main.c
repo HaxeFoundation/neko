@@ -141,7 +141,7 @@ static int execute_file( neko_vm *vm, char *file, value mload ) {
 #endif
 
 static int execute( neko_vm *vm, char **argv, int argc ) {
-	int data_pos = *(int*)(data+10);
+	unsigned int data_pos = *(unsigned int*)(data+10);
 	char *exe = executable_path();
 	value mload;
 	int ret;
