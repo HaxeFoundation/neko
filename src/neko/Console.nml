@@ -75,8 +75,17 @@ function run() {
 			}
 		}) globals;
 		// execute
-		nprint Reflex.neko_value(Reflex.mexecute m);
-		nprint "\n";
+		try {
+			nprint Reflex.neko_value(Reflex.mexecute m);
+			nprint "\n";
+		} catch {
+			e ->
+				var st = Stack.exc();
+				Stack.dump IO.stdout st;
+				print "Exception : ";
+				if neko("$typeof(e) == $tarray && $typeof(e[0]) == $tint && $typeof(e[1]) == $tfunction") then print e else nprint e;
+				print "\n";
+		}
 		// save environment
 		Array.iteri (function(i,g) {
 			match g {
@@ -88,17 +97,6 @@ function run() {
 		}) globals;
 	}
 	while true {
-		try
-			while true {
-				loop()
-			}
-		catch {
-			e ->
-				var st = Stack.exc();
-				Stack.dump IO.stdout st;
-				print "Exception : ";
-				if neko("$typeof(e) == $tarray && $typeof(e[0]) == $tint && $typeof(e[1]) == $tfunction") then print e else nprint e;
-				print "\n";
-		}
+		loop()
 	}
 }
