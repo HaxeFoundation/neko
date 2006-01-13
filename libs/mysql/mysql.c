@@ -82,7 +82,7 @@ static void free_result( value o ) {
 }
 
 /**
-	result_sev_conv_data : 'result -> function:1 -> void
+	result_set_conv_date : 'result -> function:1 -> void
 	<doc>Set the function that will convert a Date or DateTime string
 	to the corresponding value.</doc>
 **/
