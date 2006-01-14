@@ -1088,9 +1088,18 @@ extern value alloc_module_function( void *m, int_val pos, int nargs );
 extern int neko_stack_expand( int_val *sp, int_val *csp, neko_vm *vm );
 extern value append_int( neko_vm *vm, value str, int x, bool way );
 extern value append_strings( value s1, value s2 );
+extern void neko_setup_trap( neko_vm *vm, int_val where );
+extern void neko_process_trap( neko_vm *vm );
+
+static value process_trap_jit( neko_vm *vm, jmp_buf backup ) {
+	value exc = vm->vthis;
+	memcpy(vm->start,backup,sizeof(jmp_buf));
+	neko_process_trap(vm);
+	return exc;
+}
 
 static value builtin_jit_functions() {
-	value a = alloc_array(22);
+	value a = alloc_array(28);
 	value *p = val_array_ptr(a);
 	*p++ = alloc_int32(neko_interp);
 	*p++ = alloc_int32(callback_return);
@@ -1119,6 +1128,12 @@ static value builtin_jit_functions() {
 	*p++ = alloc_int32(buffer_to_string);
 	*p++ = alloc_int32(alloc_apply);
 	*p++ = alloc_int32(val_ocall1);
+	*p++ = alloc_int32(val_print);
+	*p++ = alloc_int32(sizeof(jmp_buf));
+	*p++ = alloc_int32(memcpy);
+	*p++ = alloc_int32(setjmp);
+	*p++ = alloc_int32(neko_setup_trap);
+	*p++ = alloc_int32(process_trap_jit);
 	return a;
 }
 

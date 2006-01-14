@@ -35,10 +35,10 @@ struct _neko_vm {
 	int_val *spmin;
 	int_val *spmax;
 	int_val trap;
+	jmp_buf start;
 	int ncalls;
 	value exc_stack;
 	printer print;
-	jmp_buf start;
 	void *custom;
 	char tmp[100];
 };
