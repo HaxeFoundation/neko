@@ -19,7 +19,7 @@ function hash(x:'a) : int {
 	neko("$hkey(x)")
 }
 
-function create() {
+function create() : ('a,'b) t {
 	neko("$hnew(0)")
 }
 
