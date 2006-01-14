@@ -289,6 +289,7 @@ C_FUNCTION_BEGIN
 	EXTERN buffer alloc_buffer( const char *init );
 	EXTERN void buffer_append( buffer b, const char *s );
 	EXTERN void buffer_append_sub( buffer b, const char *s, int_val len );
+	EXTERN void buffer_append_char( buffer b, char c );
 	EXTERN value buffer_to_string( buffer b );
 	EXTERN void val_buffer( buffer b, value v );
 

@@ -89,21 +89,40 @@ EXTERN int val_compare( value a, value b ) {
 typedef struct _stringitem {
 	char *str;
 	int len;
+	int free;
 	struct _stringitem *next;
 } * stringitem;
 
 struct _buffer {
 	int totlen;
+	int blen;
 	stringitem data;
 };
 
 EXTERN buffer alloc_buffer( const char *init ) {
 	buffer b = (buffer)alloc(sizeof(struct _buffer));
 	b->totlen = 0;
+	b->blen = 16;
 	b->data = NULL;
 	if( init )
 		buffer_append(b,init);
 	return b;
+}
+
+static void buffer_append_new( buffer b, const char *s, int len ) {
+	int size;
+	stringitem it;
+	while( b->totlen >= (b->blen << 2) )
+		b->blen <<= 1;
+	size = (len < b->blen)?b->blen:len;
+	it = (stringitem)alloc(sizeof(struct _stringitem));
+	it->str = alloc_private(size);
+	memcpy(it->str,s,len);
+	it->str += len;
+	it->free = size - len;
+	it->len = size;
+	it->next = b->data;
+	b->data = it;	
 }
 
 EXTERN void buffer_append_sub( buffer b, const char *s, int_val _len ) {
@@ -112,13 +131,22 @@ EXTERN void buffer_append_sub( buffer b, const char *s, int_val _len ) {
 	if( s == NULL || len <= 0 )
 		return;
 	b->totlen += len;
-	it = (stringitem)alloc(sizeof(struct _stringitem));
-	it->str = alloc_private(len+1);
-	memcpy(it->str,s,len);
-	it->str[len] = 0;
-	it->len = len;
-	it->next = b->data;
-	b->data = it;
+	it = b->data;
+	if( it ) {
+		if( it->free >= len ) {
+			memcpy(it->str,s,len);
+			it->str += len;
+			it->free -= len;
+			return;
+		} else {
+			memcpy(it->str,s,it->free);
+			it->str += it->free;
+			s += it->free;
+			len -= it->free;
+			it->free = 0;
+		}
+	}
+	buffer_append_new(b,s,len);
 }
 
 EXTERN void buffer_append( buffer b, const char *s ) {
@@ -127,14 +155,27 @@ EXTERN void buffer_append( buffer b, const char *s ) {
 	buffer_append_sub(b,s,strlen(s));
 }
 
+EXTERN void buffer_append_char( buffer b, char c ) {
+	stringitem it;
+	b->totlen++;
+	it = b->data;
+	if( it && it->free ) {
+		*it->str++ = c;
+		it->free--;
+		return;
+	}
+	buffer_append_new(b,&c,1);
+}
+
 EXTERN value buffer_to_string( buffer b ) {
 	value v = alloc_empty_string(b->totlen);
 	stringitem it = b->data;
 	char *s = (char*)val_string(v) + b->totlen;
 	while( it != NULL ) {
 		stringitem tmp;
-		s -= it->len;
-		memcpy(s,it->str,it->len);
+		int size = it->len - it->free;
+		s -= size;
+		memcpy(s,it->str - size,size);
 		tmp = it->next;
 		it = tmp;
 	}

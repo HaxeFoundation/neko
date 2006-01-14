@@ -57,13 +57,11 @@ static value buffer_add( value b, value v ) {
 	<doc>Add a single char to a buffer. Error if [c] is not in the 0..255 range</doc>
 **/
 static value buffer_add_char( value b, value c ) {
-	unsigned char cc;
 	val_check_kind(b,k_buffer);
 	val_check(c,int);
 	if( val_int(c) < 0 || val_int(c) > 255 )
-		neko_error();
-	cc = (unsigned char)val_int(c);
-	buffer_append_sub( (buffer)val_data(b), (char*)&cc, 1 );
+		neko_error();	
+	buffer_append_char( (buffer)val_data(b), (char)(unsigned char)val_int(c) );
 	return val_true;
 }
 
