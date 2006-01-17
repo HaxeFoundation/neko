@@ -608,9 +608,13 @@ fcdata = function(text) {
 fcomment = function(comment) {
 }
 
+fdoctype = function(dtype) {
+}
+
 fdone = function() {
 	this.cur = this.cur.parent;
 }
+
 
 Xml = $new(null);
 
@@ -624,6 +628,7 @@ Xml.new = function(s) {
 		cdata => fcdata,
 		pcdata => fpcdata,
 		comment => fcomment,
+		doctype => fdoctype,
 		done => fdone
 	});
 	return doc;
