@@ -58,12 +58,12 @@ List.prototype = @List;
 	var prev = null;
 	while( cur != null ) {
 		if( cur[0] == x ) {
-			if( prev == null ) {
-				if( this.q == this.h )
-					this.q = null;
+			if( prev == null )
 				this.h = cur[1];
-			} else
+			else
 				prev[1] = cur[1];
+			if( this.q == cur )
+				this.q = prev;
 			this.l = this.l - 1;
 			return true;
 		}
