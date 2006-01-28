@@ -180,7 +180,7 @@ compile = function(file) {
 }
 
 nekoboot = function(file) {
-	exec(nekovm+" nekoboot "+file);
+	exec(nekovm+" tools/nekoboot "+file);
 	delete(file);
 }
 
@@ -240,7 +240,9 @@ exec(nekovm+" nekoc tools/test.neko");
 copy("tools/test.n",base);
 
 exec(nekovm+" nekoc tools/nekoboot.neko");
-copy("tools/nekoboot.n",base);
+exec(nekovm+" nekoml -p tools Tools.nml");
+exec(nekovm+" nekoc -link tools/nekotools.n Tools");
+copy("tools/nekotools.n",base);
 
 exec(nekovm+" nekoc mtypes/std.neko");
 try { mkdir(base+"/mtypes",rights); } catch e { };
@@ -248,7 +250,7 @@ copy("mtypes/std.n",base+"/mtypes");
 
 nekoboot(base+"/nekoc.n");
 nekoboot(base+"/nekoml.n");
-nekoboot(base+"/nekoboot.n");
+nekoboot(base+"/nekotools.n");
 
 // compile libs
 
