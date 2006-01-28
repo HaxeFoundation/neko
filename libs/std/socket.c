@@ -54,18 +54,30 @@ DEFINE_KIND(k_addr);
 **/
 
 /**
-	socket_new : udp:bool -> 'socket
-	<doc>Create a new socket, TCP or UDP</doc>
+	socket_init : void -> void
+	<doc>
+	Initialize the socket API. Must be called at least once per process
+	before using any socket or host function.
+	</doc>
 **/
-static value socket_new( value udp ) {
-	SOCKET s;
-	val_check(udp,bool);
+static value socket_init() {
 #ifdef _WIN32
 	if( !init_done ) {
 		WSAStartup(MAKEWORD(2,0),&init_data);
 		init_done = true;
 	}
 #endif
+	return val_true;
+}
+
+
+/**
+	socket_new : udp:bool -> 'socket
+	<doc>Create a new socket, TCP or UDP</doc>
+**/
+static value socket_new( value udp ) {
+	SOCKET s;
+	val_check(udp,bool);
 	if( val_bool(udp) )
 		s = socket(AF_INET,SOCK_DGRAM,0);
 	else
@@ -424,6 +436,7 @@ static value socket_set_timeout( value o, value t ) {
 	return val_true;
 }
 
+DEFINE_PRIM(socket_init,0);
 DEFINE_PRIM(socket_new,1);
 DEFINE_PRIM(socket_send,4);
 DEFINE_PRIM(socket_send_char,2);
