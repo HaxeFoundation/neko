@@ -1,0 +1,100 @@
+/*
+ *  NekoML Standard Library
+ *  Copyright (c)2005-2006 Motion-Twin
+ *
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Lesser General Public
+ *  License as published by the Free Software Foundation; either
+ *  version 2.1 of the License, or (at your option) any later version.
+ *
+ *  This library is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Lesser General Public License or the LICENSE file for more details.
+ */
+
+type socket;
+type ip = int32;
+
+// init
+neko "$loader.loadprim('std@socket_init',0)()";
+
+var socket_new : bool -> socket = neko "$loader.loadprim('std@socket_new',1)";
+var socket_close : socket -> void = neko "$loader.loadprim('std@socket_close',1)";
+var socket_send_char : socket -> char -> void = neko "$loader.loadprim('std@socket_send_char',2)";
+var socket_send : socket -> string -> int -> int -> int = neko "$loader.loadprim('std@socket_send',4)";
+var socket_recv : socket -> string -> int -> int -> int = neko "$loader.loadprim('std@socket_recv',4)";
+var socket_recv_char : socket -> char = neko "$loader.loadprim('std@socket_recv_char',1)";
+
+var socket_write : socket -> string -> void = neko "$loader.loadprim('std@socket_write',2)";
+var socket_read : socket -> string = neko "$loader.loadprim('std@socket_read',1)";
+
+var socket_connect : socket -> ip -> int -> void = neko "$loader.loadprim('std@socket_connect',3)";
+var socket_listen : socket -> int -> void = neko "$loader.loadprim('std@socket_listen',2)";
+var socket_bind : socket -> ip -> int -> void = neko "$loader.loadprim('std@socket_bind',3)";
+var socket_accept : socket -> socket = neko "$loader.loadprim('std@socket_accept',1)";
+
+var socket_peer : socket -> (ip,int) = neko "$loader.loadprim('std@socket_peer',1)";
+var socket_host : socket -> (ip,int) = neko "$loader.loadprim('std@socket_host',1)";
+var socket_set_timeout : socket -> int -> void = neko "$loader.loadprim('std@socket_set_timeout',2)";
+
+var host_resolve : string -> ip = neko "$loader.loadprim('std@host_resolve',1)";
+var host_to_string : ip -> string = neko "$loader.loadprim('std@host_to_string',1)";
+neko "@host_local = $loader.loadprim('std@host_local',0)";
+function host_local() : string { neko "@host_local()" };
+
+var url_encode : string -> string = neko "$loader.loadprim('std@url_encode',1)";
+var url_decode : string -> string = neko "$loader.loadprim('std@url_decode',1)";
+
+neko "@socket_select = $loader.loadprim('std@socket_select',4)"
+
+var _array_dep = Array.make;
+
+function socket_select( read : socket array, write : socket array, others : socket array, timeout : float option ) : (socket array, socket array, socket array) {
+	var t = match timeout { None -> neko "null" | Some t -> t };
+	neko "
+		var r = @socket_select($asub(read[0],0,read[2]),$asub(write[0],0,write[2]),$asub(others[0],0,others[2]),t);
+		r[0] = @Array.@make(r[0]);
+		r[1] = @Array.@make(r[1]);
+		r[2] = @Array.@make(r[2]);
+		r
+	"
+}
+
+function socket_io(s) {
+	(IO.create_in 
+		(function() { 
+			try socket_recv_char s 
+			catch { e -> throw IO.Eof }
+		})
+		(function(b,p,l) { try socket_recv s b p l catch { e -> throw IO.Eof } })
+		(function() { socket_close s })
+	,IO.create_out
+		(socket_send_char s)
+		(socket_send s)
+		(function() { })
+		(function() { socket_close s })
+	)
+}
+
+function start_server( ip, port, on_connect, on_data ) {
+	var sock = socket_new false;
+	socket_bind sock ip port;
+	socket_listen sock 10;
+	var clients = &[];
+	var empty = Array.create();
+	while true {
+		var r, _ , _ = socket_select List.array(sock :: List.map fst (*clients)) empty empty None;
+		Array.iter (function(s) {
+			if s == sock then {
+				var s2 = socket_accept sock;
+				clients := (s2,on_connect s2) :: *clients;
+			} else {
+				var cldata = List.assoc s (*clients);
+				if !(on_data cldata) then clients := List.filter (function((s2,_)) { s != s2 }) (*clients);
+			}
+		}) r;
+	}
+	()
+}
+
