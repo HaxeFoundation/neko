@@ -51,7 +51,32 @@ The requested URL "+url+" was not found on this server.<P>
 </BODY></HTML>"
 }
 
-var file_log = IO.write_file "log.txt" true;
+function page_config() {
+	var path = String.concat " - " neko("@List.@make($loader.path)");
+"<html>
+<head><title>Neko WebServer Config</title></head>
+<body>
+<h1>Neko WebServer Configuration</h1>
+<form action=\"/server:config\" method=\"POST\">
+<table>
+<tr>
+<td>Loader path :</td>
+<td>"+path+"</td>
+</tr>
+<tr>
+<td>Server directory :</td>
+<td><input type=\"input\" size=\"50\" name=\"path\" value=\""+Sys.get_cwd()+"\"/></td>
+</tr>
+<tr>
+<td>&nbsp;</td>
+<td><input type=\"submit\" value=\"Modify\"/></td>
+</tr>
+</form>
+</body>
+</html>"
+}
+
+var file_log = &IO.stdout;
 var module_cache = Hashtbl.create();
 
 type http_method {
@@ -78,7 +103,7 @@ function part(lex,p,l) { var s = Lexer.current lex; String.sub s p (String.lengt
 function parse_get_params(str) {
 	var params = String.split str ";";
 	var params = List.concat (List.map (function(s) { String.split s "&" }) params);
-	List.map (function(p) { 
+	List.map (function(p) {
 		match String.split p "=" {
 		| [] -> ("","")
 		| [p] -> (Net.url_decode p,"")
@@ -93,7 +118,7 @@ var http_request_method = Lexer.build [
 ] invalid_char;
 
 var http_request_url = Lexer.build [
-	(" [^ ]+ ", function(l) { 
+	(" [^ ]+ ", function(l) {
 		var url = part l 1 1;
 		try {
 			var p = String.find url 0 "?";
@@ -116,7 +141,7 @@ var http_header_value = Lexer.build [
 
 var http_headers = &Lexer.empty();
 http_headers := Lexer.build [
-	("\r", function(l) { 
+	("\r", function(l) {
 		if Lexer.read l != '\n' then throw Invalid_char;
 		[]
 	});
@@ -129,7 +154,7 @@ http_headers := Lexer.build [
 
 function parse_http_request(in) {
 	var l = Lexer.create();
-	Lexer.input l "http-stream" in 1 0;	
+	Lexer.input l "http-stream" in 1 0;
 	var meth = Lexer.token l http_request_method;
 	var url = Lexer.token l http_request_url;
 	var version = Lexer.token l http_request_version;
@@ -146,15 +171,15 @@ function parse_http_request(in) {
 		res = Net.url_decode fst(url);
 		url = url;
 		params = params;
-		version = version;		
+		version = version;
 		headers = headers;
 		post_data = post_data;
 	}
 }
 
 function flog(s) {
-	IO.write file_log s;
-	IO.flush file_log;
+	IO.write (*file_log) s;
+	IO.flush (*file_log);
 }
 
 function log( fmt : 'a format, args : 'a ) {
@@ -182,7 +207,7 @@ function rec find_url_file(url) {
 		function rec loop(l) {
 			match l {
 			| [] -> None
-			| f :: l -> 
+			| f :: l ->
 				match find_url_file(url + f) {
 				| None -> loop l
 				| x -> x
@@ -215,12 +240,12 @@ function send_headers(c) {
 	}
 }
 function headers_not_sent(c,s) {
-	// should we send an object like mod_neko failure does ?	
+	// should we send an object like mod_neko failure does ?
 	if c.headers_sent then (neko "$throw")("Cannot set "+s+" : Headers already sent");
 }
 
 function set_header(c,n,v) {
-	headers_not_sent c n;	
+	headers_not_sent c n;
 	c.headers := (n,v) :: List.filter (function((n2,_)) { n != n2 }) c.headers;
 }
 
@@ -266,7 +291,7 @@ function init_mod_neko() {
 	function no_param(name,f) {
 		def name neko("function() { f(null) }");
 	}
-	no_param "get_cookies" (function() { 
+	no_param "get_cookies" (function() {
 		flatten (try {
 			var k = List.assoc "Cookie" request().headers;
 			var l = String.split k "; ";
@@ -331,12 +356,12 @@ function init_mod_neko() {
 		flatten request().params
 	});
 	no_param "cgi_get_cwd" (function() {
-		Sys.get_cwd()	
+		Sys.get_cwd()
 	});
 	def "cgi_set_main" (function(f) {
 		client().main := Some f;
 	});
-	function resolve_method(f:string) {		
+	function resolve_method(f:string) {
 		try {
 			Hashtbl.find hmethods f
 		} catch {
@@ -344,6 +369,7 @@ function init_mod_neko() {
 		}
 	}
 	var loader = neko "{
+		args => $array(),
 		path => $loader.path,
 		cache => $loader.cache,
 		loadmodule => function(name,l) { $loader.loadmodule(name,l) },
@@ -364,7 +390,7 @@ function init_mod_neko() {
 	function(c,r,file) {
 		cur_client := Some c;
 		cur_request := Some r;
-		var main_fun = try { 
+		var main_fun = try {
 			var f = Hashtbl.find module_cache file;
 			c.main := Some f;
 			f
@@ -377,7 +403,7 @@ function init_mod_neko() {
 			redirect(neko "null");
 		} catch {
 			e -> redirect(neko "null"); log_exception(e);
-		}		
+		}
 		if !c.headers_sent then do_print " ";
 		match c.main {
 		| None ->
@@ -393,26 +419,38 @@ function init_mod_neko() {
 
 var mod_neko = init_mod_neko();
 
+function config(c,r) {
+	try {
+		var dir = List.assoc "path" r.params;
+		try { Sys.set_cwd dir } catch { e -> log_exception e }
+	} catch {
+		Not_found -> ()
+	}
+	do_print page_config()
+}
+
 function client_msg(c) {
 	var r = parse_http_request c.in;
-	match find_url_file r.res {
-	| None -> 
+	cur_client := Some c;
+	if r.res == "/server:config" then
+		config(c,r)
+	else match find_url_file r.res {
+	| None ->
 		c.return_code := (404,"Not Found");
-		cur_client := Some c;		
 		do_print page_404(r.res);
 	| Some file ->
 		var ext = String.lowercase (Sys.extension file);
 		if ext == "n" then {
-			log "Request %s [%s]" (r.res, match r.params { 
-				| [] -> "" 
+			log "Request %s [%s]" (r.res, match r.params {
+				| [] -> ""
 				| l -> "\n  " + (String.concat "\n  " (List.map (function((p,v)) { p + " => "+ v }) l)) + "\n"
 			});
 			match r.post_data { None -> () | Some d -> log "Post [%s]" d };
 			mod_neko c r file
 		} else {
-			// directly the send the file content			
-			IO.write c.out "HTTP/1.x 200 OK\r\n"; 
-			var ctype = try { List.assoc ext mime } catch { Not_found -> "unknown/unknown" };		
+			// directly the send the file content
+			IO.write c.out "HTTP/1.x 200 OK\r\n";
+			var ctype = try { List.assoc ext mime } catch { Not_found -> "unknown/unknown" };
 			var data = IO.file_contents file;
 			IO.write c.out ("Content-Type: " + ctype + "\r\n");
 			IO.write c.out ("Content-Length: " + String.length data + "\r\n");
@@ -424,8 +462,8 @@ function client_msg(c) {
 	false
 }
 
-try {
-	var head = "Neko Web Server v1.0 - (c)2006 Motion-Twin\n Usage : nekoweb [options]";
+function init() {
+	var head = "Neko Web Server v1.0 - (c)2006 Motion-Twin";
 	var port = &2000;
 	var host = &Net.host_local();
 	var decl = [
@@ -433,11 +471,9 @@ try {
 		("-h", Args.String (function(h) { host := h }) , "<host> : change server host");
 		("-d", Args.String (function(d) { Sys.set_cwd d }), "<dir> : change the server base directory");
 	];
+	file_log := IO.write_file "log.txt" true;
 	Args.parse head decl (function(f) { throw Args.Invalid });
 	log "Starting Neko Server on %s:%d" (*host,*port);
 	Net.start_server Net.host_resolve(*host) (*port) init_client client_msg;
-} catch {
-	| e ->
-		log_exception e;
-		Sys.exit(-1);
 }
+
