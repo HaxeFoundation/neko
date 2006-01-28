@@ -1,0 +1,43 @@
+/*
+ *  Neko Tools
+ *  Copyright (c)2006 Motion-Twin
+ *
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Lesser General Public
+ *  License as published by the Free Software Foundation; either
+ *  version 2.1 of the License, or (at your option) any later version.
+ *
+ *  This library is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Lesser General Public License or the LICENSE file for more details.
+ */
+
+exception Done;
+
+function erase_argument() {
+	neko "$loader.args = $asub($loader.args,1,$asize($loader.args)-1)"
+}
+
+try {
+	var head = "Neko Tools v1.0 - (c)2006 Motion-Twin\nUsage : nekotools [options]";
+	var decl = [
+		("server", Args.Void (function() {
+			erase_argument();
+			WebServer.init();
+			throw Done
+		}) , " : start a neko web server");
+		("boot", Args.String (function(_) {
+			erase_argument();
+			neko "$loader.loadmodule('tools/nekoboot',$loader)";
+			throw Done;
+		}) , "<file.n> : build an standalone executable");
+	];
+	Args.parse head decl (function(f) { throw Args.Invalid });
+} catch {
+	| e ->
+		if e == Done then Sys.exit(0);
+		Stack.dump IO.stderr Stack.exc();
+		IO.printf IO.stderr "Exception : %s\n" string(e);
+		Sys.exit (-1);
+}
