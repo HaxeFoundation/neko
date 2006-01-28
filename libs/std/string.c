@@ -20,6 +20,7 @@
 /* ************************************************************************ */
 #define sprintf __sprintf
 #include <neko.h>
+#include <neko_vm.h>
 #include <string.h>
 #undef sprintf
 
@@ -413,6 +414,29 @@ static value base_decode( value s, value base ) {
 	return out;
 }
 
+/**
+	print_redirect : ?function:1 -> void
+	<doc>
+	Set a redirection function for all printed values. 
+	Setting it to null will cancel the redirection and restore previous printer.
+	</doc>
+**/
+
+static void print_callback( const char *s, int size, void *f ) {	
+	val_call1(f,copy_string(s,size));
+}
+
+static value print_redirect( value f ) {
+	neko_vm *vm = neko_vm_current();
+	if( val_is_null(f) ) {
+		neko_set_redirection(vm,NULL,NULL);
+		return val_true;
+	}
+	val_check_function(f,1);
+	neko_set_redirection(vm,print_callback,f);
+	return val_true;
+}
+
 DEFINE_PRIM(sprintf,2);
 DEFINE_PRIM(string_split,2);
 DEFINE_PRIM(test,0);
@@ -420,5 +444,6 @@ DEFINE_PRIM(url_decode,1);
 DEFINE_PRIM(url_encode,1);
 DEFINE_PRIM(base_encode,2);
 DEFINE_PRIM(base_decode,2);
+DEFINE_PRIM(print_redirect,1);
 
 /* ************************************************************************ */
