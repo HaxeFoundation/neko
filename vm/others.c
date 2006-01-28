@@ -418,12 +418,14 @@ EXTERN void val_iter_fields( value o, void f( value , field, void * ) , void *p 
 }
 
 EXTERN void val_print( value v ) {
+	neko_vm *vm;
 	if( !val_is_string(v) ) {
 		buffer b = alloc_buffer(NULL);
 		val_buffer(b,v);
 		v = buffer_to_string(b);
 	}
-	NEKO_VM()->print( val_string(v), val_strlen(v) );
+	vm = NEKO_VM();
+	vm->print( val_string(v), val_strlen(v), vm->print_param );
 }
 
 EXTERN void val_throw( value v ) {

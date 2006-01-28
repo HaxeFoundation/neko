@@ -20,8 +20,6 @@
 #include "neko_vm.h"
 #include "context.h"
 
-typedef void (*printer)( const char *, int );
-
 #define INIT_STACK_SIZE (1 << 7)
 #define MAX_STACK_SIZE	(1 << 18)
 #define PROF_SIZE		(1 << 16)
@@ -38,7 +36,8 @@ struct _neko_vm {
 	jmp_buf start;
 	int ncalls;
 	value exc_stack;
-	printer print;
+	neko_printer print;
+	void *print_param;
 	void *custom;
 	char tmp[100];
 };

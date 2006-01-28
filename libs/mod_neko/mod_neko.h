@@ -42,9 +42,6 @@ typedef struct {
 } mcontext;
 
 #define CONTEXT()	((mcontext*)neko_vm_custom(neko_vm_current()))
-#define request_print mod_neko_request_print
-
-void request_print( const char *data, int size );
 
 #endif
 

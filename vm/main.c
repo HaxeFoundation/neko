@@ -173,13 +173,10 @@ static int execute( neko_vm *vm, char **argv, int argc ) {
 
 int main( int argc, char *argv[] ) {
 	neko_vm *vm;
-	neko_params p;
 	int r;
 	_CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_DELAY_FREE_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
 	neko_global_init(&vm);
-	p.custom = NULL;
-	p.printer = NULL;
-	vm = neko_vm_alloc(&p);
+	vm = neko_vm_alloc(NULL);
 	r = execute(vm,argv,argc);
 	vm = NULL;
 	neko_global_free();

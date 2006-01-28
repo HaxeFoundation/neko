@@ -57,24 +57,25 @@ value NEKO_TYPEOF[] = {
 	alloc_int(8)
 };
 
-static void default_printer( const char *s, int len ) {
+static void default_printer( const char *s, int len, void *out ) {
 	while( len > 0 ) {
-		int p = (int)fwrite(s,1,len,stdout);
+		int p = (int)fwrite(s,1,len,(FILE*)out);
 		if( p <= 0 ) {
-			fputs("[ABORTED]",stdout);
+			fputs("[ABORTED]",(FILE*)out);
 			break;
 		}
 		len -= p;
 		s += p;
 	}
-	fflush(stdout);
+	fflush((FILE*)out);
 }
 
-EXTERN neko_vm *neko_vm_alloc( neko_params *p ) {
+EXTERN neko_vm *neko_vm_alloc( void *custom ) {
 	neko_vm *vm = (neko_vm*)alloc(sizeof(neko_vm));
 	vm->spmin = (int_val*)alloc(INIT_STACK_SIZE*sizeof(int_val));
-	vm->print = (p && p->printer)?p->printer:default_printer;
-	vm->custom = p?p->custom:NULL;
+	vm->print = default_printer;
+	vm->print_param = stdout;
+	vm->custom = custom;
 	vm->exc_stack = alloc_array(0);
 	vm->spmax = vm->spmin + INIT_STACK_SIZE;
 	vm->ncalls = 0;
@@ -96,6 +97,37 @@ EXTERN neko_vm *neko_vm_current() {
 EXTERN void *neko_vm_custom( neko_vm *vm ) {
 	return vm->custom;
 }
+
+typedef struct {
+	neko_printer prev;
+	void *prev_param;
+	neko_printer cur;
+	void *cur_param;
+} redirect_param;
+
+static void redirected_print( const char *s, int size, void *_p ) {
+	redirect_param *p = (redirect_param*)_p;
+	p->cur(s,size,p->cur_param);
+}
+
+EXTERN void neko_vm_redirect( neko_vm *vm, neko_printer print, void *param ) {
+	redirect_param *p;	
+	if( print == NULL ) {
+		if( vm->print != redirected_print )
+			return;
+		p = (redirect_param*)vm->print_param;
+		vm->print = p->prev;
+		vm->print_param = p->prev_param;
+		return;
+	}
+	p = (redirect_param*)alloc(sizeof(redirect_param));
+	p->prev = vm->print;
+	p->prev_param = vm->print_param;
+	p->cur = print;
+	p->cur_param = param;
+	vm->print = redirected_print;
+	vm->print_param = p;
+ }
 
 EXTERN value neko_vm_execute( neko_vm *vm, void *_m ) {
 	unsigned int i;

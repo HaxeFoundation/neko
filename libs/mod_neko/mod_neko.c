@@ -36,8 +36,9 @@ static void send_headers( mcontext *c ) {
 	}
 }
 
-void request_print( const char *data, int size ) {
-	mcontext *c = CONTEXT();
+static void request_print( const char *data, int size, void *_c ) {
+	mcontext *c = (mcontext *)_c;
+	if( c == NULL ) c = CONTEXT();
 	send_headers(c);
 	if( c->allow_write )
 		ap_rwrite(data,size,c->r);
@@ -92,7 +93,6 @@ static void cache_module( request_rec *r, value main ) {
 static int neko_handler_rec( request_rec *r ) {
 	mcontext ctx;
 	neko_vm *vm;
-	neko_params params;
 	value exc = NULL;
 
 	neko_set_stack_base(&ctx);
@@ -120,10 +120,8 @@ static int neko_handler_rec( request_rec *r ) {
 		ctx.post_data = buffer_to_string(b);
 	}
 
-	params.custom = &ctx;
-	params.printer = request_print;
-
-	vm = neko_vm_alloc(&params);
+	vm = neko_vm_alloc(&ctx);
+	neko_vm_redirect(vm,request_print,&ctx);
 	neko_vm_select(vm);
 	
 	if( ctx.main != NULL )

@@ -18,12 +18,7 @@
 #define _NEKO_VM_H
 #include "neko.h"
 
-typedef void (*neko_printer)( const char *data, int size );
-
-typedef struct {
-	neko_printer printer;
-	void *custom;
-} neko_params;
+typedef void (*neko_printer)( const char *data, int size, void *param );
 
 typedef struct _neko_vm neko_vm;
 
@@ -35,7 +30,7 @@ EXTERN void neko_global_free();
 EXTERN void neko_gc_major();
 EXTERN void neko_gc_loop();
 
-EXTERN neko_vm *neko_vm_alloc( neko_params *p );
+EXTERN neko_vm *neko_vm_alloc( void *custom );
 EXTERN neko_vm *neko_vm_current();
 EXTERN value neko_exc_stack( neko_vm *vm );
 EXTERN value neko_call_stack( neko_vm *vm );
@@ -44,6 +39,7 @@ EXTERN value neko_vm_execute( neko_vm *vm, void *module );
 EXTERN void neko_vm_select( neko_vm *vm );
 EXTERN void neko_clean_thread();
 EXTERN value neko_default_loader( char **argv, int argc );
+EXTERN void neko_vm_redirect( neko_vm *vm, neko_printer print, void *param );
 
 EXTERN int neko_is_big_endian();
 

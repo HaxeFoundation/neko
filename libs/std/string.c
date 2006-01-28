@@ -429,11 +429,11 @@ static void print_callback( const char *s, int size, void *f ) {
 static value print_redirect( value f ) {
 	neko_vm *vm = neko_vm_current();
 	if( val_is_null(f) ) {
-		neko_set_redirection(vm,NULL,NULL);
+		neko_vm_redirect(vm,NULL,NULL);
 		return val_true;
 	}
 	val_check_function(f,1);
-	neko_set_redirection(vm,print_callback,f);
+	neko_vm_redirect(vm,print_callback,f);
 	return val_true;
 }
 

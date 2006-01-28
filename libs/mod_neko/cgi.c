@@ -149,6 +149,7 @@ static value redirect( value s ) {
 static value set_return_code( value i ) {
 	mcontext *c = CONTEXT();
 	val_check(i,int);
+	HEADERS_NOT_SENT("Return code");
 	c->r->status = val_int(i);
 	return val_true;
 }
