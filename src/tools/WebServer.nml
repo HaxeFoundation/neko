@@ -465,7 +465,7 @@ function client_msg(c) {
 function init() {
 	var head = "Neko Web Server v1.0 - (c)2006 Motion-Twin";
 	var port = &2000;
-	var host = &Net.host_local();
+	var host = &"localhost";
 	var decl = [
 		("-p", Args.Int (function(n) { port := n }) , "<port> : change server port");
 		("-h", Args.String (function(h) { host := h }) , "<host> : change server host");
