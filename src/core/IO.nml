@@ -125,9 +125,18 @@ var stdin : input = file_input file_stdin;
 var stdout : output = file_output file_stdout;
 var stderr : output = file_output file_stderr;
 
+
 /* ----------------------------
 	INPUT API
 ------------------------------- */
+
+function create_in(read,input,close) {
+	{
+		in_read = read;
+		in_input = input;
+		in_close = close;
+	}
+}
 
 function read_char(i) {
 	i.in_read()
@@ -261,6 +270,15 @@ function close_in(i) {
 /* ----------------------------
 	OUTPUT API
 ------------------------------- */
+
+function create_out(write,output,flush,close) {
+	{
+		out_write = write;
+		out_output = output;
+		out_flush = flush;
+		out_close = close;
+	}
+}
 
 function write_char(o : output, x : char) : void {
 	o.out_write x
