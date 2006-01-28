@@ -14,16 +14,23 @@
  */
 
 neko("
-
-	 @sys_exit = $loader.loadprim('std@sys_exit',1);
-
+	@sys_exit = $loader.loadprim('std@sys_exit',1);
+	@get_env = $loader.loadprim('std@get_env',1);
+	@get_cwd = $loader.loadprim('std@get_cwd',0);
 ");
 
 function without_extension(s) {
 	match List.rev (String.split s ".") {
-	| [] -> assert()
+	| [] -> ""
 	| [x] -> x
 	| ext :: l -> String.concat "." (List.rev l)
+	}
+}
+
+function extension(s) {
+	match List.rev (String.split s ".") {
+	| [] | [_] -> ""
+	| ext :: _ -> ext
 	}
 }
 
@@ -48,3 +55,19 @@ function exit(code : int) : 'a {
 		@sys_exit(code);
 	");
 }
+
+var file_exists : string -> bool = neko "$loader.loadprim('std@file_exists',1)"
+
+function get_env( s : string ) : string option {
+	var s = neko "@get_env(s)";
+	if s == neko "null" then None else Some s;
+}
+
+var put_env : string -> string -> void = neko "$loader.loadprim('std@put_env',2)"
+
+function get_cwd() : string {
+	neko "@get_cwd()"
+}
+
+var set_cwd : string -> void = neko "$loader.loadprim('std@set_cwd',1)"
+
