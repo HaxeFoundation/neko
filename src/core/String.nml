@@ -52,6 +52,12 @@ function sub(s : string, p : int, l : int ) : string {
 	s
 }
 
+function find( s : string, p : int, pat : string ) : int {
+	var pos = neko "$sfind(s,p,pat)";
+	if pos == neko "null" then throw Not_found;
+	pos
+}
+
 var list_depency = List.iter
 
 function split( s : string, sub : string ) : string list {
