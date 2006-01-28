@@ -79,7 +79,7 @@ bin/std.ndll: ${STD_OBJECTS}
 
 clean:
 	rm -rf bin/${LIBNEKO_NAME} ${LIBNEKO_OBJECTS} ${VM_OBJECTS}
-	rm -rf bin/neko bin/nekoc bin/nekoml bin/nekoboot 
+	rm -rf bin/neko bin/nekoc bin/nekoml bin/nekotools 
 	rm -rf bin/std bin/*.ndll bin/*.n libs/*/*.o
 	rm -rf src/*.n src/neko/*.n src/nekoml/*.n src/tools/*.n
 	rm -rf bin/mtypes bin/tools
