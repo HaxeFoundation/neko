@@ -127,7 +127,7 @@ static value socket_send( value o, value data, value pos, value len ) {
 }
 
 /**
-	socket_rec : 'socket -> buf:string -> pos:int -> len:int -> int
+	socket_recv : 'socket -> buf:string -> pos:int -> len:int -> int
 	<doc>Read up to [len] bytes from [buf] starting at [pos] from a connected socket. 
 	Return the number of bytes readed.</doc>
 **/
