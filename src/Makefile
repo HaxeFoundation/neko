@@ -24,12 +24,15 @@ source: clean
 	${NEKOVM1} nekoml -n neko/Main.nml nekoml/Main.nml
 
 link:
+	${NEKOVM} neko/Main tools/test.neko
 	${NEKOVM} neko/Main -link nekoc.n neko/Main
 	${NEKOVM} neko/Main -link nekoml.n nekoml/Main
 	${NEKOVM} neko/Main tools/nekoboot.neko
+	${NEKOVM} nekoml/Main -p tools Tools.nml
+	${NEKOVM} neko/Main -link nekotools.n Tools
 	${NEKOVM} tools/nekoboot nekoc.n
 	${NEKOVM} tools/nekoboot nekoml.n
-	${NEKOVM} tools/nekoboot tools/nekoboot.n
+	${NEKOVM} tools/nekoboot nekotools.n
 
 pass1:
 	${TIME} tpass1
@@ -72,7 +75,7 @@ nekoml: clean
 
 install: link
 	-cp nekoc.n nekoml.n ../boot
-	-cp nekoc.exe nekoml.exe tools/nekoboot.exe ../bin
+	-cp nekoc.exe nekoml.exe nekotools.exe tools/test.n ../bin
 
 clean:
 	rm -rf *.n
