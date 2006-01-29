@@ -13,7 +13,6 @@
  *  Lesser General Public License or the LICENSE file for more details.
  */
 
-type neko_value;
 type neko_object;
 type neko_abstract;
 type neko_function;

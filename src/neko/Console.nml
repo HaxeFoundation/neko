@@ -83,7 +83,10 @@ function run() {
 				var st = Stack.exc();
 				Stack.dump IO.stdout st;
 				print "Exception : ";
-				if neko("$typeof(e) == $tarray && $typeof(e[0]) == $tint && $typeof(e[1]) == $tfunction") then print e else nprint e;
+				match e {
+				| Neko_error e -> nprint e
+				| _ -> print e
+				}
 				print "\n";
 		}
 		// save environment

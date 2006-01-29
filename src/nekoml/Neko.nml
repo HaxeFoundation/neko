@@ -510,9 +510,11 @@ function rec gen_expr(ctx,e) {
 		ENext printer (gen_constructor ctx e e (Hashtbl.hash (e :: ctx.current)) t p)
 	| TTry (e,m) ->
 		var out = gen_label ctx;
+		var not_exc = (EBinop "!=" (call t_void (builtin "typeof") [ident "@exc"] p) builtin("tarray"),p);
+		var type_check = (EIf not_exc (EBinop "=" ident("@exc") (call t_void (import ctx core "Neko_error" p) [ident "@exc"] p),p) None,p);
 		var matching = gen_matching ctx "@exc" m p false true out;
 		var reraise = call t_void (builtin "rethrow") [ident "@exc"] p;
-		var handle = (EBlock [matching;reraise;(ELabel out , p)] , p);
+		var handle = (EBlock [type_check; matching; reraise;(ELabel out , p)] , p);
 		ETry (gen_expr ctx e) "@exc" handle
 	};
 	(e,p)
