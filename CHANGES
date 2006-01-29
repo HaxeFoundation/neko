@@ -5,6 +5,7 @@
 	neko : allowed runtime printer redirection (+ added std@print_redirect)
 	neko : defined a default NEKOPATH when not specified (less configuration)
 	nekoml : added Net core module for sockets
+	nekoml : when catching Neko errors, wrap them using Neko_error constructor
 	added nekotools (merged nekoboot and neko webserver).	
 	(planned) continuations
 	(planned) efficient JIT
