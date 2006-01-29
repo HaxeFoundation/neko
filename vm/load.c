@@ -242,8 +242,21 @@ static void *load_primitive( const char *prim, int nargs, value path, liblist **
 static value init_path( const char *path ) {
 	value l = val_null, tmp;
 	char *p;
-	if( !path )
-		return val_null;
+#ifdef _WIN32
+	char exe_path[MAX_PATH];
+	if( path == NULL ) {
+		if( GetModuleFileName(GetModuleHandle("neko.dll"),exe_path,MAX_PATH) == 0 )
+			return val_null;
+		p = strrchr(exe_path,'\\');
+		if( p == NULL )
+			return val_null;
+		*p = 0;
+		path = exe_path;
+	}
+#else
+	if( path == NULL )
+		path = "/usr/lib/neko:/usr/local/lib/neko:/usr/bin:/usr/local/bin";
+#endif
 	while( true ) {
 		// windows drive letter (same behavior expected on all os)
 		if( *path && path[1] == ':' )
