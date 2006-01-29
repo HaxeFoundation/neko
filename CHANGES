@@ -3,7 +3,9 @@
 	neko : fixed bug on Linux x86 gcc with object operators (eax get overwritten)
 	neko : fixed bug : error when __string or __compare does not exist
 	neko : allowed runtime printer redirection (+ added std@print_redirect)
-	added nekotools (merged nekoboot and neko webserver).
+	neko : defined a default NEKOPATH when not specified (less configuration)
+	nekoml : added Net core module for sockets
+	added nekotools (merged nekoboot and neko webserver).	
 	(planned) continuations
 	(planned) efficient JIT
 	
