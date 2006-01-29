@@ -82,7 +82,7 @@ clean:
 	rm -rf neko/*.n
 	rm -rf nekoml/*.n
 	rm -rf tools/*.n
-	rm -rf nekoc.exe nekoml.exe tools/nekoboot.exe
+	rm -rf nekoc.exe nekoml.exe nekotools.exe
 
 cleanall: clean
 	rm -rf *.neko
