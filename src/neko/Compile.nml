@@ -496,9 +496,11 @@ function rec compile_binop(ctx,tail,op,e1,e2,p) {
 		jnext()
 	| "++="
 	| "--=" ->
+		write ctx Push;
+		var base = ctx.stack;
 		var a = compile_access ctx e1;
 		compile_access_get ctx a;
-		write ctx Push;
+		write ctx SetStack(ctx.stack - base);
 		write ctx Push;
 		compile ctx false e2;
 		write_op ctx (String.sub op 0 (String.length op - 2)) p;
