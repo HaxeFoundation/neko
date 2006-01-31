@@ -40,6 +40,10 @@ var mime = [
 	("wav", "audio/x-wav")
 ];
 
+var cur_path = &Sys.get_cwd();
+var file_log = &None;
+var module_cache = Hashtbl.create();
+
 function page_404(url) {
 "<HTML><HEAD>
 <TITLE>404 Not Found</TITLE>
@@ -65,7 +69,7 @@ function page_config() {
 </tr>
 <tr>
 <td>Server directory :</td>
-<td><input type=\"input\" size=\"50\" name=\"path\" value=\""+Sys.get_cwd()+"\"/></td>
+<td><input type=\"input\" size=\"50\" name=\"path\" value=\""+(*cur_path)+"\"/></td>
 </tr>
 <tr>
 <td>&nbsp;</td>
@@ -76,9 +80,6 @@ function page_config() {
 </body>
 </html>"
 }
-
-var file_log = &None;
-var module_cache = Hashtbl.create();
 
 type http_method {
 	MethodGet;
@@ -222,6 +223,7 @@ function rec find_url_file(url) {
 		loop ["index.html"; "index.htm"; "index.n"];
 	} else {
 		var url = if String.get url 0 == '/' then String.sub url 1 (String.length url - 1) else url;
+		var url = *cur_path + url;
 		if Sys.file_exists url then
 			Some url
 		else
@@ -232,6 +234,24 @@ function rec find_url_file(url) {
 function log_exception(e) {
 	Stack.dump IO.stderr Stack.exc();
 	IO.printf IO.stderr "Exception : %s\n" string(e);
+}
+
+function print_exception(e) {
+	var stack = Stack.exc();
+	function format(s) {
+		var s = String.concat "&lt;" (String.split s "<");
+		var s = String.concat "&gt;" (String.split s ">");
+		s
+	};
+	Array.iter (function(s) {
+		match s {
+		| Stack.CFunction -> print "Called from a C function<br>"
+		| Stack.Module m -> printf "Called from %s (no debug available)<br>" format(m)
+		| Stack.Pos (file,line) -> printf "Called from %s line %d<br>" (format file,line)
+		}
+	}) stack	
+	var s = string(e);
+	printf "Exception : %s" format(s);
 }
 
 function send_headers(c) {
@@ -323,7 +343,7 @@ function init_mod_neko() {
 	});
 	no_param "get_uri" (function() {
 		var r = request();
-		fst r.url + if snd r.url == "" then "" else ("?" + snd r.url)
+		fst r.url
 	});
 	def "redirect" (function(url) {
 		var c = client();
@@ -361,7 +381,7 @@ function init_mod_neko() {
 		flatten request().params
 	});
 	no_param "cgi_get_cwd" (function() {
-		Sys.get_cwd()
+		*cur_path
 	});
 	def "cgi_set_main" (function(f) {
 		client().main := Some f;
@@ -407,7 +427,10 @@ function init_mod_neko() {
 			if main_fun == neko "null" then neko "loader.loadmodule(file,loader)" else neko "main_fun()";
 			redirect(neko "null");
 		} catch {
-			e -> redirect(neko "null"); log_exception(e);
+			e ->
+				log_exception(e); // stderr
+				try { print_exception(e) } catch { e -> () }; // on screen
+				redirect(neko "null");
 		}
 		if !c.headers_sent then do_print " ";
 		match c.main {
@@ -427,7 +450,14 @@ var mod_neko = init_mod_neko();
 function config(c,r) {
 	try {
 		var dir = List.assoc "path" r.params;
-		try { Sys.set_cwd dir } catch { e -> log_exception e }
+		var old = Sys.get_cwd();
+		try {
+			Sys.set_cwd dir;
+			cur_path := Sys.get_cwd();
+			Sys.set_cwd old;
+		} catch { 
+			e -> log_exception e
+		}
 	} catch {
 		Not_found -> ()
 	}
@@ -474,7 +504,12 @@ function init() {
 	var decl = [
 		("-p", Args.Int (function(n) { port := n }) , "<port> : change server port");
 		("-h", Args.String (function(h) { host := h }) , "<host> : change server host");
-		("-d", Args.String (function(d) { Sys.set_cwd d }), "<dir> : change the server base directory");
+		("-d", Args.String (function(d) { 
+			var old = Sys.get_cwd();
+			Sys.set_cwd d;
+			cur_path := Sys.get_cwd();
+			Sys.set_cwd old;
+		}), "<dir> : change the server base directory");
 		("-log", Args.String (function(s) { file_log := Some (IO.write_file s true) }), "<file> : set log file");
 	];
 	Args.parse head decl (function(f) { throw Args.Invalid });
