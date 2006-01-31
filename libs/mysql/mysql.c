@@ -305,7 +305,7 @@ static value alloc_result( MYSQL_RES *r ) {
 		field id = val_id(fields[i].name);
 		for(j=0;j<i;j++)
 			if( res->fields_ids[j] == id ) {
-				buffer b = alloc_buffer("Error, same field ids for : <b>");
+				buffer b = alloc_buffer("Error, same field ids for : ");
 				buffer_append(b,fields[i].name);
 				buffer_append(b,":");
 				val_buffer(b,alloc_int(i));
