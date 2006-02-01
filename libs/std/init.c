@@ -27,12 +27,15 @@ field id_y;
 field id_d;
 field id_module;
 field id_loadmodule;
+field id_loadprim;
 field id_done;
 field id_comment;
 field id_xml;
 field id_pcdata;
 field id_cdata;
 field id_doctype;
+field id_serialize;
+field id_unserialize;
 
 DEFINE_ENTRY_POINT(std_main);
 
@@ -43,6 +46,7 @@ void std_main() {
 	id_y = val_id("y");
 	id_d = val_id("d");
 	id_loadmodule = val_id("loadmodule");
+	id_loadprim = val_id("loadprim");
 	id_module = val_id("__module");
 	id_done = val_id("done");
 	id_comment = val_id("comment");
@@ -50,6 +54,8 @@ void std_main() {
 	id_pcdata = val_id("pcdata");
 	id_cdata = val_id("cdata");
 	id_doctype = val_id("doctype");
+	id_serialize = val_id("__serialize");
+	id_unserialize = val_id("__unserialize");
 }
 
 /* ************************************************************************ */
