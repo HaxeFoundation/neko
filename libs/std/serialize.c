@@ -22,6 +22,7 @@
 #include <neko_mod.h>
 
 #define BUF_SIZE	4096
+#define ERROR()		val_throw(alloc_string("Invalid serialized data"))
 
 typedef struct strlist {
 	unsigned char *str;
@@ -38,14 +39,17 @@ typedef struct {
 	odatalist *refs;
 	strlist *olds;
 	unsigned char *cur;
-	bool error;
 	int size;
 	int pos;
 	int totlen;
+	int nrec;
 } sbuffer;
 
 extern field id_module;
 extern field id_loadmodule;
+extern field id_loadprim;
+extern field id_serialize;
+extern field id_unserialize;
 
 static void buffer_alloc( sbuffer *b, int size ) {
 	strlist *str = (strlist*)alloc(sizeof(strlist));
@@ -88,10 +92,8 @@ static void write_str( sbuffer *b, int len, const void *s ) {
 }
 
 static void read_str( sbuffer *b, int len, void *s ) {
-	if( b->pos + len > b->size ) {
-		b->error = true;
-		return;
-	}
+	if( b->pos + len > b->size )
+		ERROR();
 	memcpy(s,b->cur + b->pos, len);
 	b->pos += len;
 }
@@ -102,10 +104,8 @@ static void write_int( sbuffer *b, int n ) {
 
 static int read_int( sbuffer *b ) {
 	int n;
-	if( b->pos + 4 > b->size ) {
-		b->error = true;
-		return 0;
-	}
+	if( b->pos + 4 > b->size )
+		ERROR();
 	memcpy(&n,b->cur + b->pos,4);
 	b->pos += 4;
 	return n;
@@ -136,7 +136,15 @@ static bool write_ref( sbuffer *b, value o ) {
 
 static void serialize_fields_rec( value data, field id, void *b );
 
+static void lookup_serialize_field( value data, field id, void *v ) {
+	if( id == id_serialize )
+		*(value*)v = data;
+}
+
 void serialize_rec( sbuffer *b, value o ) {
+	b->nrec++;
+	if( b->nrec > 350 )
+		failure("Serialization stack overflow");
 	switch( val_type(o) ) {
 	case VAL_NULL:
 		write_char(b,'N');
@@ -164,6 +172,16 @@ void serialize_rec( sbuffer *b, value o ) {
 		break;
 	case VAL_OBJECT:
 		if( !write_ref(b,o) ) {
+			value s = NULL;
+			val_iter_fields(o,lookup_serialize_field,&s);
+			if( s != NULL ) {
+				if( !val_is_function(s) || val_tag(s) != VAL_FUNCTION || (val_fun_nargs(s) != 0 && val_fun_nargs(s) != VAR_ARGS) )
+					failure("Invalid __serialize method");
+				write_char(b,'x');				
+				serialize_rec(b,((neko_module*)((vfunction*)s)->module)->name);
+				serialize_rec(b,val_ocall0(o,id_serialize));
+				break;
+			}
 			write_char(b,'o');
 			val_iter_fields(o,serialize_fields_rec,b);
 			write_int(b,0);
@@ -189,8 +207,13 @@ void serialize_rec( sbuffer *b, value o ) {
 	case VAL_FUNCTION:
 		if( !write_ref(b,o) ) {
 			neko_module *m;
-			if( val_tag(o) == VAL_PRIMITIVE )
-				failure("Cannot Serialize Primitive");
+			if( val_tag(o) == VAL_PRIMITIVE ) {
+				write_char(b,'p');
+				write_int(b,((vfunction*)o)->nargs);
+				serialize_rec(b,((vfunction*)o)->module);
+				serialize_rec(b,((vfunction*)o)->env);
+				break;
+			}
 			if( val_tag(o) == VAL_JITFUN )
 				failure("Cannot Serialize JIT method");
 			write_char(b,'L');
@@ -227,6 +250,7 @@ void serialize_rec( sbuffer *b, value o ) {
 		failure("Cannot Serialize Abstract");
 		break;
 	}
+	b->nrec--;
 }
 
 static void serialize_fields_rec( value data, field id, void *b ) {
@@ -239,12 +263,19 @@ static void serialize_fields_rec( value data, field id, void *b ) {
 	<h1>Serialize</h1>
 	<p>
 	Serialization can be used in order to store permanantly some runtime value.
-	Serialization of all values is possible, except Abstracts (with the special
-	cases of ['int32] and ['hash] which are handled) and Native functions.
+	Serialization of all values is possible, except Abstracts, with the special
+	cases of ['int32] and ['hash] which are handled as specific cases.
 	</p>
 	<p>
 	Serialization of bytecode function is possible, but will result in a runtime
 	exception when deserializing if the function offset in the bytecode has changed.
+	</p>
+	<p>
+	You can define the __serialize method of an object. When this method is found when
+	serializing the object, it is called with no arguments and its return value will be
+	serialized. The name of the module the method is declared in will also be serialized.
+	When unserializing, the module is loaded and its __unserialize exported function is
+	called with the value that was returned by __serialize.
 	</p>
 	</doc>
 **/
@@ -264,7 +295,7 @@ static value serialize( value o ) {
 	b.size = BUF_SIZE;
 	b.pos = 0;
 	b.totlen = 0;
-	b.error = false;
+	b.nrec = 0;
 	serialize_rec(&b,o);
 	v = alloc_empty_string(b.pos + b.totlen);
 	s = (char*)val_string(v);
@@ -301,10 +332,8 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 		{
 			int l = read_int(b);
 			value v;
-			if( l < 0 || l >= 0x1000000 ) {
-				b->error = true;
-				return val_null;
-			}
+			if( l < 0 || l >= 0x1000000 )
+				ERROR();
 			v = alloc_empty_string(l);
 			add_ref(b,v);
 			read_str(b,l,(char*)val_string(v));
@@ -323,18 +352,15 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 			case 'p':
 				{
 					value v = unserialize_rec(b,loader);
-					if( !val_is_object(v) ) {
-						b->error = true;
-						return val_null;
-					}
+					if( !val_is_object(v) )
+						ERROR();
 					((vobject*)o)->proto = (vobject*)v;
 				}
 				break;
 			case 'z':
 				break;
 			default:
-				b->error = true;
-				return val_null;
+				ERROR();
 			}
 			return o;
 		}
@@ -346,10 +372,8 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 				d = d->next;
 				n--;
 			}
-			if( d == NULL ) {
-				b->error = true;
-				return val_null;
-			}
+			if( d == NULL )
+				ERROR();
 			return d->data;
 		}
 	case 'a':
@@ -358,10 +382,8 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 			int n = read_int(b);
 			value o;
 			value *t;
-			if( n < 0 || n >= 0x100000 ) {
-				b->error = true;
-				return val_null;
-			}
+			if( n < 0 || n >= 0x100000 )
+				ERROR();
 			o = alloc_array(n);
 			t = val_array_ptr(o);
 			add_ref(b,o);
@@ -369,6 +391,20 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 				t[i] = unserialize_rec(b,loader);
 			return o;
 
+		}
+	case 'p':
+		{
+			int nargs = read_int(b);
+			value name = unserialize_rec(b,loader);
+			value env = unserialize_rec(b,loader);
+			value f;
+			if( !val_is_array(env) )
+				ERROR();
+			f = val_ocall2(loader,id_loadprim,name,alloc_int(nargs));
+			if( val_is_function(f) )
+				((vfunction*)f)->env = env;
+			// else ignore env, we should trust the loader behavior
+			return f;
 		}
 	case 'L':
 		{
@@ -382,10 +418,8 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 			pos = read_int(b);
 			nargs = read_int(b);
 			env = unserialize_rec(b,loader);
-			if( !val_is_string(mname) || !val_is_array(env) ) {
-				b->error = true;
-				return val_null;
-			}
+			if( !val_is_array(env) )
+				ERROR();
 			{
 				value exp = val_ocall2(loader,id_loadmodule,mname,loader);
 				value mval;
@@ -402,7 +436,7 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 				if( !val_is_kind(mval,neko_kind_module) ) {
 					buffer b = alloc_buffer("module ");
 					val_buffer(b,mname);
-					buffer_append(b," have invalid type");
+					buffer_append(b," has invalid type");
 					bfailure(b);
 				}
 				m = (neko_module*)val_data(mval);
@@ -421,11 +455,31 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 				{
 					buffer b = alloc_buffer("module ");
 					val_buffer(b,mname);
-					buffer_append(b," have been modified");
+					buffer_append(b," has been modified");
 					bfailure(b);
 				}
 			}
 			return val_null;
+		}
+	case 'x':
+		{
+			value mname = unserialize_rec(b,loader);
+			value data = unserialize_rec(b,loader);
+			value exports = val_ocall2(loader,id_loadmodule,mname,loader);
+			value s;
+			if( !val_is_object(exports) ) {
+				buffer b = alloc_buffer("module ");
+				val_buffer(b,mname);
+				buffer_append(b," is not an object");
+				bfailure(b);
+			}
+			s = val_field(exports,id_unserialize);
+			if( !val_is_function(s) || (val_fun_nargs(s) != 1 && val_fun_nargs(s) != VAR_ARGS) ) {
+				buffer b = alloc_buffer("module ");
+				val_buffer(b,mname);
+				buffer_append(b," has invalid __unserialize function");
+			}
+			return val_call1(s,data);
 		}
 	case 'h':
 		{
@@ -433,8 +487,6 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 			vhash *h = (vhash*)alloc(sizeof(vhash));
 			h->ncells = read_int(b);
 			h->nitems = read_int(b);			
-			if( b->error ) 
-				return val_null;
 			h->cells = (hcell**)alloc(sizeof(hcell*)*h->ncells);
 			for(i=0;i<h->ncells;i++)
 				h->cells[i] = NULL;
@@ -443,12 +495,8 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 				hcell *c = (hcell*)alloc(sizeof(hcell));
 				c->hkey = read_int(b);
 				c->key = unserialize_rec(b,loader);
-				if( b->error )
-					return val_null;
 				c->val = unserialize_rec(b,loader);
 				c->next = NULL;
-				if( b->error )
-					return val_null;
 				p = &h->cells[c->hkey % h->ncells];
 				while( *p != NULL )
 					p = &(*p)->next;
@@ -457,7 +505,7 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 			return alloc_abstract(k_hash,h);
 		}
 	default:
-		b->error = true;
+		ERROR();
 		return val_null;
 	}
 }
@@ -469,20 +517,15 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 	</doc>
 **/
 static value unserialize( value s, value loader ) {
-	value v;
 	sbuffer b;
 	val_check(s,string);
 	b.cur = (unsigned char*)val_string(s);
 	b.pos = 0;
-	b.error = false;
 	b.olds = NULL;
 	b.refs = NULL;
 	b.size = val_strlen(s);
-	b.totlen = 0;
-	v = unserialize_rec(&b,loader);
-	if( b.error )
-		failure("Invalid serialized data");
-	return v;
+	b.totlen = 0;	
+	return unserialize_rec(&b,loader);
 }
 
 DEFINE_PRIM(serialize,1);
