@@ -70,8 +70,6 @@ static value get_cookies() {
 		val_array_ptr(tmp)[1] = copy_string(start,(int)(end-start));
 		val_array_ptr(tmp)[2] = p;
 		p = tmp;
-		if( *end == '"' )
-			end++;
 		if( *end != ';' || end[1] != ' ' )
 			break;
 		k = end + 2;
@@ -269,10 +267,9 @@ static void parse_multipart( mcontext *c, const char *ctype, const char *args, i
 	*bend = old;
 }
 
-static value url_decode( const char *in ) {
+static value url_decode( const char *in, int len ) {
 	int pin = 0;
 	int pout = 0;
-	int len = strlen(in);
 	value v = alloc_empty_string(len);
 	char *out = (char*)val_string(v);
 	while( len-- > 0 ) {
@@ -330,8 +327,8 @@ static void parse_get( value *p, const char *args ) {
 		if( aeq != NULL ) {
 			*aeq = 0;
 			tmp = alloc_array(3);
-			val_array_ptr(tmp)[0] = copy_string(args,(int)(aeq-args));
-			val_array_ptr(tmp)[1] = url_decode(aeq+1);
+			val_array_ptr(tmp)[0] = url_decode(args,(int)(aeq-args));
+			val_array_ptr(tmp)[1] = url_decode(aeq+1,(int)strlen(aeq+1));
 			val_array_ptr(tmp)[2] = *p;
 			*p = tmp;
 			*aeq = '=';
