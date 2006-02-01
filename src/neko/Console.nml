@@ -30,6 +30,10 @@ function read() {
 	Buffer.string buf
 }
 
+function report(msg,p) {
+	IO.printf IO.stderr "%s(%d): %s\n" (Lexer.source p,Lexer.line p,msg);
+}
+
 function run() {
 	var ctx = Hashtbl.create();
 	function loop() {
@@ -100,6 +104,12 @@ function run() {
 		}) globals;
 	}
 	while true {
-		loop()
+		try {
+			loop()
+		} catch {
+			| Neko.Lexer.Error(msg,pos) -> report Neko.Lexer.error_msg(msg) pos
+			| Neko.Parser.Error(msg,pos) -> report Neko.Parser.error_msg(msg) pos
+			| Neko.Compile.Error(msg,pos) -> report Neko.Compile.error_msg(msg) pos
+		}
 	}
 }
