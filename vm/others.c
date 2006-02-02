@@ -88,8 +88,8 @@ EXTERN int val_compare( value a, value b ) {
 
 typedef struct _stringitem {
 	char *str;
+	int size;
 	int len;
-	int free;
 	struct _stringitem *next;
 } * stringitem;
 
@@ -118,9 +118,8 @@ static void buffer_append_new( buffer b, const char *s, int len ) {
 	it = (stringitem)alloc(sizeof(struct _stringitem));
 	it->str = alloc_private(size);
 	memcpy(it->str,s,len);
-	it->str += len;
-	it->free = size - len;
-	it->len = size;
+	it->size = size;
+	it->len = len;
 	it->next = b->data;
 	b->data = it;	
 }
@@ -133,17 +132,16 @@ EXTERN void buffer_append_sub( buffer b, const char *s, int_val _len ) {
 	b->totlen += len;
 	it = b->data;
 	if( it ) {
-		if( it->free >= len ) {
-			memcpy(it->str,s,len);
-			it->str += len;
-			it->free -= len;
+		int free = it->size - it->len;
+		if( free >= len ) {
+			memcpy(it->str + it->len,s,len);
+			it->len += len;
 			return;
 		} else {
-			memcpy(it->str,s,it->free);
-			it->str += it->free;
-			s += it->free;
-			len -= it->free;
-			it->free = 0;
+			memcpy(it->str + it->len,s,free);
+			it->len += free;
+			s += free;
+			len -= free;
 		}
 	}
 	buffer_append_new(b,s,len);
@@ -159,9 +157,8 @@ EXTERN void buffer_append_char( buffer b, char c ) {
 	stringitem it;
 	b->totlen++;
 	it = b->data;
-	if( it && it->free ) {
-		*it->str++ = c;
-		it->free--;
+	if( it && it->len != it->size ) {
+		it->str[it->len++] = c;		
 		return;
 	}
 	buffer_append_new(b,&c,1);
@@ -173,9 +170,8 @@ EXTERN value buffer_to_string( buffer b ) {
 	char *s = (char*)val_string(v) + b->totlen;
 	while( it != NULL ) {
 		stringitem tmp;
-		int size = it->len - it->free;
-		s -= size;
-		memcpy(s,it->str - size,size);
+		s -= it->len;
+		memcpy(s,it->str,it->len);
 		tmp = it->next;
 		it = tmp;
 	}
