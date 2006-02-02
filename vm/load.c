@@ -241,7 +241,7 @@ static void *load_primitive( const char *prim, int nargs, value path, liblist **
 
 static value init_path( const char *path ) {
 	value l = val_null, tmp;
-	char *p;
+	char *p, *p2;
 #ifdef _WIN32
 	char exe_path[MAX_PATH];
 	if( path == NULL ) {
@@ -259,10 +259,15 @@ static value init_path( const char *path ) {
 #endif
 	while( true ) {
 		// windows drive letter (same behavior expected on all os)
-		if( *path && path[1] == ':' )
+		if( *path && path[1] == ':' ) {
 			p = strchr(path+2,':');
-		else
+			p2 = strchr(path+2,';');
+		} else {
 			p = strchr(path,':');
+			p2 = strchr(path,';');
+		}
+		if( p2 != NULL && p2 < p )
+			p = p2;
 		if( p != NULL )
 			*p = 0;
 		tmp = alloc_array(2);
@@ -276,7 +281,7 @@ static value init_path( const char *path ) {
 		val_array_ptr(tmp)[1] = l;
 		l = tmp;
 		if( p != NULL )
-			*p = ':';
+			*p = (p == p2)?';':':';
 		else
 			break;
 		path = p+1;
