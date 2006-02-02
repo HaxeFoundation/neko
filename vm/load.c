@@ -266,7 +266,7 @@ static value init_path( const char *path ) {
 			p = strchr(path,':');
 			p2 = strchr(path,';');
 		}
-		if( p2 != NULL && p2 < p )
+		if( p == NULL || (p2 != NULL && p2 < p) )
 			p = p2;
 		if( p != NULL )
 			*p = 0;
