@@ -175,11 +175,15 @@ void serialize_rec( sbuffer *b, value o ) {
 			value s = NULL;
 			val_iter_fields(o,lookup_serialize_field,&s);
 			if( s != NULL ) {
+				// cancel reference
+				b->refs = b->refs->next;
 				if( !val_is_function(s) || val_tag(s) != VAL_FUNCTION || (val_fun_nargs(s) != 0 && val_fun_nargs(s) != VAR_ARGS) )
 					failure("Invalid __serialize method");
-				write_char(b,'x');				
+				write_char(b,'x');
 				serialize_rec(b,((neko_module*)((vfunction*)s)->module)->name);
 				serialize_rec(b,val_ocall0(o,id_serialize));
+				// put reference back
+				add_ref(b,o);
 				break;
 			}
 			write_char(b,'o');
@@ -290,7 +294,7 @@ static value serialize( value o ) {
 	char *s;
 	strlist *l;
 	b.olds = NULL;
-	b.refs = NULL; 
+	b.refs = NULL;
 	b.cur = (unsigned char*)alloc_private(BUF_SIZE);
 	b.size = BUF_SIZE;
 	b.pos = 0;
@@ -395,21 +399,27 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 	case 'p':
 		{
 			int nargs = read_int(b);
-			value name = unserialize_rec(b,loader);
-			value env = unserialize_rec(b,loader);
-			value f;
+			vfunction *f = (vfunction*)alloc_function((void*)1,nargs,NULL);
+			vfunction *f2;
+			value name,env;
+			add_ref(b,(value)f);
+			name = unserialize_rec(b,loader);
+			env = unserialize_rec(b,loader);
 			if( !val_is_array(env) )
 				ERROR();
-			f = val_ocall2(loader,id_loadprim,name,alloc_int(nargs));
-			if( val_is_function(f) )
-				((vfunction*)f)->env = env;
-			// else ignore env, we should trust the loader behavior
-			return f;
+			f2 = (vfunction*)val_ocall2(loader,id_loadprim,name,alloc_int(nargs));
+			if( !val_is_function(f2) || val_fun_nargs(f2) != nargs )
+				failure("Loader returned not-a-function");
+			f->t = f2->t;
+			f->addr = f2->addr;
+			f->module = f2->module;
+			f->env = env;
+			return (value)f;
 		}
 	case 'L':
 		{
 			vfunction *f = (vfunction*)alloc_function((void*)1,0,NULL);
-			value mname; 
+			value mname;
 			int pos;
 			int nargs;
 			value env;
@@ -479,14 +489,16 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 				val_buffer(b,mname);
 				buffer_append(b," has invalid __unserialize function");
 			}
-			return val_call1(s,data);
+			s = val_call1(s,data);
+			add_ref(b,s);
+			return s;
 		}
 	case 'h':
 		{
 			int i;
 			vhash *h = (vhash*)alloc(sizeof(vhash));
 			h->ncells = read_int(b);
-			h->nitems = read_int(b);			
+			h->nitems = read_int(b);
 			h->cells = (hcell**)alloc(sizeof(hcell*)*h->ncells);
 			for(i=0;i<h->ncells;i++)
 				h->cells[i] = NULL;
@@ -524,7 +536,7 @@ static value unserialize( value s, value loader ) {
 	b.olds = NULL;
 	b.refs = NULL;
 	b.size = val_strlen(s);
-	b.totlen = 0;	
+	b.totlen = 0;
 	return unserialize_rec(&b,loader);
 }
 
