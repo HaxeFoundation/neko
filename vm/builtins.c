@@ -21,6 +21,11 @@
 #include "objtable.h"
 #include "vm.h"
 
+#ifdef __MINGW32__ 
+#	undef setjmp
+#	define setjmp _setjmp
+#endif
+
 #ifdef _WIN32
 	long _ftol( double f );
 	long _ftol2( double f) { return _ftol(f); };
