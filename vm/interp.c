@@ -23,7 +23,7 @@
 #include "neko_mod.h"
 #include "objtable.h"
 
-#if defined(__GNUC__) && defined(__i386__)
+#if defined(__GNUC__) && defined(__i386__) && !defined(__MINGW32__)
 #	define ACC_BACKUP	int_val __acc = acc;
 #	define ACC_RESTORE	acc = __acc;
 #	define ACC_REG asm("%eax")

@@ -25,6 +25,10 @@ NEKO_EXEC = LD_LIBRARY_PATH=../bin:${LD_LIBRARY_PATH} NEKOPATH=../boot:../bin ..
 #
 # CFLAGS += -DLOW_MEM
 
+# For MINGW
+# 
+# replace -O3 by -O2 in CFLAGS
+
 ### OSX SPECIFIC
 
 ifeq (${MACOSX}, 1)
