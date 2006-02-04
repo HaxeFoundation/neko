@@ -54,6 +54,15 @@ static value int32_to_int( value v ) {
 }
 
 /**
+	int32_to_float : #int32 -> float
+	<doc>Return the float value of the integer.</doc>
+**/
+static value int32_to_float( value v ) {
+	val_check(v,int32);	
+	return alloc_float(val_int32(v));
+}
+
+/**
 	int32_compare : #int32 -> #int32 -> int
 	<doc>Compare two integers</doc>
 **/
@@ -191,6 +200,7 @@ static value int32_address( value v ) {
 
 DEFINE_PRIM(int32_new,1);
 DEFINE_PRIM(int32_to_int,1);
+DEFINE_PRIM(int32_to_float,1);
 DEFINE_PRIM(int32_compare,2);
 DEFINE_PRIM(int32_ushr,2)
 DEFINE_PRIM(int32_address,1);
