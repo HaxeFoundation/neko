@@ -242,6 +242,7 @@ static void *load_primitive( const char *prim, int nargs, value path, liblist **
 static value init_path( const char *path ) {
 	value l = val_null, tmp;
 	char *p, *p2;
+	char *allocated = NULL;
 #ifdef _WIN32
 	char exe_path[MAX_PATH];
 	if( path == NULL ) {
@@ -254,8 +255,10 @@ static value init_path( const char *path ) {
 		path = exe_path;
 	}
 #else
-	if( path == NULL )
-		path = "/usr/lib/neko:/usr/local/lib/neko:/usr/bin:/usr/local/bin";
+	if( path == NULL ) {
+		allocated = strcpy("/usr/lib/neko:/usr/local/lib/neko:/usr/bin:/usr/local/bin");
+		path = allocated;
+	}
 #endif
 	while( true ) {
 		// windows drive letter (same behavior expected on all os)
@@ -286,6 +289,8 @@ static value init_path( const char *path ) {
 			break;
 		path = p+1;
 	}
+	if( allocated != NULL )
+		free(allocated);
 	return l;
 }
 
