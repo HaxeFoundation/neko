@@ -243,7 +243,7 @@ static value init_path( const char *path ) {
 	value l = val_null, tmp;
 	char *p, *p2;
 	char *allocated = NULL;
-#ifdef _WIN32
+#if defined(_WIN32)
 	char exe_path[MAX_PATH];
 	if( path == NULL ) {
 		if( GetModuleFileName(GetModuleHandle("neko.dll"),exe_path,MAX_PATH) == 0 )
@@ -254,9 +254,15 @@ static value init_path( const char *path ) {
 		*p = 0;
 		path = exe_path;
 	}
+#elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || \
+	  defined(__APPLE__) || defined(__MACH__) || defined(macintosh)
+	if( path == NULL ) {
+		allocated = strdup("/opt/neko");
+		path = allocated;
+	}
 #else
 	if( path == NULL ) {
-		allocated = strcpy("/usr/lib/neko:/usr/local/lib/neko:/usr/bin:/usr/local/bin");
+		allocated = strdup("/usr/local/lib/neko:/usr/lib/neko:/usr/local/bin:/usr/bin");
 		path = allocated;
 	}
 #endif
