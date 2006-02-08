@@ -266,6 +266,7 @@ static value socket_connect( value o, value host, value port ) {
 	val_check_kind(o,k_socket);
 	val_check(host,int32);
 	val_check(port,int);
+	memset(&addr,0,sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(val_int(port));
 	*(int*)&addr.sin_addr.s_addr = val_int32(host);
@@ -365,6 +366,7 @@ static value socket_bind( value o, value host, value port ) {
 	val_check_kind(o,k_socket);
 	val_check(host,int32);
 	val_check(port,int);
+	memset(&addr,0,sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(val_int(port));
 	*(int*)&addr.sin_addr.s_addr = val_int32(host);
