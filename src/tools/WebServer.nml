@@ -164,7 +164,13 @@ function parse_http_request(in) {
 	var params = parse_get_params snd(url);
 	var post_data, params = if meth == MethodPost then {
 		var len = int (List.assoc "Content-Length" headers);
-		var data = IO.read_buf in len;
+		var b = Buffer.create();
+		var i = &0;
+		while *i < len {
+			Buffer.add_char b (Lexer.read l);
+			i := *i + 1;
+		}
+		var data = Buffer.string b;
 		(Some data , List.append (parse_get_params data) params);
 	} else
 		(None , params);
@@ -249,7 +255,7 @@ function print_exception(e) {
 		| Stack.Module m -> printf "Called from %s (no debug available)<br>" format(m)
 		| Stack.Pos (file,line) -> printf "Called from %s line %d<br>" (format file,line)
 		}
-	}) stack	
+	}) stack
 	var s = string(e);
 	printf "Exception : %s" format(s);
 }
@@ -455,7 +461,7 @@ function config(c,r) {
 			Sys.set_cwd dir;
 			cur_path := Sys.get_cwd();
 			Sys.set_cwd old;
-		} catch { 
+		} catch {
 			e -> log_exception e
 		}
 	} catch {
@@ -504,7 +510,7 @@ function init() {
 	var decl = [
 		("-p", Args.Int (function(n) { port := n }) , "<port> : change server port");
 		("-h", Args.String (function(h) { host := h }) , "<host> : change server host");
-		("-d", Args.String (function(d) { 
+		("-d", Args.String (function(d) {
 			var old = Sys.get_cwd();
 			Sys.set_cwd d;
 			cur_path := Sys.get_cwd();
