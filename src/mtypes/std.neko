@@ -13,6 +13,8 @@
  *  Lesser General Public License or the LICENSE file for more details.
  */
 
+version = 0;
+
 // ----------------------------------------------------------------------
 // List
 
@@ -230,6 +232,10 @@ List.prototype = @List;
 	return l;
 }
 
+@List.__serialize = function() {
+	return $array("List",version);
+}
+
 $exports.List = List;
 
 // ----------------------------------------------------------------------
@@ -364,6 +370,10 @@ Array.prototype = @Array;
 	return (a2[p] = v);
 }
 
+@Array.__serialize = function() {
+	return $array("Array",version);
+}
+
 $exports.Array = Array;
 
 // ----------------------------------------------------------------------
@@ -422,6 +432,10 @@ Hash.prototype = @Hash;
 	});
 	s.add("]");
 	return s.__string();
+}
+
+@Hash.__serialize = function() {
+	return $array("Hash",version);
 }
 
 $exports.Hash = Hash;
@@ -498,6 +512,10 @@ String.prototype = @String;
 	return String.new($string(s)+this.@s);
 }
 
+@String.__serialize = function() {
+	return $array("String",version);
+}
+
 $exports.String = String;
 
 // ----------------------------------------------------------------------
@@ -530,6 +548,7 @@ $exports.Int32 = Int32;
 buffer_new = $loader.loadprim("std@buffer_new",0);
 buffer_add = $loader.loadprim("std@buffer_add",2);
 buffer_add_sub = $loader.loadprim("std@buffer_add_sub",4);
+buffer_add_char = $loader.loadprim("std@buffer_add_char",2);
 buffer_string = $loader.loadprim("std@buffer_string",1);
 
 StringBuf = $new(null);
@@ -551,6 +570,10 @@ StringBuf.prototype = @StringBuf;
 
 @StringBuf.addSub = function(s,p,l) {
 	buffer_add_sub(this.@b,s,p,l);
+}
+
+@StringBuf.addChar = function(c) {
+	buffer_add_char(this.@b,c);
 }
 
 @StringBuf.__string = function() {
@@ -740,4 +763,23 @@ xml_string_rec = function(x,b) {
 	return buffer_string(b);
 }
 
+@Xml.__serialize = function() {
+	return $array("Xml",version);
+}
+
 $exports.Xml = Xml;
+
+$exports.__unserialize = function(v) {
+	if( $typeof(v) != $tarray )
+		$throw("Invalid serialized data");
+	if( v[1] != version )
+		$throw("Invalid version for class "+v[0]);
+	return switch( v[0] ) {
+	"Xml" => @Xml
+	"List" => @List
+	"Array" => @Array
+	"String" => @String
+	"Hash" => @Hash
+	default => $throw("Unknown class "+v[0])
+	}
+}
