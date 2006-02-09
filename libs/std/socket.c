@@ -289,8 +289,9 @@ static value socket_listen( value o, value n ) {
 
 static fd_set INVALID;
 
-static fd_set *make_socket_array( value a, fd_set *tmp ) {
+static fd_set *make_socket_array( value a, fd_set *tmp, SOCKET *n ) {
 	int i, len;	
+	SOCKET sock;
 	if( val_is_null(a) )
 		return NULL;
 	if( !val_is_array(a) )
@@ -301,7 +302,10 @@ static fd_set *make_socket_array( value a, fd_set *tmp ) {
 		value s = val_array_ptr(a)[i];
 		if( !val_is_kind(s,k_socket) )
 			return &INVALID;
-		FD_SET(val_sock(s),tmp);
+		sock = val_sock(s);
+		if( sock > *n )
+			*n = sock;
+		FD_SET(sock,tmp);
 	}
 	return tmp;
 }
@@ -330,13 +334,14 @@ static value make_array_result( value a, fd_set *tmp ) {
 static value socket_select( value rs, value ws, value es, value timeout ) {
 	struct timeval tval;
 	struct timeval *tt;
+	SOCKET n = 0;
 	tfloat f;
 	fd_set rx, wx, ex;
 	fd_set *ra, *wa, *ea;
 	value r;
-	ra = make_socket_array(rs,&rx);
-	wa = make_socket_array(ws,&wx);
-	ea = make_socket_array(es,&ex);
+	ra = make_socket_array(rs,&rx,&n);
+	wa = make_socket_array(ws,&wx,&n);
+	ea = make_socket_array(es,&ex,&n);
 	if( ra == &INVALID || wa == &INVALID || ea == &INVALID )
 		neko_error();
 	if( val_is_null(timeout) )
@@ -348,7 +353,7 @@ static value socket_select( value rs, value ws, value es, value timeout ) {
 		tval.tv_sec = (int)f;
 		tt = &tval;
 	}
-	if( select(0,ra,wa,ea,tt) == SOCKET_ERROR )
+	if( select((int)(n+1),ra,wa,ea,tt) == SOCKET_ERROR )
 		neko_error();
 	r = alloc_array(3);
 	val_array_ptr(r)[0] = make_array_result(rs,ra);
