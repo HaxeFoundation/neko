@@ -25,9 +25,15 @@ NEKO_EXEC = LD_LIBRARY_PATH=../bin:${LD_LIBRARY_PATH} NEKOPATH=../boot:../bin ..
 #
 # CFLAGS += -DLOW_MEM
 
-# For MINGW
-# 
-# replace -O3 by -O2 in CFLAGS
+# For MINGW/MSYS
+
+ifeq (${WIN32}, 1)
+CFLAGS = -g -Wall -O3 -momit-leaf-frame-pointer -I vm -I /usr/local/include -DCOMPACT_TABLE
+MAKESO = gcc -O -shared
+LIBNEKO_NAME = neko.dll
+LIBNEKO_LIBS = -Lbin -lgc 
+STD_NDLL_FLAGS = ${NEKOVM_FLAGS} -lws2_32
+endif
 
 ### OSX SPECIFIC
 
