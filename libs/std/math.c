@@ -96,7 +96,7 @@ static value math_ceil( value n ) {
 }
 
 /**
-	math_ceil : number -> int
+	math_floor : number -> int
 	<doc>Return rounded-down integer</doc>
 **/
 static value math_floor( value n ) {
@@ -111,7 +111,7 @@ static value math_floor( value n ) {
 }
 
 /**
-	math_ceil : number -> int
+	math_round : number -> int
 	<doc>Return nearest integer</doc>
 **/
 static value math_round( value n ) {
@@ -120,9 +120,15 @@ static value math_round( value n ) {
 		return n;
 	case VAL_FLOAT:
 		{
-			int ival = (int)val_float(n);
-			if( val_float(n) > ival+0.5 )
-				return alloc_int(ival+1);			
+			tfloat fval = val_float(n);
+			int ival = (int)fval;
+			if( fval < 0 ) {
+				if( fval < ival-0.5 )
+					return alloc_int(ival-1);
+			} else {
+				if( fval > ival+0.5 )
+					return alloc_int(ival+1);
+			}
 			return alloc_int(ival);
 		}
 		break;
