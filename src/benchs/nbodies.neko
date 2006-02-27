@@ -1,0 +1,148 @@
+pi = 3.141592653589793;
+solar_mass = (4 * pi * pi);
+days_per_year = 365.24;
+
+sqrt = $loader.loadprim("std@math_sqrt",1);
+round = $loader.loadprim("std@math_round",1);
+
+advance = function(nbodies,bodies,dt) {
+	var i = 0,j;
+	while( i < nbodies ) {
+		var b = bodies[i];
+		i += 1;
+		j = i;
+		while( j < nbodies ) {
+			var b2 = bodies[j];
+			var dx = b.x - b2.x;
+			var dy = b.y - b2.y;
+			var dz = b.z - b2.z;
+			var dist = sqrt(dx*dx+dy*dy+dz*dz);
+			var mag = dt / (dist * dist * dist);
+			var bm = b.mass * mag;
+			var b2m = b2.mass * mag;
+			b.vx -= dx * b2m;
+			b.vy -= dy * b2m;
+			b.vz -= dz * b2m;
+			b2.vx += dx * bm;
+			b2.vy += dy * bm;
+			b2.vz += dz * bm;
+			j += 1;
+		}
+	}
+	i = 0;
+	while( i < nbodies ) {
+		var b = bodies[i];
+		b.x += dt * b.vx;
+		b.y += dt * b.vy;
+		b.z += dt * b.vz;
+		i += 1;
+	}
+}
+
+energy = function(nbodies,bodies) {
+	var e = 0, i = 0, j;
+	while( i < nbodies ) {
+		var b = bodies[i];
+		e += 0.5 * b.mass * (b.vx * b.vx + b.vy * b.vy + b.vz * b.vz);
+		i += 1;
+		j = i;
+		while( j < nbodies ) {
+			var b2 = bodies[j];
+			var dx = b.x - b2.x;
+			var dy = b.y - b2.y;
+			var dz = b.z - b2.z;
+			var dist = sqrt(dx*dx+dy*dy+dz*dz);
+			e -= (b.mass * b2.mass) / dist;
+			j += 1;
+		}
+	}
+	return e;
+};
+
+offset_momentum = function(nbodies,bodies) {
+	var px = 0, py = 0, pz = 0;
+	var i = 0;
+	while( i < nbodies ) {
+		var b = bodies[i];
+		px += b.vx * b.mass;
+		py += b.vy * b.mass;
+		pz += b.vz * b.mass;
+		i += 1;
+	}
+	var b = bodies[0];
+	b.vx = 0 - px / solar_mass;
+	b.vy = 0 - py / solar_mass;
+	b.vz = 0 - pz / solar_mass;
+}
+;
+var bodies = $array(
+	// sun
+	{
+		x => 0,
+		y => 0,
+		z => 0,
+		vx => 0,
+		vy => 0,
+		vz => 0,
+		mass => solar_mass
+	},
+	// jupiter
+	{
+		x => $float("4.84143144246472090e+00"),
+		y => $float("-1.16032004402742839e+00"),
+		z => $float("-1.03622044471123109e-01"),
+		vx => $float("1.66007664274403694e-03") * days_per_year,
+		vy => $float("7.69901118419740425e-03") * days_per_year,
+		vz => $float("-6.90460016972063023e-05") * days_per_year,
+		mass => $float("9.54791938424326609e-04") * solar_mass
+	},
+	// saturn
+	{
+		x => $float("8.34336671824457987e+00"),
+		y => $float("4.12479856412430479e+00"),
+		z => $float("-4.03523417114321381e-01"),
+		vx => $float("-2.76742510726862411e-03") * days_per_year,
+		vy => $float("4.99852801234917238e-03") * days_per_year,
+		vz => $float("2.30417297573763929e-05") * days_per_year,
+		mass => $float("2.85885980666130812e-04") * solar_mass
+	},
+	// uranus
+	{
+		x => $float("1.28943695621391310e+01"),
+		y => $float("-1.51111514016986312e+01"),
+		z => $float("-2.23307578892655734e-01"),
+		vx => $float("2.96460137564761618e-03") * days_per_year,
+		vy => $float("2.37847173959480950e-03") * days_per_year,
+		vz => $float("-2.96589568540237556e-05") * days_per_year,
+		mass => $float("4.36624404335156298e-05") * solar_mass
+	},
+	// neptune
+	{
+		x => $float("1.53796971148509165e+01"),
+		y => $float("-2.59193146099879641e+01"),
+		z => $float("1.79258772950371181e-01"),
+		vx => $float("2.68067772490389322e-03") * days_per_year,
+		vy => $float("1.62824170038242295e-03") * days_per_year,
+		vz => $float("-9.51592254519715870e-05") * days_per_year,
+		mass => $float("5.15138902046611451e-05") * solar_mass
+	}
+);
+
+var nbodies = $asize(bodies);
+
+display = function() {
+	var prec = $float("1e+09");
+	var e = energy(nbodies,bodies) * prec;
+	$print(round(e)/prec,"\n");
+}
+
+var n = $int($loader.args[0]);
+if( n == null ) n = 1000;
+offset_momentum(nbodies, bodies);
+display();
+var i = 0;
+while( i < n ) {
+	advance(nbodies,bodies,0.01);
+	i += 1;
+};
+display();

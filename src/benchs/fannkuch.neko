@@ -1,0 +1,64 @@
+var n = $int($loader.args[0]);
+if( n == null ) n = 7;
+
+check = 0;
+perm = $amake(n);
+perm1 = $amake(n);
+count = $amake(n);
+maxPerm = $amake(n);
+maxflips = 0;
+m = n - 1;
+r = n;
+i = 0;
+while( i < n ) { perm1[i] = i; i += 1 };
+
+while (true) {
+	if( check < 30 ) {
+		i = 0;
+		while( i < n ) { $print(perm1[i]+1); i += 1; };
+		$print("\n");
+		check += 1;
+	}
+	while( r != 1 ) { count[r-1] = r; r -= 1; };
+	if( perm1[0] != 0 && perm1[m] != m ) {
+		i = 0;
+		while( i < n ) { perm[i] = perm1[i]; i += 1; };
+		flips = 0;
+		k = perm[0];
+		do {
+			i = 1;
+			j = k - 1;
+			while( i < j ) {
+				tmp = perm[i];
+				perm[i] = perm[j];
+				perm[j] = tmp;
+				i += 1;
+				j -= 1;
+			}
+			flips += 1;
+			j = perm[k];
+			perm[k] = k;
+			k = j;
+		} while( k != 0 );
+		if( flips > maxflips )
+			maxflips = flips;
+	}
+	while (true) {
+		if( r == n ) {
+			$print("Pfannkuchen(",n,") = ",maxflips);
+			$goto(exit);
+		}
+		perm0 = perm1[0];
+		i = 0;
+		while( i < r ) {
+			j = i + 1;
+			perm1[i] = perm1[j];
+			i = j;
+		}
+		perm1[r] = perm0;
+		count[r] -= 1;
+		if( count[r] > 0 ) break;
+		r += 1;
+	}
+}
+exit:
