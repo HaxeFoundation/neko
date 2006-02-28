@@ -7,7 +7,9 @@
 	nekoml : added Net core module for sockets
 	nekoml : when catching Neko errors, wrap them using Neko_error constructor
 	std : supported serialization of C primitives and __serialize/__unserialize overrides
-	added nekotools (merged nekoboot and neko webserver).	
+	added nekotools (merged nekoboot and neko webserver)
+	std : fixed math_round, fixed math docs
+	added some benchmarks in std/benchs
 	(planned) continuations
 	(planned) efficient JIT
 	
