@@ -234,6 +234,9 @@ base = "../bin";
 
 try { mkdir(base,rights); } catch e { };
 
+copy("../boot/nekoc.n",base);
+copy("../boot/nekoml.n",base);
+
 // compile some neko sources
 
 exec(nekovm+" nekoc tools/test.neko");
