@@ -463,7 +463,7 @@ extern char **environ;
 #endif
 
 /**
-	sys_env : string -> #list
+	sys_env : void -> #list
 	<doc>Return all the (key,value) pairs in the environment as a chained list</doc>
 **/
 static value sys_env() {
