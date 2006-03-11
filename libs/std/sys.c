@@ -91,7 +91,7 @@ static value sys_sleep( value f ) {
 }
 
 /**
-	set_time_local : string -> bool
+	set_time_locale : string -> bool
 	<doc>Set the locale for LC_TIME, returns true on success</doc> 
 **/
 static value set_time_locale( value l ) {
