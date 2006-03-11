@@ -197,10 +197,10 @@ static value file_delete( value path ) {
 }
 
 /**
-	file_rename : from:string -> to:string -> void
-	<doc>Rename the file. Exception on error.</doc>
+	sys_rename : from:string -> to:string -> void
+	<doc>Rename the file or directory. Exception on error.</doc>
 **/
-static value file_rename( value path, value newname ) {
+static value sys_rename( value path, value newname ) {
 	val_check(path,string);
 	val_check(newname,string);
 	if( rename(val_string(path),val_string(newname)) != 0 )
@@ -510,7 +510,7 @@ DEFINE_PRIM(sys_read_dir,1);
 DEFINE_PRIM(file_full_path,1);
 DEFINE_PRIM(file_exists,1);
 DEFINE_PRIM(file_delete,1);
-DEFINE_PRIM(file_rename,1);
+DEFINE_PRIM(sys_rename,2);
 DEFINE_PRIM(sys_exe_path,0);
 DEFINE_PRIM(sys_file_type,1);
 
