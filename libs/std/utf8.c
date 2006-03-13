@@ -61,7 +61,7 @@ static void utf8_buf_resize( ubuf *b ) {
 	int len = val_strlen(b->buf);
 	// allocate a number of bytes depending on previously
 	// escaped caracters, with a minimum of 10
-	int nbytes = (b->nesc + b->pos * 2 - 1) / b->pos;
+	int nbytes = (b->nesc + b->pos * 2 - 1) / (b->pos?b->pos:1);
 	if( nbytes < 10 )
 		nbytes = 10;
 	s = alloc_empty_string(len+nbytes);
@@ -318,21 +318,21 @@ static value utf8_get( value str, value pos ) {
 			if( l < 0 )
 				neko_error();
 			if( p-- == 0 )
-				return alloc_int(((c & 0xBF) << 6) | ((*s) & 0x7F));
+				return alloc_int(((c & 0x3F) << 6) | ((*s) & 0x7F));
 			s++;
 		} else if( c < 0xF0 ) {
 			l -= 2;
 			if( l < 0 )
 				neko_error();
 			if( p-- == 0 )
-				return alloc_int(((c & 0xDF) << 12) | (((*s) & 0x7F) << 6) | (s[1] & 0x7F));
+				return alloc_int(((c & 0x1F) << 12) | (((*s) & 0x7F) << 6) | (s[1] & 0x7F));
 			s += 2;
 		} else {
 			l -= 3;
 			if( l < 0 )
 				neko_error();
 			if( p-- == 0 )
-				return alloc_int(((c & 0xEF) << 18) | (((*s) & 0x7F) << 12) | ((s[1] << 6) & 0x7F) | (s[2] & 0x7F));
+				return alloc_int(((c & 0x0F) << 18) | (((*s) & 0x7F) << 12) | ((s[1] << 6) & 0x7F) | (s[2] & 0x7F));
 			s += 3;
 		}
 	}
@@ -361,19 +361,19 @@ static value utf8_iter( value str, value f ) {
 			l--;
 			if( l < 0 )
 				neko_error();
-			val_call1(f,alloc_int(((c & 0xBF) << 6) | ((*s) & 0x7F)));
+			val_call1(f,alloc_int(((c & 0x3F) << 6) | ((*s) & 0x7F)));
 			s++;
 		} else if( c < 0xF0 ) {
 			l -= 2;
 			if( l < 0 )
 				neko_error();
-			val_call1(f,alloc_int(((c & 0xDF) << 12) | (((*s) & 0x7F) << 6) | (s[1] & 0x7F)));
+			val_call1(f,alloc_int(((c & 0x1F) << 12) | (((*s) & 0x7F) << 6) | (s[1] & 0x7F)));
 			s += 2;
 		} else {
 			l -= 3;
 			if( l < 0 )
 				neko_error();
-			val_call1(f,alloc_int(((c & 0xEF) << 18) | (((*s) & 0x7F) << 12) | ((s[1] << 6) & 0x7F) | (s[2] & 0x7F)));
+			val_call1(f,alloc_int(((c & 0x0F) << 18) | (((*s) & 0x7F) << 12) | ((s[1] << 6) & 0x7F) | (s[2] & 0x7F)));
 			s += 3;
 		}
 	}
