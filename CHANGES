@@ -9,7 +9,8 @@
 	std : supported serialization of C primitives and __serialize/__unserialize overrides
 	added nekotools (merged nekoboot and neko webserver)
 	std : fixed math_round, fixed math docs
-	added some benchmarks in std/benchs
+	std : fixed bug in utf8_resize, utf8_get and utf8_iter.
+	added some benchmarks in std/benchs	
 	(planned) continuations
 	(planned) efficient JIT
 	
