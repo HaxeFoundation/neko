@@ -208,10 +208,13 @@ void serialize_rec( sbuffer *b, value o ) {
 		if( !write_ref(b,o) ) {
 			neko_module *m;
 			if( val_tag(o) == VAL_PRIMITIVE ) {
+				// assume that alloc_array(0) return a constant array ptr
+				// we don't want to access custom memory (maybe not a ptr)
+				if( ((vfunction*)o)->env != alloc_array(0) )
+					failure("Cannot Serialize Primitive with environment");
 				write_char(b,'p');
 				write_int(b,((vfunction*)o)->nargs);
 				serialize_rec(b,((vfunction*)o)->module);
-				serialize_rec(b,((vfunction*)o)->env);
 				break;
 			}
 			if( val_tag(o) == VAL_JITFUN )
@@ -397,19 +400,15 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 			int nargs = read_int(b);
 			vfunction *f = (vfunction*)alloc_function((void*)1,nargs,NULL);
 			vfunction *f2;
-			value name,env;
+			value name;
 			add_ref(b,(value)f);
 			name = unserialize_rec(b,loader);
-			env = unserialize_rec(b,loader);
-			if( !val_is_array(env) )
-				ERROR();
 			f2 = (vfunction*)val_ocall2(loader,id_loadprim,name,alloc_int(nargs));
 			if( !val_is_function(f2) || val_fun_nargs(f2) != nargs )
 				failure("Loader returned not-a-function");
 			f->t = f2->t;
 			f->addr = f2->addr;
 			f->module = f2->module;
-			f->env = env;
 			return (value)f;
 		}
 	case 'L':
