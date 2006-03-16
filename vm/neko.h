@@ -176,7 +176,7 @@ typedef struct {
 #endif
 
 #define alloc_int32(i) alloc_abstract(k_int32, (value)(int_val)(i))
-#define need_32_bits(i) ( ((int)i) < 0 )
+#define need_32_bits(i) ( ((unsigned int)i) & 0xC0000000 )
 #define alloc_best_int(i) (need_32_bits(i) ? alloc_int32(i) : alloc_int(i))
 #define val_int32(v) (val_is_int(v)?val_int(v):(int)(int_val)val_data(v))
 #define val_is_int32(v) (val_is_int(v) || val_is_kind(v,k_int32))
