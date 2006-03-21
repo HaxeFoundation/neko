@@ -172,6 +172,15 @@ static int_val jit_run( neko_vm *vm, vfunction *acc ) {
 
 #define RuntimeError(err,param)	{ if( param ) pc++; PushInfos(); BeginCall(); val_throw(alloc_string(err)); }
 #define CallFailure()		RuntimeError("Invalid call",false)
+#define InvalidFieldAccess()	{ \
+					value v = val_field_name((field)*pc); \
+					buffer b; \
+					if( val_is_null(v) ) RuntimeError("Invalid field access",true); \
+					b = alloc_buffer("Invalid field access : "); \
+					val_buffer(b,v); \
+					pc++; PushInfos(); BeginCall(); \
+					val_throw(buffer_to_string(b)); \
+				}
 
 #define Instr(x)	case x:
 #define Next		break;
@@ -471,7 +480,7 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 			} while( acc );
 			acc = (int_val)(f?*f:val_null);
 		} else
-			RuntimeError("Invalid field access",true);
+			InvalidFieldAccess();
 		pc++;
 		Next;
 	Instr(AccArray)
@@ -541,7 +550,7 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 			otable_replace(((vobject*)*sp)->table,(field)*pc,(value)acc);
 			ACC_RESTORE;
 		} else
-			RuntimeError("Invalid field access",true);
+			InvalidFieldAccess();
 		*sp++ = ERASE;
 		pc++;
 		Next;
