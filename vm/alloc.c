@@ -203,6 +203,18 @@ static value apply4( value p1, value p2, value p3, value p4 ) {
 	return val_callN(a[-1],a,n);
 }
 
+static value apply5( value p1, value p2, value p3, value p4, value p5 ) {
+	value env = NEKO_VM()->env;
+	value *a = val_array_ptr(env) + 1;
+	int n = val_array_size(env) - 1;
+	a[n-4] = p1;
+	a[n-3] = p2;
+	a[n-2] = p3;
+	a[n-1] = p4;
+	a[n-1] = p5;
+	return val_callN(a[-1],a,n);
+}
+
 value alloc_apply( int nargs, value env ) {
 	vfunction *v = (vfunction*)GC_MALLOC(sizeof(vfunction));
 	v->t = VAL_PRIMITIVE;
@@ -211,7 +223,8 @@ value alloc_apply( int nargs, value env ) {
 	case 2: v->addr = apply2; break;
 	case 3: v->addr = apply3; break;
 	case 4: v->addr = apply4; break;
-	default: failure("Too many calls"); break;
+	case 5: v->addr = apply5; break;
+	default: failure("Too many apply arguments"); break;
 	}
 	v->nargs = nargs;
 	v->env = env;
