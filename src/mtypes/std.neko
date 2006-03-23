@@ -688,14 +688,14 @@ Xml.prototype = @Xml;
 }
 
 @Xml.firstChild = function() {
+	if( this.children == null )
+		$throw(String.new("Xml.firstChild"));
 	return this.children.first()
 }
 
 @Xml.firstNode = function() {
 	if( this.children == null )
 		$throw(String.new("Xml.firstNode"));
-	if( this.node != null )
-		return this;
 	var s = this.children.h;
 	while( s != null ) {
 		if( s[0].node != null )
