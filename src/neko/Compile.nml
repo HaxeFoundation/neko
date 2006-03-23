@@ -742,8 +742,19 @@ function rec compile(ctx,tail,(e,p)) {
 	| ECall ((EConst (Builtin b),_),el) ->
 		compile_builtin ctx tail b el p
 	| ECall (e,a :: b :: c :: d :: x1 :: x2 :: l) ->
-		var app = ECall (EConst (Builtin "apply"),p) [e;a;b;c;d];
-		compile ctx tail (ECall (app,p) (x1 :: x2 :: l) ,p)
+		match e {
+		| (EField (e,name) , p2) ->
+			var ethis = (EConst This,p2);
+			var etmp = (EConst (Ident "$tmp"),p2);
+			compile ctx false (EVars [("$this",Some ethis);("$tmp",Some e)],p2);
+			compile ctx false (EBinop "=" ethis etmp,p2);
+			var app = ECall (EConst (Builtin "apply"),p) [(EField etmp name,p2);a;b;c;d];
+			compile ctx false (ECall (app,p) (x1 :: x2 :: l) ,p);
+			compile ctx false (EBinop "=" ethis (EConst (Ident "$this"),p2),p2);
+		| _ ->
+			var app = ECall (EConst (Builtin "apply"),p) [e;a;b;c;d];
+			compile ctx tail (ECall (app,p) (x1 :: x2 :: l) ,p)
+		}
 	| ECall ((EField (e,f),_),el) ->
 		List.iter (function(e) {
 			compile ctx false e;
