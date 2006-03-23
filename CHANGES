@@ -5,6 +5,7 @@
 	neko : allowed runtime printer redirection (+ added std@print_redirect)
 	neko : defined a default NEKOPATH when not specified (less configuration)
 	neko : fixed int32 calculus bug (need_32_bits macro)
+	neko : fixed calls with a lot of arguments (some cases were failing)
 	nekoml : added Net core module for sockets
 	nekoml : when catching Neko errors, wrap them using Neko_error constructor
 	std : supported serialization of C primitives and __serialize/__unserialize overrides
