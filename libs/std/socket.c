@@ -114,7 +114,7 @@ static value socket_send_char( value o, value v ) {
 
 /**
 	socket_send : 'socket -> buf:string -> pos:int -> len:int -> int
-	<doc>Send up to [len] bytes from [buf] starting at [pos] over a connected socket. 
+	<doc>Send up to [len] bytes from [buf] starting at [pos] over a connected socket.
 	Return the number of bytes sent.</doc>
 **/
 static value socket_send( value o, value data, value pos, value len ) {
@@ -136,7 +136,7 @@ static value socket_send( value o, value data, value pos, value len ) {
 
 /**
 	socket_recv : 'socket -> buf:string -> pos:int -> len:int -> int
-	<doc>Read up to [len] bytes from [buf] starting at [pos] from a connected socket. 
+	<doc>Read up to [len] bytes from [buf] starting at [pos] from a connected socket.
 	Return the number of bytes readed.</doc>
 **/
 static value socket_recv( value o, value data, value pos, value len ) {
@@ -177,7 +177,7 @@ static value socket_write( value o, value data ) {
 	const char *cdata;
 	int datalen, slen;
 	val_check_kind(o,k_socket);
-	val_check(data,string);	
+	val_check(data,string);
 	cdata = val_string(data);
 	datalen = val_strlen(data);
 	while( datalen > 0 ) {
@@ -193,14 +193,14 @@ static value socket_write( value o, value data ) {
 
 /**
 	socket_read : 'socket -> string
-	<doc>Read the whole content of a the data available from a socket. 
+	<doc>Read the whole content of a the data available from a socket.
 	If the socket hasn't been close by the other side, the function might block.
 	</doc>
 **/
 static value socket_read( value o ) {
 	buffer b;
 	char buf[256];
-	int len;	
+	int len;
 	val_check_kind(o,k_socket);
 	b = alloc_buffer(NULL);
 	while( true ) {
@@ -219,12 +219,12 @@ static value socket_read( value o ) {
 	<doc>Resolve the given host string into an IP address.</doc>
 **/
 static value host_resolve( value host ) {
-	unsigned int ip;	
+	unsigned int ip;
 	val_check(host,string);
 	ip = inet_addr(val_string(host));
 	if( ip == INADDR_NONE ) {
 		struct hostent *h = gethostbyname(val_string(host));
-		if( h == 0 )
+		if( h == NULL )
 			neko_error();
 		ip = *((unsigned int*)h->h_addr);
 	}
@@ -240,6 +240,21 @@ static value host_to_string( value ip ) {
 	val_check(ip,int32);
 	*(int*)&i = val_int32(ip);
 	return alloc_string( inet_ntoa(i) );
+}
+
+/**
+	host_reverse : 'int32 -> string
+	<doc>Reverse the DNS of the given IP address.</doc>
+**/
+static value host_reverse( value host ) {
+	struct hostent *h;
+	unsigned int ip;
+	val_check(host,int32);
+	ip = val_int32(host);
+	h = gethostbyaddr((char *)&ip,4,AF_INET);
+	if( h == NULL )
+		neko_error();
+	return alloc_string( h->h_name );
 }
 
 /**
@@ -286,14 +301,14 @@ static value socket_listen( value o, value n ) {
 static fd_set INVALID;
 
 static fd_set *make_socket_array( value a, fd_set *tmp, SOCKET *n ) {
-	int i, len;	
+	int i, len;
 	SOCKET sock;
 	if( val_is_null(a) )
 		return NULL;
 	if( !val_is_array(a) )
 		return &INVALID;
 	len = val_array_size(a);
-	FD_ZERO(tmp);	
+	FD_ZERO(tmp);
 	for(i=0;i<len;i++) {
 		value s = val_array_ptr(a)[i];
 		if( !val_is_kind(s,k_socket) )
@@ -460,5 +475,6 @@ DEFINE_PRIM(socket_set_timeout,2);
 DEFINE_PRIM(host_local,0);
 DEFINE_PRIM(host_resolve,1);
 DEFINE_PRIM(host_to_string,1);
+DEFINE_PRIM(host_reverse,1);
 
 /* ************************************************************************ */
