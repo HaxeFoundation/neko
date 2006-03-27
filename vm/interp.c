@@ -638,6 +638,7 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 			int stack = (int)((*pc) >> 3);
 			int nargs = (int)((*pc) & 7);
 			int i = nargs;
+			value cur_this = vm->vthis;
 			stack -= nargs;
 			sp += nargs;
 			while( i > 0 ) {
@@ -648,9 +649,8 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 			while( stack-- > 0 )
 				*sp++ = ERASE;
 			// preserve 'this' through the call
-			csp[-1] = (int_val)vm->vthis;
 			PopInfos(true);
-			DoCall(vm->vthis,nargs);
+			DoCall(cur_this,nargs);
 		}
 		Next;
 	Instr(Call)
