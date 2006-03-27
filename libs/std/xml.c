@@ -88,7 +88,7 @@ static void do_parse_xml( const char *xml, const char **lp, int *line, value cal
 	const char *start = NULL;
 	const char *p = *lp;
 	char c = *p;
-	int nsubs = 0;
+	int nsubs = 0, nbrackets = 0;
 	while( c ) {
 		switch( state ) {
 		case IGNORE_SPACES:
@@ -311,7 +311,11 @@ static void do_parse_xml( const char *xml, const char **lp, int *line, value cal
 			}
 			break;
 		case DOCTYPE:
-			if( c == '>' ) {
+			if( c == '[' )
+				nbrackets++;
+			else if( c == ']' )
+				nbrackets--;
+			else if( c == '>' && nbrackets == 0 ) {
 				val_ocall1(callb,id_doctype,copy_string(start,p-start));
 				state = BEGIN;
 			}
