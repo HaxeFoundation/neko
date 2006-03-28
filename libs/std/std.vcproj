@@ -138,6 +138,9 @@
 			RelativePath=".\md5.c">
 		</File>
 		<File
+			RelativePath=".\memory.c">
+		</File>
+		<File
 			RelativePath=".\module.c">
 		</File>
 		<File
