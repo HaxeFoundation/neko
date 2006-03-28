@@ -332,7 +332,7 @@ static value sys_time() {
 #else
 	struct tms t;
 	times(&t);
-	return alloc_float( ((tfloat)(t.tms_utime + t.tms_stime)) / CLOCKS_PER_SEC );
+	return alloc_float( ((tfloat)(t.tms_utime + t.tms_stime)) / CLK_TCK );
 #endif
 }
 
