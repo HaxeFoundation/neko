@@ -18,34 +18,48 @@
 #include <neko_mod.h>
 #include <objtable.h>
 
-typedef struct _vlist {
-	void *v;
-	struct _vlist *next;
-} vlist;
+typedef struct _vtree {
+	int_val v;
+	struct _vtree *left;
+	struct _vtree *right;
+} vtree;
 
 typedef struct {
-	vlist **l;
-	int t;
+	vtree **t;
+	int s;
 } vparams;
 
-static int mem_cache( void *v, vlist **l ) {
-	vlist *p = *l;
+static int mem_cache( void *v, vtree **t ) {
+	vtree *p = *t;
+	vtree *prev = NULL;
 	while( p != NULL ) {
-		if( p->v == v )
+		if( p->v == (int_val)v )
 			return 1;
-		p = p->next;
+		prev = p;
+		if( p->v > (int_val)v )
+			p = p->left;
+		else
+			p = p->right;
 	}
-	p = (vlist*)alloc(sizeof(vlist));
-	p->v = v;
-	p->next = *l;
-	*l = p;
+	p = (vtree*)alloc(sizeof(vtree));
+	p->v = (int_val)v;
+	p->left = NULL;
+	p->right = NULL;
+	if( prev == NULL )
+		*t = p;
+	else {
+		if( prev->v > p->v )
+			prev->left = p;
+		else
+			prev->right = p;
+	}
 	return 0;
 }
 
 static void mem_obj_field( value v, field f, void *_p );
-static int mem_module( neko_module *m, vlist **l );
+static int mem_module( neko_module *m, vtree **l );
 
-static int mem_size_rec( value v,  vlist **l ) {
+static int mem_size_rec( value v,  vtree **l ) {
 	switch( val_type(v) ) {
 	case VAL_INT:
 	case VAL_BOOL:
@@ -64,15 +78,15 @@ static int mem_size_rec( value v,  vlist **l ) {
 			return 0;
 		{
 			vparams p;
-			p.l = l;
-			p.t = sizeof(vobject);
+			p.t = l;
+			p.s = sizeof(vobject);
 #ifdef COMPACT_TABLE
-			p.t += sizeof(struct _objtable);
+			p.s += sizeof(struct _objtable);
 #endif
 			val_iter_fields(v,mem_obj_field,&p);
 			if( ((vobject*)v)->proto != NULL )
-				p.t += mem_size_rec((value)((vobject*)v)->proto,l);
-			return p.t;
+				p.s += mem_size_rec((value)((vobject*)v)->proto,l);
+			return p.s;
 		}
 	case VAL_ARRAY:
 		if( mem_cache(v,l) )
@@ -130,14 +144,14 @@ static int mem_size_rec( value v,  vlist **l ) {
 static void mem_obj_field( value v, field f, void *_p ) {
 	vparams *p = (vparams*)_p;
 #ifndef COMPACT_TABLE
-	p->t += sizeof(struct _objtable);
+	p->s += sizeof(struct _objtable);
 #else
-	p->t += sizeof(cell);
+	p->s += sizeof(cell);
 #endif
-	p->t += mem_size_rec(v,p->l);
+	p->s += mem_size_rec(v,p->t);
 }
 
-static int mem_module( neko_module *m, vlist **l ) {
+static int mem_module( neko_module *m, vtree **l ) {
 	int t = 0;
 	unsigned int i;
 	if( mem_cache(m,l) )
@@ -158,8 +172,8 @@ static int mem_module( neko_module *m, vlist **l ) {
 }
 
 static value mem_size( value v ) {
-	vlist *l = NULL;
-	return alloc_int(mem_size_rec(v,&l));
+	vtree *t = NULL;
+	return alloc_int(mem_size_rec(v,&t));
 }
 
 DEFINE_PRIM(mem_size,1);
