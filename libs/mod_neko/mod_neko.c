@@ -25,6 +25,20 @@ typedef struct cache {
 
 static _context *cache_root = NULL;
 
+value cgi_get_cache() {
+	cache *c = (cache*)context_get(cache_root);
+	value l = val_null;
+	while( c != NULL ) {
+		value a = alloc_array(3);
+		val_array_ptr(a)[0] = c->file;
+		val_array_ptr(a)[1] = c->main;
+		val_array_ptr(a)[2] = l;
+		l = a;
+		c = c->next;
+	}
+	return l;
+}
+
 static void send_headers( mcontext *c ) {
 	if( !c->headers_sent ) {
 		ap_send_http_header(c->r);

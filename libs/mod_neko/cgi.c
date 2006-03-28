@@ -390,6 +390,12 @@ static value cgi_set_main( value f ) {
 	return val_true;
 }
 
+/**
+	cgi_get_cache : void -> #list
+	<doc>Return the list of modules cached by mod_neko</doc>
+**/
+extern value cgi_get_cache();
+
 DEFINE_PRIM(cgi_get_cwd,0);
 DEFINE_PRIM(cgi_set_main,1);
 DEFINE_PRIM(get_cookies,0);
@@ -404,5 +410,6 @@ DEFINE_PRIM(get_post_data,0);
 DEFINE_PRIM(set_header,2);
 DEFINE_PRIM(set_return_code,1);
 DEFINE_PRIM(get_client_header,1);
+DEFINE_PRIM(cgi_get_cache,0);
 
 /* ************************************************************************ */
