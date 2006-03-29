@@ -18,7 +18,9 @@
 #include <neko.h>
 #ifdef _WIN32
 #	include <winsock2.h>
-#	define SHUT_RW	SD_SEND
+#	define SHUT_WR		SD_SEND
+#	define SHUT_RD		SD_RECEIVE
+#	define SHUT_RDWR	SD_BOTH
 	static bool init_done = false;
 	static WSADATA init_data;
 #else
@@ -204,7 +206,7 @@ static value socket_read( value o ) {
 	int len;
 	val_check_kind(o,k_socket);
 	b = alloc_buffer(NULL);
-	shutdown(val_sock(o),SHUT_RW);
+	shutdown(val_sock(o),SHUT_WR);
 	while( true ) {
 		len = recv(val_sock(o),buf,256,0);
 		if( len == SOCKET_ERROR )
@@ -456,6 +458,21 @@ static value socket_set_timeout( value o, value t ) {
 	return val_true;
 }
 
+/**
+	socket_shutdown : 'socket -> read:bool -> write:bool -> void
+	<doc>Prevent the socket from further reading or writing or both.</doc>
+**/
+static value socket_shutdown( value o, value r, value w ) {
+	val_check_kind(o,k_socket);
+	val_check(r,bool);
+	val_check(w,bool);
+	if( !val_bool(r) && !val_bool(w) )
+		return val_true;
+	if( shutdown(val_sock(o),val_bool(r)?(val_bool(w)?SHUT_RDWR:SHUT_RD):SHUT_WR) )
+		neko_error();
+	return val_true;
+}
+
 DEFINE_PRIM(socket_init,0);
 DEFINE_PRIM(socket_new,1);
 DEFINE_PRIM(socket_send,4);
@@ -473,6 +490,7 @@ DEFINE_PRIM(socket_accept,1);
 DEFINE_PRIM(socket_peer,1);
 DEFINE_PRIM(socket_host,1);
 DEFINE_PRIM(socket_set_timeout,2);
+DEFINE_PRIM(socket_shutdown,2);
 
 DEFINE_PRIM(host_local,0);
 DEFINE_PRIM(host_resolve,1);
