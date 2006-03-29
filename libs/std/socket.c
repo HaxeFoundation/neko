@@ -206,7 +206,6 @@ static value socket_read( value o ) {
 	int len;
 	val_check_kind(o,k_socket);
 	b = alloc_buffer(NULL);
-	shutdown(val_sock(o),SHUT_WR);
 	while( true ) {
 		len = recv(val_sock(o),buf,256,0);
 		if( len == SOCKET_ERROR )
@@ -490,7 +489,7 @@ DEFINE_PRIM(socket_accept,1);
 DEFINE_PRIM(socket_peer,1);
 DEFINE_PRIM(socket_host,1);
 DEFINE_PRIM(socket_set_timeout,2);
-DEFINE_PRIM(socket_shutdown,2);
+DEFINE_PRIM(socket_shutdown,3);
 
 DEFINE_PRIM(host_local,0);
 DEFINE_PRIM(host_resolve,1);
