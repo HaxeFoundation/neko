@@ -18,6 +18,7 @@
 #include <neko.h>
 #ifdef _WIN32
 #	include <winsock2.h>
+#	define SHUT_RW	SD_SEND
 	static bool init_done = false;
 	static WSADATA init_data;
 #else
@@ -193,7 +194,7 @@ static value socket_write( value o, value data ) {
 
 /**
 	socket_read : 'socket -> string
-	<doc>Read the whole content of a the data available from a socket.
+	<doc>Read the whole content of a the data available from a socket until the connection close.
 	If the socket hasn't been close by the other side, the function might block.
 	</doc>
 **/
@@ -203,6 +204,7 @@ static value socket_read( value o ) {
 	int len;
 	val_check_kind(o,k_socket);
 	b = alloc_buffer(NULL);
+	shutdown(val_sock(o),SHUT_RW);
 	while( true ) {
 		len = recv(val_sock(o),buf,256,0);
 		if( len == SOCKET_ERROR )
