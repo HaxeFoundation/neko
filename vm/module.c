@@ -118,7 +118,7 @@ static value get_builtin( neko_module *m, field id ) {
 				val_buffer(b,m->fields[i]);
 				bfailure(b);
 			}
-		failure("Builtin not found");		
+		failure("Builtin not found");
 	}
 	return f;
 }
@@ -163,9 +163,9 @@ static int neko_check_stack( neko_module *m, unsigned char *tmp, unsigned int i,
 			if( c == Jump )
 				return 1;
 			break;
-		case JumpTable:			
+		case JumpTable:
 			itmp = (int)m->code[i+1];
-			i += itmp;	
+			i += itmp;
 			while( itmp > 0 ) {
 				itmp -= 2;
 				if( m->code[i - itmp] != Jump )
@@ -202,7 +202,7 @@ static int neko_check_stack( neko_module *m, unsigned char *tmp, unsigned int i,
 			break;
 		case TailCall:
 			if( stack - (m->code[i+1] & 7) < istack || (m->code[i+1]>>3) != stack )
-				return 0;	
+				return 0;
 			return 1;
 		}
 		i += parameter_table[c]?2:1;
@@ -266,9 +266,9 @@ static value read_debug_infos( reader r, readp p, char *tmp ) {
 			pp = alloc_array(2);
 			val_array_ptr(pp)[0] = curfile;
 			val_array_ptr(pp)[1] = alloc_int(curpos);
-			val_array_ptr(pos)[i++] = pp;			
+			val_array_ptr(pos)[i++] = pp;
 		}
-	}	
+	}
 	return pos;
 }
 
@@ -369,7 +369,7 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 			m->code[i++] = (t >> 2);
 			READ_LONG(itmp);
 			tmp[i] = 0;
-			m->code[i++] = itmp;
+			m->code[i++] = (int)itmp;
 			break;
 		}
 	}
