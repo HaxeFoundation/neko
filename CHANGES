@@ -15,7 +15,8 @@
 	added nekotools (merged nekoboot and neko webserver)
 	std : fixed math_round, fixed math docs
 	std : fixed bug in utf8_resize, utf8_get and utf8_iter.
-	added some benchmarks in std/benchs	
+	regexp : added regexp_new_options for matching options and regexp_replace_fun
+	added some benchmarks in std/bench
 	(planned) continuations
 	(planned) efficient JIT
 	
