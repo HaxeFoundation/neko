@@ -85,12 +85,12 @@ function rec expr(s) {
 	| [< (BraceOpen,p1); e = block1 s >] ->
 		match s {
 		| [< (BraceClose,p2) >] -> expr_next (e,punion p1 p2) s
-		| [< >] -> error (Unclosed "{") p1
+		| [< (Eof,_) >] -> error (Unclosed "{") p1		
 		}
 	| [< (ParentOpen,p1); e = expr s >] ->
 		match s {
 		| [< (ParentClose,p2) >] -> expr_next (EParenthesis e,punion p1 p2) s
-		| [< >] -> error (Unclosed "(") p1
+		| [< (Eof,_) >] -> error (Unclosed "(") p1
 		}
 	| [< (Keyword Var,p1); v , p2 = variables p1 s >] ->
 		expr_next (EVars v,punion p1 p2) s
@@ -112,7 +112,7 @@ function rec expr(s) {
 	| [< (Keyword Function,p1); (ParentOpen,po); p = parameter_names s >] ->
 		match s {
 		| [< (ParentClose,_); e = expr s >] -> expr_next (EFunction p e,punion p1 (pos e)) s
-		| [< >] -> error (Unclosed "(") po
+		| [< (Eof,_) >] -> error (Unclosed "(") po
 		}
 	| [< (Keyword Return,p1) >] ->
 		match s {
@@ -131,6 +131,8 @@ function rec expr(s) {
 	| [< (NXml x,p) >] ->
 		var e = try Neko.Xml.parse x p catch { e -> error (Invalid_nxml e) p };
 		expr_next e s
+	| [< (Binop "-",p1); e2 = expr s >] ->
+		make_binop "-" (EConst (Int 0),p1) e2
 	}
 }
 
@@ -141,12 +143,12 @@ function rec expr_next(e,s) {
 	| [< (ParentOpen,po); pl = parameters s >] ->
 		match s {
 		| [< (ParentClose,p) >] -> expr_next (ECall e pl,punion (pos e) p) s
-		| [< >] -> error (Unclosed "(") po
+		| [< (Eof,_) >] -> error (Unclosed "(") po
 		}
 	| [< (BracketOpen,po); e2 = expr s >] ->
 		match s {
 		| [< (BracketClose,p) >] -> expr_next (EArray e e2,punion (pos e) p) s
-		| [< >] -> error (Unclosed "[") po
+		| [< (Eof,_) >] -> error (Unclosed "[") po
 		}
 	| [< (Binop op,_); e2 = expr s >] ->
 		make_binop op e e2
