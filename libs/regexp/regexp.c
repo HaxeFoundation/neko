@@ -48,17 +48,51 @@ static void free_regexp( value p ) {
 }
 
 /**
-	regexp_new : string -> 'regexp
-	<doc>Build a new regexp</doc>
+	regexp_new_options : reg:string -> options:string -> 'regexp
+	<doc>Build a new regexpr with the following options :
+	<ul>
+		<li>i : case insensitive matching</li>
+		<li>s : . match anything including newlines</li>
+		<li>m : treat the input as a multiline string</li>
+		<li>u : run in utf8 mode</li>
+		<li>g : turn off greedy behavior</li>
+	</ul>
+	</doc>
 **/
-static value regexp_new( value s ) {
+static value regexp_new_options( value s, value opt ) {
 	val_check(s,string);
+	val_check(opt,string);
 	{
 		value v;
 		const char *error;
 		int err_offset;
-		pcre *p = pcre_compile(val_string(s),0,&error,&err_offset,NULL);
+		pcre *p;
 		pcredata *pdata;
+		char *o = val_string(opt);
+		int options = 0;
+		while( *o ) {
+			switch( *o++ ) {
+			case 'i':
+				options |= PCRE_CASELESS;
+				break;
+			case 's':
+				options |= PCRE_DOTALL;
+				break;
+			case 'm':
+				options |= PCRE_MULTILINE;
+				break;
+			case 'u':
+				options |= PCRE_UTF8;
+				break;
+			case 'g':
+				options |= PCRE_UNGREEDY;
+				break;
+			default:
+				neko_error();
+				break;
+			}
+		}
+		p = pcre_compile(val_string(s),options,&error,&err_offset,NULL);
 		if( p == NULL ) {
 			buffer b = alloc_buffer("Regexp compilation error : ");
 			buffer_append(b,error);
@@ -75,6 +109,14 @@ static value regexp_new( value s ) {
 		val_gc(v,free_regexp);
 		return v;
 	}	
+}
+
+/**
+	regexp_new : string -> 'regexp
+	<doc>Build a new regexp</doc>
+**/
+static value regexp_new( value s ) {
+	return regexp_new_options(s,alloc_string(""));
 }
 
 /**
@@ -150,6 +192,31 @@ static value regexp_replace_all( value o, value s, value s2 ) {
 }
 
 /**
+	regexp_replace_fun : 'regexp -> from:string -> f:('regexp -> any) -> string
+	<doc>Perform a replacement of all matched substrings by calling [f] for every match</doc>
+**/
+static value regexp_replace_fun( value o, value s, value f ) {
+	val_check_kind(o,k_regexp);
+	val_check(s,string);
+	val_check_function(f,1);
+	{
+		pcredata *d = PCRE(o);
+		buffer b = alloc_buffer(NULL);
+		int pos = 0;
+		int len = val_strlen(s);
+		const char *str = val_string(s);
+		while( pcre_exec(d->r,NULL,str,len,pos,0,d->matchs,NMATCHS) >= 0 ) {
+			buffer_append_sub(b,str+pos,d->matchs[0] - pos);
+			val_buffer(b,val_call1(f,o));
+			pos = d->matchs[1];
+		}
+		d->str = val_null;
+		buffer_append_sub(b,str+pos,len-pos);
+		return buffer_to_string(b);
+	}
+}
+
+/**
 	regexp_matched : 'regexp -> n:int -> string
 	<doc>Return the [n]th matched block by the regexp. If [n] is 0 then return 
 	the whole matched substring</doc>
@@ -202,9 +269,11 @@ static void init() {
 }
 
 DEFINE_PRIM(regexp_new,1);
+DEFINE_PRIM(regexp_new_options,2);
 DEFINE_PRIM(regexp_match,4);
 DEFINE_PRIM(regexp_replace,3);
 DEFINE_PRIM(regexp_replace_all,3);
+DEFINE_PRIM(regexp_replace_fun,3);
 DEFINE_PRIM(regexp_matched,2);
 DEFINE_PRIM(regexp_matched_pos,2);
 DEFINE_ENTRY_POINT(init);
