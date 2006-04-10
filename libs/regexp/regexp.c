@@ -205,6 +205,7 @@ static value regexp_replace_fun( value o, value s, value f ) {
 		int pos = 0;
 		int len = val_strlen(s);
 		const char *str = val_string(s);
+		d->str = s;
 		while( pcre_exec(d->r,NULL,str,len,pos,0,d->matchs,NMATCHS) >= 0 ) {
 			buffer_append_sub(b,str+pos,d->matchs[0] - pos);
 			val_buffer(b,val_call1(f,o));
@@ -228,7 +229,7 @@ static value regexp_matched( value o, value n ) {
 	d = PCRE(o);
 	val_check(n,int);
 	m = val_int(n);
-	if( m < 0 || m > d->nmatchs || d->str == NULL )
+	if( m < 0 || m > d->nmatchs || val_is_null(d->str) )
 		neko_error();
 	{
 		int start = d->matchs[m*2];
