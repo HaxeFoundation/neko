@@ -237,11 +237,7 @@ static value sys_stat( value path ) {
 	STATF(gid);
 	STATF(uid);
 	STATF32(atime);
-#ifdef _WIN32
-	alloc_field(o,val_id("mtime"),alloc_int32(s.st_ctime));
-#else
-	STATF(mtime);
-#endif
+	STATF32(mtime);
 	STATF32(ctime);
 	STATF(dev);
 	STATF(ino);
