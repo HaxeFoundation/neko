@@ -17,6 +17,7 @@
 	std : fixed bug in utf8_resize, utf8_get and utf8_iter.
 	regexp : added regexp_new_options for matching options and regexp_replace_fun
 	added some benchmarks in std/bench
+	neko : fixed $ablit and $sblit (when used with same array/string).
 	(planned) continuations
 	(planned) efficient JIT
 	
