@@ -137,7 +137,7 @@ static value builtin_ablit( value dst, value dp, value src, value sp, value l ) 
 	ll = val_int(l);
 	if( dpp < 0 || spp < 0 || ll < 0 || dpp + ll < 0 || spp + ll  < 0 || dpp + ll > val_array_size(dst) || spp + ll > val_array_size(src) )
 		neko_error();
-	memcpy(val_array_ptr(dst)+dpp,val_array_ptr(src)+spp,ll * sizeof(value));
+	memmove(val_array_ptr(dst)+dpp,val_array_ptr(src)+spp,ll * sizeof(value));
 	return val_true;
 }
 
@@ -253,7 +253,7 @@ static value builtin_sblit( value dst, value dp, value src, value sp, value l ) 
 	ll = val_int(l);
 	if( dpp < 0 || spp < 0 || ll < 0 || dpp + ll < 0 || spp + ll  < 0 || dpp + ll > val_strlen(dst) || spp + ll > val_strlen(src) )
 		neko_error();
-	memcpy(val_string(dst)+dpp,val_string(src)+spp,ll);
+	memmove(val_string(dst)+dpp,val_string(src)+spp,ll);
 	return val_true;
 }
 
