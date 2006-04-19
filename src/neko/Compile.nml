@@ -749,8 +749,9 @@ function rec compile(ctx,tail,(e,p)) {
 			compile ctx false (EVars [("$this",Some ethis);("$tmp",Some e)],p2);
 			compile ctx false (EBinop "=" ethis etmp,p2);
 			var app = ECall (EConst (Builtin "apply"),p) [(EField etmp name,p2);a;b;c;d];
-			compile ctx false (ECall (app,p) (x1 :: x2 :: l) ,p);
+			compile ctx false (EBinop "=" etmp (ECall (app,p) (x1 :: x2 :: l),p),p);
 			compile ctx false (EBinop "=" ethis (EConst (Ident "$this"),p2),p2);
+			compile ctx false etmp
 		| _ ->
 			var app = ECall (EConst (Builtin "apply"),p) [e;a;b;c;d];
 			compile ctx tail (ECall (app,p) (x1 :: x2 :: l) ,p)
