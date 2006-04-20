@@ -139,7 +139,7 @@ static value regexp_match( value o, value s, value p, value len ) {
 	if( pcre_exec(d->r,NULL,val_string(s)+pp,ll,0,0,d->matchs,NMATCHS) >= 0 ) {
 		if( pp > 0 ) {
 			int i;
-			for(i=0;i<NMATCHS;i+=2)
+			for(i=0;i<NMATCHS;i++)
 				d->matchs[i] += pp;
 		}
 		d->str = s;
