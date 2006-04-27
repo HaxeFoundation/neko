@@ -352,11 +352,11 @@ static value get_params() {
 	// PARSE "POST" PARAMS
 	if( c->post_data != NULL ) {
 		const char *ctype = ap_table_get(c->r->headers_in,"Content-Type");
-		if( ctype == NULL )
+		if( ctype && strstr(ctype,"application/octet-stream") != NULL )
 			return p;
-		if( strstr(ctype,"multipart/form-data") != NULL )
+		if( ctype && strstr(ctype,"multipart/form-data") != NULL )
 			parse_multipart(c,ctype,val_string(c->post_data),val_strlen(c->post_data),&p);
-		else if( strstr(ctype,"application/x-www-form-urlencoded") != NULL || strstr(ctype,"application/xml") != NULL )
+		else
 			parse_get(&p,val_string(c->post_data));
 	}
 
