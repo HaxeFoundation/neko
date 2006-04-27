@@ -163,7 +163,7 @@ function parse_http_request(in) {
 	var headers = Lexer.token l (*http_headers);
 	var params = parse_get_params snd(url);
 	var post_data, params = if meth == MethodPost then {
-		var len = int (List.assoc "Content-Length" headers);
+		var len = try { int (List.assoc "Content-Length" headers) } catch { Not_found -> 0 };
 		var b = Buffer.create();
 		var i = &0;
 		while *i < len {
