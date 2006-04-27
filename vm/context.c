@@ -16,8 +16,11 @@
 /* ************************************************************************ */
 #include "context.h"
 
-#ifdef __WIN32
+#ifdef _WIN32
 #include <windows.h>
+// disable warnings for type conversions
+#pragma warning(disable : 4311)
+#pragma warning(disable : 4312)
 
 _context *context_new() {
 	DWORD t = TlsAlloc();
