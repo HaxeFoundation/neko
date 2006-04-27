@@ -18,10 +18,11 @@
 	regexp : added regexp_new_options for matching options and regexp_replace_fun
 	regexp : fixed invalid matched length when not index 0
 	added some benchmarks in std/bench
-	neko : fixed $ablit and $sblit (when used with same array/string).
+	neko : fixed $ablit and $sblit (when used with same array/string)
+	neko : fixed multithread win32 support
 	(planned) continuations
 	(planned) efficient JIT
-	
+	(todo) think about abstract kinds declaration and interop
 	
 2006-01-09 : 1.2
 	nekoc:
