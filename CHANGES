@@ -20,6 +20,7 @@
 	added some benchmarks in std/bench
 	neko : fixed $ablit and $sblit (when used with same array/string)
 	neko : fixed multithread win32 support
+	mod_neko : added application/xml MIME parsing for post data
 	(planned) continuations
 	(planned) efficient JIT
 	(todo) think about abstract kinds declaration and interop
