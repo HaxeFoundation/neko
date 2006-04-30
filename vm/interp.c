@@ -560,15 +560,14 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 			if( k >= 0 && k < val_array_size(*sp) )
 				val_array_ptr(*sp)[k] = (value)acc;
 		} else if( val_is_object(*sp) ) {
-			value f = val_field((value)*sp,id_set);
 			value args[] = { (value)sp[1], (value)acc };
-			ACC_BACKUP;
+			value f = val_field((value)*sp,id_set);
 			if( f == val_null )
 				RuntimeError("Unsupported operation",false);
 			BeginCall();
 			val_callEx((value)*sp,f,args,2,NULL);
 			EndCall();
-			ACC_RESTORE;
+			acc = args[1];
 		} else
 			RuntimeError("Invalid array access",false);
 		*sp++ = ERASE;
@@ -579,15 +578,14 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 			if( *pc >= 0 && *pc < val_array_size(*sp) )
 				val_array_ptr(*sp)[*pc] = (value)acc;
 		} else if( val_is_object(*sp) ) {
-			value f = val_field((value)*sp,id_set);
 			value args[] = { (value)alloc_int(*pc), (value)acc };
-			ACC_BACKUP;
+			value f = val_field((value)*sp,id_set);
 			if( f == val_null )
 				RuntimeError("Unsupported operation",true);
 			BeginCall();
 			val_callEx((value)*sp,f,args,2,NULL);
 			EndCall();
-			ACC_RESTORE;
+			acc = args[1];
 		} else
 			RuntimeError("Invalid array access",true);
 		pc++;
