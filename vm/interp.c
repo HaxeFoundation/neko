@@ -567,7 +567,7 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 			BeginCall();
 			val_callEx((value)*sp,f,args,2,NULL);
 			EndCall();
-			acc = args[1];
+			acc = (int_val)args[1];
 		} else
 			RuntimeError("Invalid array access",false);
 		*sp++ = ERASE;
@@ -585,7 +585,7 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 			BeginCall();
 			val_callEx((value)*sp,f,args,2,NULL);
 			EndCall();
-			acc = args[1];
+			acc = (int_val)args[1];
 		} else
 			RuntimeError("Invalid array access",true);
 		pc++;
