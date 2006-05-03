@@ -76,17 +76,17 @@ static value put_env( value e, value v ) {
 }
 
 /**
-	sys_sleep : float -> void
+	sys_sleep : number -> void
 	<doc>Sleep a given number of seconds</doc> 
 **/
 static value sys_sleep( value f ) {
-	val_check(f,float);
+	val_check(f,number);
 #ifdef _WIN32
-	Sleep((DWORD)(val_float(f) * 1000));
+	Sleep((DWORD)(val_number(f) * 1000));
 #else
-	if( (int)val_float(f) > 0 )
-		sleep((int)val_float(f));
-	usleep( (int)((val_float(f) - (int)val_float(f)) * 1000000) );
+	if( (int)val_number(f) > 0 )
+		sleep((int)val_number(f));
+	usleep( (int)((val_number(f) - (int)val_number(f)) * 1000000) );
 #endif
 	return val_true;
 }
