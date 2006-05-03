@@ -32,6 +32,7 @@
 #	include <unistd.h>
 #	include <netdb.h>
 #	include <fcntl.h>
+#	include <errno.h>
 #	include <stdio.h>
 	typedef int SOCKET;
 #	define closesocket close
