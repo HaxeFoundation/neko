@@ -17,7 +17,7 @@
 	std : fixed bug in utf8_resize, utf8_get and utf8_iter.
 	regexp : added regexp_new_options for matching options and regexp_replace_fun
 	regexp : fixed invalid matched length when not index 0
-	added some benchmarks in std/bench
+	added some benchmarks in src/benchs
 	neko : fixed $ablit and $sblit (when used with same array/string)
 	neko : fixed multithread win32 support
 	mod_neko : changed Content-Type handling for POST data
