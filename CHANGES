@@ -21,6 +21,7 @@
 	neko : fixed $ablit and $sblit (when used with same array/string)
 	neko : fixed multithread win32 support
 	mod_neko : changed Content-Type handling for POST data
+	std : added blocking sockets support
 	(planned) continuations
 	(planned) efficient JIT
 	(todo) think about abstract kinds declaration and interop
