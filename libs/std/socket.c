@@ -31,6 +31,7 @@
 #	include <arpa/inet.h>
 #	include <unistd.h>
 #	include <netdb.h>
+#	include <fcntl.h>
 #	include <stdio.h>
 	typedef int SOCKET;
 #	define closesocket close
@@ -51,6 +52,18 @@ DEFINE_KIND(k_addr);
 	</p>
 	</doc>
 **/
+
+static value block_error() {
+#ifdef _WIN32
+	int err = WSAGetLastError();	
+	if( err == WSAEWOULDBLOCK || err == WSAEALREADY )
+#else
+	if( errno == EAGAIN || errno == EWOULDBLOCK || errno == EINPROGRESS || errno == EALREADY )
+#endif
+		val_throw(alloc_string("Blocking"));
+	neko_error();
+	return val_true;
+}
 
 /**
 	socket_init : void -> void
@@ -111,7 +124,7 @@ static value socket_send_char( value o, value v ) {
 		neko_error();
 	cc = (unsigned char)c;
 	if( send(val_sock(o),&cc,1,0) == SOCKET_ERROR )
-		neko_error();
+		return block_error();
 	return val_true;
 }
 
@@ -133,7 +146,7 @@ static value socket_send( value o, value data, value pos, value len ) {
 		neko_error();
 	dlen = send(val_sock(o), val_string(data) + p , l, 0);
 	if( dlen == SOCKET_ERROR )
-		neko_error();
+		return block_error();
 	return alloc_int(dlen);
 }
 
@@ -155,7 +168,7 @@ static value socket_recv( value o, value data, value pos, value len ) {
 		neko_error();
 	dlen = recv(val_sock(o), val_string(data) + p , l, 0);
 	if( dlen == SOCKET_ERROR )
-		neko_error();
+		return block_error();
 	return alloc_int(dlen);
 }
 
@@ -167,7 +180,7 @@ static value socket_recv_char( value o ) {
 	unsigned char cc;
 	val_check_kind(o,k_socket);
 	if( recv(val_sock(o),&cc,1,0) <= 0 )
-		neko_error();
+		return block_error();
 	return alloc_int(cc);
 }
 
@@ -186,7 +199,7 @@ static value socket_write( value o, value data ) {
 	while( datalen > 0 ) {
 		slen = send(val_sock(o),cdata,datalen,0);
 		if( slen == SOCKET_ERROR )
-			neko_error();
+			return block_error();
 		cdata += slen;
 		datalen -= slen;
 	}
@@ -209,7 +222,7 @@ static value socket_read( value o ) {
 	while( true ) {
 		len = recv(val_sock(o),buf,256,0);
 		if( len == SOCKET_ERROR )
-			neko_error();
+			return block_error();
 		if( len == 0 )
 			break;
 		buffer_append_sub(b,buf,len);
@@ -285,7 +298,7 @@ static value socket_connect( value o, value host, value port ) {
 	addr.sin_port = htons(val_int(port));
 	*(int*)&addr.sin_addr.s_addr = val_int32(host);
 	if( connect(val_sock(o),(struct sockaddr*)&addr,sizeof(addr)) != 0 )
-		neko_error();
+		return block_error();
 	return val_true;
 }
 
@@ -405,7 +418,7 @@ static value socket_accept( value o ) {
 	val_check_kind(o,k_socket);
 	s = accept(val_sock(o),(struct sockaddr*)&addr,&addrlen);
 	if( s == INVALID_SOCKET )
-		neko_error();
+		return block_error();
 	return alloc_abstract(k_socket,(value)(int_val)s);
 }
 
@@ -472,6 +485,35 @@ static value socket_shutdown( value o, value r, value w ) {
 	return val_true;
 }
 
+/**
+	socket_set_blocking : 'socket -> bool -> void
+	<doc>Turn on/off the socket blocking mode.</doc>
+**/
+static value socket_set_blocking( value o, value b ) {	
+	val_check_kind(o,k_socket);
+	val_check(b,bool);
+#if _WIN32
+	{
+		unsigned long arg = val_bool(b)?0:1;
+		if( ioctlsocket(val_sock(o),FIONBIO,&arg) != 0 )
+			neko_error();
+	}
+#else
+	{
+		int rights = fcntl(val_sock(o),F_GETFL);
+		if( rights == -1 )
+			neko_error();
+		if( val_bool(b) )
+			rights &= ~O_NONBLOCK;
+		else
+			rights |= O_NONBLOCK;
+		if( fcntl(val_sock(o),F_SETFL,rights) == -1 )
+			neko_error();
+	}
+#endif
+	return val_true;
+}
+
 DEFINE_PRIM(socket_init,0);
 DEFINE_PRIM(socket_new,1);
 DEFINE_PRIM(socket_send,4);
@@ -490,6 +532,7 @@ DEFINE_PRIM(socket_peer,1);
 DEFINE_PRIM(socket_host,1);
 DEFINE_PRIM(socket_set_timeout,2);
 DEFINE_PRIM(socket_shutdown,3);
+DEFINE_PRIM(socket_set_blocking,2);
 
 DEFINE_PRIM(host_local,0);
 DEFINE_PRIM(host_resolve,1);
