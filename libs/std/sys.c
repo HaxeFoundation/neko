@@ -316,9 +316,29 @@ static value sys_remove_dir( value path ) {
 
 /**
 	sys_time : void -> float
-	<doc>Return the most accurate CPU time spent since the process started</doc>
+	<doc>Return an accurate UTC time stamp in seconds</doc>
 **/
 static value sys_time() {
+#if _WIN32
+	SYSTEMTIME t;
+	FILETIME ft;
+	GetSystemTime(&t);
+	if( !SystemTimeToFileTime(&t,&ft) )
+		neko_error();
+	return alloc_float( ((tfloat)ft.dwHighDateTime) * 65.536 * 6.556 + (((tfloat)ft.dwLowDateTime) / 10000000) );
+#else
+	struct timeval tv;
+	if( gettimeofday(&tv,NULL) != 0 )
+		neko_error();
+	return alloc_float( tv.tv_sec + ((tfloat)tv.tv_usec) / 1000.0 );
+#endif
+}
+
+/**
+	sys_cpu_time : void -> float
+	<doc>Return the most accurate CPU time spent since the process started (in seconds)</doc>
+**/
+static value sys_cpu_time() {
 #ifdef _WIN32
 	FILETIME unused;
 	FILETIME stime;
@@ -500,6 +520,7 @@ DEFINE_PRIM(sys_exit,1);
 DEFINE_PRIM(sys_string,0);
 DEFINE_PRIM(sys_stat,1);
 DEFINE_PRIM(sys_time,0);
+DEFINE_PRIM(sys_cpu_time,0);
 DEFINE_PRIM(sys_env,0);
 DEFINE_PRIM(sys_create_dir,2);
 DEFINE_PRIM(sys_remove_dir,1);
