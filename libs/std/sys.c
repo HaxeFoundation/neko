@@ -48,7 +48,7 @@
 
 /**
 	get_env : string -> string?
-	<doc>Get some environment variable if exists</doc> 
+	<doc>Get some environment variable if exists</doc>
 **/
 static value get_env( value v ) {
 	char *s;
@@ -61,7 +61,7 @@ static value get_env( value v ) {
 
 /**
 	put_env : var:string -> val:string -> void
-	<doc>Set some environment variable value</doc> 
+	<doc>Set some environment variable value</doc>
 **/
 static value put_env( value e, value v ) {
 	buffer b;
@@ -78,7 +78,7 @@ static value put_env( value e, value v ) {
 
 /**
 	sys_sleep : number -> void
-	<doc>Sleep a given number of seconds</doc> 
+	<doc>Sleep a given number of seconds</doc>
 **/
 static value sys_sleep( value f ) {
 	val_check(f,number);
@@ -94,7 +94,7 @@ static value sys_sleep( value f ) {
 
 /**
 	set_time_locale : string -> bool
-	<doc>Set the locale for LC_TIME, returns true on success</doc> 
+	<doc>Set the locale for LC_TIME, returns true on success</doc>
 **/
 static value set_time_locale( value l ) {
 	val_check(l,string);
@@ -317,21 +317,25 @@ static value sys_remove_dir( value path ) {
 
 /**
 	sys_time : void -> float
-	<doc>Return an accurate UTC time stamp in seconds</doc>
+	<doc>Return an accurate local time stamp in seconds since Jan 1 1970</doc>
 **/
 static value sys_time() {
 #if _WIN32
+#define EPOCH_DIFF	(134774*24*60*60.0)
 	SYSTEMTIME t;
 	FILETIME ft;
+    ULARGE_INTEGER ui;
 	GetSystemTime(&t);
 	if( !SystemTimeToFileTime(&t,&ft) )
 		neko_error();
-	return alloc_float( ((tfloat)ft.dwHighDateTime) * 65.536 * 6.556 + (((tfloat)ft.dwLowDateTime) / 10000000) );
+    ui.LowPart = ft.dwLowDateTime;
+    ui.HighPart = ft.dwHighDateTime;
+	return alloc_float( ((tfloat)ui.QuadPart) / 10000000.0 - EPOCH_DIFF );
 #else
 	struct timeval tv;
 	if( gettimeofday(&tv,NULL) != 0 )
 		neko_error();
-	return alloc_float( tv.tv_sec + ((tfloat)tv.tv_usec) / 1000.0 );
+	return alloc_float( tv.tv_sec + ((tfloat)tv.tv_usec) / 1000000.0 );
 #endif
 }
 
@@ -346,7 +350,7 @@ static value sys_cpu_time() {
 	FILETIME utime;
 	if( !GetProcessTimes(GetCurrentProcess(),&unused,&unused,&stime,&utime) )
 		neko_error();
-	return alloc_float( ((tfloat)(utime.dwHighDateTime+stime.dwHighDateTime)) * 65.536 * 6.556 + (((tfloat)utime.dwLowDateTime + (tfloat)stime.dwLowDateTime) / 10000000) );
+	return alloc_float( ((tfloat)(utime.dwHighDateTime+stime.dwHighDateTime)) * 65.536 * 6.5536 + (((tfloat)utime.dwLowDateTime + (tfloat)stime.dwLowDateTime) / 10000000) );
 #else
 	struct tms t;
 	times(&t);
@@ -393,7 +397,7 @@ static value sys_read_dir( value path ) {
 		if( !FindNextFile(handle,&d) )
 			break;
 	}
-	CloseHandle(handle);	
+	CloseHandle(handle);
 #else
 	DIR *d;
 	struct dirent *e;
@@ -433,8 +437,8 @@ static value file_full_path( value path ) {
 		neko_error();
 	return alloc_string(buf);
 #else
-	char buf[PATH_MAX];	
-	val_check(path,string);	
+	char buf[PATH_MAX];
+	val_check(path,string);
 	if( realpath(val_string(path),buf) == NULL )
 		neko_error();
 	return alloc_string(buf);
