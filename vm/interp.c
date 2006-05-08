@@ -525,10 +525,9 @@ static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *
 			else
 				acc = (int_val)val_array_ptr(acc)[*pc];
 			pc++;
-		} else if( val_is_object(acc) ) {
-			pc++;
-			ObjectOp(acc,alloc_int(*pc),id_get)
-		} else
+		} else if( val_is_object(acc) )
+			ObjectOp(acc,alloc_int(*pc++),id_get)
+		else
 			RuntimeError("Invalid array access",true);
 		Next;
 	Instr(AccBuiltin)
