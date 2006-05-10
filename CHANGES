@@ -23,6 +23,7 @@
 	mod_neko : changed Content-Type handling for POST data
 	std : added blocking sockets support
 	std : changed sys_time to sys_cpu_time, added sys_time (local time).
+	std : fixed put_env on Linux (GC issue)
 	(planned) continuations
 	(planned) efficient JIT
 	(todo) think about abstract kinds declaration and interop
