@@ -64,6 +64,7 @@ static value get_env( value v ) {
 	<doc>Set some environment variable value</doc>
 **/
 static value put_env( value e, value v ) {
+#ifdef _WIN32
 	buffer b;
 	val_check(e,string);
 	val_check(v,string);
@@ -73,6 +74,12 @@ static value put_env( value e, value v ) {
 	val_buffer(b,v);
 	if( putenv(val_string(buffer_to_string(b))) != 0 )
 		neko_error();
+#else
+	val_check(e,string);
+	val_check(v,string);
+	if( setenv(val_string(e),val_string(v),1) != 0 )
+		neko_error();
+#endif
 	return val_true;
 }
 
