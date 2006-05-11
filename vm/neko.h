@@ -22,6 +22,8 @@
 #	include <stdint.h>
 #endif
 
+#define NEKO_VERSION	103
+
 typedef intptr_t int_val;
 
 typedef enum {

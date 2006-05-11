@@ -91,10 +91,10 @@ static value read_bytecode( value str, value pos, value len ) {
 
 */
 
-static int execute_self( neko_vm *vm, value mload ) {	
+static int execute_self( neko_vm *vm, value mload ) {
 	value args[] = { alloc_string("std@module_read"), alloc_int(2) };
 	value args2[] = { alloc_string("std@module_exec"), alloc_int(1) };
-	value args3[] = { alloc_function(read_bytecode,3,"boot_read_bytecode"), mload };	
+	value args3[] = { alloc_function(read_bytecode,3,"boot_read_bytecode"), mload };
 	value exc = NULL;
 	value module_read, module_exec, module_val;
 	neko_vm_select(vm);
@@ -122,7 +122,7 @@ static int execute_self( neko_vm *vm, value mload ) {
 	return 0;
 }
 
-static int execute_file( neko_vm *vm, char *file, value mload ) {	
+static int execute_file( neko_vm *vm, char *file, value mload ) {
 	value args[] = { alloc_string(file), mload };
 	value exc = NULL;
 	neko_vm_select(vm);
@@ -146,10 +146,10 @@ static int execute( neko_vm *vm, char **argv, int argc ) {
 	value mload;
 	int ret;
 	if( neko_is_big_endian() )
-		data_pos = (data_pos >> 24) | ((data_pos >> 8) & 0xFF00) | ((data_pos << 8) & 0xFF0000) | (data_pos << 24);	
+		data_pos = (data_pos >> 24) | ((data_pos >> 8) & 0xFF00) | ((data_pos << 8) & 0xFF0000) | (data_pos << 24);
 	if( data_pos == 0 ) {
 		if( argc == 1 ) {
-			printf("Usage : neko <file>\n");
+			printf("NekoVM %d.%d (c)2005-2006 Motion-Twin\n  Usage : neko <file>\n",NEKO_VERSION/100,NEKO_VERSION%100);
 			return 1;
 		} else
 			return execute_file(vm,argv[1],neko_default_loader(argv+2,argc-2));
