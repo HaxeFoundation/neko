@@ -5,6 +5,17 @@
 	</p>
 	
 <doc_blk>
+  <doc_type>'regexp</doc_type> <doc_name>regexp_new_options</doc_name><doc_type>(reg : string, options : string)</doc_type> <doc_doc>Build a new regexpr with the following options :
+	<ul>
+		<li>i : case insensitive matching</li>
+		<li>s : . match anything including newlines</li>
+		<li>m : treat the input as a multiline string</li>
+		<li>u : run in utf8 mode</li>
+		<li>g : turn off greedy behavior</li>
+	</ul>
+	</doc_doc>
+</doc_blk>
+<doc_blk>
   <doc_type>'regexp</doc_type> <doc_name>regexp_new</doc_name><doc_type>(string)</doc_type> <doc_doc>Build a new regexp</doc_doc>
 </doc_blk>
 <doc_blk>
@@ -16,6 +27,9 @@
 </doc_blk>
 <doc_blk>
   <doc_type>string</doc_type> <doc_name>regexp_replace_all</doc_name><doc_type>('regexp, from : string, by : string)</doc_type> <doc_doc>Perform a replacement of all matched substrings using a regexp</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>string</doc_type> <doc_name>regexp_replace_fun</doc_name><doc_type>('regexp, from : string, f : (('regexp -> any)))</doc_type> <doc_doc>Perform a replacement of all matched substrings by calling <doc_code>f</doc_code> for every match</doc_doc>
 </doc_blk>
 <doc_blk>
   <doc_type>string</doc_type> <doc_name>regexp_matched</doc_name><doc_type>('regexp, n : int)</doc_type> <doc_doc>Return the <doc_code>n</doc_code>th matched block by the regexp. If <doc_code>n</doc_code> is 0 then return 

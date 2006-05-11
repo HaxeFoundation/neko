@@ -2,12 +2,19 @@
 	<h1>Serialize</h1>
 	<p>
 	Serialization can be used in order to store permanantly some runtime value.
-	Serialization of all values is possible, except Abstracts (with the special
-	cases of <doc_code>'int32</doc_code> and <doc_code>'hash</doc_code> which are handled) and Native functions.
+	Serialization of all values is possible, except Abstracts, with the special
+	cases of <doc_code>'int32</doc_code> and <doc_code>'hash</doc_code> which are handled as specific cases.
 	</p>
 	<p>
 	Serialization of bytecode function is possible, but will result in a runtime
 	exception when deserializing if the function offset in the bytecode has changed.
+	</p>
+	<p>
+	You can define the __serialize method of an object. When this method is found when
+	serializing the object, it is called with no arguments and its return value will be
+	serialized. The name of the module the method is declared in will also be serialized.
+	When unserializing, the module is loaded and its __unserialize exported function is
+	called with the value that was returned by __serialize.
 	</p>
 	
 <doc_blk>
