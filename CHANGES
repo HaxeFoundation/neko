@@ -1,4 +1,9 @@
-2006-??-?? : 1.3
+2006-??-?? : 1.4
+	(planned) continuations
+	(planned) efficient JIT
+	(todo) think about abstract kinds declaration and interop
+
+2006-05-11 : 1.3
 	neko : fixed endianness bug needed to boot, exported neko_is_big_endian
 	neko : fixed bug on Linux x86 gcc with object operators (eax get overwritten)
 	neko : fixed bug : error when __string or __compare does not exist
@@ -24,9 +29,8 @@
 	std : added blocking sockets support
 	std : changed sys_time to sys_cpu_time, added sys_time (local time).
 	std : fixed put_env on Linux (GC issue)
-	(planned) continuations
-	(planned) efficient JIT
-	(todo) think about abstract kinds declaration and interop
+	cleanup of some stuff needed by experimental JIT
+	std : added memory module
 	
 2006-01-09 : 1.2
 	nekoc:
