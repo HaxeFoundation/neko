@@ -18,6 +18,15 @@
 #include <neko_mod.h>
 #include <objtable.h>
 
+/**
+	<doc>
+	<h1>Memory</h1>
+	<p>
+	An API for memory manipulation and statistics.
+	</p>
+	</doc>
+**/
+
 typedef struct _vtree {
 	int_val v;
 	struct _vtree *left;
