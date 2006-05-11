@@ -411,7 +411,7 @@ static value base_decode( value s, value base ) {
 }
 
 /**
-	print_redirect : ?function:1 -> void
+	print_redirect : function:1? -> void
 	<doc>
 	Set a redirection function for all printed values. 
 	Setting it to null will cancel the redirection and restore previous printer.
