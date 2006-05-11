@@ -171,6 +171,10 @@ static int mem_module( neko_module *m, vtree **l ) {
 	return t;
 }
 
+/**
+	mem_size : any -> int
+	<doc>Calculate the quite precise amount of VM memory reachable from this value</doc>
+**/
 static value mem_size( value v ) {
 	vtree *t = NULL;
 	return alloc_int(mem_size_rec(v,&t));
