@@ -21,7 +21,7 @@
 #include "objtable.h"
 #include "vm.h"
 
-#ifdef __MINGW32__ 
+#ifdef __MINGW32__
 #	undef setjmp
 #	define setjmp _setjmp
 #endif
@@ -201,7 +201,7 @@ static value builtin_ssub( value s, value p, value l ) {
 
 /**
 	$sget : string -> n:int -> int?
-	<doc>Return the [n]th char of a string or [null] if out of bounds</doc> 
+	<doc>Return the [n]th char of a string or [null] if out of bounds</doc>
 **/
 static value builtin_sget( value s, value p ) {
 	int pp;
@@ -275,7 +275,7 @@ static value builtin_sfind( value src, value pos, value pat ) {
 	l2 = val_strlen(pat);
 	if( p < 0 || p >= l )
 		neko_error();
-	ptr = val_string(src) + p;	
+	ptr = val_string(src) + p;
 	while( l - p >= l2 ) {
 		if( memcmp(ptr,val_string(pat),l2) == 0 )
 			return alloc_int(p);
@@ -422,7 +422,7 @@ static value builtin_objgetproto( value o ) {
 /**
 	$nargs : function -> int
 	<doc>
-	Return the number of arguments of a function. 
+	Return the number of arguments of a function.
 	If the function have a variable number of arguments, it returns -1
 	</doc>
 **/
@@ -583,7 +583,7 @@ static value builtin_isnan( value f ) {
 	if( !val_is_float(f) )
 		return val_false;
 	q.d = val_float(f);
-	h = q.i.h; 
+	h = q.i.h;
 	l = q.i.l;
 	l = l | (h & 0xFFFFF);
 	h = h & 0x7FF00000;
@@ -600,7 +600,7 @@ static value builtin_isinfinite( value f ) {
 	if( !val_is_float(f) )
 		return val_false;
 	q.d = val_float(f);
-	h = q.i.h; 
+	h = q.i.h;
 	l = q.i.l;
 	l = l | (h & 0xFFFFF);
 	h = h & 0x7FF00000;
@@ -685,7 +685,7 @@ static void add_rec( hcell **cc, int size, hcell *c ) {
 	if( c == NULL )
 		return;
 	add_rec(cc,size,c->next);
-	k = c->hkey % size;	
+	k = c->hkey % size;
 	c->next = cc[k];
 	cc[k] = c;
 }
@@ -859,7 +859,7 @@ static value builtin_hset( value vh, value key, value val, value cmp ) {
 			}
 			c = c->next;
 		}
-	}	
+	}
 	if( h->nitems >= (h->ncells << 1) )
 		builtin_hresize(vh,alloc_int(h->ncells << 1));
 	c = (hcell*)alloc(sizeof(hcell));
@@ -1085,73 +1085,23 @@ static value builtin_callstack() {
 }
 
 /**
-	$jit_functions : void -> 'int32 array
-	<doc>Return some internal functions addresses needed for JIT</doc>
+    $version : void -> int
+	<doc>Return the version of Neko : 103 means 1.3</doc>
 **/
-extern value NEKO_TYPEOF[];
-extern value alloc_module_function( void *m, int_val pos, int nargs );
-extern int neko_stack_expand( int_val *sp, int_val *csp, neko_vm *vm );
-extern value append_int( neko_vm *vm, value str, int x, bool way );
-extern value append_strings( value s1, value s2 );
-extern void neko_setup_trap( neko_vm *vm, int_val where );
-extern void neko_process_trap( neko_vm *vm );
-
-static value process_trap_jit( neko_vm *vm, jmp_buf backup ) {
-	value exc = vm->vthis;
-	memcpy(vm->start,backup,sizeof(jmp_buf));
-	neko_process_trap(vm);
-	return exc;
-}
-
-static value builtin_jit_functions() {
-	value a = alloc_array(28);
-	value *p = val_array_ptr(a);
-	*p++ = alloc_int32(neko_interp);
-	*p++ = alloc_int32(callback_return);
-	*p++ = alloc_int32(alloc_array);
-	*p++ = alloc_int32(NEKO_TYPEOF);
-	*p++ = alloc_int32(val_id);
-	*p++ = alloc_int32(alloc_object);
-#ifdef COMPACT_TABLE
-	*p++ = alloc_int32(otable_replace);
-	*p++ = alloc_int32(1);
-#else
-	*p++ = alloc_int32(_otable_replace);
-	*p++ = alloc_int32(0);
-#endif
-	*p++ = alloc_int32(otable_find);
-	*p++ = alloc_int32(val_throw);
-	*p++ = alloc_int32(alloc_module_function);
-	*p++ = alloc_int32(val_compare);
-	*p++ = alloc_int32(neko_stack_expand);
-	*p++ = alloc_int32(alloc_float);
-	*p++ = alloc_int32(fmod);
-	*p++ = alloc_int32(append_int);
-	*p++ = alloc_int32(append_strings);
-	*p++ = alloc_int32(alloc_buffer);
-	*p++ = alloc_int32(val_buffer);
-	*p++ = alloc_int32(buffer_to_string);
-	*p++ = alloc_int32(alloc_apply);
-	*p++ = alloc_int32(val_ocall1);
-	*p++ = alloc_int32(val_print);
-	*p++ = alloc_int32(sizeof(jmp_buf));
-	*p++ = alloc_int32(memcpy);
-	*p++ = alloc_int32(setjmp);
-	*p++ = alloc_int32(neko_setup_trap);
-	*p++ = alloc_int32(process_trap_jit);
-	return a;
+static value builtin_version() {
+	return alloc_int(NEKO_VERSION);
 }
 
 #define BUILTIN(name,nargs)	\
-	alloc_field(neko_builtins[0],val_id(#name),alloc_function(builtin_##name,nargs,"$" #name));	
+	alloc_field(neko_builtins[0],val_id(#name),alloc_function(builtin_##name,nargs,"$" #name));
 
 void neko_init_builtins() {
 	neko_builtins = alloc_root(2);
 	neko_builtins[0] = alloc_object(NULL);
 	neko_builtins[1] = alloc_function(builtin_print,VAR_ARGS,"$print");
 
-	BUILTIN(print,VAR_ARGS);	
-	
+	BUILTIN(print,VAR_ARGS);
+
 	BUILTIN(array,VAR_ARGS);
 	BUILTIN(amake,1);
 	BUILTIN(acopy,1);
@@ -1168,7 +1118,7 @@ void neko_init_builtins() {
 	BUILTIN(sblit,5);
 	BUILTIN(sfind,3);
 
-	BUILTIN(new,1);	
+	BUILTIN(new,1);
 	BUILTIN(objget,2);
 	BUILTIN(objset,3);
 	BUILTIN(objcall,3);
@@ -1208,7 +1158,7 @@ void neko_init_builtins() {
 	BUILTIN(hcount,1);
 	BUILTIN(hsize,1);
 	BUILTIN(hiter,2);
-	
+
 	BUILTIN(iadd,2);
 	BUILTIN(isub,2);
 	BUILTIN(imult,2);
@@ -1216,7 +1166,7 @@ void neko_init_builtins() {
 
 	BUILTIN(excstack,0);
 	BUILTIN(callstack,0);
-	BUILTIN(jit_functions,0);
+	BUILTIN(version,0);
 }
 
 /* ************************************************************************ */
