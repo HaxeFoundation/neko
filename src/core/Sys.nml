@@ -58,6 +58,11 @@ function exit(code : int) : 'a {
 
 var file_exists : string -> bool = neko "$loader.loadprim('std@file_exists',1)"
 
+var version : (int, int) = {
+	var v : int = neko "$version()";
+	(v / 100, v % 100)
+}
+
 function get_env( s : string ) : string option {
 	var s = neko "@get_env(s)";
 	if s == neko "null" then None else Some s;
