@@ -395,6 +395,7 @@ static value socket_select( value rs, value ws, value es, value timeout ) {
 	<doc>Bind the socket for server usage on the given host and port</doc>
 **/
 static value socket_bind( value o, value host, value port ) {
+	int opt = 1;
 	struct sockaddr_in addr;
 	val_check_kind(o,k_socket);
 	val_check(host,int32);
@@ -403,6 +404,7 @@ static value socket_bind( value o, value host, value port ) {
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(val_int(port));
 	*(int*)&addr.sin_addr.s_addr = val_int32(host);
+	setsockopt(val_sock(o),SOL_SOCKET,SO_REUSEADDR,(char*)&opt,sizeof(opt));
 	if( bind(val_sock(o),(struct sockaddr*)&addr,sizeof(addr)) == SOCKET_ERROR )
 		neko_error();
 	return val_true;
