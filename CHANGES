@@ -1,4 +1,5 @@
 2006-??-?? : 1.4
+	std : added a SO_REUSEADDR before socket_bind
 	(planned) continuations
 	(planned) efficient JIT
 	(todo) think about abstract kinds declaration and interop
