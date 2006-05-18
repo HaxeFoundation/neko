@@ -404,7 +404,9 @@ static value socket_bind( value o, value host, value port ) {
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(val_int(port));
 	*(int*)&addr.sin_addr.s_addr = val_int32(host);
+	#ifndef _WIN32
 	setsockopt(val_sock(o),SOL_SOCKET,SO_REUSEADDR,(char*)&opt,sizeof(opt));
+	#endif
 	if( bind(val_sock(o),(struct sockaddr*)&addr,sizeof(addr)) == SOCKET_ERROR )
 		neko_error();
 	return val_true;
