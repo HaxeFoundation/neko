@@ -29,6 +29,7 @@
 #else
 #	include <unistd.h>
 #	include <dirent.h>
+#	include <limits.h>
 #	include <sys/time.h>
 #	include <sys/times.h>
 #endif
