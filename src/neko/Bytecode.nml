@@ -212,8 +212,18 @@ function write_debug_infos(ch,inf) {
 		(fid,p);
 	}) inf;
 	var nfiles = Array.length files;
-	if nfiles > 0x7F then invalid_arg();
-	IO.write_byte ch nfiles;
+	// the encoding of nfiles was set to keep
+	// backward compatibility with 1.3 which
+	// only allowed up to 127 filenames
+	var lot_of_files = &false;
+	if nfiles < 0x80 then
+		IO.write_byte ch nfiles
+	else if nfiles < 0x8000 then {
+		lot_of_files := true;
+		IO.write_byte ch ((nfiles >> 8) or 0x80);
+		IO.write_byte ch (nfiles and 0xFF);
+	} else
+		invalid_arg();
 	Array.iter (function(s) { IO.write ch s; IO.write_char ch '\000' }) files;
     IO.write_i32 ch (Array.length inf);
 	var curfile = &0;
@@ -238,7 +248,11 @@ function write_debug_infos(ch,inf) {
 		if f != *curfile then {
 			flush_repeat(p);
 			curfile := f;
-			IO.write_byte ch ((f << 1) or 1);
+			if *lot_of_files then {
+				IO.write_byte ch ((f >> 7) or 1);
+				IO.write_byte ch (f and 0xFF);
+			} else
+				IO.write_byte ch ((f << 1) or 1);
 		}
 		if p != *curpos then flush_repeat(p);
 		if p == *curpos then
@@ -370,7 +384,16 @@ function read_string(ch) {
 
 function read_debug_infos(ch) {
 	var nfiles = IO.read_byte ch;
-	if nfiles == 0 || nfiles > 0x7F then invalid_arg();
+	// see comments in read_debug_infos
+	var lot_of_files = &false;
+	var nfiles = if nfiles < 0x80 then 
+			nfiles
+		else {
+			lot_of_files := true;
+			var b = IO.read_byte ch;
+			((nfiles and 0x7F) << 8) or b
+		};
+	if nfiles == 0 then invalid_arg();
 	var files = Array.init nfiles (function(_) { read_string ch });
     var npos = IO.read_i32 ch;
 	var curfile = &files.[0];
@@ -382,8 +405,13 @@ function read_debug_infos(ch) {
 		else {
 		var b = IO.read_byte ch;
 		if b and 1 != 0 then {
-			if b >> 1 >= Array.length files then invalid_arg();
-			curfile := files.[b >> 1];
+			var file = if *lot_of_files then {
+					var b2 = IO.read_byte ch;
+					((b >> 1) << 8) or b2
+				} else
+					b >> 1;
+			if file >= Array.length files then invalid_arg();
+			curfile := files.[file];
 			loop(i)
 		} else if b and 2 != 0 then {
 			var delta = b >> 6;
