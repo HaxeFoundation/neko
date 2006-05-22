@@ -1,5 +1,6 @@
 2006-??-?? : 1.4
 	std : added a SO_REUSEADDR before socket_bind
+	nekoc/nekovm : allowed more than 127 filenames in debug infos
 	(planned) continuations
 	(planned) efficient JIT
 	(todo) think about abstract kinds declaration and interop
