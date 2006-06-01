@@ -43,6 +43,7 @@ var mime = [
 var cur_path = &Sys.get_cwd();
 var file_log = &None;
 var module_cache = Hashtbl.create();
+var mod_rewrite = &false;
 
 function page_404(url) {
 "<HTML><HEAD>
@@ -214,13 +215,19 @@ function init_client(s) {
 	}
 }
 
-function rec find_url_file(url) {
-	if String.get url (String.length url - 1) == '/' then {
+function rec find_url_file(url,recursive) {
+	printf "%s\n" url;
+	var len = String.length url;
+	if String.get url (len - 1) == '/' then {
 		function rec loop(l) {
 			match l {
-			| [] -> None
+			| [] -> 
+				if *mod_rewrite then
+					find_url_file (String.sub url 0 (len - 1)) true
+				else
+					None
 			| f :: l ->
-				match find_url_file(url + f) {
+				match find_url_file(url + f) false {
 				| None -> loop l
 				| x -> x
 				}
@@ -228,10 +235,21 @@ function rec find_url_file(url) {
 		}
 		loop ["index.html"; "index.htm"; "index.n"];
 	} else {
-		var url = if String.get url 0 == '/' then String.sub url 1 (String.length url - 1) else url;
-		var url = *cur_path + url;
-		if Sys.file_exists url then
-			Some url
+		var path = if String.get url 0 == '/' then String.sub url 1 (len - 1) else url;
+		var path = *cur_path + path;
+		if Sys.file_exists path then
+			Some path		
+		else if recursive && *mod_rewrite then
+			// if path like /path/to/file then lookup /path/to/file.n			
+			match find_url_file (url + ".n") false {
+			| Some url -> Some url
+			| None ->
+				// lookup in subdirectory
+				match List.rev String.split(url,"/") {
+				| [] | [_] -> None
+				| _ :: dir -> find_url_file (String.concat "/" List.rev(dir) + "/") true
+				}
+			}
 		else
 			None
 	}
@@ -475,7 +493,7 @@ function client_msg(c) {
 	cur_client := Some c;
 	if r.res == "/server:config" then
 		config(c,r)
-	else match find_url_file r.res {
+	else match find_url_file r.res true {
 	| None ->
 		c.return_code := (404,"Not Found");
 		do_print page_404(r.res);
@@ -517,6 +535,7 @@ function init() {
 			Sys.set_cwd old;
 		}), "<dir> : change the server base directory");
 		("-log", Args.String (function(s) { file_log := Some (IO.write_file s true) }), "<file> : set log file");
+		("-rewrite", Args.Void (function() { mod_rewrite := true }), ": activate pseudo mod-rewrite for smart urls");
 	];
 	Args.parse head decl (function(f) { throw Args.Invalid });
 	log "Starting Neko Server on %s:%d" (*host,*port);
