@@ -69,7 +69,7 @@ static value deflate_init( value level ) {
 }
 
 /**
-	deflate_buffer : 'dstream -> src:string -> srcpos:int -> dst:string -> dstpos:int -> { done : bool, read : int, write : int }
+	deflate_buffer : 'dstream -> src:string -> srcpos:int -> dst:string -> dstpos:int -> { done => bool, read => int, write => int }
 **/
 static value deflate_buffer( value s, value src, value srcpos, value dst, value dstpos ) {
 	z_stream *z;
@@ -140,7 +140,7 @@ static value inflate_init( value wsize ) {
 }
 
 /**
-	inflate_buffer : 'istream -> src:string -> srcpos:int -> dst:string -> dstpos:int -> { done : bool, read : int, write : int }
+	inflate_buffer : 'istream -> src:string -> srcpos:int -> dst:string -> dstpos:int -> { done => bool, read => int, write => int }
 **/
 static value inflate_buffer( value s, value src, value srcpos, value dst, value dstpos ) {
 	z_stream *z;
@@ -209,7 +209,7 @@ static value set_flush_mode( value s, value flush ) {
 }
 
 /**
-	get_adler32 : 'stream -> int32
+	get_adler32 : 'stream -> 'int32
 	<doc>Returns the adler32 value of the stream</doc>
 **/
 static value get_adler32( value s ) {
@@ -220,7 +220,7 @@ static value get_adler32( value s ) {
 
 
 /**
-	update_adler32 : adler:int32 -> string -> pos:int -> len:int -> int32
+	update_adler32 : adler:'int32 -> string -> pos:int -> len:int -> 'int32
 	<doc>Update an adler32 value with a substring</doc>
 **/
 static value update_adler32( value adler, value s, value pos, value len ) {
@@ -234,7 +234,7 @@ static value update_adler32( value adler, value s, value pos, value len ) {
 }
 
 /**
-	update_crc32 : crc:int32 -> string -> pos:int -> len:int -> int32
+	update_crc32 : crc:'int32 -> string -> pos:int -> len:int -> 'int32
 	<doc>Update a CRC32 value with a substring</doc>
 **/
 static value update_crc32( value crc, value s, value pos, value len ) {
