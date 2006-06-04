@@ -2,6 +2,7 @@
 	std : added a SO_REUSEADDR before socket_bind
 	nekoc/nekovm : allowed more than 127 filenames in debug infos
 	nekotools server : added -rewrite for mod_rewrite'style urls
+	added zlib wrapper
 	(planned) continuations
 	(planned) efficient JIT
 	(todo) think about abstract kinds declaration and interop
