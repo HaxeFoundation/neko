@@ -52,6 +52,12 @@ libs = {
 		incname => "PCRE",
 		lparams => "-lpcre",
 	},
+	zlib => {
+		src => $array("zlib"),
+		inc => "zlib.h",
+		incname = "LibZ",
+		lparams => "-lz",
+	},
 }
 
 // PLATFORM
