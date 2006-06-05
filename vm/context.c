@@ -53,7 +53,7 @@ struct _context {
 };
 
 _context *context_new() {
-	_context *c = malloc(sizeof(_context));
+	_context *ctx = malloc(sizeof(_context));
 	pthread_key_create( &ctx->key, NULL );	
 	return c;
 }
