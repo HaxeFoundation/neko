@@ -39,6 +39,10 @@ typedef struct {
 
 #define CONTEXT()	((mcontext*)neko_vm_custom(neko_vm_current()))
 
+#ifdef STANDARD20_MODULE_STUFF
+#	define APACHE_2_X
+#endif
+
 #endif
 
 /* ************************************************************************ */

@@ -19,6 +19,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zlib", "zlib\zlib.vcproj", 
 	ProjectSection(ProjectDependencies) = postProject
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mod_neko2", "mod_neko\mod_neko2.vcproj", "{311DC43B-AABB-4796-883C-F2482165F8C4}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfiguration) = preSolution
 		Debug = Debug
@@ -45,6 +49,10 @@ Global
 		{55ECFCE6-00FB-44F0-B477-E8507423930D}.Debug.Build.0 = Debug|Win32
 		{55ECFCE6-00FB-44F0-B477-E8507423930D}.Release.ActiveCfg = Release|Win32
 		{55ECFCE6-00FB-44F0-B477-E8507423930D}.Release.Build.0 = Release|Win32
+		{311DC43B-AABB-4796-883C-F2482165F8C4}.Debug.ActiveCfg = Debug|Win32
+		{311DC43B-AABB-4796-883C-F2482165F8C4}.Debug.Build.0 = Debug|Win32
+		{311DC43B-AABB-4796-883C-F2482165F8C4}.Release.ActiveCfg = Release|Win32
+		{311DC43B-AABB-4796-883C-F2482165F8C4}.Release.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 	EndGlobalSection

@@ -16,10 +16,19 @@
 /* ************************************************************************ */
 #include "mod_neko.h"
 
+#ifdef APACHE_2_X
+#	define FTIME(r)		r->finfo.mtime
+#	define ap_send_http_header(x)
+typedef apr_time_t aptime;
+#else
+#	define FTIME(r)		r->finfo.st_mtime
+typedef time_t aptime;
+#endif
+
 typedef struct cache {
 	value file;
 	value main;
-	time_t time;
+	aptime time;
 	struct cache *next;
 } cache;
 
@@ -60,7 +69,7 @@ static value cache_find( request_rec *r ) {
 	value fname = alloc_string(r->filename);
 	while( c != NULL ) {
 		if( val_compare(fname,c->file) == 0 ) {
-			if( r->finfo.st_mtime == c->time )
+			if( FTIME(r) == c->time )
 				return c->main;
 			if( prev == NULL )
 				context_set(cache_root,c->next);
@@ -87,7 +96,7 @@ static void cache_module( request_rec *r, value main ) {
 	while( c != NULL ) {
 		if( val_compare(fname,c->file) == 0 ) {
 			c->main = main;
-			c->time = r->finfo.st_mtime;
+			c->time = FTIME(r);
 			return;
 		}
 		c = c->next;
@@ -95,7 +104,7 @@ static void cache_module( request_rec *r, value main ) {
 	c = (cache*)alloc_root(sizeof(struct cache) / sizeof(value));
 	c->file = fname;
 	c->main = main;
-	c->time = r->finfo.st_mtime;
+	c->time = FTIME(r);
 	c->next = (cache*)context_get(cache_root);
 	context_set(cache_root,c);
 }
@@ -162,13 +171,13 @@ static int neko_handler_rec( request_rec *r ) {
 		ap_rprintf(r,"Uncaught exception - ");
 		while( *p ) {
 			if( *p == '<' || *p == '>' ) {
-				ap_rwrite(start,p - start,r);
+				ap_rwrite(start,(int)(p - start),r);
 				ap_rwrite((*p == '<')?"&lt;":"&gt;",4, r);
 				start = p + 1;
 			}
 			p++;
 		}
-		ap_rwrite(start,p - start,r);
+		ap_rwrite(start,(int)(p - start),r);
 		ap_rprintf(r,"<br/><br/>");
 		for(i=0;i<val_array_size(st);i++) {
 			value s = val_array_ptr(st)[i];
@@ -192,14 +201,43 @@ static int neko_handler_rec( request_rec *r ) {
 }
 
 static int neko_handler( request_rec *r ) {
-	int ret = neko_handler_rec(r);
+	int ret;
+	if( strcmp(r->handler,"neko-handler") != 0)
+		return DECLINED;
+	ret = neko_handler_rec(r);
 	neko_gc_major();
 	return ret;
 }
 
+#ifdef APACHE_2_X
+
+static int neko_init( apr_pool_t *p, apr_pool_t *plog, apr_pool_t *ptemp, server_rec *s ) {
+	cache_root = context_new();
+	putenv(strdup("MOD_NEKO=1"));
+	neko_global_init(&s);
+	return OK;
+}
+
+static void neko_register_hooks( apr_pool_t *p ) {
+	ap_hook_post_config( neko_init, NULL, NULL, APR_HOOK_MIDDLE );
+	ap_hook_handler( neko_handler, NULL, NULL, APR_HOOK_LAST );
+};
+
+module AP_MODULE_DECLARE_DATA neko_module = {
+	STANDARD20_MODULE_STUFF,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL, /*neko_module_cmds, */
+	neko_register_hooks
+};
+
+#else /* APACHE 1.3 */
+
 static void neko_init(server_rec *s, pool *p) {
 	cache_root = context_new();
-	putenv("MOD_NEKO=1");
+	putenv(strdup("MOD_NEKO=1"));
 	neko_global_init(&s);
 }
 
@@ -229,5 +267,7 @@ module MODULE_VAR_EXPORT neko_module = {
     NULL,
     NULL
 };
+
+#endif
 
 /* ************************************************************************ */

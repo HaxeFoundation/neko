@@ -17,6 +17,13 @@
 #include <neko.h>
 #include "mod_neko.h"
 
+#ifdef APACHE_2_X
+#	define ap_table_get		apr_table_get
+#	define ap_table_set		apr_table_set
+#	define ap_table_add		apr_table_add
+#	define REDIRECT			HTTP_TEMPORARY_REDIRECT
+#endif
+
 #define PARSE_HEADER(start,cursor) \
 	cursor = start; \
 	if( *cursor == '"' ) { \
@@ -193,7 +200,7 @@ static value get_post_data() {
 
 static char *memfind( char *mem, int mlen, const char *v ) {
 	char *found;
-	int len = strlen(v);
+	int len = (int)strlen(v);
 	if( len == 0 )
 		return mem;
 	while( (found = memchr(mem,*v,mlen)) != NULL ) {
