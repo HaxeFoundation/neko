@@ -13,7 +13,7 @@ static field id_read, id_write, id_done;
 
 DEFINE_ENTRY_POINT(zlib_main);
 
-static void zlib_main() {
+void zlib_main() {
 	id_read = val_id("read");
 	id_write = val_id("write");
 	id_done = val_id("done");
@@ -87,8 +87,8 @@ static value deflate_buffer( value s, value src, value srcpos, value dst, value 
 	dlen = val_strlen(dst) - val_int(dstpos);
 	if( slen < 0 || dlen < 0 )
 		neko_error();
-	z->next_in = val_string(src) + val_int(srcpos);
-	z->next_out = val_string(dst) + val_int(dstpos);
+	z->next_in = (Bytef*)(val_string(src) + val_int(srcpos));
+	z->next_out = (Bytef*)(val_string(dst) + val_int(dstpos));
 	z->avail_in = slen;
 	z->avail_out = dlen;
 	if( (err = deflate(z,val_flush(z))) < 0 )
@@ -158,8 +158,8 @@ static value inflate_buffer( value s, value src, value srcpos, value dst, value 
 	dlen = val_strlen(dst) - val_int(dstpos);
 	if( slen < 0 || dlen < 0 )
 		neko_error();
-	z->next_in = val_string(src) + val_int(srcpos);
-	z->next_out = val_string(dst) + val_int(dstpos);
+	z->next_in = (Bytef*)(val_string(src) + val_int(srcpos));
+	z->next_out = (Bytef*)(val_string(dst) + val_int(dstpos));
 	z->avail_in = slen;
 	z->avail_out = dlen;
 	if( (err = inflate(z,val_flush(z))) < 0 )
@@ -230,7 +230,7 @@ static value update_adler32( value adler, value s, value pos, value len ) {
 	val_check(len,int);
 	if( val_int(pos) < 0 || val_int(len) < 0 || val_int(pos) + val_int(len) > val_strlen(s) )
 		neko_error();
-	return alloc_int32(adler32(val_int32(adler),val_string(s)+val_int(pos),val_int(len)));
+	return alloc_int32(adler32(val_int32(adler),(Bytef*)(val_string(s)+val_int(pos)),val_int(len)));
 }
 
 /**
@@ -244,7 +244,7 @@ static value update_crc32( value crc, value s, value pos, value len ) {
 	val_check(len,int);
 	if( val_int(pos) < 0 || val_int(len) < 0 || val_int(pos) + val_int(len) > val_strlen(s) )
 		neko_error();
-	return alloc_int32(crc32(val_int32(crc),val_string(s)+val_int(pos),val_int(len)));
+	return alloc_int32(crc32(val_int32(crc),(Bytef*)(val_string(s)+val_int(pos)),val_int(len)));
 }
 
 /**
