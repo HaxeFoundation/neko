@@ -55,7 +55,7 @@ libs = {
 	zlib => {
 		src => $array("zlib"),
 		inc => "zlib.h",
-		incname = "LibZ",
+		incname => "LibZ",
 		lparams => "-lz",
 	},
 }
