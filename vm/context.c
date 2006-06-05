@@ -46,29 +46,31 @@ void *context_get( _context *ctx ) {
 /* ************************************************************************ */
 #include "objtable.h"
 #include <stdlib.h>
+#include <pthread.h>
 
 struct _context {
-	void *data;
+	pthread_key_t key;
 };
 
 _context *context_new() {
 	_context *c = malloc(sizeof(_context));
-	c->data = NULL;
+	pthread_key_create( &ctx->key, NULL );	
 	return c;
 }
 
 void context_delete( _context *ctx ) {
+	pthread_key_delete( ctx->key );
 	free(ctx);
 }
 
 void context_set( _context *ctx, void *data ) {
-	ctx->data = data;
+	pthread_setspecific( ctx->key, data );
 }
 
 void *context_get( _context *ctx ) {
 	if( ctx == NULL )
 		return NULL;
-	return ctx->data;
+	return pthread_getspecific( ctx->key );
 }
 
 #endif
