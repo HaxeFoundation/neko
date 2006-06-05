@@ -71,9 +71,11 @@ nekovm = switch system { "Windows" => "..\\bin\\neko" default => "../bin/neko" }
 
 includes = $array(
 	"../../vm",
+	"/usr/local/include/apache2",
+	"/usr/include/apache2",
 	"/usr/local/apache/include",
-	"/usr/local/include/mysql",
 	"/usr/apache/include",
+	"/usr/local/include/mysql",
 	"/usr/include/mysql",
 	"/usr/include",
 	"/usr/local/include",
@@ -83,8 +85,6 @@ libraries = $array(
 	"/usr/lib",
 	"/usr/local/lib",
 	"/usr/local/lib/mysql",
-	"/usr/include/httpd",
-	"/usr/include/apache2",
 );
 
 exec = function(cmd) {
