@@ -79,6 +79,10 @@ includes = $array(
 	"/usr/include/mysql",
 	"/usr/include",
 	"/usr/local/include",
+	"/usr/include/apr-0/",
+	"/usr/include/apr-1/",
+	"/usr/local/include/apr-0/",
+	"/usr/local/include/apr-1/",
 );
 
 libraries = $array(
