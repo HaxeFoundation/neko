@@ -37,7 +37,7 @@ libs = {
 	mod_neko => {
 		src => $array("mod_neko","cgi"),
 		inc => "httpd.h",
-		incname => "Apache 1.3"
+		incname => "Apache"
 	},
 	mysql => {
 		src => $array("mysql"),
@@ -84,6 +84,7 @@ libraries = $array(
 	"/usr/local/lib",
 	"/usr/local/lib/mysql",
 	"/usr/include/httpd",
+	"/usr/include/apache2",
 );
 
 exec = function(cmd) {
