@@ -58,6 +58,12 @@ libs = {
 		incname => "LibZ",
 		lparams => "-lz",
 	},
+	sqlite => {
+		src => $array("sqlite"),
+		inc => "sqlite3.h",
+		incname => "Sqlite 3",
+		lparams => "-lsqlite3",
+	},
 }
 
 // PLATFORM
