@@ -25,14 +25,19 @@
 DEFINE_KIND(k_db);
 DEFINE_KIND(k_result);
 
-#define val_db(v)	((sqlite3*)val_data(v))
+#define val_db(v)	((database*)val_data(v))
 #define val_result(v) ((result*)val_data(v))
 
+typedef struct _database {
+	sqlite3 *db;
+	value last;
+} database;
+
 typedef struct _result {
-	value db;
+	database *db;
 	int ncols;
 	int count;
-	field *names;	
+	field *names;
 	int done;
 	int first;
 	sqlite3_stmt *r;
@@ -44,23 +49,36 @@ static void sqlite_error( sqlite3 *db ) {
 	val_throw(buffer_to_string(b));
 }
 
-static void free_db( value v ) {
-	sqlite3_close(val_db(v));
+static void finalize_result( result *r ) {
+	r->first = 0;
+	r->done = 1;
+	if( r->ncols == 0 )
+		r->count = sqlite3_changes(r->db->db);
+	if( sqlite3_finalize(r->r) != SQLITE_OK )
+		val_throw(alloc_string("Could not finalize request"));
+	r->r = NULL;
+	r->db->last = NULL;
+	r->db = NULL;
 }
 
-static void free_result( value v ) {
-	sqlite3_finalize(val_result(v)->r);
+static void free_db( value v ) {
+	database *db = val_db(v);
+	if( db->last != NULL )
+		finalize_result(val_result(db->last));
+	if( sqlite3_close(db->db) != SQLITE_OK )
+		sqlite_error(db->db);
 }
 
 static value connect( value filename ) {
 	int err;
-	sqlite3 *db;
+	database *db = (database*)alloc(sizeof(database));
 	value v;
 	val_check(filename,string);
-	if( (err = sqlite3_open(val_string(filename),&db)) != SQLITE_OK ) {		
+	db->last = NULL;
+	if( (err = sqlite3_open(val_string(filename),&db->db)) != SQLITE_OK ) {
 		buffer b = alloc_buffer("Sqlite error : ");
-		buffer_append(b,sqlite3_errmsg(db));
-		sqlite3_close(db);
+		buffer_append(b,sqlite3_errmsg(db->db));
+		sqlite3_close(db->db);
 		val_throw(buffer_to_string(b));
 	}
 	v = alloc_abstract(k_db,db);
@@ -68,26 +86,40 @@ static value connect( value filename ) {
 	return v;
 }
 
-static value close( value db ) {
-	val_check_kind(db,k_db);
-	if( sqlite3_close(val_db(db)) != SQLITE_OK )
-		sqlite_error(val_db(db));
-	val_gc(db,NULL);
-	val_kind(db) = NULL;
+static value close( value v ) {
+	val_check_kind(v,k_db);
+	free_db(v);
+	val_gc(v,NULL);
+	val_kind(v) = NULL;
 	return val_null;
 }
 
-static value request( value db, value sql ) {
+static value last_insert_id( value db ) {
+	val_check_kind(db,k_db);
+	return alloc_int(sqlite3_last_insert_rowid(val_db(db)->db));
+}
+
+static value request( value v, value sql ) {
+	database *db;
 	result *r;
 	const char *tl;
-	value v;
 	int i,j;
-	val_check_kind(db,k_db);
+	val_check_kind(v,k_db);
 	val_check(sql,string);
+	db = val_db(v);
 	r = (result*)alloc(sizeof(result));
 	r->db = db;
-	if( sqlite3_prepare(val_db(db),val_string(sql),val_strlen(sql),&r->r,&tl) != SQLITE_OK )
-		sqlite_error(val_db(db));
+	if( sqlite3_prepare(db->db,val_string(sql),val_strlen(sql),&r->r,&tl) != SQLITE_OK ) {
+		buffer b = alloc_buffer("Sqlite error in ");
+		val_buffer(b,sql);
+		buffer_append(b," : ");
+		buffer_append(b,sqlite3_errmsg(db->db));
+		val_throw(buffer_to_string(b));
+	}
+	if( *tl ) {
+		sqlite3_finalize(r->r);
+		val_throw(alloc_string("Cannot execute several SQL requests at the same time"));
+	}
 	r->ncols = sqlite3_column_count(r->r);
 	r->names = (field*)alloc(sizeof(field)*r->ncols);
 	r->first = 1;
@@ -114,9 +146,10 @@ static value request( value db, value sql ) {
 		r->names[i] = id;
 	}
 	// changes in an update/delete
-	v = alloc_abstract(k_result,r);
-	val_gc(v,free_result);
-	return v;
+	if( db->last != NULL )
+		finalize_result(val_result(db->last));
+	db->last = alloc_abstract(k_result,r);
+	return db->last;
 }
 
 static value result_get_length( value v ) {
@@ -125,7 +158,7 @@ static value result_get_length( value v ) {
 	r = val_result(v);
 	if( r->ncols != 0 )
 		neko_error(); // ???
-	return alloc_int(val_db(r->count));
+	return alloc_int(r->count);
 }
 
 static value result_get_nfields( value r ) {
@@ -139,7 +172,7 @@ static value result_next( value v ) {
 	val_check_kind(v,k_result);
 	r = val_result(v);
 	if( r->done )
-		return val_null;	
+		return val_null;
 	switch( sqlite3_step(r->r) ) {
 	case SQLITE_ROW:
 		r->first = 0;
@@ -157,7 +190,7 @@ static value result_next( value v ) {
 				f = alloc_float(sqlite3_column_double(r->r,i));
 				break;
 			case SQLITE_TEXT:
-				f = alloc_string(sqlite3_column_text(r->r,i));
+				f = alloc_string((char*)sqlite3_column_text(r->r,i));
 				break;
 			case SQLITE_BLOB:
 				{
@@ -177,15 +210,12 @@ static value result_next( value v ) {
 		}
 		return v;
 	case SQLITE_DONE:
-		r->done = 1;
-		r->first = 0;
-		if( r->ncols == 0 )
-			r->count = sqlite3_changes(val_db(r->db));
+		finalize_result(r);
 		return val_null;
 	case SQLITE_BUSY:
 		val_throw(alloc_string("Database is busy"));
 	case SQLITE_ERROR:
-		sqlite_error(val_db(r->db));
+		sqlite_error(r->db->db);
 	default:
 		neko_error();
 	}
@@ -202,7 +232,7 @@ static value result_get( value v, value n ) {
 		result_next(v);
 	if( r->done )
 		neko_error();
-	return alloc_string(sqlite3_column_text(r->r,val_int(n)));
+	return alloc_string((char*)sqlite3_column_text(r->r,val_int(n)));
 }
 
 static value result_get_int( value v, value n ) {
@@ -234,6 +264,7 @@ static value result_get_float( value v, value n ) {
 DEFINE_PRIM(connect,1);
 DEFINE_PRIM(close,1);
 DEFINE_PRIM(request,2);
+DEFINE_PRIM(last_insert_id,1);
 
 DEFINE_PRIM(result_get_length,1);
 DEFINE_PRIM(result_get_nfields,1);
