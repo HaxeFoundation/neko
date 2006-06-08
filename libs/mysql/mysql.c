@@ -74,8 +74,6 @@ typedef struct {
 	value conv_date;
 } result;
 
-static field current_id;
-
 static void free_result( value o ) {
 	result *r = RESULT(o);
 	mysql_free_result(r->r);
@@ -432,12 +430,6 @@ static value connect( value params  ) {
 
 // ---------------------------------------------------------------
 // Registers
-
-static void init() {
-	current_id = val_id("current");
-}
-
-DEFINE_ENTRY_POINT(init);
 
 DEFINE_PRIM(connect,1);
 DEFINE_PRIM(close,1);
