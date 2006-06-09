@@ -263,6 +263,11 @@ static value result_get_float( value o, value n ) {
 }
 
 static CONV convert_type( enum enum_field_types t, unsigned int length ) {
+	// FIELD_TYPE_TIMESTAMP
+	// FIELD_TYPE_TIME
+	// FIELD_TYPE_YEAR
+	// FIELD_TYPE_NEWDATE
+	// FIELD_TYPE_NEWDATE + 2: // 5.0 MYSQL_TYPE_BIT
 	switch( t ) {
 	case FIELD_TYPE_TINY:
 		if( length == 1 )
@@ -275,13 +280,23 @@ static CONV convert_type( enum enum_field_types t, unsigned int length ) {
 	case FIELD_TYPE_DECIMAL:
 	case FIELD_TYPE_FLOAT:
 	case FIELD_TYPE_DOUBLE:
+	case 246: // 5.0 MYSQL_NEW_DECIMAL
 		return CONV_FLOAT;
 	case FIELD_TYPE_BLOB:
+	case FIELD_TYPE_TINY_BLOB:
+	case FIELD_TYPE_MEDIUM_BLOB:
+	case FIELD_TYPE_LONG_BLOB:
 		return CONV_BINARY;
 	case FIELD_TYPE_DATETIME:
 		return CONV_DATETIME;
 	case FIELD_TYPE_DATE:
 		return CONV_DATE;
+	case FIELD_TYPE_NULL:
+	case FIELD_TYPE_ENUM:
+	case FIELD_TYPE_SET:
+	//case FIELD_TYPE_VAR_STRING:
+	//case FIELD_TYPE_GEOMETRY:
+	// 5.0 MYSQL_TYPE_VARCHAR
 	default:
 		return CONV_STRING;
 	}
