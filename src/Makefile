@@ -41,7 +41,7 @@ pass1:
 	
 spass1:
 	${NEKOVM1} nekoml -v -n neko/Main.nml nekoml/Main.nml
-	${NEKOVM1} neko -v *.neko neko/*.neko nekoml/*.neko
+	${NEKOVM1} nekoc -v *.neko neko/*.neko nekoml/*.neko
 
 tpass1:
 	${NEKOVM1} nekoml neko/Main.nml nekoml/Main.nml
