@@ -22,7 +22,7 @@
 
 #define INIT_STACK_SIZE (1 << 7)
 #define MAX_STACK_SIZE	(1 << 18)
-#define PROF_SIZE		(1 << 16)
+#define PROF_SIZE		(1 << 20)
 #define CALL_MAX_ARGS	5
 
 struct _neko_vm {
