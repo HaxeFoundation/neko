@@ -114,6 +114,7 @@ static int execute_self( neko_vm *vm, value mload ) {
 		report(vm,exc);
 		return 1;
 	}
+	alloc_field(val_field(mload,val_id("cache")),val_id("_self"),module_val);
 	val_callEx(val_null,module_exec,&module_val,1,&exc);
 	if( exc != NULL ) {
 		report(vm,exc);
@@ -127,6 +128,8 @@ static int execute_file( neko_vm *vm, char *file, value mload ) {
 	value exc = NULL;
 	neko_vm_select(vm);
 	val_callEx(mload,val_field(mload,val_id("loadmodule")),args,2,&exc);
+	if( val_field(mload,val_id("dump_prof")) != val_null )
+		val_ocall0(mload,val_id("dump_prof"));
 	if( exc != NULL ) {
 		report(vm,exc);
 		return 1;
