@@ -188,6 +188,12 @@ static value sprintf( value fmt, value params ) {
 						buffer_append_sub(b,tmp+10-size,size);
 					}
 					break;
+				case 'f':
+					{
+						val_check(param,float);
+						val_buffer(b,param);
+					}
+					break;
 				case 's':
 					{
 						int size;
