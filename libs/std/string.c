@@ -86,6 +86,7 @@ static value string_split( value o, value s ) {
 		<li>[%d] [%x] [%X] : int</li>
 		<li>[%c] : int in the 0..255 range</li>
 		<li>[%b] : bool</li>
+		<li>[%f] : float</li>
 	</ul>
 	</doc>
 **/
