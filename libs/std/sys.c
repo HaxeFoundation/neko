@@ -39,7 +39,7 @@
 #endif
 
 #ifndef CLK_TCK
-#	define CLK_TCK	1000000
+#	define CLK_TCK	100
 #endif
 
 /**
