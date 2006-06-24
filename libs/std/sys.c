@@ -39,7 +39,7 @@
 #endif
 
 #ifndef CLK_TCK
-#	define CLK_TCK	CLOCKS_PER_SEC
+#	define CLK_TCK	1000000
 #endif
 
 /**
