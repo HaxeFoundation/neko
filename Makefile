@@ -56,7 +56,7 @@ LIBNEKO_OBJECTS = vm/alloc.o vm/builtins.o vm/callback.o vm/context.o vm/interp.
 all: createbin libneko neko std compiler libs
 
 createbin:
-	-mkdir bin 2>/dev/nul
+	-mkdir bin 2>/dev/null
 
 libneko: bin/${LIBNEKO_NAME}
 
