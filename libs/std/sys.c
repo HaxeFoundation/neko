@@ -38,6 +38,10 @@
 #	include <limits.h>
 #endif
 
+#ifndef CLK_TCK
+#	define CLK_TCK	CLOCKS_PER_SEC
+#endif
+
 /**
 	<doc>
 	<h1>System</h1>
