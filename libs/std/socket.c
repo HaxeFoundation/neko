@@ -467,8 +467,7 @@ static value socket_host( value o ) {
 **/
 static value socket_set_timeout( value o, value t ) {
 #if _WIN32
-	int time;
-	int *tt = &time;
+	int time;	
 	val_check_kind(o,k_socket);
 	if( val_is_null(t) )
 		time = 0;
@@ -477,23 +476,22 @@ static value socket_set_timeout( value o, value t ) {
 		time = (int)(val_number(t) * 1000);		
 	}	
 #else
-	struct timeval time;
-	struct timeval *tt;
+	struct timeval time;	
 	tfloat f;
 	val_check_kind(o,k_socket);
-	if( val_is_null(t) )
-		t = NULL;
-	else {
+	if( val_is_null(t) ) {
+		time.tv_usec = 0;
+		time.tv_sec = 0;
+	} else {
 		val_check(t,number);
 		f = val_number(t);
 		time.tv_usec = ((int)(f*1000000)) % 1000000;
-		time.tv_sec = (int)f;
-		tt = &time;
+		time.tv_sec = (int)f;		
 	}
 #endif
-	if( setsockopt(val_sock(o),SOL_SOCKET,SO_SNDTIMEO,(char*)tt,sizeof(time)) != 0 )
+	if( setsockopt(val_sock(o),SOL_SOCKET,SO_SNDTIMEO,(char*)&time,sizeof(time)) != 0 )
 		neko_error();
-	if( setsockopt(val_sock(o),SOL_SOCKET,SO_RCVTIMEO,(char*)tt,sizeof(time)) != 0 )
+	if( setsockopt(val_sock(o),SOL_SOCKET,SO_RCVTIMEO,(char*)&time,sizeof(time)) != 0 )
 		neko_error();
 	return val_true;
 }
