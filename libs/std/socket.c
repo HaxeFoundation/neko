@@ -357,7 +357,7 @@ static value make_array_result( value a, fd_set *tmp ) {
 
 /**
 	socket_select : read : 'socket array -> write : 'socket array -> others : 'socket array -> timeout:number? -> 'socket array array
-	<doc>Perform the [select] operation</doc>
+	<doc>Perform the [select] operation. Timeout is in seconds or [null] if infinite</doc>
 **/
 static value socket_select( value rs, value ws, value es, value timeout ) {
 	struct timeval tval;
@@ -462,16 +462,39 @@ static value socket_host( value o ) {
 }
 
 /**
-	socket_set_timeout : 'socket -> int -> void
-	<doc>Set the socket send and recv timeout to the given value (0 for blocking)</doc>
+	socket_set_timeout : 'socket -> timout:number? -> void
+	<doc>Set the socket send and recv timeout in seconds to the given value (or null for blocking)</doc>
 **/
 static value socket_set_timeout( value o, value t ) {
+#if _WIN32
 	int time;
+	int *tt = &time;
 	val_check_kind(o,k_socket);
-	val_check(t,int);
-	time = val_int(t);
-	setsockopt(val_sock(o),SOL_SOCKET,SO_SNDTIMEO,(char*)&time,sizeof(int));
-	setsockopt(val_sock(o),SOL_SOCKET,SO_RCVTIMEO,(char*)&time,sizeof(int));
+	if( val_is_null(t) )
+		time = 0;
+	else {
+		val_check(t,number);
+		time = (int)(val_number(t) * 1000);		
+	}	
+#else
+	struct timeval time;
+	struct timeval *tt;
+	tfloat f;
+	val_check_kind(o,k_socket);
+	if( val_is_null(t) )
+		t = NULL;
+	else {
+		val_check(t,number);
+		f = val_number(t);
+		time.tv_usec = ((int)(f*1000000)) % 1000000;
+		time.tv_sec = (int)f;
+		tt = &time;
+	}
+#endif
+	if( setsockopt(val_sock(o),SOL_SOCKET,SO_SNDTIMEO,(char*)tt,sizeof(time)) != 0 )
+		neko_error();
+	if( setsockopt(val_sock(o),SOL_SOCKET,SO_RCVTIMEO,(char*)tt,sizeof(time)) != 0 )
+		neko_error();
 	return val_true;
 }
 
