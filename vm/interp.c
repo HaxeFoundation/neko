@@ -29,12 +29,25 @@
 #	define ACC_REG asm("%eax")
 #	define PC_REG asm("%esi")
 #	define SP_REG asm("%edi")
+#	define CSP_REG
+#	define VM_ARG vm
+#elif defined(__GNUC__) && defined(__ppc__)
+#	define ACC_BACKUP
+#	define ACC_RESTORE
+#	define ACC_REG asm("26")
+#	define PC_REG asm("27")
+#	define SP_REG asm("28")
+#	define CSP_REG asm("29")
+#	define VM_REG asm("30")
+#	define VM_ARG _vm
 #else
 #	define ACC_BACKUP
 #	define ACC_RESTORE
 #	define ACC_REG
 #	define PC_REG
 #	define SP_REG
+#	define CSP_REG
+#	define VM_ARG vm
 #endif
 
 #define ERASE 0
@@ -428,11 +441,14 @@ void neko_process_trap( neko_vm *vm ) {
 		*vm->sp++ = ERASE;
 }
 
-static int_val interp_loop( neko_vm *vm, neko_module *m, int_val _acc, int_val *_pc ) {
+static int_val interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_val *_pc ) {
 	register int_val acc ACC_REG = _acc;
 	register int_val *pc PC_REG = _pc;
+#	ifdef VM_REG
+	register neko_vm *vm VM_REG = VM_ARG;
+#	endif
 	register int_val *sp SP_REG = vm->sp;
-	int_val *csp = vm->csp;
+	register int_val *csp CSP_REG = vm->csp;
 	while( true ) {
 #ifdef NEKO_PROF
 		if( *pc != Last ) pc[PROF_SIZE]++;
