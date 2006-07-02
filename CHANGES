@@ -6,6 +6,7 @@
 	mod_neko for apache 2.0
 	added sqlite wrapper
 	std : fixed socket_set_timeout (changed unit from millisec to seconds)
+	added PPC registers
 	(planned) continuations
 	(planned) efficient JIT
 	(todo) think about abstract kinds declaration and interop
