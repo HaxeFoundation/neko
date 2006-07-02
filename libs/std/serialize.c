@@ -157,7 +157,7 @@ void serialize_rec( sbuffer *b, value o ) {
 		break;
 	case VAL_FLOAT:
 		write_char(b,'f');
-		write_str(b,8,&val_float(o));
+		write_str(b,sizeof(tfloat),&val_float(o));
 		break;
 	case VAL_STRING:
 		if( !write_ref(b,o) ) {
@@ -327,8 +327,8 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 		return alloc_int32(read_int(b));
 	case 'f':
 		{
-			double d;
-			read_str(b,8,&d);
+			tfloat d;
+			read_str(b,sizeof(tfloat),&d);
 			return alloc_float(d);
 		}
 	case 's':
