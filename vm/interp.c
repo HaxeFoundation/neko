@@ -23,7 +23,7 @@
 #include "neko_mod.h"
 #include "objtable.h"
 
-#if defined(__GNUC__) && defined(__i386__)
+#if defined(NEKO_GCC) && defined(NEKO_X86)
 #	define ACC_BACKUP	int_val __acc = acc;
 #	define ACC_RESTORE	acc = __acc;
 #	define ACC_REG asm("%eax")
@@ -891,7 +891,7 @@ static int_val interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_v
 		Next;
 	Instr(Last)
 		goto end;
-#ifdef _MSC_VER
+#ifdef NEKO_VCC
 	default:
          __assume(0);
 #endif

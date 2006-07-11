@@ -17,7 +17,7 @@
 #include <neko.h>
 #include <time.h>
 #include <string.h>
-#ifdef _WIN32
+#ifdef NEKO_WINDOWS
 #	include <windows.h>
 #	include <process.h>
 #else
@@ -75,7 +75,7 @@ static rnd *rnd_init( void *data ) {
 	rnd *r = (rnd*)data;
 	int pid = getpid();
 	unsigned int time;
-#ifdef _WIN32
+#ifdef NEKO_WINDOWS
 	time = GetTickCount();
 #else
 	struct timeval t;

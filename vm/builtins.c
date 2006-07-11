@@ -21,12 +21,12 @@
 #include "objtable.h"
 #include "vm.h"
 
-#ifdef __MINGW32__
+#ifdef NEKO_MINGW
 #	undef setjmp
 #	define setjmp _setjmp
 #endif
 
-#ifdef _WIN32
+#ifdef NEKO_VCC
 	long _ftol( double f );
 	long _ftol2( double f) { return _ftol(f); };
 #endif

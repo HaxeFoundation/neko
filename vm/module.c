@@ -31,7 +31,7 @@ DEFINE_KIND(neko_kind_module);
 #ifndef BIG_ENDIAN
 #	define BIG_ENDIAN 2
 #endif
-#ifdef _WIN32
+#ifdef NEKO_WINDOWS
 #	define BYTE_ORDER LITTLE_ENDIAN
 #endif
 #ifndef BYTE_ORDER
@@ -54,7 +54,7 @@ DEFINE_KIND(neko_kind_module);
 #define ERROR() { return NULL; }
 #define READ(buf,len) if( r(p,buf,len) == -1 ) ERROR()
 
-#ifdef _64BITS
+#ifdef NEKO_64BITS
 
 static void read_long( reader r, readp p, unsigned int *i ) {
 	unsigned char c[4];

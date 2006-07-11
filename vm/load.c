@@ -19,11 +19,11 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#ifndef _WIN32
-#	include <dlfcn.h>
-#endif
 #include "vm.h"
 #include "neko_mod.h"
+#ifndef NEKO_WINDOWS
+#	include <dlfcn.h>
+#endif
 
 extern field id_cache;
 extern field id_path;
@@ -123,7 +123,7 @@ static value dump_prof() {
 #endif
 
 
-#ifdef _WIN32
+#ifdef NEKO_WINDOWS
 #	undef ERROR
 #	include <windows.h>
 #	define dlopen(l,p)		(void*)LoadLibrary(l)
@@ -205,7 +205,7 @@ static void *load_primitive( const char *prim, int nargs, value path, liblist **
 		if( h == NULL ) {
 			buffer b = alloc_buffer("Failed to load library : ");
 			val_buffer(b,pname);
-#ifdef __linux__
+#ifndef NEKO_WINDOWS
 			buffer_append(b," (");
 			buffer_append(b,dlerror());
 			buffer_append(b,")");
@@ -243,7 +243,7 @@ static value init_path( const char *path ) {
 	value l = val_null, tmp;
 	char *p, *p2;
 	char *allocated = NULL;
-#if defined(_WIN32)
+#ifdef NEKO_WINDOWS
 	char exe_path[MAX_PATH];
 	if( path == NULL ) {
 		if( GetModuleFileName(GetModuleHandle("neko.dll"),exe_path,MAX_PATH) == 0 )
@@ -254,8 +254,7 @@ static value init_path( const char *path ) {
 		*p = 0;
 		path = exe_path;
 	}
-#elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || \
-	  defined(__APPLE__) || defined(__MACH__) || defined(macintosh)
+#elif defined(NEKO_BSD) || defined(NEKO_MAC)
 	if( path == NULL ) {
 		allocated = strdup("/opt/neko");
 		path = allocated;

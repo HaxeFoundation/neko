@@ -16,7 +16,7 @@
 /* ************************************************************************ */
 #include <string.h>
 #include <neko.h>
-#ifdef _WIN32
+#ifdef NEKO_WINDOWS
 #	include <winsock2.h>
 #	define SHUT_WR		SD_SEND
 #	define SHUT_RD		SD_RECEIVE
@@ -55,7 +55,7 @@ DEFINE_KIND(k_addr);
 **/
 
 static value block_error() {
-#ifdef _WIN32
+#ifdef NEKO_WINDOWS
 	int err = WSAGetLastError();	
 	if( err == WSAEWOULDBLOCK || err == WSAEALREADY )
 #else
@@ -74,7 +74,7 @@ static value block_error() {
 	</doc>
 **/
 static value socket_init() {
-#ifdef _WIN32
+#ifdef NEKO_WINDOWS
 	if( !init_done ) {
 		WSAStartup(MAKEWORD(2,0),&init_data);
 		init_done = true;
@@ -404,7 +404,7 @@ static value socket_bind( value o, value host, value port ) {
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(val_int(port));
 	*(int*)&addr.sin_addr.s_addr = val_int32(host);
-	#ifndef _WIN32
+	#ifndef NEKO_WINDOWS
 	setsockopt(val_sock(o),SOL_SOCKET,SO_REUSEADDR,(char*)&opt,sizeof(opt));
 	#endif
 	if( bind(val_sock(o),(struct sockaddr*)&addr,sizeof(addr)) == SOCKET_ERROR )
@@ -466,7 +466,7 @@ static value socket_host( value o ) {
 	<doc>Set the socket send and recv timeout in seconds to the given value (or null for blocking)</doc>
 **/
 static value socket_set_timeout( value o, value t ) {
-#if _WIN32
+#ifdef NEKO_WINDOWS
 	int time;	
 	val_check_kind(o,k_socket);
 	if( val_is_null(t) )
@@ -518,7 +518,7 @@ static value socket_shutdown( value o, value r, value w ) {
 static value socket_set_blocking( value o, value b ) {	
 	val_check_kind(o,k_socket);
 	val_check(b,bool);
-#if _WIN32
+#ifdef NEKO_WINDOWS
 	{
 		unsigned long arg = val_bool(b)?0:1;
 		if( ioctlsocket(val_sock(o),FIONBIO,&arg) != 0 )

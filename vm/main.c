@@ -18,12 +18,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include "neko_vm.h"
-#ifdef _WIN32
+#ifdef NEKO_WINDOWS
 #	include <windows.h>
 #else
 #	include <unistd.h>
 #endif
-#ifdef __APPLE__
+#ifdef NEKO_MAC
 #	include <sys/param.h>
 #	include <mach-o/dyld.h>
 #endif
@@ -32,12 +32,12 @@ static char *data = "##BOOT_POS\0\0\0\0##";
 static FILE *self;
 
 static char *executable_path() {
-#ifdef _WIN32
+#ifdef NEKO_WINDOWS
 	static char path[MAX_PATH];
 	if( GetModuleFileName(NULL,path,MAX_PATH) == 0 )
 		return NULL;
 	return path;
-#elif __APPLE__
+#elif NEKO_MAC
 	static char path[MAXPATHLEN+1];
 	unsigned long path_len = MAXPATHLEN;
 	if ( _NSGetExecutablePath(path, &path_len) )
@@ -137,7 +137,7 @@ static int execute_file( neko_vm *vm, char *file, value mload ) {
 	return 0;
 }
 
-#ifdef _MSC_VER
+#ifdef NEKO_VCC
 #	include <crtdbg.h>
 #else
 #	define _CrtSetDbgFlag(x)

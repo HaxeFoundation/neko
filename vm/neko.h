@@ -17,8 +17,50 @@
 #ifndef _NEKO_H
 #define _NEKO_H
 
+// OS FLAGS
+#if defined(_WIN32)
+#	define NEKO_WINDOWS
+#endif
+
+#if defined(__APPLE__) || defined(__MACH__) || defined(macintosh)
+#	define NEKO_MAC
+#endif
+
+#if defined(linux) || defined(__linux__)
+#	define NEKO_LINUX
+#endif
+
+#if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
+#	define NEKO_BSD
+#endif
+
+// COMPILER/PROCESSOR FLAGS
+#if defined(__GNUC__) 
+#	define NEKO_GCC
+#endif
+
+#if defined(_MSC_VER)
+#	define NEKO_VCC
+#endif
+
+#if defined(__MINGW32__)
+#	define NEKO_MINGW
+#endif
+
+#if defined(__i386__)
+#	define NEKO_X86
+#endif
+
+#if defined(__ppc__)
+#	define NEKO_PPC
+#endif
+
+#if defined(_64BITS)
+#	define NEKO_64BITS
+#endif
+
 #include <stddef.h>
-#ifndef _MSC_VER
+#ifndef NEKO_VCC
 #	include <stdint.h>
 #endif
 
@@ -146,7 +188,7 @@ typedef struct {
 #undef EXTERN
 #undef EXPORT
 #undef IMPORT
-#ifdef _WIN32
+#ifdef NEKO_VCC
 #	define INLINE __inline
 #	define EXPORT __declspec( dllexport )
 #	define IMPORT __declspec( dllimport )

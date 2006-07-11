@@ -23,7 +23,7 @@
 #ifdef NEKO_GC
 #	include "gc.h"
 #else
-#	ifdef _WIN32
+#	ifdef NEKO_WINDOWS
 #		define GC_DLL
 #		define GC_THREADS
 #		define GC_WIN32_THREADS

@@ -15,7 +15,7 @@
 /*																			*/
 /* ************************************************************************ */
 #include "gc.h"
-#ifdef _WIN32
+#ifdef NEKO_WINDOWS
 #	include <windows.h>
 #else
 #	include <stdint.h>
@@ -100,7 +100,7 @@ static int prev_gc, cur_gc;
 static int page_bits[PAGE_COUNT];
 static int page_count = 0;
 static char **base_stack;
-#ifdef _WIN32
+#ifdef NEKO_WINDOWS
 static CRITICAL_SECTION plock;
 #endif
 
@@ -119,7 +119,7 @@ void neko_gc_init( void *s ) {
 #ifdef USE_STATS
 	memset(&stats,0,sizeof(struct stats));
 #endif
-#ifdef _WIN32
+#ifdef NEKO_WINDOWS
 	InitializeCriticalSection(&plock);
 #endif
 }
@@ -194,7 +194,7 @@ static void *alloc_page( int npages ) {
 }
 
 static void gc_lock( int flag ) {
-#ifdef _WIN32
+#ifdef NEKO_WINDOWS
 	if( flag )
 		EnterCriticalSection(&plock);
 	else
@@ -225,7 +225,7 @@ void neko_gc_collect() {
 void neko_gc_close() {
 	neko_gc_collect();
 	dump_full_stats();
-#ifdef _WIN32
+#ifdef NEKO_WINDOWS
 	DeleteCriticalSection(&plock);
 #endif
 }

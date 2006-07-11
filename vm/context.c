@@ -15,8 +15,9 @@
 /*																			*/
 /* ************************************************************************ */
 #include "context.h"
+#include "neko.h"
 
-#ifdef _WIN32
+#ifdef NEKO_WINDOWS
 #include <windows.h>
 // disable warnings for type conversions
 #pragma warning(disable : 4311)
@@ -44,7 +45,6 @@ void *context_get( _context *ctx ) {
 
 #else
 /* ************************************************************************ */
-#include "objtable.h"
 #include <stdlib.h>
 #include <pthread.h>
 

@@ -16,7 +16,7 @@
 /* ************************************************************************ */
 #include <neko.h>
 #include <stdio.h>
-#ifdef _WIN32
+#ifdef NEKO_WINDOWS
 #	include <windows.h>
 #endif
 

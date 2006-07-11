@@ -27,7 +27,7 @@
 	</doc>
 **/
 
-#ifdef _WIN32
+#ifdef NEKO_VCC
 	long _ftol( double f );
 	long _ftol2( double f) { return _ftol(f); };
 #endif

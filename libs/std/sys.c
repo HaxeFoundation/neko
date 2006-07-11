@@ -23,7 +23,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#ifdef _WIN32
+#ifdef NEKO_WINDOWS
 #	include <windows.h>
 #	include <direct.h>
 #else
@@ -33,7 +33,8 @@
 #	include <sys/time.h>
 #	include <sys/times.h>
 #endif
-#ifdef __APPLE__
+
+#ifdef NEKO_MAC
 #	include <sys/syslimits.h>
 #	include <limits.h>
 #endif
@@ -69,7 +70,7 @@ static value get_env( value v ) {
 	<doc>Set some environment variable value</doc>
 **/
 static value put_env( value e, value v ) {
-#ifdef _WIN32
+#ifdef NEKO_WINDOWS
 	buffer b;
 	val_check(e,string);
 	val_check(v,string);
@@ -94,7 +95,7 @@ static value put_env( value e, value v ) {
 **/
 static value sys_sleep( value f ) {
 	val_check(f,number);
-#ifdef _WIN32
+#ifdef NEKO_WINDOWS
 	Sleep((DWORD)(val_number(f) * 1000));
 #else
 	if( (int)val_number(f) > 0 )
@@ -155,13 +156,13 @@ static value set_cwd( value d ) {
 	</doc>
 **/
 static value sys_string() {
-#if defined(_WIN32)
+#ifdef NEKO_WINDOWS
 	return alloc_string("Windows");
-#elif defined(linux) || defined(__linux__)
+#elif NEKO_LINUX
 	return alloc_string("Linux");
-#elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
+#elif NEKO_BSD
 	return alloc_string("BSD");
-#elif defined(__APPLE__) || defined(__MACH__) || defined(macintosh)
+#elif NEKO_MAC
 	return alloc_string("Mac");
 #else
 #error Unknow system string
@@ -287,7 +288,7 @@ static value sys_file_type( value path ) {
 		return alloc_string("dir");
 	if( s.st_mode & S_IFCHR )
 		return alloc_string("char");
-#ifndef _WIN32
+#ifndef NEKO_WINDOWS
 	if( s.st_mode & S_IFLNK )
 		return alloc_string("symlink");
 	if( s.st_mode & S_IFBLK )
@@ -307,7 +308,7 @@ static value sys_file_type( value path ) {
 static value sys_create_dir( value path, value mode ) {
 	val_check(path,string);
 	val_check(mode,int);
-#ifdef _WIN32
+#ifdef NEKO_WINDOWS
 	if( mkdir(val_string(path)) != 0 )
 #else
 	if( mkdir(val_string(path),val_int(mode)) != 0 )
@@ -332,7 +333,7 @@ static value sys_remove_dir( value path ) {
 	<doc>Return an accurate local time stamp in seconds since Jan 1 1970</doc>
 **/
 static value sys_time() {
-#if _WIN32
+#ifdef NEKO_WINDOWS
 #define EPOCH_DIFF	(134774*24*60*60.0)
 	SYSTEMTIME t;
 	FILETIME ft;
@@ -356,7 +357,7 @@ static value sys_time() {
 	<doc>Return the most accurate CPU time spent since the process started (in seconds)</doc>
 **/
 static value sys_cpu_time() {
-#ifdef _WIN32
+#ifdef NEKO_WINDOWS
 	FILETIME unused;
 	FILETIME stime;
 	FILETIME utime;
@@ -377,7 +378,7 @@ static value sys_cpu_time() {
 static value sys_read_dir( value path ) {
 	value h = val_null;
 	value cur = NULL, tmp;
-#ifdef _WIN32
+#ifdef NEKO_WINDOWS
 	WIN32_FIND_DATA d;
 	HANDLE handle;
 	buffer b;
@@ -442,7 +443,7 @@ static value sys_read_dir( value path ) {
 	<doc>Return an absolute path from a relative one. The file or directory must exists</doc>
 **/
 static value file_full_path( value path ) {
-#ifdef _WIN32
+#ifdef NEKO_WINDOWS
 	char buf[MAX_PATH+1];
 	val_check(path,string);
 	if( GetFullPathName(val_string(path),MAX_PATH+1,buf,NULL) == 0 )
@@ -462,12 +463,12 @@ static value file_full_path( value path ) {
 	<doc>Return the path of the executable</doc>
 **/
 static value sys_exe_path() {
-#ifdef _WIN32
+#ifdef NEKO_WINDOWS
 	char path[MAX_PATH];
 	if( GetModuleFileName(NULL,path,MAX_PATH) == 0 )
 		neko_error();
 	return alloc_string(path);
-#elif __APPLE__
+#elif NEKO_MAC
 	char path[PATH_MAX+1];
 	unsigned long path_len = PATH_MAX;
 	if( _NSGetExecutablePath(path, &path_len) )
@@ -488,11 +489,11 @@ static value sys_exe_path() {
 #endif
 }
 
-#ifdef __APPLE__
+#ifdef NEKO_MAC
 #	define environ (*_NSGetEnviron())
 #endif
 
-#ifndef _WIN32
+#ifndef NEKO_WINDOWS
 extern char **environ;
 #endif
 
