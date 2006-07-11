@@ -203,7 +203,7 @@ static void *load_primitive( const char *prim, int nargs, value path, liblist **
 		pname = neko_select_file(path,prim,".ndll");
 		h = dlopen(val_string(pname),RTLD_LAZY);
 		if( h == NULL ) {
-			buffer b = alloc_buffer("Library not found : ");
+			buffer b = alloc_buffer("Failed to load library : ");
 			val_buffer(b,pname);
 #ifdef __linux__
 			buffer_append(b," (");
