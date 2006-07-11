@@ -7,6 +7,7 @@
 	added sqlite wrapper
 	std : fixed socket_set_timeout (changed unit from millisec to seconds)
 	added PPC registers
+	neko.h : added NEKO_* OS/CPU flags
 	(planned) continuations
 	(planned) efficient JIT
 	(todo) think about abstract kinds declaration and interop
