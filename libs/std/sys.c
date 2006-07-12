@@ -156,7 +156,7 @@ static value set_cwd( value d ) {
 	</doc>
 **/
 static value sys_string() {
-#ifdef NEKO_WINDOWS
+#if defined(NEKO_WINDOWS)
 	return alloc_string("Windows");
 #elif NEKO_LINUX
 	return alloc_string("Linux");
