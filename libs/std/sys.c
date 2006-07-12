@@ -158,11 +158,11 @@ static value set_cwd( value d ) {
 static value sys_string() {
 #if defined(NEKO_WINDOWS)
 	return alloc_string("Windows");
-#elif NEKO_LINUX
+#elif defined(NEKO_LINUX)
 	return alloc_string("Linux");
-#elif NEKO_BSD
+#elif defined(NEKO_BSD)
 	return alloc_string("BSD");
-#elif NEKO_MAC
+#elif defined(NEKO_MAC)
 	return alloc_string("Mac");
 #else
 #error Unknow system string
