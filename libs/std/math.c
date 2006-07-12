@@ -54,11 +54,13 @@ static value math_atan2( value a, value b ) {
 	<doc>Return power calculus</doc>
 **/
 static value math_pow( value a, value b ) {
-	if( val_is_int(a) && val_is_int(b) )
-		return alloc_int( (int)pow(val_int(a),val_int(b)) );
+	tfloat r;
 	val_check(a,number);
 	val_check(b,number);
-	return alloc_float( pow(val_number(a),val_number(b)) );
+	r = (tfloat)pow(val_number(a),val_number(b));
+	if( fabs(r) < (1 << 30) )
+		return alloc_int((int)r);
+	return alloc_float(r);
 }
 
 /**
