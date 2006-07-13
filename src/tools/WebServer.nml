@@ -164,7 +164,11 @@ function parse_http_request(in) {
 	var headers = Lexer.token l (*http_headers);
 	var params = parse_get_params snd(url);
 	var post_data, params = if meth == MethodPost then {
-		var len = try { int (List.assoc "Content-Length" headers) } catch { Not_found -> 0 };
+		var len = try
+			int (List.assoc "Content-Length" headers)
+		catch {
+			Not_found -> try int (List.assoc "Content-length" headers) catch { Not_found -> 0 }
+		};
 		var b = Buffer.create();
 		var i = &0;
 		while *i < len {
@@ -221,7 +225,7 @@ function rec find_url_file(url,recursive) {
 	if String.get url (len - 1) == '/' then {
 		function rec loop(l) {
 			match l {
-			| [] -> 
+			| [] ->
 				if *mod_rewrite then
 					find_url_file (String.sub url 0 (len - 1)) true
 				else
@@ -238,9 +242,9 @@ function rec find_url_file(url,recursive) {
 		var path = if String.get url 0 == '/' then String.sub url 1 (len - 1) else url;
 		var path = *cur_path + path;
 		if Sys.file_exists path then
-			Some path		
+			Some path
 		else if recursive && *mod_rewrite then
-			// if path like /path/to/file then lookup /path/to/file.n			
+			// if path like /path/to/file then lookup /path/to/file.n
 			match find_url_file (url + ".n") false {
 			| Some url -> Some url
 			| None ->
