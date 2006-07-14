@@ -243,7 +243,7 @@ static value init_path( const char *path ) {
 	value l = val_null, tmp;
 	char *p, *p2;
 	char *allocated = NULL;
-#ifdef NEKO_WINDOWS
+#if defined(NEKO_WINDOWS)
 	char exe_path[MAX_PATH];
 	if( path == NULL ) {
 		if( GetModuleFileName(GetModuleHandle("neko.dll"),exe_path,MAX_PATH) == 0 )

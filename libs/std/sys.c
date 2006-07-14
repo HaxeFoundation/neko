@@ -463,12 +463,12 @@ static value file_full_path( value path ) {
 	<doc>Return the path of the executable</doc>
 **/
 static value sys_exe_path() {
-#ifdef NEKO_WINDOWS
+#if defined(NEKO_WINDOWS)
 	char path[MAX_PATH];
 	if( GetModuleFileName(NULL,path,MAX_PATH) == 0 )
 		neko_error();
 	return alloc_string(path);
-#elif NEKO_MAC
+#elif defined(NEKO_MAC)
 	char path[PATH_MAX+1];
 	unsigned long path_len = PATH_MAX;
 	if( _NSGetExecutablePath(path, &path_len) )

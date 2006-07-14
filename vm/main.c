@@ -32,12 +32,12 @@ static char *data = "##BOOT_POS\0\0\0\0##";
 static FILE *self;
 
 static char *executable_path() {
-#ifdef NEKO_WINDOWS
+#if defined(NEKO_WINDOWS)
 	static char path[MAX_PATH];
 	if( GetModuleFileName(NULL,path,MAX_PATH) == 0 )
 		return NULL;
 	return path;
-#elif NEKO_MAC
+#elif defined(NEKO_MAC)
 	static char path[MAXPATHLEN+1];
 	unsigned long path_len = MAXPATHLEN;
 	if ( _NSGetExecutablePath(path, &path_len) )
