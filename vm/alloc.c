@@ -286,6 +286,8 @@ EXTERN void free_root(value *v) {
 
 extern void neko_init_builtins();
 extern void neko_init_fields();
+extern void neko_init_jit();
+extern void neko_free_jit();
 
 #define INIT_ID(x)	id_##x = val_id("__" #x)
 
@@ -294,6 +296,7 @@ EXTERN void neko_global_init( void *s ) {
 	neko_vm_context = context_new();
 	neko_fields_context = context_new();
 	neko_init_builtins();
+	neko_init_jit();
 	id_loader = val_id("loader");
 	id_exports = val_id("exports");
 	id_cache = val_id("cache");
@@ -320,6 +323,7 @@ EXTERN void neko_global_init( void *s ) {
 
 EXTERN void neko_global_free() {
 	neko_clean_thread();
+	neko_free_jit();
 	free_root(apply_string);
 	free_root(neko_builtins);
 	apply_string = NULL;

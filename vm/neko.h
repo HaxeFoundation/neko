@@ -47,7 +47,7 @@
 #	define NEKO_MINGW
 #endif
 
-#if defined(__i386__)
+#if defined(__i386__) || defined(_WIN32)
 #	define NEKO_X86
 #endif
 

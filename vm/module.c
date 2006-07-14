@@ -86,6 +86,7 @@ extern field id_loader;
 extern field id_exports;
 extern value *neko_builtins;
 extern value alloc_module_function( void *m, int_val pos, int nargs );
+extern void neko_module_jit( neko_module *m );
 
 EXTERN int neko_is_big_endian() {
 #if BYTE_ORDER == LITTLE_ENDIAN
@@ -488,6 +489,7 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 			}
 		}
 	}
+	neko_module_jit(m);
 	return m;
 }
 

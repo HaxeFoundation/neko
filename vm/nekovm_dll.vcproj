@@ -139,6 +139,9 @@
 				RelativePath=".\interp.c">
 			</File>
 			<File
+				RelativePath=".\jit_x86.c">
+			</File>
+			<File
 				RelativePath=".\load.c">
 			</File>
 			<File
