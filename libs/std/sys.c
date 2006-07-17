@@ -434,6 +434,7 @@ static value sys_read_dir( value path ) {
 			h = tmp;
 		cur = tmp;
 	}
+	closedir(d);
 #endif
 	return h;
 }
