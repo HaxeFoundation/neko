@@ -276,8 +276,8 @@ EXTERN void val_gc(value v, finalizer f ) {
 #endif
 }
 
-EXTERN value *alloc_root( unsigned int size ) {
-	return (value*)GC_MALLOC_UNCOLLECTABLE(size*sizeof(value));
+EXTERN value *alloc_root( unsigned int nvals ) {
+	return (value*)GC_MALLOC_UNCOLLECTABLE(nvals*sizeof(value));
 }
 
 EXTERN void free_root(value *v) {
