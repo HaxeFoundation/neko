@@ -35,7 +35,7 @@ typedef union {
 } jit_buffer;
 
 typedef struct _jlist {
-	void *j;	
+	int jpos;	
 	int target;
 	struct _jlist *next;
 } jlist;
@@ -59,7 +59,11 @@ enum Special {
 	VTrap,
 };
 
-enum Callback {
+#define	MODE_CALLBACK	1
+#define MODE_PC_CUR		0
+#define MODE_PC_ARG		2
+
+enum PushInfosMode {
 	CALLBACK,
 	PC_CUR,
 	PC_ARG
@@ -69,6 +73,13 @@ enum CallMode {
 	NORMAL,
 	THIS_CALL,
 	TAIL_CALL,
+};
+
+enum Operation {
+	OP_ADD,
+	OP_SUB,
+	OP_MUL,
+	OP_DIV,
 };
 
 #define Eax 0
@@ -108,8 +119,8 @@ enum CallMode {
 #define JSignGt		0x8F
 
 #define ERROR	failure("JIT error")
-#define CONST(v)		((int)(int_val)v)
-#define PATCH_JUMP(local)		*(int*)local = (int)((int_val)buf.p - ((int_val)local + 4))
+#define CONST(v)		((int)(int_val)(v))
+#define PATCH_JUMP(local)		if( local != NULL ) *(int*)local = (int)((int_val)buf.p - ((int_val)local + 4))
 #define FIELD(n)				((int)((n) * 4))
 #define POS()					((int)((int_val)ctx->buf.p - (int_val)ctx->baseptr))
 #define GET_PC()				CONST(ctx->module->code + ctx->curpc)
@@ -140,26 +151,26 @@ enum CallMode {
 #define XRet()					B(0xC3)
 #define XMov_rr(dst,src)		OP_RM(0x8B,3,dst,src)
 #define XMov_rc(dst,cst)		B(0xB8+dst); W(cst)
-#define XMov_rp(dst,reg,idx)	OP_ADDR(0x8B,idx,dst,reg)
+#define XMov_rp(dst,reg,idx)	OP_ADDR(0x8B,idx,reg,dst)
 #define XMov_ra(dst,addr)		OP_RM(0x8B,0,dst,5); W(addr)
 #define XMov_rx(dst,r,idx,mult) OP_RM(0x8B,0,dst,4); SIB(Mult##mult,idx,r)
-#define XMov_pr(dst,idx,src)	OP_ADDR(0x89,idx,src,dst)
+#define XMov_pr(dst,idx,src)	OP_ADDR(0x89,idx,dst,src)
 #define XMov_pc(dst,idx,c)		OP_ADDR(0xC7,idx,dst,0); W(c)
-#define XMov_ar(addr,reg)		B(0x3E); if( reg == Eax ) B(0xA3); else OP_RM(0x89,0,reg,5); W(addr)
+#define XMov_ar(addr,reg)		B(0x3E); if( reg == Eax ) { B(0xA3); } else { OP_RM(0x89,0,reg,5); }; W(addr)
 #define XMov_xr(r,idx,mult,src) OP_RM(0x89,0,src,4); SIB(Mult##mult,idx,r)
 #define XCall_r(r)				OP_RM(0xFF,3,2,r)
 #define XCall_d(delta)			B(0xE8); W(delta)
 #define XPush_r(r)				B(0x50+r)
 #define XPush_c(cst)			B(0x68); W(cst)
-#define XPush_p(reg,idx)		OP_ADDR(0xFF,idx,6,reg)
+#define XPush_p(reg,idx)		OP_ADDR(0xFF,idx,reg,6)
 #define XAdd_rc(reg,cst)		if IS_SBYTE(cst) { OP_RM(0x83,3,0,reg); B(cst); } else { OP_RM(0x81,3,0,reg); W(cst); }
 #define XAdd_rr(dst,src)		OP_RM(0x03,3,dst,src)
 #define XSub_rc(reg,cst)		if IS_SBYTE(cst) { OP_RM(0x83,3,5,reg); B(cst); } else { OP_RM(0x81,3,5,reg); W(cst); }
 #define XSub_rr(dst,src)		OP_RM(0x2B,3,dst,src)
 #define XCmp_rr(r1,r2)			OP_RM(0x3B,3,r1,r2)
-#define XCmp_rc(reg,cst)		if( reg == Eax ) B(0x3D); else OP_RM(0x81,3,7,reg); W(cst)
+#define XCmp_rc(reg,cst)		if( reg == Eax ) { B(0x3D); } else { OP_RM(0x81,3,7,reg); }; W(cst)
 #define XCmp_rb(reg,byte)		OP_RM(0x83,3,7,reg); B(byte)
-#define XJump(how,local)		if( how == JAlways ) B(0xE9); else { B(0x0F); B(how); }; local = buf.w; W(0)
+#define XJump(how,local)		if( (how) == JAlways ) { B(0xE9); } else { B(0x0F); B(how); }; local = buf.w; W(0)
 #define XJump_r(reg)			OP_RM(0xFF,3,4,reg)
 #define XPop_r(reg)				B(0x58 + reg)
 
@@ -173,11 +184,13 @@ enum CallMode {
 #define XXor_rr(r,src)			B(0x33); MOD_RM(3,r,src)
 
 #define shift_r(r,spec)			B(0xD3); MOD_RM(3,spec,r);
-#define XShl_rr(r,src)			if( src != Ecx ) ERROR; else shift_r(r,4)
+#define shift_c(r,n,spec)		if( (n) == 1 ) { B(0xD1); MOD_RM(3,spec,r); } else { B(0xC1); MOD_RM(3,spec,r); B(n); }
+
+#define XShl_rr(r,src)			if( src != Ecx ) ERROR; shift_r(r,4)
 #define XShl_rc(r,n)			shift_c(r,n,4)
-#define XShr_rr(r,src)			if( src != Ecx ) ERROR; else shift_r(r,5)
+#define XShr_rr(r,src)			if( src != Ecx ) ERROR; shift_r(r,5)
 #define XShr_rc(r,n)			shift_c(r,n,5)
-#define XSar_rr(r,src)			if( src != Ecx ) ERROR; else shift_r(r,7)
+#define XSar_rr(r,src)			if( src != Ecx ) ERROR; shift_r(r,7)
 #define XSar_rc(r,n)			shift_c(r,n,7)
 
 #define XIMul_rr(dst,src)		B(0x0F); B(0xAF); MOD_RM(3,dst,src)
@@ -189,27 +202,27 @@ enum CallMode {
 #define XFSubp()				B(0xDE); B(0xE9)
 #define XFMulp()				B(0xDE); B(0xC9)
 #define XFDivp()				B(0xDE); B(0xF9)
-#define XFStp(r)				B(0xDD); MOD_RM(0,3,r)
+#define XFStp(r)				B(0xDD); MOD_RM(0,3,r); if( r == Esp ) B(0x24)
 #define XFLd(r)					B(0xDD); MOD_RM(0,0,r); if( r == Esp ) B(0x24)
 #define XFILd(r)				B(0xDF); MOD_RM(0,5,r); if( r == Esp ) B(0x24)
 
-#define is_int(r,flag,local)	{ XTest_rc(r,1); XJump(flag?JNeq:JEq,local); }
+#define is_int(r,flag,local)	{ XTest_rc(r,1); XJump((flag)?JNeq:JEq,local); }
 
-#define stack_pop(r,n) \
-	if( n != 0 ) { \
-		if( r == CSP ) { \
-			XAdd_rc(r,n * 4); \
+#define stack_push(r,n) \
+	if( (n) != 0 ) { \
+		if( (r) == CSP ) { \
+			XAdd_rc(r,(n) * 4); \
 		} else { \
-			XSub_rc(r,n * 4); \
+			XSub_rc(r,(n) * 4); \
 		} \
 	}
 
-#define stack_push(r,n) \
-	if( n != 0 ) { \
-		if( r == CSP ) { \
-			XSub_rc(r,n * 4); \
+#define stack_pop(r,n) \
+	if( (n) != 0 ) { \
+		if( (r) == CSP ) { \
+			XSub_rc(r,(n) * 4); \
 		} else { \
-			XAdd_rc(r,n * 4); \
+			XAdd_rc(r,(n) * 4); \
 		} \
 	}	
 
@@ -217,12 +230,14 @@ enum CallMode {
 #define end_call()		{ XMov_rp(SP,VM,FIELD(0)); XMov_rp(CSP,VM,FIELD(1)); }
 #define label(code)		{ XMov_rc(TMP,CONST(code));	XCall_r(TMP); }
 
-#define pop(n) if( n != 0 ) { \
-		int i = (int)n; \
+#define todo(str)		{ int *loop; XMov_rc(TMP,CONST(str)); XJump(JAlways,loop); *loop = -5; }
+
+#define pop(n) if( (n) != 0 ) { \
+		int i = (int)(n); \
 		while( i-- > 0 ) { \
 			XMov_pc(SP,FIELD(i),0); \
 		} \
-		XSub_rc(SP,(int)(n * 4)); \
+		stack_pop(SP,n); \
 	}
 
 #define runtime_error(msg_id,in_label) { \
@@ -233,7 +248,7 @@ enum CallMode {
 	} else { \
 		XPush_c(GET_PC()); \
 	} \
-	label(code_runtime_error); \
+	label(code->runtime_error); \
 	if( in_label ) { \
 		XRet(); \
 	} \
@@ -248,7 +263,7 @@ enum CallMode {
 		XMov_rp(reg,VM,FIELD(2)); \
 		break; \
 	case VModule: \
-		XMov_rc(reg,CONST(ctx->module)); \
+		XMov_rp(reg,VM,FIELD(7)); \
 		break; \
 	case VVm: \
 		XMov_rr(reg,VM); \
@@ -276,7 +291,8 @@ enum CallMode {
 		XMov_pr(reg,idx,TMP); \
 		break; \
 	case VModule: \
-		XMov_pc(reg,idx,CONST(ctx->module)); \
+		XMov_rp(TMP,VM,FIELD(7)); \
+		XMov_pr(reg,idx,TMP); \
 		break; \
 	case VVm: \
 		XMov_pr(reg,idx,VM); \
@@ -307,6 +323,7 @@ enum CallMode {
 		XMov_pr(VM,FIELD(6),reg); \
 		break; \
 	case VModule: \
+		XMov_pr(VM,FIELD(7),reg); \
 		break; \
 	default: \
 		ERROR; \
@@ -329,6 +346,8 @@ enum CallMode {
 		XMov_pr(VM,FIELD(6),TMP); \
 		break; \
 	case VModule: \
+		XMov_rp(TMP,reg,idx); \
+		XMov_pr(VM,FIELD(7),TMP); \
 		break; \
 	default: \
 		ERROR; \
@@ -338,15 +357,17 @@ enum CallMode {
 
 #define jump(how,targ) { \
 	jlist *j = (jlist*)alloc_private(sizeof(jlist)); \
+	void *jcode; \
 	j->target = (int)((int_val*)targ - ctx->module->code); \
 	j->next = ctx->jumps; \
 	ctx->jumps = j; \
-	XJump(how,j->j); \
+	XJump(how,jcode); \
+	j->jpos = (int)((int_val)jcode - (int_val)ctx->baseptr); \
 }
 
-#define setup_before_call(mode) { \
-	push_infos(mode); \
-	if( mode != CALLBACK ) { XPush_r(ACC); } \
+#define setup_before_call(mode,is_callb) { \
+	push_infos(is_callb?CALLBACK:PC_ARG); \
+	if( !is_callb ) { XPush_r(ACC); } \
 	if( mode == THIS_CALL ) { \
 		set_var_p(VThis,SP,FIELD(0)); \
 		pop(1); \
@@ -368,25 +389,26 @@ enum CallMode {
 	pop_infos(); \
 }
 
-static char code_boot[30];
-static char code_stack_expand_0[55];
-static char code_stack_expand_4[61];
-static char code_runtime_error[58];
-
-// calls
 #define NARGS (CALL_MAX_ARGS + 1)
 
-static char code_normal_jit[NARGS][125];
-static char code_this_jit[NARGS][139];
-static char code_tail_jit[NARGS][55];
+typedef struct {
+	char *boot;
+	char *stack_expand_0;
+	char *stack_expand_4;
+	char *runtime_error;
+	char *call_normal_jit[NARGS];
+	char *call_this_jit[NARGS];
+	char *call_tail_jit[NARGS];
+	char *call_normal_prim[NARGS];
+	char *call_this_prim[NARGS];
+	char *call_tail_prim[NARGS];
+	char *call_normal_fun[NARGS];
+	char *call_this_fun[NARGS];
+	char *call_tail_fun[NARGS];
+} jit_code;
 
-static char code_normal_prim[NARGS][30];
-static char code_this_prim[NARGS][30];
-static char code_tail_prim[NARGS][30];
-
-static char code_normal_fun[NARGS][30];
-static char code_this_fun[NARGS][30];
-static char code_tail_fun[NARGS][30];
+char *jit_boot_seq = NULL;
+static jit_code *code;
 
 static value *strings;
 static const char *cstrings[] = {
@@ -400,6 +422,7 @@ static const char *cstrings[] = {
 #define push_infos(arg) DEFINE_PROC(push_infos,arg)
 #define test(arg)		DEFINE_PROC(test,arg)
 #define call(mode,nargs) ctx->buf = buf; jit_call(ctx,mode,(int)nargs); buf = ctx->buf
+#define number_op(arg)	DEFINE_PROC(number_op,arg)
 
 static jit_ctx *jit_init_context( void *ptr, int size ) {
 	jit_ctx *c = (jit_ctx*)alloc_private(sizeof(jit_ctx));
@@ -412,10 +435,16 @@ static jit_ctx *jit_init_context( void *ptr, int size ) {
 	return c;
 }
 
-static void jit_finalize_context( jit_ctx *ctx ) {	
+static void jit_finalize_context( jit_ctx *ctx ) {
+	jlist *l;
 	int nbytes = POS();
 	if( nbytes == 0 || nbytes > ctx->size )
 		*(int*)0xAABBCC = 0;
+	l = ctx->jumps;
+	while( l != NULL ) {
+		*(int*)((char*)ctx->baseptr + l->jpos) = ctx->pos[l->target] - (l->jpos + 4);
+		l = l->next;
+	}
 }
 
 static void jit_push_infos( jit_ctx *ctx, enum Callback callb ) {
@@ -424,7 +453,7 @@ static void jit_push_infos( jit_ctx *ctx, enum Callback callb ) {
 	stack_push(CSP,4);
 	XCmp_rr(SP,CSP);
 	XJump(JGt,jend);
-	label(code_stack_expand_4);
+	label(code->stack_expand_4);
 	PATCH_JUMP(jend);
 	if( callb == CALLBACK ) {
 		XMov_pc(CSP,FIELD(-3),CONST(callback_return));
@@ -436,7 +465,7 @@ static void jit_push_infos( jit_ctx *ctx, enum Callback callb ) {
 			XMov_pc(CSP,FIELD(-3),GET_PC());
 		} else { // PC_ARG : on the stack
 			XMov_rp(TMP2,Esp,FIELD(1));
-			XMov_pr(CSP,FIELD(-3),TMP2);			
+			XMov_pr(CSP,FIELD(-3),TMP2);
 		}
 		get_var_p(CSP,FIELD(-2),VEnv);
 		get_var_p(CSP,FIELD(-1),VThis);
@@ -463,8 +492,9 @@ static void jit_boot( jit_ctx *ctx, void *_ ) {
 	XPush_r(Esi);
 	XPush_r(Edi);
 	XMov_rp(VM,Esp,FIELD(5));
+	set_var_p(VModule,Esp,FIELD(8));
 	XMov_rp(TMP,Esp,FIELD(6));
-	XMov_rp(ACC,Esp,FIELD(7));
+	XMov_rp(ACC,Esp,FIELD(7));	
 	end_call();
 	XCall_r(TMP);
 	begin_call();
@@ -543,7 +573,7 @@ static void jit_call( jit_ctx *ctx, int mode, int nargs ) {
 	void *jerr, *jother, *jend1, *jend2, *jerr2, *jend3;
 
 // if( is_int ) : error
-	is_int(ACC,true,jerr);
+	is_int(ACC,1,jerr);
 
 // if( type == jit )
 	XMov_rp(TMP,ACC,FIELD(0)); // acc->type
@@ -552,9 +582,9 @@ static void jit_call( jit_ctx *ctx, int mode, int nargs ) {
 
 	XPush_c(GET_PC());
 	switch( mode ) {
-	case NORMAL: label(code_normal_jit[nargs]); break;
-	case THIS_CALL: label(code_this_jit[nargs]); break;
-	case TAIL_CALL: label(code_tail_jit[nargs]); break;
+	case NORMAL: label(code->call_normal_jit[nargs]); break;
+	case THIS_CALL: label(code->call_this_jit[nargs]); break;
+	case TAIL_CALL: label(code->call_tail_jit[nargs]); break;
 	}
 
 	if( mode == TAIL_CALL )
@@ -570,9 +600,9 @@ static void jit_call( jit_ctx *ctx, int mode, int nargs ) {
 
 	XPush_c(GET_PC());
 	switch( mode ) {
-	case NORMAL: label(code_normal_prim[nargs]); break;
-	case THIS_CALL: label(code_this_prim[nargs]); break;
-	case TAIL_CALL: label(code_tail_prim[nargs]); break;
+	case NORMAL: label(code->call_normal_prim[nargs]); break;
+	case THIS_CALL: label(code->call_this_prim[nargs]); break;
+	case TAIL_CALL: label(code->call_tail_prim[nargs]); break;
 	}
 
 	XJump(JAlways,jend2);
@@ -584,9 +614,9 @@ static void jit_call( jit_ctx *ctx, int mode, int nargs ) {
 
 	XPush_c(GET_PC());
 	switch( mode ) {
-	case NORMAL: label(code_normal_fun[nargs]); break;
-	case THIS_CALL: label(code_this_fun[nargs]); break;
-	case TAIL_CALL: label(code_tail_fun[nargs]); break;	
+	case NORMAL: label(code->call_normal_fun[nargs]); break;
+	case THIS_CALL: label(code->call_this_fun[nargs]); break;
+	case TAIL_CALL: label(code->call_tail_fun[nargs]); break;	
 	}
 	
 	XJump(JAlways,jend3);
@@ -605,7 +635,7 @@ static void jit_call( jit_ctx *ctx, int mode, int nargs ) {
 	END_BUFFER;
 }
 
-void jit_call_jit( jit_ctx *ctx, int nargs, int mode ) {
+static void jit_call_jit( jit_ctx *ctx, int nargs, int mode ) {
 	INIT_BUFFER;
 	void *jerr;
 
@@ -644,7 +674,7 @@ void jit_call_jit( jit_ctx *ctx, int nargs, int mode ) {
 	END_BUFFER;
 }
 
-void jit_call_prim( jit_ctx *ctx, int nargs, int mode ) {
+static void jit_call_prim( jit_ctx *ctx, int nargs, int mode ) {
 	INIT_BUFFER;
 	void *jvararg, *jerr;
 	int i;
@@ -655,7 +685,7 @@ void jit_call_prim( jit_ctx *ctx, int nargs, int mode ) {
 	XJump(JNeq,jvararg);
 
 	// push args from VMSP to PROCSP
-	setup_before_call(mode);
+	setup_before_call(mode,0);
 	for(i=0;i<nargs;i++) {
 		XPush_p(SP,FIELD(i));		
 	}
@@ -672,10 +702,10 @@ void jit_call_prim( jit_ctx *ctx, int nargs, int mode ) {
 //	else if( args == -1 )
 	PATCH_JUMP(jvararg);
 	XCmp_rb(TMP,-1);
-	XJump(JNeq,jerr);	
+	XJump(JNeq,jerr);
 
 	// push args from VMSP to PROCSP
-	setup_before_call(mode);
+	setup_before_call(mode,0);
 	for(i=0;i<nargs;i++) {
 		XPush_p(SP,FIELD(i));		
 	}
@@ -700,6 +730,35 @@ void jit_call_prim( jit_ctx *ctx, int nargs, int mode ) {
 	END_BUFFER;
 }
 
+static void jit_call_fun( jit_ctx *ctx, int nargs, int mode ) {
+	INIT_BUFFER;
+	void *jerr;
+
+	// check arg count
+	XMov_rp(TMP,ACC,FIELD(1));
+	XCmp_rb(TMP,nargs);
+	XJump(JNeq,jerr);
+
+	// C call : neko_interp(vm,m,acc,pc)
+	setup_before_call(mode,1);
+	stack_push(Esp,4);
+	XMov_rp(TMP,ACC,FIELD(2)); // acc->addr
+	XMov_pr(Esp,FIELD(3),TMP);
+	XMov_pr(Esp,FIELD(2),ACC);
+	get_var_p(Esp,FIELD(1),VModule);
+	get_var_p(Esp,FIELD(0),VVm);
+	XMov_rc(TMP,CONST(neko_interp));
+	begin_call();
+	XCall_r(TMP);	
+	end_call();
+	stack_pop(Esp,4);
+	XRet();
+
+	PATCH_JUMP(jerr);
+	runtime_error(3,1); // Invalid call
+	END_BUFFER;
+}
+
 #define jit_call_jit_normal(ctx,i)		jit_call_jit(ctx,i,NORMAL)
 #define jit_call_jit_tail(ctx,i)		jit_call_jit(ctx,i,TAIL_CALL)
 #define jit_call_jit_this(ctx,i)		jit_call_jit(ctx,i,THIS_CALL)
@@ -711,6 +770,155 @@ void jit_call_prim( jit_ctx *ctx, int nargs, int mode ) {
 #define jit_call_fun_normal(ctx,i)		jit_call_fun(ctx,i,NORMAL)
 #define jit_call_fun_tail(ctx,i)		jit_call_fun(ctx,i,TAIL_CALL)
 #define jit_call_fun_this(ctx,i)		jit_call_fun(ctx,i,THIS_CALL)
+
+static void jit_number_op( jit_ctx *ctx, enum OPERATION op ) {
+	INIT_BUFFER;
+	void *jnot_int1, *jnot_int2, *jfloat1, *jfloat2, *jfloat3, *jint, *jnext;
+	void *jerr1, *jerr2, *jerr3, *jerr4, *jerr5, *jend, *jend2, *jend3;
+
+	// acc <=> sp
+	XMov_rr(TMP,ACC);
+	XMov_rp(ACC,SP,FIELD(0));
+
+	// is_int(acc) && is_int(sp)
+	is_int(ACC,false,jnot_int1);
+	is_int(TMP,false,jnot_int2);
+
+	XSar_rc(ACC,1);
+	XSar_rc(TMP,1);
+
+	if( op != OP_DIV ) {
+		switch( op ) {
+		case OP_ADD:
+			XAdd_rr(ACC,TMP);
+			break;
+		case OP_SUB:
+			XSub_rr(ACC,TMP);
+			break;
+		case OP_MUL:
+			XIMul_rr(ACC,TMP);
+			break;
+		default:
+			ERROR;
+			break;
+		}
+		XShl_rc(ACC,1);
+		XOr_rc(ACC,1);
+	}
+	XJump(JAlways,jend);
+	
+	// is_int(acc) && is_number(sp)
+	PATCH_JUMP(jnot_int2);
+	XMov_rp(TMP2,TMP,FIELD(0));
+	XCmp_rb(TMP2,1);
+	
+	XJump(JNeq,jerr1);
+	XSar_rc(ACC,1);
+	XPush_c(0);
+	XPush_r(ACC);
+	XFILd(Esp);
+	XAdd_rc(TMP,8);
+	XFLd(TMP);
+	stack_pop(Esp,2);
+	XJump(JAlways,jfloat1);
+
+	// is_number(acc) ?
+	PATCH_JUMP(jnot_int1);
+	XMov_rp(TMP2,ACC,FIELD(0));
+	XCmp_rb(TMP2,1);
+	XJump(JNeq,jerr2);
+
+	// is_number(acc) && is_number(sp)
+	is_int(TMP,true,jint);
+	XMov_rp(TMP2,TMP,FIELD(0));
+	XCmp_rc(TMP2,1);
+	XJump(JNeq,jerr3);	
+	XAdd_rc(ACC,8);
+	XFLd(ACC);
+	XAdd_rc(TMP,8);
+	XFLd(TMP);
+	XJump(JAlways,jfloat2);
+
+	// is_number(acc) && is_int(sp)
+	PATCH_JUMP(jint);
+	XAdd_rc(ACC,8);
+	XFLd(ACC);
+	XSar_rc(TMP,1);
+	XPush_c(0);
+	XPush_r(TMP);
+	XFILd(Esp);
+	stack_pop(Esp,2);
+	XJump(JAlways,jfloat3);
+
+	// is_object(acc) ?
+	PATCH_JUMP(jerr2);
+	XCmp_rb(TMP2,VAL_OBJECT);
+	XJump(JNeq,jnext);
+	todo("object op 1");
+	XJump(JAlways,jend2);
+
+	// is_object(sp) ?
+	PATCH_JUMP(jnext);
+	is_int(TMP,true,jerr4);
+	XMov_rp(TMP2,TMP,FIELD(0));
+	PATCH_JUMP(jerr1);
+	PATCH_JUMP(jerr3);
+	XCmp_rb(TMP2,VAL_OBJECT);
+	XJump(JNeq,jerr5);
+	todo("object op 2");
+	XJump(JAlways,jend3);
+
+	// error
+	PATCH_JUMP(jerr5);
+	PATCH_JUMP(jerr4);
+	runtime_error(4 + op,false);
+
+	// division is always float
+	if( op == OP_DIV ) {
+		PATCH_JUMP(jend);
+		XPush_c(0);
+		XPush_r(ACC);
+		XFILd(Esp);
+		stack_pop(Esp,1);
+		XPush_r(TMP);
+		XFILd(Esp);
+		stack_pop(Esp,2);
+	}
+
+	// perform operation
+	PATCH_JUMP(jfloat1);
+	PATCH_JUMP(jfloat2);
+	PATCH_JUMP(jfloat3);
+
+	switch( op ) {
+	case OP_ADD:
+		XFAddp();
+		break;
+	case OP_SUB:
+		XFSubp();
+		break;
+	case OP_DIV:
+		XFDivp();
+		break;
+	case OP_MUL:
+		XFMulp();
+		break;
+	default:
+		ERROR;
+		break;
+	}
+	
+	stack_push(Esp,2);
+	XFStp(Esp);
+	XMov_rc(TMP,CONST(alloc_float));
+	XCall_r(TMP);
+	stack_pop(Esp,2);
+
+	if( op != OP_DIV ) PATCH_JUMP(jend);
+	pop(1);
+	END_BUFFER;
+}
+
 
 static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int_val p ) {
 	INIT_BUFFER;
@@ -740,8 +948,10 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int_val p ) {
 	case AccStack1:
 		XMov_rp(ACC,SP,FIELD(1));
 		break;
-	case AccGlobal:
 	case AccBuiltin:
+		XMov_rc(ACC,CONST(p));
+		break;
+	case AccGlobal:
 		XMov_ra(ACC,CONST(p));
 		break;
 	case AccEnv:
@@ -775,12 +985,12 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int_val p ) {
 		stack_push(SP,1);
 		XCmp_rr(SP,CSP);
 		XJump(JGt,jend);
-		label(code_stack_expand_0);
+		label(code->stack_expand_0);
 		PATCH_JUMP(jend);
 		XMov_pr(SP,FIELD(0),ACC);
 		break;
 	case Pop:
-		pop(p);
+		pop((int)p);
 		break;
 	case Jump:
 		jump(JAlways,p);
@@ -814,6 +1024,41 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int_val p ) {
 	case ObjCall:
 		call(THIS_CALL,p);
 		break;
+	case TailCall:
+		{
+			int stack = (int)(p >> 3);
+			int nargs = (int)(p & 7);
+			int i = nargs;
+			while( i > 0 ) {
+				i--;
+				XMov_rp(TMP,SP,FIELD(i));
+				XMov_pr(SP,FIELD(stack - nargs + i),TMP);
+			}
+			pop(stack - nargs);
+			call(TAIL_CALL,nargs);
+			// in case we return from a Primitive
+			XRet();
+		}
+		break;
+	case Last:
+		XRet();
+		break;
+	case Ret:
+		pop((int)p);
+		XRet();
+		break;
+	case Add:
+		number_op(OP_ADD);
+		break;
+	case Sub:
+		number_op(OP_SUB);
+		break;
+	case Div:
+		number_op(OP_DIV);
+		break;
+	case Mult:
+		number_op(OP_MUL);
+		break;
 	default:
 		ERROR;
 	}
@@ -821,55 +1066,63 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int_val p ) {
 }
 
 
-#define MAX_OP_SIZE		64
+#define MAX_OP_SIZE		272
 
-#define FILL_BUFFER(f,param,ptr) \
+#define FILL_BUFFER(f,param,ptr,size) \
 	{ \
-		jit_ctx *c = jit_init_context(ptr,sizeof(ptr)); \
+		jit_ctx *c; \
+		code->ptr = (char*)alloc_private(size); \
+		c = jit_init_context(code->ptr,size); \
 		f(c,param); \
 		jit_finalize_context(c); \
 	}
 
 void neko_init_jit() {
 	int nstrings = sizeof(cstrings) / sizeof(const char *);
-	int i;
+	int i,delta;
 	strings = alloc_root(nstrings);
 	for(i=0;i<nstrings;i++)
 		strings[i] = alloc_string(cstrings[i]);
-	FILL_BUFFER(jit_boot,NULL,code_boot);
-	FILL_BUFFER(jit_stack_expand,0,code_stack_expand_0);
-	FILL_BUFFER(jit_stack_expand,4,code_stack_expand_4);
-	FILL_BUFFER(jit_runtime_error,0,code_runtime_error);
+	code = (jit_code*)alloc_root(sizeof(jit_code) / sizeof(char*));
+	FILL_BUFFER(jit_boot,NULL,boot,330);
+	FILL_BUFFER(jit_stack_expand,0,stack_expand_0,450);
+	FILL_BUFFER(jit_stack_expand,4,stack_expand_4,510);
+	FILL_BUFFER(jit_runtime_error,0,runtime_error,600);
 	for(i=0;i<NARGS;i++) {
-		FILL_BUFFER(jit_call_jit_normal,i,code_normal_jit[i]);
-		FILL_BUFFER(jit_call_jit_this,i,code_this_jit[i]);
-		FILL_BUFFER(jit_call_jit_tail,i,code_tail_jit[i]);
+		FILL_BUFFER(jit_call_jit_normal,i,call_normal_jit[i],1270);
+		FILL_BUFFER(jit_call_jit_this,i,call_this_jit[i],1410);
+		FILL_BUFFER(jit_call_jit_tail,i,call_tail_jit[i],570);
+		
+		delta = (i?3:0) + 20 * i;
+		FILL_BUFFER(jit_call_prim_normal,i,call_normal_prim[i],3150 + delta);
+		FILL_BUFFER(jit_call_prim_this,i,call_this_prim[i],3430 + delta);
+		FILL_BUFFER(jit_call_prim_tail,i,call_tail_prim[i],3150 + delta);
 
-		FILL_BUFFER(jit_call_prim_normal,i,code_normal_prim[i]);
-		FILL_BUFFER(jit_call_prim_this,i,code_this_prim[i]);
-		FILL_BUFFER(jit_call_prim_tail,i,code_tail_prim[i]);
-/*
-		FILL_BUFFER(jit_call_fun_normal,i,code_normal_fun[i]);
-		FILL_BUFFER(jit_call_fun_this,i,code_this_fun[i]);
-		FILL_BUFFER(jit_call_fun_tail,i,code_tail_fun[i]);
-*/	}
+		FILL_BUFFER(jit_call_fun_normal,i,call_normal_fun[i],1240);
+		FILL_BUFFER(jit_call_fun_this,i,call_this_fun[i],1380);
+		FILL_BUFFER(jit_call_fun_tail,i,call_tail_fun[i],1240);
+	}
+	jit_boot_seq = code->boot;
 }
 
 void neko_free_jit() {
+	free_root((value*)code);
 	free_root(strings);
+	code = NULL;
 	strings = NULL;
+	jit_boot_seq = NULL;
 }
 
 void neko_module_jit( neko_module *m ) {
 	unsigned int i = 0;
 	jit_ctx *ctx = jit_init_context(NULL,0);
-	ctx->pos = (int*)alloc_private(sizeof(int)*m->codesize);
+	ctx->pos = (int*)alloc_private(sizeof(int)*(m->codesize + 1));
 	ctx->module = m;
-	while( i < m->codesize ) {
+	while( i <= m->codesize ) {
 		enum OPCODE op = m->code[i];
 		int curpos = POS();
 		ctx->pos[i] = curpos;
-		ctx->curpc = i;
+		ctx->curpc = i + 2;
 		i++;
 		// resize buffer
 		if( curpos + MAX_OP_SIZE > ctx->size ) {
@@ -882,15 +1135,41 @@ void neko_module_jit( neko_module *m ) {
 		}
 		jit_opcode(ctx,op,m->code[i]);
 #		ifdef _DEBUG
-		if( POS() - curpos > MAX_OP_SIZE )
-			ERROR;
+		{
+			int bytes = POS() - curpos;
+			if( bytes > MAX_OP_SIZE )
+				ERROR;
+		}
 #		endif
 		i += parameter_table[op];
 	}
-	jit_finalize_context(ctx);
+	// FINALIZE
+	{
+		int csize = POS();
+		char *rbuf = alloc_private(csize);
+		memcpy(rbuf,ctx->baseptr,csize);
+		ctx->baseptr = rbuf;
+		ctx->buf.p = rbuf + csize;
+		ctx->size = csize;
+		jit_finalize_context(ctx);
+	}	
+	// UPDATE GLOBALS
+	{
+		for(i=0;i<m->nglobals;i++) {
+			vfunction *f = (vfunction*)m->globals[i];
+			if( !val_is_int(f) && val_tag(f) == VAL_FUNCTION && f->module == m ) {
+				int pc = (int)((int_val*)f->addr - m->code);
+				f->t = VAL_JITFUN;
+				f->addr = (char*)ctx->baseptr + ctx->pos[pc];
+			}
+		}
+	}
+	m->jit = ctx->baseptr;
 }
 
 #else // JIT_ENABLE
+
+char *jit_boot_seq = NULL;
 
 void neko_init_jit() {
 }
