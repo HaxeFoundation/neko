@@ -6,7 +6,7 @@
 	mod_neko for apache 2.0
 	added sqlite wrapper
 	std : fixed socket_set_timeout (changed unit from millisec to seconds)
-	std : fixed math_pow (integer overflow)
+	std : fixed math_pow (integer overflow) , fixed readdir (missing closedir on Linux)
 	added PPC registers
 	neko.h : added NEKO_* OS/CPU flags
 	(planned) continuations
