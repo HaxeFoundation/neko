@@ -19,7 +19,7 @@
 #include "neko.h"
 
 typedef struct _neko_module {
-	value jit;
+	void *jit;
 	unsigned int nglobals;
 	unsigned int nfields;
 	unsigned int codesize;
