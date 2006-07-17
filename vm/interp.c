@@ -58,6 +58,7 @@
 extern field id_add, id_radd, id_sub, id_rsub, id_mult, id_rmult, id_div, id_rdiv, id_mod, id_rmod;
 extern field id_get, id_set;
 extern value alloc_module_function( void *m, int_val pos, int nargs );
+extern char *jit_boot_seq;
 
 value NEKO_TYPEOF[] = {
 	alloc_int(0),
@@ -175,12 +176,12 @@ typedef int_val (*c_prim3)(int_val,int_val,int_val);
 typedef int_val (*c_prim4)(int_val,int_val,int_val,int_val);
 typedef int_val (*c_prim5)(int_val,int_val,int_val,int_val,int_val);
 typedef int_val (*c_primN)(value*,int);
-typedef int_val (*jit_prim)( neko_vm *, void *, value );
+typedef int_val (*jit_prim)( neko_vm *, void *, value , neko_module *m );
 
 
 static int_val jit_run( neko_vm *vm, vfunction *acc ) {
 	neko_module *m = (neko_module*)acc->module;
-	return ((jit_prim)val_string(m->jit))(vm,acc->addr,(value)acc);
+	return ((jit_prim)jit_boot_seq)(vm,acc->addr,(value)acc,m);
 }
 
 #define RuntimeError(err,param)	{ if( param ) pc++; PushInfos(); BeginCall(); val_throw(alloc_string(err)); }
@@ -902,10 +903,11 @@ end:
 	return acc;
 }
 
-value neko_interp( neko_vm *vm, void *m, int_val acc, int_val *pc ) {
+value neko_interp( neko_vm *vm, void *_m, int_val acc, int_val *pc ) {
 	int_val *sp, *csp, *trap;
 	int_val init_sp = vm->spmax - vm->sp;
 	int old_ncalls = vm->ncalls;
+	neko_module *m = (neko_module*)_m;
 	jmp_buf old;
 	memcpy(&old,&vm->start,sizeof(jmp_buf));
 	if( setjmp(vm->start) ) {
@@ -935,7 +937,7 @@ value neko_interp( neko_vm *vm, void *m, int_val acc, int_val *pc ) {
 		vm->env = (value)trap[2];
 
 		pc = int_address(trap[3]);
-		m = (void*)int_address(trap[4]);
+		m = (neko_module*)int_address(trap[4]);
 
 		// pop sp
 		sp = trap + 6;
@@ -944,14 +946,17 @@ value neko_interp( neko_vm *vm, void *m, int_val acc, int_val *pc ) {
 			*vm->sp++ = ERASE;
 
 		// jit return ?
-		if( val_is_kind(m,neko_kind_module) ) {
-			int_val code = (int_val)val_string((int_val)((neko_module*)val_data(m))->jit);
-			pc = (int_val*)((((int_val)pc)>>1) + code);
-			acc = ((jit_prim)code)(vm,pc,(value)acc);
+		if( val_is_kind(m,neko_kind_module) ) {			
+			m = (neko_module*)val_data(m);			
+			pc = (int_val*)((((int_val)pc)>>1) + (int_val)m->jit);
+			acc = ((jit_prim)jit_boot_seq)(vm,pc,(value)acc,m);
 			return (value)acc;
 		}
 	}
-	acc = interp_loop(vm,(neko_module*)m,acc,pc);
+	if( m->jit != NULL && m->code == pc )
+		acc = ((jit_prim)jit_boot_seq)(vm,m->jit,(value)acc,m);
+	else
+		acc = interp_loop(vm,m,acc,pc);
 	memcpy(&vm->start,&old,sizeof(jmp_buf));
 	return (value)acc;
 }
