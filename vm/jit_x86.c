@@ -21,7 +21,7 @@
 #include "objtable.h"
 #include <string.h>
 
-#if defined(NEKO_X86) && defined(_WIN32)
+#if defined(NEKO_X86) && defined(_WIN32) && defined(_DEBUG)
 #define JIT_ENABLE
 #endif
 
@@ -82,6 +82,15 @@ enum Operation {
 	OP_SUB,
 	OP_MUL,
 	OP_DIV,
+};
+
+enum IOperation {
+	IOP_SHL,
+	IOP_SHR,
+	IOP_USHR,
+	IOP_AND,
+	IOP_OR,
+	IOP_XOR,
 };
 
 #define Eax 0
@@ -423,6 +432,16 @@ static const char *cstrings[] = {
 	"Invalid array access", // 4
 	"Invalid field access", // 5
 	"Invalid environment", // 6
+	"+", // 7
+	"-", // 8
+	"*", // 9
+	"/", // 10
+	"<<", // 11
+	">>", // 12
+	">>>", // 13
+	"&", // 14
+	"|", // 15
+	"^", // 16
 };
 
 #define DEFINE_PROC(p,arg) ctx->buf = buf; jit_##p(ctx,arg); buf = ctx->buf
@@ -431,6 +450,7 @@ static const char *cstrings[] = {
 #define call(mode,nargs) ctx->buf = buf; jit_call(ctx,mode,nargs); buf = ctx->buf
 #define number_op(arg)	DEFINE_PROC(number_op,arg)
 #define array_access(p)	DEFINE_PROC(array_access,p)
+#define int_op(arg)		DEFINE_PROC(int_op,arg)
 
 static jit_ctx *jit_init_context( void *ptr, int size ) {
 	jit_ctx *c = (jit_ctx*)alloc(sizeof(jit_ctx));
@@ -879,7 +899,7 @@ static void jit_number_op( jit_ctx *ctx, enum OPERATION op ) {
 	// error
 	PATCH_JUMP(jerr5);
 	PATCH_JUMP(jerr4);
-	runtime_error(4 + op,false);
+	runtime_error(7 + op,false);
 
 	// division is always float
 	if( op == OP_DIV ) {
@@ -924,6 +944,54 @@ static void jit_number_op( jit_ctx *ctx, enum OPERATION op ) {
 
 	if( op != OP_DIV ) PATCH_JUMP(jend);
 	pop(1);
+	END_BUFFER;
+}
+
+static void jit_int_op( jit_ctx *ctx, enum IOperation op ) {
+	INIT_BUFFER;
+	void *jerr1, *jerr2, *jend;
+
+	is_int(ACC,false,jerr1);
+	XMov_rr(TMP,ACC);
+	XSar_rc(TMP,1);
+	XMov_rp(ACC,SP,FIELD(0));
+	
+	is_int(ACC,false,jerr2);
+	XSar_rc(ACC,1);
+
+	switch( op ) {
+	case IOP_SHL:
+		XShl_rr(ACC,TMP);
+		break;
+	case IOP_SHR:
+		XShr_rr(ACC,TMP);
+		break;
+	case IOP_USHR:
+		XSar_rr(ACC,TMP);
+		break;
+	case IOP_AND:
+		XAnd_rr(ACC,TMP);
+		break;
+	case IOP_OR:
+		XOr_rr(ACC,TMP);
+		break;
+	case IOP_XOR:
+		XXor_rr(ACC,TMP);
+		break;
+	default:
+		ERROR;
+	}
+	
+	XShl_rc(ACC,1);
+	XOr_rc(ACC,1);
+	XJump(JAlways,jend);
+	
+	PATCH_JUMP(jerr1);
+	PATCH_JUMP(jerr2);
+	runtime_error(11 + op,false);
+	PATCH_JUMP(jend);
+	pop(1);
+
 	END_BUFFER;
 }
 
@@ -1286,6 +1354,31 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		XCmp_rc(ACC,CONST(val_true));
 		jump(JNeq,p);
 		break;
+	case Neq: {
+		void *jnot1, *jnot2, *jend;
+		// call val_compare(sp[0],acc)
+		XPush_r(ACC);
+		XMov_rp(TMP,SP,FIELD(0));
+		XPush_r(TMP);
+		begin_call();
+		XMov_rc(TMP,CONST(val_compare));
+		XCall_r(TMP);		
+		end_call();
+		stack_pop(Esp,2);
+		pop(1);
+		// test if ok and != invalid_comparison
+		XCmp_rc(ACC,0);
+		XJump(JNeq,jnot1);
+		XCmp_rb(ACC,0xFE);
+		XJump(JEq,jnot2);
+		XMov_rc(ACC,CONST(val_false));
+		XJump(JAlways,jend);
+		PATCH_JUMP(jnot1);
+		PATCH_JUMP(jnot2);
+		XMov_rc(ACC,CONST(val_true));
+		PATCH_JUMP(jend);
+		break;
+		}
 	case Eq:
 		test(JNeq);
 		break;
@@ -1300,75 +1393,6 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		break;
 	case Lte:
 		test(JSignGt);
-		break;
-	case Call:
-		call(NORMAL,p);
-		break;
-	case ObjCall:
-		call(THIS_CALL,p);
-		break;
-	case TailCall:
-		{
-			int stack = (p >> 3);
-			int nargs = (p & 7);
-			int i = nargs;
-			while( i > 0 ) {
-				i--;
-				XMov_rp(TMP,SP,FIELD(i));
-				XMov_pr(SP,FIELD(stack - nargs + i),TMP);
-			}
-			pop(stack - nargs);
-			call(TAIL_CALL,nargs);
-			// in case we return from a Primitive
-			XRet();
-		}
-		break;
-	case Ret:
-		pop(p);
-		XRet();
-		break;
-	case Add:
-		number_op(OP_ADD);
-		break;
-	case Sub:
-		number_op(OP_SUB);
-		break;
-	case Div:
-		number_op(OP_DIV);
-		break;
-	case Mult:
-		number_op(OP_MUL);
-		break;
-	case New:
-		XPush_r(ACC);
-		XMov_rc(TMP,CONST(alloc_object));
-		XCall_r(TMP);
-		stack_pop(Esp,1);
-		break;
-	case MakeArray:
-		XPush_r(ACC);
-		XPush_c(p + 1);
-		XMov_rc(TMP,CONST(alloc_array));
-		XCall_r(TMP);
-		XMov_rp(TMP,Esp,FIELD(1)); // tmp = saved acc
-		XMov_pr(ACC,FIELD(1),TMP); // val_array_ptr(acc)[0] = tmp
-		stack_pop(Esp,2);
-		i = 0;
-		while( p > 0 ) {
-			p--;
-			i++;
-			XMov_rp(TMP,SP,FIELD(p));
-			XMov_pr(ACC,FIELD(i + 1),TMP);
-			XMov_pc(SP,FIELD(p),0);
-		}
-		stack_pop(SP,i);
-		break;
-	case MakeEnv:
-		XPush_c(GET_PC());
-		if( p >= MAX_ENV )
-			ERROR;
-		label(code->make_env[p]);
-		stack_pop(Esp,1);
 		break;
 	case Bool:
 	case Not: {
@@ -1410,9 +1434,106 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		PATCH_JUMP(jend);
 		break;
 		}
+	case Call:
+		call(NORMAL,p);
+		break;
+	case ObjCall:
+		call(THIS_CALL,p);
+		break;
+	case TailCall:
+		{
+			int stack = (p >> 3);
+			int nargs = (p & 7);
+			int i = nargs;
+			while( i > 0 ) {
+				i--;
+				XMov_rp(TMP,SP,FIELD(i));
+				XMov_pr(SP,FIELD(stack - nargs + i),TMP);
+			}
+			pop(stack - nargs);
+			call(TAIL_CALL,nargs);
+			// in case we return from a Primitive
+			XRet();
+		}
+		break;
+	case Ret:
+		pop(p);
+		XRet();
+		break;
+	case Add:
+		// COMPLETE !
+		number_op(OP_ADD);
+		break;
+	case Sub:
+		number_op(OP_SUB);
+		break;
+	case Div:
+		number_op(OP_DIV);
+		break;
+	case Mult:
+		number_op(OP_MUL);
+		break;
+	case Shl:
+		int_op(IOP_SHL);
+		break;
+	case Shr:
+		int_op(IOP_SHR);
+		break;
+	case UShr:
+		int_op(IOP_USHR);
+		break;
+	case And:
+		int_op(IOP_AND);
+		break;
+	case Or:
+		int_op(IOP_OR);
+		break;
+	case Xor:
+		int_op(IOP_XOR);
+		break;
+	case New:
+		XPush_r(ACC);
+		XMov_rc(TMP,CONST(alloc_object));
+		XCall_r(TMP);
+		stack_pop(Esp,1);
+		break;
+	case MakeArray:
+		XPush_r(ACC);
+		XPush_c(p + 1);
+		XMov_rc(TMP,CONST(alloc_array));
+		XCall_r(TMP);
+		XMov_rp(TMP,Esp,FIELD(1)); // tmp = saved acc
+		XMov_pr(ACC,FIELD(1),TMP); // val_array_ptr(acc)[0] = tmp
+		stack_pop(Esp,2);
+		i = 0;
+		while( p > 0 ) {
+			p--;
+			i++;
+			XMov_rp(TMP,SP,FIELD(p));
+			XMov_pr(ACC,FIELD(i + 1),TMP);
+			XMov_pc(SP,FIELD(p),0);
+		}
+		stack_pop(SP,i);
+		break;
+	case MakeEnv:
+		XPush_c(GET_PC());
+		if( p >= MAX_ENV )
+			ERROR;
+		label(code->make_env[p]);
+		stack_pop(Esp,1);
+		break;
 	case Last:
 		XRet();
 		break;
+	case Trap:
+	case EndTrap:
+	case Mod:
+	case TypeOf:
+	case Compare:
+	case Hash:
+	case JumpTable:
+	case Apply:
+	case PhysCompare:
 	default:
 		ERROR;
 	}
