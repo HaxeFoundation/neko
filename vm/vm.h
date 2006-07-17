@@ -33,6 +33,7 @@ struct _neko_vm {
 	int_val *spmin;
 	int_val *spmax;
 	int_val trap;
+	void *jit_val;
 	jmp_buf start;
 	int ncalls;
 	value exc_stack;
