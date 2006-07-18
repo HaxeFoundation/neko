@@ -1805,11 +1805,11 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		XMov_rp(TMP,ACC,FIELD(1)); // f->nargs
 
 		// what do we do depending of the number of args ?
-		XCmp_rb(TMP,VAR_ARGS);
-		XJump(JEq,jcall1);
 		XCmp_rb(TMP,p);
-		XJump(JGt,jnext);
-		XJump(JEq,jcall2);
+		XJump(JSignGt,jnext);
+		XJump(JEq,jcall1);
+		XCmp_rb(TMP,VAR_ARGS);
+		XJump(JEq,jcall2);		
 		
 		PATCH_JUMP(jerr1);
 		PATCH_JUMP(jerr2);
