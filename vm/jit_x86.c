@@ -215,7 +215,7 @@ enum IOperation {
 #define XFDivp()				B(0xDE); B(0xF9)
 #define XFStp(r)				B(0xDD); MOD_RM(0,3,r); if( r == Esp ) B(0x24)
 #define XFLd(r)					B(0xDD); MOD_RM(0,0,r); if( r == Esp ) B(0x24)
-#define XFILd(r)				B(0xDF); MOD_RM(0,5,r); if( r == Esp ) B(0x24)
+#define XFILd(r)				B(0xDB); MOD_RM(0,0,r); if( r == Esp ) B(0x24)
 
 #define is_int(r,flag,local)	{ XTest_rc(r,1); XJump((flag)?JNeq:JEq,local); }
 
@@ -842,12 +842,11 @@ static void jit_number_op( jit_ctx *ctx, enum OPERATION op ) {
 
 	XJump(JNeq,jerr1);
 	XSar_rc(ACC,1);
-	XPush_c(0);
 	XPush_r(ACC);
 	XFILd(Esp);
 	XAdd_rc(TMP,8);
 	XFLd(TMP);
-	stack_pop(Esp,2);
+	stack_pop(Esp,1);
 	XJump(JAlways,jfloat1);
 
 	// is_number(acc) ?
@@ -872,10 +871,9 @@ static void jit_number_op( jit_ctx *ctx, enum OPERATION op ) {
 	XAdd_rc(ACC,8);
 	XFLd(ACC);
 	XSar_rc(TMP,1);
-	XPush_c(0);
 	XPush_r(TMP);
 	XFILd(Esp);
-	stack_pop(Esp,2);
+	stack_pop(Esp,1);
 	XJump(JAlways,jfloat3);
 
 	// is_object(acc) ?
@@ -904,10 +902,8 @@ static void jit_number_op( jit_ctx *ctx, enum OPERATION op ) {
 	// division is always float
 	if( op == OP_DIV ) {
 		PATCH_JUMP(jend);
-		XPush_c(0);
 		XPush_r(ACC);
 		XFILd(Esp);
-		stack_pop(Esp,1);
 		XPush_r(TMP);
 		XFILd(Esp);
 		stack_pop(Esp,2);
