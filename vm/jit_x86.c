@@ -20,6 +20,7 @@
 #include "opcodes.h"
 #include "objtable.h"
 #include <string.h>
+#include <math.h>
 #include <stdio.h>
 
 #if defined(NEKO_X86) && defined(_WIN32)
@@ -32,6 +33,9 @@ extern int neko_stack_expand( int_val *sp, int_val *csp, neko_vm *vm );
 extern value append_int( neko_vm *vm, value str, int x, bool way );
 extern value append_strings( value s1, value s2 );
 extern value alloc_module_function( void *m, int_val pos, int nargs );
+extern void neko_process_trap( neko_vm *vm );
+extern void neko_setup_trap( neko_vm *vm, int_val where );
+extern value NEKO_TYPEOF[];
 
 typedef union {
 	void *p;
@@ -40,7 +44,7 @@ typedef union {
 } jit_buffer;
 
 typedef struct _jlist {
-	int jpos;
+	int pos;
 	int target;
 	struct _jlist *next;
 } jlist;
@@ -53,6 +57,7 @@ typedef struct {
 	int size;
 	int *pos;
 	jlist *jumps;
+	jlist *traps;
 } jit_ctx;
 
 enum Special {
@@ -170,6 +175,7 @@ enum IOperation {
 // _c : constant
 // _b : 8-bit constant
 // _a : [constant]
+// _i : [reg]
 // _p : [reg + constant:idx]
 // _x : [reg + reg:idx * mult]
 
@@ -228,9 +234,10 @@ enum IOperation {
 #define XFSubp()				B(0xDE); B(0xE9)
 #define XFMulp()				B(0xDE); B(0xC9)
 #define XFDivp()				B(0xDE); B(0xF9)
-#define XFStp(r)				B(0xDD); MOD_RM(0,3,r); if( r == Esp ) B(0x24)
-#define XFLd(r)					B(0xDD); MOD_RM(0,0,r); if( r == Esp ) B(0x24)
-#define XFILd(r)				B(0xDB); MOD_RM(0,0,r); if( r == Esp ) B(0x24)
+#define XFStp_i(r)				B(0xDD); MOD_RM(0,3,r); if( r == Esp ) B(0x24)
+#define XFLd_i(r)				B(0xDD); MOD_RM(0,0,r); if( r == Esp ) B(0x24)
+#define XFILd_i(r)				B(0xDB); MOD_RM(0,0,r); if( r == Esp ) B(0x24)
+#define XFILd_r(r)				B(0xDB); MOD_RM(3,0,r)
 
 #define is_int(r,flag,local)	{ XTest_rc(r,1); XJump((flag)?JNeq:JEq,local); }
 
@@ -266,6 +273,19 @@ enum IOperation {
 		stack_pop(SP,n); \
 	}
 
+#define pop_loop(n) { \
+		char *start; \
+		int *loop; \
+		XMov_rc(TMP,n); \
+		start = buf.b; \
+		stack_pop(SP,1); \
+		XMov_pc(SP,FIELD(0),0); \
+		XSub_rc(TMP,1); \
+		XCmp_rc(TMP,0); \
+		XJump(JEq,loop); \
+		*loop = (int)(start - buf.b); \
+	}
+
 #define runtime_error(msg_id,in_label) { \
 	XPush_c(CONST(strings[msg_id])); \
 	if( in_label ) { \
@@ -275,9 +295,6 @@ enum IOperation {
 		XPush_c(GET_PC()); \
 	} \
 	label(code->runtime_error); \
-	if( in_label ) { \
-		XRet(); \
-	} \
 }
 
 #define get_var_r(reg,v) { \
@@ -388,7 +405,7 @@ enum IOperation {
 	j->next = ctx->jumps; \
 	ctx->jumps = j; \
 	XJump(how,jcode); \
-	j->jpos = (int)((int_val)jcode - (int_val)ctx->baseptr); \
+	j->pos = (int)((int_val)jcode - (int_val)ctx->baseptr); \
 }
 
 #define setup_before_call(mode,is_callb) { \
@@ -416,7 +433,7 @@ enum IOperation {
 }
 
 #define NARGS (CALL_MAX_ARGS + 1)
-#define MAX_ENV		8
+#define MAX_ENV		20
 
 typedef struct {
 	char *boot;
@@ -434,6 +451,7 @@ typedef struct {
 	char *call_tail_fun[NARGS];
 	char *make_env[MAX_ENV];
 	char *add;
+	char *mod;
 } jit_code;
 
 char *jit_boot_seq = NULL;
@@ -459,6 +477,9 @@ static const char *cstrings[] = {
 	"|", // 15
 	"^", // 16
 	"$apply", // 17
+	"Invalid End Trap", // 18
+	"$hash", // 19
+	"%", // 20
 };
 
 #define DEFINE_PROC(p,arg) ctx->buf = buf; jit_##p(ctx,arg); buf = ctx->buf
@@ -477,6 +498,7 @@ static jit_ctx *jit_init_context( void *ptr, int size ) {
 	c->pos = NULL;
 	c->curpc = 0;
 	c->jumps = NULL;
+	c->traps = NULL;
 	return c;
 }
 
@@ -487,7 +509,12 @@ static void jit_finalize_context( jit_ctx *ctx ) {
 		*(int*)0xAABBCC = 0;
 	l = ctx->jumps;
 	while( l != NULL ) {
-		*(int*)((char*)ctx->baseptr + l->jpos) = ctx->pos[l->target] - (l->jpos + 4);
+		*(int*)((char*)ctx->baseptr + l->pos) = ctx->pos[l->target] - (l->pos + 4);
+		l = l->next;
+	}
+	l = ctx->traps;
+	while( l != NULL ) {
+		*(int*)((char*)ctx->baseptr + l->pos) = ctx->pos[l->target] + (int)(int_val)ctx->baseptr;
 		l = l->next;
 	}
 }
@@ -603,7 +630,7 @@ static void jit_test( jit_ctx *ctx, int how ) {
 	// test ok and != invalid_comparison
 	XCmp_rc(ACC,0);
 	XJump(how,jnot1);
-	XCmp_rb(ACC,0xFE);
+	XCmp_rb(ACC,invalid_comparison);
 	XJump(JEq,jnot2);
 	XMov_rc(ACC,CONST(val_true));
 	XJump_near(jend);
@@ -865,9 +892,9 @@ static void jit_number_op( jit_ctx *ctx, enum OPERATION op ) {
 	XJump(JNeq,jerr1);
 	XSar_rc(ACC,1);
 	XPush_r(ACC);
-	XFILd(Esp);
+	XFILd_i(Esp);
 	XAdd_rc(TMP,8);
-	XFLd(TMP);
+	XFLd_i(TMP);
 	stack_pop(Esp,1);
 	XJump(JAlways,jfloat1);
 
@@ -883,18 +910,18 @@ static void jit_number_op( jit_ctx *ctx, enum OPERATION op ) {
 	XCmp_rb(TMP2,VAL_FLOAT);
 	XJump(JNeq,jerr3);
 	XAdd_rc(ACC,8);
-	XFLd(ACC);
+	XFLd_i(ACC);
 	XAdd_rc(TMP,8);
-	XFLd(TMP);
+	XFLd_i(TMP);
 	XJump_near(jfloat2);
 
 	// is_number(acc) && is_int(sp)
 	PATCH_JUMP(jint);
 	XAdd_rc(ACC,8);
-	XFLd(ACC);
+	XFLd_i(ACC);
 	XSar_rc(TMP,1);
 	XPush_r(TMP);
-	XFILd(Esp);
+	XFILd_i(Esp);
 	stack_pop(Esp,1);
 	XJump_near(jfloat3);
 
@@ -925,9 +952,9 @@ static void jit_number_op( jit_ctx *ctx, enum OPERATION op ) {
 	if( op == OP_DIV ) {
 		PATCH_JUMP(jend);
 		XPush_r(ACC);
-		XFILd(Esp);
+		XFILd_i(Esp);
 		XPush_r(TMP);
-		XFILd(Esp);
+		XFILd_i(Esp);
 		stack_pop(Esp,2);
 	}
 
@@ -955,7 +982,7 @@ static void jit_number_op( jit_ctx *ctx, enum OPERATION op ) {
 	}
 
 	stack_push(Esp,2);
-	XFStp(Esp);
+	XFStp_i(Esp);
 	XMov_rc(TMP,CONST(alloc_float));
 	XCall_r(TMP);
 	stack_pop(Esp,2);
@@ -974,7 +1001,7 @@ static void jit_int_op( jit_ctx *ctx, enum IOperation op ) {
 	XMov_rr(TMP,ACC);
 	XSar_rc(TMP,1);
 	XMov_rp(ACC,SP,FIELD(0));
-	
+
 	is_int(ACC,false,jerr2);
 	XSar_rc(ACC,1);
 
@@ -1000,11 +1027,11 @@ static void jit_int_op( jit_ctx *ctx, enum IOperation op ) {
 	default:
 		ERROR;
 	}
-	
+
 	XShl_rc(ACC,1);
 	XOr_rc(ACC,1);
 	XJump_near(jend);
-	
+
 	PATCH_JUMP(jerr1);
 	PATCH_JUMP(jerr2);
 	runtime_error(11 + op,false);
@@ -1035,13 +1062,13 @@ static void jit_add( jit_ctx *ctx, int _ ) {
 	XCmp_rb(TMP2,VAL_FLOAT);
 	XJump(JNeq,jnext);
 	XAdd_rc(TMP,8);
-	XFLd(TMP);
+	XFLd_i(TMP);
 	stack_push(Esp,1);
 	XSar_rc(ACC,1);
 	XPush_r(ACC);
-	XFILd(Esp);
+	XFILd_i(Esp);
 	XFAddp();
-	XFStp(Esp);
+	XFStp_i(Esp);
 	XJump(JAlways,jalloc1);
 
 	// is_int(acc) && is_string(sp) -> prepare args for append_int(vm,sp,val_int(acc),true)
@@ -1067,11 +1094,11 @@ static void jit_add( jit_ctx *ctx, int _ ) {
 	stack_push(Esp,1);
 	XSar_rc(TMP,1);
 	XPush_r(TMP);
-	XFILd(Esp);
+	XFILd_i(Esp);
 	XAdd_rc(ACC,8);
-	XFLd(ACC);
+	XFLd_i(ACC);
 	XFAddp();
-	XFStp(Esp);
+	XFStp_i(Esp);
 	XJump(JAlways,jalloc2);
 
 	// is_float(acc) && is_float(sp) -> push(val_float(acc)+val_float(sp))
@@ -1081,11 +1108,11 @@ static void jit_add( jit_ctx *ctx, int _ ) {
 	XJump(JNeq,jnext);
 	stack_push(Esp,2);
 	XAdd_rc(TMP,8);
-	XFLd(TMP);
+	XFLd_i(TMP);
 	XAdd_rc(ACC,8);
-	XFLd(ACC);
+	XFLd_i(ACC);
 	XFAddp();
-	XFStp(Esp);
+	XFStp_i(Esp);
 	XJump(JAlways,jalloc3);
 
 	// is_float(acc) && is_string(sp) -> BUFADD
@@ -1182,7 +1209,7 @@ static void jit_add( jit_ctx *ctx, int _ ) {
 	XPush_c(0);
 	XMov_rc(TMP,CONST(alloc_buffer));
 	XCall_r(TMP);
-	XMov_pr(Esp,FIELD(0),ACC);	
+	XMov_pr(Esp,FIELD(0),ACC);
 	begin_call();
 	XMov_rc(TMP,CONST(val_buffer));
 	XCall_r(TMP);
@@ -1192,7 +1219,7 @@ static void jit_add( jit_ctx *ctx, int _ ) {
 	XCall_r(TMP);
 	end_call();
 	XMov_rc(TMP,CONST(buffer_to_string));
-	XCall_r(TMP);	
+	XCall_r(TMP);
 	stack_pop(Esp,3);
 	END();
 
@@ -1208,6 +1235,138 @@ static void jit_add( jit_ctx *ctx, int _ ) {
 	while( nends-- > 0 ) {
 		PATCH_JUMP(jends[nends]);
 	}
+	XRet();
+
+	END_BUFFER;
+}
+
+static void jit_mod( jit_ctx *ctx, int _ ) {
+	INIT_BUFFER;
+	int *jnot_int1, *jnot_int2, *jnot_int3, *jmod0;
+	int *jerr1, *jerr2, *jskip_acc, *jskip_sp, *jnext2;
+	int *jend1;
+	char *jend2, *jend3, *jend4, *jnext;
+
+	// acc <=> sp
+	XMov_rr(TMP,ACC);
+	XMov_rp(ACC,SP,FIELD(0));
+
+	// is_int(sp) && is_int(acc)
+	is_int(TMP,false,jnot_int1);
+	is_int(ACC,false,jnot_int2);
+	XSar_rc(ACC,1);
+	XSar_rc(TMP,1);
+	XCmp_rc(TMP,0);
+	XJump(JEq,jmod0);
+	XCdq();
+	XIDiv_r(TMP);
+	XMov_rr(ACC,Edx);
+	XShl_rc(ACC,1);
+	XOr_rc(ACC,1);
+	XJump(JAlways,jend1);
+
+	// is_float(sp) ? push val_float(sp)
+	PATCH_JUMP(jnot_int1);
+    XMov_rp(TMP2,TMP,FIELD(0));
+	XCmp_rb(TMP2,VAL_FLOAT);
+	XJump(JNeq,jerr1);
+	stack_push(Esp,2);
+	XMov_rp(TMP2,TMP,FIELD(4));
+	XMov_pr(Esp,FIELD(0),TMP2);
+	XMov_rp(TMP2,TMP,FIELD(3));
+	XMov_pr(Esp,FIELD(1),TMP2);
+	XJump_near(jnext);
+
+	// push val_int(sp)
+	PATCH_JUMP(jnot_int2);
+	stack_push(Esp,1);
+	XSar_rc(TMP,1);
+	XPush_r(TMP);
+	XFILd_i(Esp);
+	XFStp_i(Esp);
+
+	// is_int(acc) ? push val_int(acc)
+	PATCH_JUMP(jnext);
+	is_int(ACC,false,jnot_int3);
+	stack_push(Esp,1);
+	XSar_rc(ACC,1);
+	XPush_r(ACC);
+	XFILd_i(Esp);
+	XFStp_i(Esp);
+	XJump_near(jnext);
+
+	// is_float(acc) ? push val_float(acc)
+	PATCH_JUMP(jnot_int3);
+    XMov_rp(TMP2,ACC,FIELD(0));
+	XCmp_rb(TMP2,VAL_FLOAT);
+	XJump(JNeq,jerr2);
+	stack_push(Esp,2);
+	XMov_rp(TMP2,ACC,FIELD(4));
+	XMov_pr(Esp,FIELD(0),TMP2);
+	XMov_rp(TMP2,ACC,FIELD(3));
+	XMov_pr(Esp,FIELD(1),TMP2);
+
+	// alloc_float(fmod(sp,acc))
+	PATCH_JUMP(jnext);
+	XMov_rc(TMP,CONST(fmod));
+	XCall_r(TMP);
+	XFStp_i(Esp);
+	XMov_rc(TMP,CONST(alloc_float));
+	XCall_r(TMP);
+	stack_pop(Esp,4);
+	XJump_near(jend2);
+
+	// pop stack
+	PATCH_JUMP(jerr2);
+	stack_pop(Esp,2);
+	XJump_near(jnext);
+
+	// is_object(acc) ?
+	PATCH_JUMP(jerr1);
+	is_int(ACC,true,jskip_acc);
+	XMov_rp(TMP2,ACC,FIELD(0));
+	PATCH_JUMP(jnext);
+	XCmp_rb(TMP2,VAL_OBJECT);
+	XJump(JNeq,jnext2);
+	todo("object op 1");
+	XJump_near(jend3);
+
+	// is_object(sp) ?
+	PATCH_JUMP(jnext2);
+	is_int(TMP,true,jskip_sp);
+	XMov_rp(TMP2,SP,FIELD(0));
+	PATCH_JUMP(jskip_acc);
+	XCmp_rb(TMP2,VAL_OBJECT);
+	XJump(JNeq,jnext2);
+	todo("object op 2");
+	XJump_near(jend4);
+
+	// error
+	PATCH_JUMP(jnext2);
+	PATCH_JUMP(jskip_sp);
+	runtime_error(20,true); // %
+
+	// call fmod( (tfloat)a, (tfloat)b )
+	PATCH_JUMP(jmod0);
+	stack_push(Esp,2);
+	XFILd_r(TMP);
+	XFStp_i(Esp);
+	stack_push(Esp,2);
+	XFILd_r(ACC);
+	XFStp_i(Esp);
+	XMov_rc(TMP,CONST(fmod));
+	XCall_r(TMP);
+	XFStp_i(Esp);
+	XMov_rc(TMP,CONST(alloc_float));
+	XCall_r(TMP);
+	stack_pop(Esp,4);
+
+	// bye
+	PATCH_JUMP(jend1);
+	PATCH_JUMP(jend2);
+	PATCH_JUMP(jend3);
+	PATCH_JUMP(jend4);
+	pop(1);
 	XRet();
 
 	END_BUFFER;
@@ -1303,6 +1462,13 @@ static void jit_make_env( jit_ctx *ctx, int esize ) {
 	PATCH_JUMP(jerr2);
 	runtime_error(6,true); // Invalid environment
 	END_BUFFER;
+}
+
+static value process_trap_jit( neko_vm *vm, jmp_buf backup ) {
+	value exc = vm->vthis;
+	memcpy(vm->start,backup,sizeof(jmp_buf));
+	neko_process_trap(vm);
+	return exc;
 }
 
 static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
@@ -1565,7 +1731,11 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		break;
 		}
 	case Pop:
-		pop(p);
+		if( p > 10 ) {
+			pop_loop(p);
+		} else {
+			pop(p);
+		}
 		break;
 	case Jump:
 		jump(JAlways,p);
@@ -1587,14 +1757,14 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		XPush_r(TMP);
 		begin_call();
 		XMov_rc(TMP,CONST(val_compare));
-		XCall_r(TMP);		
+		XCall_r(TMP);
 		end_call();
 		stack_pop(Esp,2);
 		pop(1);
 		// test if ok and != invalid_comparison
 		XCmp_rc(ACC,0);
 		XJump(JNeq,jnot1);
-		XCmp_rb(ACC,0xFE);
+		XCmp_rb(ACC,invalid_comparison);
 		XJump(JEq,jnot2);
 		XMov_rc(ACC,CONST(val_false));
 		XJump_near(jend);
@@ -1678,14 +1848,22 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 				XMov_rp(TMP,SP,FIELD(i));
 				XMov_pr(SP,FIELD(stack - nargs + i),TMP);
 			}
-			pop(stack - nargs);
+			if( stack - nargs > 10 ) {
+				pop_loop(stack - nargs);
+			} else {
+				pop(stack - nargs);
+			}
 			call(TAIL_CALL,nargs);
 			// in case we return from a Primitive
 			XRet();
 		}
 		break;
 	case Ret:
-		pop(p);
+		if( p > 10 ) {
+			pop_loop(p);
+		} else {
+			pop(p);
+		}
 		XRet();
 		break;
 	case Add: {
@@ -1710,12 +1888,12 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		XCmp_rb(TMP2,VAL_FLOAT);
 		XJump(JNeq,jnot_float2);
 		XAdd_rc(ACC,8);
-		XFLd(ACC);
+		XFLd_i(ACC);
 		XAdd_rc(TMP,8);
-		XFLd(TMP);
+		XFLd_i(TMP);
 		XFAddp();
 		stack_push(Esp,2);
-		XFStp(Esp);
+		XFStp_i(Esp);
 		XMov_rc(TMP,CONST(alloc_float));
 		XCall_r(TMP);
 		stack_pop(Esp,2);
@@ -1727,7 +1905,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		PATCH_JUMP(jnot_int2);
 		XPush_c(GET_PC());
 		label(code->add);
-		stack_pop(Esp,1);	
+		stack_pop(Esp,1);
 		PATCH_JUMP(jend);
 		PATCH_JUMP(jend2);
 		pop(1);
@@ -1794,7 +1972,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 	case Last:
 		XRet();
 		break;
-	case Apply: {		
+	case Apply: {
 		int *jerr1, *jerr2, *jnext, *jcall1, *jcall2, *jdone;
 		char *jend, *start;
 		is_int(ACC,true,jerr1);
@@ -1809,8 +1987,8 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		XJump(JSignGt,jnext);
 		XJump(JEq,jcall1);
 		XCmp_rb(TMP,VAR_ARGS);
-		XJump(JEq,jcall2);		
-		
+		XJump(JEq,jcall2);
+
 		PATCH_JUMP(jerr1);
 		PATCH_JUMP(jerr2);
 		runtime_error(17,false); // $apply
@@ -1833,7 +2011,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		while( i-- > 0 ) {
 			// env[*pc-i] = sp[i]
 			XMov_rp(TMP2,SP,FIELD(i));
-			XMov_pr(ACC,FIELD(1+p-i),TMP2);			
+			XMov_pr(ACC,FIELD(1+p-i),TMP2);
 		}
 		pop(p);
 
@@ -1873,14 +2051,226 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		PATCH_JUMP(jend);
 		break;
 		}
-	case Trap:
-	case EndTrap:
+	case Trap: {
+		int *jset_trap;
+
+		// jump_buf backup;
+		// value save = acc;
+		XSub_rc(Esp,CONST(sizeof(jmp_buf)));
+		XMov_rr(TMP,Esp);
+		XPush_r(ACC);
+
+		// memcpy(backup,vm->start,sizeof(jump_buf))
+
+		XPush_c(sizeof(jmp_buf));
+		XMov_rr(TMP2,VM);
+		XAdd_rc(TMP2,8 * 4); // vm->start
+		XPush_r(TMP2);
+		XPush_r(TMP);
+		XMov_rc(TMP,CONST(memcpy));
+		XCall_r(TMP);
+		stack_pop(Esp,1);
+		XPop_r(TMP);
+		stack_pop(Esp,1);
+
+		// if( setjmp(vm->stack) != 0 )
+		XPush_r(TMP);
+		XMov_rc(TMP,CONST(setjmp));
+		XCall_r(TMP);
+		stack_pop(Esp,1);
+		XCmp_rc(ACC,0);
+		XJump(JEq,jset_trap);
+
+		// handle trap : acc = process_trap_jit(vm,backup)
+		stack_pop(Esp,1);
+		XPush_r(Esp);
+		XPush_r(VM);
+		begin_call();
+		XMov_rc(TMP,CONST(process_trap_jit));
+		XCall_r(TMP);
+		end_call();
+		stack_pop(Esp,2);
+
+		// restore stack
+		XAdd_rc(Esp,CONST(sizeof(jmp_buf)));
+
+		{
+			jlist *t = (jlist*)alloc(sizeof(jlist));
+			ctx->buf = buf;
+			t->target = (int)((int_val*)(int_val)p - ctx->module->code);
+			t->pos = POS() + 1;
+			t->next = ctx->traps;
+			ctx->traps = t;
+			XMov_rc(TMP,0);
+		}
+		XJump_r(TMP);
+
+		// else {
+		//    neko_setup_trap(vm)
+		//    acc = save
+		// }
+
+		PATCH_JUMP(jset_trap);
+		XPush_r(VM);
+		begin_call();
+		XMov_rc(TMP,CONST(neko_setup_trap));
+		XCall_r(TMP);
+		end_call();
+		stack_pop(Esp,1);
+		XPop_r(ACC);
+		break;
+		}
+	case EndTrap: {
+		// check spmax - trap = sp
+		get_var_r(TMP,VSpMax);
+		get_var_r(TMP2,VTrap);
+		XShl_rc(TMP2,2);
+		XSub_rr(TMP,TMP2);
+		XCmp_rr(TMP,SP);
+		XJump(JEq,jok);
+		runtime_error(18,false); // Invalid End Trap
+		PATCH_JUMP(jok);
+
+		// restore VM jmp_buf : memcpy(vm->start,backup,sizeof(jmp_buf));
+		XMov_rr(TMP,Esp);
+		XPush_c(sizeof(jmp_buf));
+		XPush_r(TMP);
+		XMov_rr(TMP2,VM);
+		XAdd_rc(TMP2,8 * 4); // vm->start
+		XPush_r(TMP2);
+		XMov_rc(TMP,CONST(memcpy));
+		XCall_r(TMP);
+		XAdd_rc(Esp,CONST(sizeof(jmp_buf) + 3 * 4));
+
+		// trap = val_int(sp[5])
+		XMov_rp(TMP,SP,FIELD(5));
+		XSar_rc(TMP,1);
+		set_var_r(VTrap,TMP);
+		pop(6);
+		break;
+		}
+	case TypeOf: {
+		int *jnot_int;
+		char *jend;
+		is_int(ACC,false,jnot_int);
+		XMov_rc(ACC,CONST(alloc_int(1))); // t_int != VAL_INT
+		XJump_near(jend);
+		PATCH_JUMP(jnot_int);
+		XMov_rp(TMP,ACC,FIELD(0));
+		XAnd_rc(TMP,7);
+		XMov_rc(TMP2,CONST(NEKO_TYPEOF));
+		XMov_rx(ACC,TMP2,TMP,4);
+		PATCH_JUMP(jend);
+		break;
+		}
+	case Compare: {
+		int *jint;
+		char *jend;
+		// val_compare(sp[0],acc)
+		XPush_r(ACC);
+		XMov_rp(TMP,SP,FIELD(0));
+		XPush_r(TMP);
+		begin_call();
+		XMov_rc(TMP,CONST(val_compare));
+		XCall_r(TMP);
+		end_call();
+		stack_pop(Esp,2);
+
+		XCmp_rb(ACC,invalid_comparison);
+		XJump(JNeq,jint);
+		XMov_rc(ACC,CONST(val_null));
+		XJump_near(jend);
+		PATCH_JUMP(jint);
+		XShl_rc(ACC,1);
+		XOr_rc(ACC,1);
+		PATCH_JUMP(jend);
+		pop(1);
+		break;
+		}
+	case PhysCompare: {
+		int *jeq, *jlow;
+		char *jend1, *jend2;
+		XMov_rp(TMP,SP,FIELD(0));
+		pop(1);
+		XCmp_rr(ACC,TMP);
+		XJump(JEq,jeq);
+		XJump(JSignLt,jlow);
+		XMov_rc(ACC,CONST(alloc_int(-1)));
+		XJump_near(jend1);
+		PATCH_JUMP(jlow);
+		XMov_rc(ACC,CONST(alloc_int(1)));
+		XJump_near(jend2);
+		PATCH_JUMP(jeq);
+		XMov_rc(ACC,CONST(alloc_int(0)));
+		PATCH_JUMP(jend1);
+		PATCH_JUMP(jend2);
+		break;
+		}
+	case Hash: {
+		int *jerr1, *jerr2;
+		char *jend;
+		is_int(ACC,true,jerr1);
+		XMov_rp(TMP,ACC,FIELD(0));
+		XAnd_rc(TMP,7);
+		XCmp_rb(TMP,VAL_STRING);
+		XJump(JNeq,jerr2);
+		begin_call();
+		XAdd_rc(ACC,4); // val_string(acc)
+		XPush_r(ACC);
+		XMov_rc(TMP,CONST(val_id));
+		XCall_r(TMP);
+		stack_pop(Esp,1);
+		XShl_rc(ACC,1);
+		XOr_rc(ACC,1);
+		XJump_near(jend);
+		PATCH_JUMP(jerr1);
+		PATCH_JUMP(jerr2);
+		runtime_error(19,false); // $hash
+		PATCH_JUMP(jend);
+		break;
+		}
+	case JumpTable: {
+		int njumps = p / 2;
+		int *jok1, *jok2;
+		char *jnext1, *jnext2;
+		is_int(ACC,true,jok1);
+		XMov_rc(TMP2,njumps);
+		XJump_near(jnext1);
+		PATCH_JUMP(jok1);
+		XCmp_rc(ACC,p);
+		XJump(JLt,jok2);
+		XMov_rc(TMP2,njumps);
+		XJump_near(jnext2);
+		PATCH_JUMP(jok2);
+		XMov_rr(TMP2,ACC);
+		XSar_rc(TMP2,1);
+		PATCH_JUMP(jnext1);
+		PATCH_JUMP(jnext2);
+		get_var_r(TMP,VModule);
+		// tmp = jit + tmp2 * 5
+		XMov_rp(TMP,TMP,FIELD(0)); // m->jit
+		XAdd_rr(TMP,TMP2);
+		XShl_rc(TMP2,2);
+		XAdd_rr(TMP,TMP2);
+
+		ctx->buf = buf;
+		{
+			int add_size = 6;
+			int small_add_size = 3;
+			int jump_rsize = 2;
+			int delta = POS() + add_size + jump_rsize;
+			if( delta < 255 )
+				delta += small_add_size - add_size;
+			XAdd_rc(TMP,delta);
+			XJump_r(TMP);
+		}
+		break;
+		}
 	case Mod:
-	case TypeOf:
-	case Compare:
-	case Hash:
-	case JumpTable:
-	case PhysCompare:
+		XPush_c(GET_PC());
+		label(code->mod);
+		stack_pop(Esp,1);
+		break;
 	default:
 		ERROR;
 	}
@@ -1911,6 +2301,7 @@ void neko_init_jit() {
 	FILL_BUFFER(jit_stack_expand,4,stack_expand_4,510);
 	FILL_BUFFER(jit_runtime_error,0,runtime_error,600);
 	FILL_BUFFER(jit_add,0,add,470);
+	FILL_BUFFER(jit_mod,0,mod,312);
 	for(i=0;i<NARGS;i++) {
 		FILL_BUFFER(jit_call_jit_normal,i,call_normal_jit[i],1270);
 		FILL_BUFFER(jit_call_jit_this,i,call_this_jit[i],1410);
