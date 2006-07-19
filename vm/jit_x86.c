@@ -1427,7 +1427,7 @@ static void jit_make_env( jit_ctx *ctx, int esize ) {
 	int *jerr1, *jerr2, *jok;
 	int i;
 
-	if( esize == -1 ) {		
+	if( esize == -1 ) {
 		XMov_rr(TMP2,TMP); // store esize
 	}
 
@@ -2126,7 +2126,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		stack_pop(Esp,1);
 		XPush_r(Esp);
 		XPush_r(VM);
-		begin_call();
+		// no begin_call : registers have been modified
 		XMov_rc(TMP,CONST(process_trap_jit));
 		XCall_r(TMP);
 		end_call();
@@ -2324,8 +2324,13 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 }
 
 
-#define MAX_OP_SIZE		400
-#define MAX_BUF_SIZE	1000
+#ifdef JIT_DEBUG
+#	define MAX_OP_SIZE		1000
+#else
+#	define MAX_OP_SIZE		291 // Apply(4)
+#endif
+
+#define MAX_BUF_SIZE	500
 
 #define FILL_BUFFER(f,param,ptr) \
 	{ \
@@ -2384,6 +2389,10 @@ void neko_free_jit() {
 	jit_boot_seq = NULL;
 }
 
+int neko_can_jit() {
+	return 1;
+}
+
 void neko_module_jit( neko_module *m ) {
 	unsigned int i = 0;
 	jit_ctx *ctx = jit_init_context(NULL,0);
@@ -2397,8 +2406,10 @@ void neko_module_jit( neko_module *m ) {
 
 		// resize buffer
 		if( curpos + MAX_OP_SIZE > ctx->size ) {
-			int nsize = ctx->size ? ctx->size * 2 : MAX_OP_SIZE;
-			char *buf2 = alloc_private(nsize);
+			int nsize = ctx->size ? ctx->size * 2 : (m->codesize * 20);
+			char *buf2;
+			if( nsize < MAX_OP_SIZE ) nsize = MAX_OP_SIZE;
+			buf2 = alloc_private(nsize);
 			memcpy(buf2,ctx->baseptr,curpos);
 			ctx->baseptr = buf2;
 			ctx->buf.p = buf2 + curpos;
@@ -2496,9 +2507,12 @@ void neko_init_jit() {
 void neko_free_jit() {
 }
 
-void neko_module_jit( neko_module *m ) {
+int neko_can_jit() {
+	return 0;
 }
 
+void neko_module_jit( neko_module *m ) {
+}
 
 #endif
 
