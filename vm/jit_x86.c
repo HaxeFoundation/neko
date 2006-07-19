@@ -43,6 +43,8 @@ typedef union {
 	void *p;
 	unsigned char *b;
 	unsigned int *w;
+	char *c;
+	int *i;
 } jit_buffer;
 
 typedef struct _jlist {
@@ -204,8 +206,8 @@ enum IOperation {
 #define XCmp_rr(r1,r2)			OP_RM(0x3B,3,r1,r2)
 #define XCmp_rc(reg,cst)		if( reg == Eax ) { B(0x3D); } else { OP_RM(0x81,3,7,reg); }; W(cst)
 #define XCmp_rb(reg,byte)		OP_RM(0x83,3,7,reg); B(byte)
-#define XJump(how,local)		if( (how) == JAlways ) { B(0xE9); } else { B(0x0F); B(how); }; local = buf.w; W(0)
-#define XJump_near(local)		B(0xEB); local = buf.b; B(0)
+#define XJump(how,local)		if( (how) == JAlways ) { B(0xE9); } else { B(0x0F); B(how); }; local = buf.i; W(0)
+#define XJump_near(local)		B(0xEB); local = buf.c; B(0)
 #define XJump_r(reg)			OP_RM(0xFF,3,4,reg)
 #define XPop_r(reg)				B(0x58 + reg)
 
@@ -280,13 +282,13 @@ enum IOperation {
 		char *start; \
 		int *loop; \
 		XMov_rc(TMP,n); \
-		start = buf.b; \
+		start = buf.c; \
 		XMov_pc(SP,FIELD(0),0); \
 		stack_pop(SP,1); \
 		XSub_rc(TMP,1); \
 		XCmp_rc(TMP,0); \
 		XJump(JNeq,loop); \
-		*loop = (int)(start - buf.b); \
+		*loop = (int)(start - buf.c); \
 	}
 
 #define runtime_error(msg_id,in_label) { \
@@ -523,7 +525,7 @@ static void jit_finalize_context( jit_ctx *ctx ) {
 	}
 }
 
-static void jit_push_infos( jit_ctx *ctx, enum Callback callb ) {
+static void jit_push_infos( jit_ctx *ctx, enum PushInfosMode callb ) {
 	INIT_BUFFER;
 	int *jend;
 	stack_push(CSP,4);
@@ -606,7 +608,7 @@ static void jit_stack_expand( jit_ctx *ctx, int n ) {
 	END_BUFFER;
 }
 
-static void jit_runtime_error( jit_ctx *ctx, void *_ ) {
+static void jit_runtime_error( jit_ctx *ctx, void *unused ) {
 	INIT_BUFFER;
 	push_infos(PC_ARG); // pc
 	begin_call();
@@ -855,7 +857,7 @@ static void jit_call_fun( jit_ctx *ctx, int nargs, int mode ) {
 #define jit_call_fun_tail(ctx,i)		jit_call_fun(ctx,i,TAIL_CALL)
 #define jit_call_fun_this(ctx,i)		jit_call_fun(ctx,i,THIS_CALL)
 
-static void jit_number_op( jit_ctx *ctx, enum OPERATION op ) {
+static void jit_number_op( jit_ctx *ctx, enum OPCODE op ) {
 	INIT_BUFFER;
 	int *jnot_int1, *jnot_int2, *jint, *jnext;
 	int *jerr1, *jerr2, *jerr3, *jerr4, *jerr5;
@@ -2033,7 +2035,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 
 		// fill the env array with null's
 		XAdd_rc(ACC,(2+p) * 4 );
-		start = buf.b;
+		start = buf.c;
 		XCmp_rb(TMP,0);
 		XJump(JEq,jdone);
 		XMov_pc(ACC,FIELD(0),CONST(val_null));
