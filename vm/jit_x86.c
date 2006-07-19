@@ -27,6 +27,8 @@
 #define JIT_ENABLE
 #endif
 
+//#define JIT_DEBUG
+
 #ifdef JIT_ENABLE
 
 extern int neko_stack_expand( int_val *sp, int_val *csp, neko_vm *vm );
@@ -56,6 +58,7 @@ typedef struct {
 	int curpc;
 	int size;
 	int *pos;
+	int debug_wait;
 	jlist *jumps;
 	jlist *traps;
 } jit_ctx;
@@ -278,11 +281,11 @@ enum IOperation {
 		int *loop; \
 		XMov_rc(TMP,n); \
 		start = buf.b; \
-		stack_pop(SP,1); \
 		XMov_pc(SP,FIELD(0),0); \
+		stack_pop(SP,1); \
 		XSub_rc(TMP,1); \
 		XCmp_rc(TMP,0); \
-		XJump(JEq,loop); \
+		XJump(JNeq,loop); \
 		*loop = (int)(start - buf.b); \
 	}
 
@@ -497,6 +500,7 @@ static jit_ctx *jit_init_context( void *ptr, int size ) {
 	c->buf.p = ptr;
 	c->pos = NULL;
 	c->curpc = 0;
+	c->debug_wait = 0;
 	c->jumps = NULL;
 	c->traps = NULL;
 	return c;
@@ -759,11 +763,13 @@ static void jit_call_prim( jit_ctx *ctx, int nargs, int mode ) {
 	XJump(JNeq,jvararg);
 
 	// push args from VMSP to PROCSP
-	setup_before_call(mode,0);
+	setup_before_call(mode,false);
 	for(i=0;i<nargs;i++) {
 		XPush_p(SP,FIELD(i));
 	}
+#	ifndef JIT_DEBUG
 	pop(nargs);
+#	endif
 
 	// call C primitive
 	XMov_rp(TMP,ACC,FIELD(2)); // acc->addr
@@ -771,6 +777,10 @@ static void jit_call_prim( jit_ctx *ctx, int nargs, int mode ) {
 	XCall_r(TMP);
 	end_call();
 	restore_after_call(nargs);
+
+#	ifdef JIT_DEBUG
+	pop(nargs);
+#	endif
 	XRet();
 
 //	else if( args == VAR_ARGS )
@@ -779,7 +789,7 @@ static void jit_call_prim( jit_ctx *ctx, int nargs, int mode ) {
 	XJump(JNeq,jerr);
 
 	// push args from VMSP to PROCSP
-	setup_before_call(mode,0);
+	setup_before_call(mode,false);
 	for(i=0;i<nargs;i++) {
 		XPush_p(SP,FIELD(i));
 	}
@@ -814,7 +824,7 @@ static void jit_call_fun( jit_ctx *ctx, int nargs, int mode ) {
 	XJump(JNeq,jerr);
 
 	// C call : neko_interp(vm,m,acc,pc)
-	setup_before_call(mode,1);
+	setup_before_call(mode,true);
 	stack_push(Esp,4);
 	XMov_rp(TMP,ACC,FIELD(2)); // acc->addr
 	XMov_pr(Esp,FIELD(3),TMP);
@@ -2133,6 +2143,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 
 		// restore VM jmp_buf : memcpy(vm->start,backup,sizeof(jmp_buf));
 		XMov_rr(TMP,Esp);
+		XPush_r(ACC);
 		XPush_c(sizeof(jmp_buf));
 		XPush_r(TMP);
 		XMov_rr(TMP2,VM);
@@ -2140,7 +2151,9 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		XPush_r(TMP2);
 		XMov_rc(TMP,CONST(memcpy));
 		XCall_r(TMP);
-		XAdd_rc(Esp,CONST(sizeof(jmp_buf) + 3 * 4));
+		stack_pop(Esp,3);
+		XPop_r(ACC);
+		XAdd_rc(Esp,CONST(sizeof(jmp_buf)));
 
 		// trap = val_int(sp[5])
 		XMov_rp(TMP,SP,FIELD(5));
@@ -2253,6 +2266,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		XShl_rc(TMP2,2);
 		XAdd_rr(TMP,TMP2);
 
+		ctx->debug_wait = njumps;
 		ctx->buf = buf;
 		{
 			int add_size = 6;
@@ -2264,6 +2278,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 			XAdd_rc(TMP,delta);
 			XJump_r(TMP);
 		}
+
 		break;
 		}
 	case Mod:
@@ -2278,46 +2293,53 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 }
 
 
-#define MAX_OP_SIZE		294
+#define MAX_OP_SIZE		400
+#define MAX_BUF_SIZE	1000
 
-#define FILL_BUFFER(f,param,ptr,size) \
+#define FILL_BUFFER(f,param,ptr) \
 	{ \
-		jit_ctx *c; \
-		code->ptr = (char*)alloc_private(size); \
-		c = jit_init_context(code->ptr,size); \
-		f(c,param); \
-		jit_finalize_context(c); \
+		jit_ctx *ctx; \
+		char *buf = alloc_private(MAX_BUF_SIZE); \
+		int size; \
+		ctx = jit_init_context(buf,MAX_BUF_SIZE); \
+		f(ctx,param); \
+		size = POS(); \
+		buf = alloc_private(size); \
+		code->ptr = buf; \
+		memcpy(buf,ctx->baseptr,size); \
+		ctx->buf.p = buf + size; \
+		ctx->baseptr = buf; \
+		jit_finalize_context(ctx); \
 	}
 
 void neko_init_jit() {
 	int nstrings = sizeof(cstrings) / sizeof(const char *);
-	int i,delta;
+	int i;
 	strings = alloc_root(nstrings);
 	for(i=0;i<nstrings;i++)
 		strings[i] = alloc_string(cstrings[i]);
 	code = (jit_code*)alloc_root(sizeof(jit_code) / sizeof(char*));
-	FILL_BUFFER(jit_boot,NULL,boot,330);
-	FILL_BUFFER(jit_stack_expand,0,stack_expand_0,450);
-	FILL_BUFFER(jit_stack_expand,4,stack_expand_4,510);
-	FILL_BUFFER(jit_runtime_error,0,runtime_error,600);
-	FILL_BUFFER(jit_add,0,add,470);
-	FILL_BUFFER(jit_mod,0,mod,312);
+	FILL_BUFFER(jit_boot,NULL,boot);
+	FILL_BUFFER(jit_stack_expand,0,stack_expand_0);
+	FILL_BUFFER(jit_stack_expand,4,stack_expand_4);
+	FILL_BUFFER(jit_runtime_error,0,runtime_error);
+	FILL_BUFFER(jit_add,0,add);
+	FILL_BUFFER(jit_mod,0,mod);
 	for(i=0;i<NARGS;i++) {
-		FILL_BUFFER(jit_call_jit_normal,i,call_normal_jit[i],1270);
-		FILL_BUFFER(jit_call_jit_this,i,call_this_jit[i],1410);
-		FILL_BUFFER(jit_call_jit_tail,i,call_tail_jit[i],570);
+		FILL_BUFFER(jit_call_jit_normal,i,call_normal_jit[i]);
+		FILL_BUFFER(jit_call_jit_this,i,call_this_jit[i]);
+		FILL_BUFFER(jit_call_jit_tail,i,call_tail_jit[i]);
 
-		delta = (i?3:0) + 20 * i;
-		FILL_BUFFER(jit_call_prim_normal,i,call_normal_prim[i],3150 + delta);
-		FILL_BUFFER(jit_call_prim_this,i,call_this_prim[i],3430 + delta);
-		FILL_BUFFER(jit_call_prim_tail,i,call_tail_prim[i],3150 + delta);
+		FILL_BUFFER(jit_call_prim_normal,i,call_normal_prim[i]);
+		FILL_BUFFER(jit_call_prim_this,i,call_this_prim[i]);
+		FILL_BUFFER(jit_call_prim_tail,i,call_tail_prim[i]);
 
-		FILL_BUFFER(jit_call_fun_normal,i,call_normal_fun[i],1240);
-		FILL_BUFFER(jit_call_fun_this,i,call_this_fun[i],1380);
-		FILL_BUFFER(jit_call_fun_tail,i,call_tail_fun[i],1240);
+		FILL_BUFFER(jit_call_fun_normal,i,call_normal_fun[i]);
+		FILL_BUFFER(jit_call_fun_this,i,call_this_fun[i]);
+		FILL_BUFFER(jit_call_fun_tail,i,call_tail_fun[i]);
 	}
 	for(i=0;i<MAX_ENV;i++) {
-		FILL_BUFFER(jit_make_env,i,make_env[i],1080);
+		FILL_BUFFER(jit_make_env,i,make_env[i]);
 	}
 	jit_boot_seq = code->boot;
 }
@@ -2340,7 +2362,7 @@ void neko_module_jit( neko_module *m ) {
 		int curpos = POS();
 		ctx->pos[i] = curpos;
 		ctx->curpc = i + 2;
-		i++;
+
 		// resize buffer
 		if( curpos + MAX_OP_SIZE > ctx->size ) {
 			int nsize = ctx->size ? ctx->size * 2 : MAX_OP_SIZE;
@@ -2350,6 +2372,51 @@ void neko_module_jit( neko_module *m ) {
 			ctx->buf.p = buf2 + curpos;
 			ctx->size = nsize;
 		}
+
+		// --------- debug ---------
+#		ifdef JIT_DEBUG
+		if( ctx->debug_wait )
+			ctx->debug_wait--;
+		else {
+			INIT_BUFFER;
+			XPush_r(ACC);
+
+			// val_print(acc)
+			XPush_r(ACC);
+			XMov_rc(TMP,CONST(val_print));
+			XCall_r(TMP);
+			stack_pop(Esp,1);
+			// val_print(pc_pos)
+			XPush_c(CONST(alloc_int(i)));
+			XMov_rc(TMP,CONST(val_print));
+			XCall_r(TMP);
+			stack_pop(Esp,1);
+			// val_print(alloc_int(spmax - sp))
+			get_var_r(TMP,VSpMax);
+			XSub_rr(TMP,SP);
+			XShr_rc(TMP,1);
+			XOr_rc(TMP,1);
+			XPush_r(TMP);
+			XMov_rc(TMP,CONST(val_print));
+			XCall_r(TMP);
+			stack_pop(Esp,1);
+			// val_print(alloc_int(csp - spmin))
+			XMov_rp(TMP2,VM,FIELD(4)); // SpMin
+			XMov_rr(TMP,CSP);
+			XSub_rr(TMP,TMP2);
+			XSar_rc(TMP,1);
+			XOr_rc(TMP,1);
+			XPush_r(TMP);
+			XMov_rc(TMP,CONST(val_print));
+			XCall_r(TMP);
+			stack_pop(Esp,1);
+
+			XPop_r(ACC);
+			END_BUFFER;
+		}
+#		endif
+
+		i++;
 		jit_opcode(ctx,op,(int)m->code[i]);
 #		ifdef _DEBUG
 		{
@@ -2368,7 +2435,7 @@ void neko_module_jit( neko_module *m ) {
 		ctx->baseptr = rbuf;
 		ctx->buf.p = rbuf + csize;
 		ctx->size = csize;
-#		ifdef _DEBUG
+#		ifdef JIT_DEBUG
 		printf("Jit size = %d ( x%.1f )\n",csize,csize * 1.0 / ((m->codesize + 1) * 4));
 #		endif
 		jit_finalize_context(ctx);
