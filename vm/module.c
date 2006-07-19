@@ -20,6 +20,7 @@
 #include "neko_mod.h"
 #include "vm.h"
 #define PARAMETER_TABLE
+#define STACK_TABLE
 #include "opcodes.h"
 
 DEFINE_KIND(neko_kind_module);

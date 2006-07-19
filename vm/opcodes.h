@@ -154,7 +154,9 @@ static int parameter_table[] = {
 	0, // PhysCompare
 	1, // TailCall
 };
+#endif
 
+#ifdef STACK_TABLE
 #define P	0xFF
 
 static int stack_table[] = {
