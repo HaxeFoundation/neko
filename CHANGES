@@ -9,8 +9,8 @@
 	std : fixed math_pow (integer overflow) , fixed readdir (missing closedir on Linux)
 	added PPC registers
 	neko.h : added NEKO_* OS/CPU flags
+	added JIT for x86
 	(planned) continuations
-	(planned) efficient JIT
 	(todo) think about abstract kinds declaration and interop
 
 2006-05-11 : 1.3
