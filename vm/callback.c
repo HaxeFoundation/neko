@@ -29,11 +29,12 @@ typedef value (*c_prim3)(value,value,value);
 typedef value (*c_prim4)(value,value,value,value);
 typedef value (*c_prim5)(value,value,value,value,value);
 typedef value (*c_primN)(value*,int);
-typedef value (*jit_prim)( neko_vm *, void *, value );
+typedef value (*jit_prim)( neko_vm *, void *, value, neko_module * );
 
 extern void neko_setup_trap( neko_vm *vm, int_val where );
 extern void neko_process_trap( neko_vm *vm );
 extern int neko_stack_expand( int_val *sp, int_val *csp, neko_vm *vm );
+extern char *jit_boot_seq;
 
 EXTERN value val_callEx( value vthis, value f, value *args, int nargs, value *exc ) {
 	neko_vm *vm = NEKO_VM();
@@ -105,15 +106,18 @@ EXTERN value val_callEx( value vthis, value f, value *args, int nargs, value *ex
 				for(n=0;n<nargs;n++)
 					*--vm->sp = (int_val)args[n];
 				vm->env = ((vfunction*)f)->env;
-				if( val_tag(f) == VAL_FUNCTION ) {
-					*++vm->csp = (int_val)callback_return;
-					*++vm->csp = 0;
-					*++vm->csp = 0;
-					*++vm->csp = 0;
+				*++vm->csp = (int_val)callback_return;
+				*++vm->csp = 0;
+				*++vm->csp = 0;
+				*++vm->csp = 0;
+				if( val_tag(f) == VAL_FUNCTION )
 					ret = neko_interp(vm,((vfunction*)f)->module,(int_val)val_null,(int_val*)((vfunction*)f)->addr);
-				} else {
+				else {
 					neko_module *m = (neko_module*)((vfunction*)f)->module;
-					ret = ((jit_prim)val_string(m->jit))(vm,((vfunction*)f)->addr,val_null);
+					ret = ((jit_prim)jit_boot_seq)(vm,((vfunction*)f)->addr,val_null,m);
+					// pop CSP
+					vm->csp -= 3;
+					*--vm->csp = 0;
 				}
 			}
 		}
