@@ -36,6 +36,7 @@ struct _neko_vm {
 	void *jit_val;
 	jmp_buf start;
 	int ncalls;
+	int run_jit;
 	value exc_stack;
 	neko_printer print;
 	void *print_param;

@@ -490,7 +490,9 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 			}
 		}
 	}
-	neko_module_jit(m);
+	// jit ?
+	if( NEKO_VM()->run_jit )
+		neko_module_jit(m);
 	return m;
 }
 

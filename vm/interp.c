@@ -59,6 +59,7 @@ extern field id_add, id_radd, id_sub, id_rsub, id_mult, id_rmult, id_div, id_rdi
 extern field id_get, id_set;
 extern value alloc_module_function( void *m, int_val pos, int nargs );
 extern char *jit_boot_seq;
+extern int neko_can_jit();
 
 value NEKO_TYPEOF[] = {
 	alloc_int(0),
@@ -97,7 +98,17 @@ EXTERN neko_vm *neko_vm_alloc( void *custom ) {
 	vm->csp = vm->spmin - 1;
 	vm->vthis = val_null;
 	vm->env = alloc_array(0);
+	vm->jit_val = NULL;
+	vm->run_jit = 0;
 	return vm;
+}
+
+EXTERN int neko_vm_jit( neko_vm *vm, int enable_jit ) {
+	if( enable_jit ) 
+		vm->run_jit = neko_can_jit();
+	else
+		vm->run_jit = 0;
+	return vm->run_jit;
 }
 
 EXTERN void neko_vm_select( neko_vm *vm ) {

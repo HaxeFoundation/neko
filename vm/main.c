@@ -180,6 +180,13 @@ int main( int argc, char *argv[] ) {
 	_CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_DELAY_FREE_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
 	neko_global_init(&vm);
 	vm = neko_vm_alloc(NULL);
+	if( argc > 1 && strcmp(argv[1],"-interp") == 0 ) {
+		argc--;
+		argv++;
+	} else {
+		neko_vm_jit(vm,1);
+		// ignore error
+	}
 	r = execute(vm,argv,argc);
 	vm = NULL;
 	neko_global_free();
