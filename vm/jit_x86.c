@@ -23,7 +23,7 @@
 #include <math.h>
 #include <stdio.h>
 
-#if defined(NEKO_X86) && defined(_WIN32)
+#if defined(NEKO_X86)
 #define JIT_ENABLE
 #endif
 
@@ -438,7 +438,7 @@ enum IOperation {
 }
 
 #define NARGS (CALL_MAX_ARGS + 1)
-#define MAX_ENV		20
+#define MAX_ENV		8
 
 typedef struct {
 	char *boot;
@@ -455,6 +455,7 @@ typedef struct {
 	char *call_this_fun[NARGS];
 	char *call_tail_fun[NARGS];
 	char *make_env[MAX_ENV];
+	char *make_env_n;
 	char *add;
 	char *mod;
 } jit_code;
@@ -1426,6 +1427,10 @@ static void jit_make_env( jit_ctx *ctx, int esize ) {
 	int *jerr1, *jerr2, *jok;
 	int i;
 
+	if( esize == -1 ) {		
+		XMov_rr(TMP2,TMP); // store esize
+	}
+
 	// check type t_function or t_jit
 	is_int(ACC,true,jerr1);
 	XMov_rp(TMP,ACC,FIELD(0)); // acc->type
@@ -1446,17 +1451,38 @@ static void jit_make_env( jit_ctx *ctx, int esize ) {
 	XPush_r(TMP);
 
 	// call alloc_array(n)
-	XPush_c(esize);
+	if( esize == -1 ) {
+		XPush_r(TMP2);
+	} else {
+		XPush_c(esize);
+	}
 	XMov_rc(TMP,CONST(alloc_array));
 	XCall_r(TMP);
-	stack_pop(Esp,1);
+	if( esize == -1 ) {
+		char *start;
+		int *loop;
+		XPop_r(TMP2);
 
-	// fill array
-	for(i=0;i<esize;i++) {
-		XMov_rp(TMP,SP,FIELD(i));
-		XMov_pr(ACC,FIELD(esize-i),TMP);
+		// fill array
+		start = buf.c;
+		XMov_rp(TMP,SP,FIELD(0));
+		XMov_xr(ACC,TMP2,4,TMP);
+		XMov_pc(SP,FIELD(0),0);
+		stack_pop(SP,1);
+		XSub_rc(TMP2,1);
+		XCmp_rc(TMP2,0);
+		XJump(JNeq,loop);
+		*loop = (int)(start - buf.c);
+	} else {
+		stack_pop(Esp,1);
+
+		// fill array
+		for(i=0;i<esize;i++) {
+			XMov_rp(TMP,SP,FIELD(i));
+			XMov_pr(ACC,FIELD(esize-i),TMP);
+		}
+		pop(esize);
 	}
-	pop(esize);
 
 	// call alloc_module_function
 	XMov_pr(Esp,FIELD(3),ACC); // save acc
@@ -1976,9 +2002,12 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		break;
 	case MakeEnv:
 		XPush_c(GET_PC());
-		if( p >= MAX_ENV )
-			ERROR;
-		label(code->make_env[p]);
+		if( p >= MAX_ENV ) {
+			XMov_rc(TMP,p);
+			label(code->make_env_n);
+		} else {
+			label(code->make_env[p]);
+		}
 		stack_pop(Esp,1);
 		break;
 	case Last:
@@ -2340,6 +2369,7 @@ void neko_init_jit() {
 		FILL_BUFFER(jit_call_fun_this,i,call_this_fun[i]);
 		FILL_BUFFER(jit_call_fun_tail,i,call_tail_fun[i]);
 	}
+	FILL_BUFFER(jit_make_env,-1,make_env_n);
 	for(i=0;i<MAX_ENV;i++) {
 		FILL_BUFFER(jit_make_env,i,make_env[i]);
 	}
