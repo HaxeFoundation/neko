@@ -39,7 +39,7 @@ extern value append_int( neko_vm *vm, value str, int x, bool way );
 extern value append_strings( value s1, value s2 );
 extern value alloc_module_function( void *m, int_val pos, int nargs );
 extern void neko_process_trap( neko_vm *vm );
-extern void neko_setup_trap( neko_vm *vm, int_val where );
+extern void neko_setup_trap( neko_vm *vm );
 extern value NEKO_TYPEOF[];
 
 typedef union {
@@ -469,9 +469,11 @@ typedef struct {
 	char *oop_r[OP_LAST];
 	char *oo_get;
 	char *oo_set;
+	char *handle_trap;
 } jit_code;
 
 char *jit_boot_seq = NULL;
+char *jit_handle_trap = NULL;
 static jit_code *code;
 
 static value *strings;
@@ -596,6 +598,41 @@ static void jit_boot( jit_ctx *ctx, void *_ ) {
 	XPop_r(Ebx);
 	XPop_r(Ebp);
 	XRet();
+	END_BUFFER;
+}
+
+static void jit_trap( jit_ctx *ctx, int n ) {
+	INIT_BUFFER;
+
+	XMov_rp(VM,Esp,FIELD(1));
+	get_var_r(Ebp,VThis);
+
+	// restore vm
+	XPush_r(VM);
+	XMov_rc(TMP,CONST(neko_process_trap));
+	XCall_r(TMP);
+	stack_pop(Esp,1);
+
+	// restore registers
+	end_call();
+	XMov_rr(ACC,Ebp);
+	XMov_rp(Ebp,VM,FIELD(9));
+	XMov_rp(Esp,VM,FIELD(10));
+	XMov_rp(TMP2,VM,FIELD(11));
+
+	// restore vm jmp_buf
+	XPop_r(TMP);
+	XMov_pr(VM,FIELD(11),TMP);
+	XPop_r(TMP);
+	XMov_pr(VM,FIELD(10),TMP);
+	XPop_r(TMP);
+	XMov_pr(VM,FIELD(9),TMP);
+	XPop_r(TMP);
+	XMov_pr(VM,FIELD(8),TMP);
+
+	XPush_r(TMP2);
+	XRet();
+	
 	END_BUFFER;
 }
 
@@ -2127,68 +2164,34 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		break;
 		}
 	case Trap: {
-		int *jset_trap;
-
-		// jump_buf backup;
-		// value save = acc;
-		XSub_rc(Esp,CONST(sizeof(jmp_buf)));
-		XMov_rr(TMP,Esp);
-		XPush_r(ACC);
-
-		// memcpy(backup,vm->start,sizeof(jump_buf))
-
-		XPush_c(sizeof(jmp_buf));
-		XMov_rr(TMP2,VM);
-		XAdd_rc(TMP2,8 * 4); // vm->start
-		XPush_r(TMP2);
+		// save some vm->start on the stack
+		XMov_rp(TMP,VM,FIELD(8));
 		XPush_r(TMP);
-		XMov_rc(TMP,CONST(memcpy));
-		XCall_r(TMP);
-		stack_pop(Esp,1);
-		XPop_r(TMP);
-		stack_pop(Esp,1);
-
-		// if( setjmp(vm->stack) != 0 )
+		XMov_rp(TMP,VM,FIELD(9));
 		XPush_r(TMP);
-		XMov_rc(TMP,CONST(setjmp));
-		XCall_r(TMP);
-		stack_pop(Esp,1);
-		XCmp_rc(ACC,0);
-		XJump(JEq,jset_trap);
-
-		// handle trap : acc = process_trap_jit(vm,backup)
-		stack_pop(Esp,1);
-		XPush_r(Esp);
-		XPush_r(VM);
-		// no begin_call : registers have been modified
-		XMov_rc(TMP,CONST(process_trap_jit));
-		XCall_r(TMP);
-		end_call();
-		stack_pop(Esp,2);
-
-		// restore stack
-		XAdd_rc(Esp,CONST(sizeof(jmp_buf)));
-
+		XMov_rp(TMP,VM,FIELD(10));
+		XPush_r(TMP);
+		XMov_rp(TMP,VM,FIELD(11));
+		XPush_r(TMP);
+		// save magic, ebp , esp and ret_pc
+		XMov_pc(VM,FIELD(8),CONST(jit_handle_trap));
+		XMov_pr(VM,FIELD(9),Ebp);
+		XMov_pr(VM,FIELD(10),Esp);
+		XMov_pc(VM,FIELD(11),-1);
 		{
 			jlist *t = (jlist*)alloc(sizeof(jlist));
 			ctx->buf = buf;
+			t->pos = POS() - 4;
 			t->target = (int)((int_val*)(int_val)p - ctx->module->code);
-			t->pos = POS() + 1;
 			t->next = ctx->traps;
 			ctx->traps = t;
-			XMov_rc(TMP,0);
+		
 		}
-		XJump_r(TMP);
-
-		// else {
-		//    neko_setup_trap(vm)
-		//    acc = save
-		// }
-
-		PATCH_JUMP(jset_trap);
-		XPush_r(VM);
-		begin_call();
+		// neko_setup_trap(vm)
+		XPush_r(ACC);
+		XPush_r(VM);		
 		XMov_rc(TMP,CONST(neko_setup_trap));
+		begin_call();
 		XCall_r(TMP);
 		end_call();
 		stack_pop(Esp,1);
@@ -2206,19 +2209,15 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		runtime_error(19,false); // Invalid End Trap
 		PATCH_JUMP(jok);
 
-		// restore VM jmp_buf : memcpy(vm->start,backup,sizeof(jmp_buf));
-		XMov_rr(TMP,Esp);
-		XPush_r(ACC);
-		XPush_c(sizeof(jmp_buf));
-		XPush_r(TMP);
-		XMov_rr(TMP2,VM);
-		XAdd_rc(TMP2,8 * 4); // vm->start
-		XPush_r(TMP2);
-		XMov_rc(TMP,CONST(memcpy));
-		XCall_r(TMP);
-		stack_pop(Esp,3);
-		XPop_r(ACC);
-		XAdd_rc(Esp,CONST(sizeof(jmp_buf)));
+		// restore VM jmp_buf
+		XPop_r(TMP);
+		XMov_pr(VM,FIELD(11),TMP);
+		XPop_r(TMP);
+		XMov_pr(VM,FIELD(10),TMP);
+		XPop_r(TMP);
+		XMov_pr(VM,FIELD(9),TMP);
+		XPop_r(TMP);
+		XMov_pr(VM,FIELD(8),TMP);
 
 		// trap = val_int(sp[5])
 		XMov_rp(TMP,SP,FIELD(5));
@@ -2385,6 +2384,7 @@ void neko_init_jit() {
 		strings[i] = alloc_string(cstrings[i]);
 	code = (jit_code*)alloc_root(sizeof(jit_code) / sizeof(char*));
 	FILL_BUFFER(jit_boot,NULL,boot);
+	FILL_BUFFER(jit_trap,0,handle_trap);
 	FILL_BUFFER(jit_stack_expand,0,stack_expand_0);
 	FILL_BUFFER(jit_stack_expand,4,stack_expand_4);
 	FILL_BUFFER(jit_runtime_error,0,runtime_error);
@@ -2413,6 +2413,7 @@ void neko_init_jit() {
 		FILL_BUFFER(jit_make_env,i,make_env[i]);
 	}
 	jit_boot_seq = code->boot;
+	jit_handle_trap = code->handle_trap;
 }
 
 void neko_free_jit() {
@@ -2534,6 +2535,7 @@ void neko_module_jit( neko_module *m ) {
 #else // JIT_ENABLE
 
 char *jit_boot_seq = NULL;
+char *jit_handle_trap = (char*)&jit_boot_seq;
 
 void neko_init_jit() {
 }
