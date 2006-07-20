@@ -31,6 +31,9 @@
 
 #ifdef JIT_ENABLE
 
+extern field id_add, id_radd, id_sub, id_rsub, id_mult, id_rmult, id_div, id_rdiv, id_mod, id_rmod;
+extern field id_get, id_set;
+
 extern int neko_stack_expand( int_val *sp, int_val *csp, neko_vm *vm );
 extern value append_int( neko_vm *vm, value str, int x, bool way );
 extern value append_strings( value s1, value s2 );
@@ -95,6 +98,8 @@ enum Operation {
 	OP_SUB,
 	OP_MUL,
 	OP_DIV,
+	OP_MOD,
+	OP_LAST
 };
 
 enum IOperation {
@@ -186,7 +191,7 @@ enum IOperation {
 
 #define XRet()					B(0xC3)
 #define XMov_rr(dst,src)		OP_RM(0x8B,3,dst,src)
-#define XMov_rc(dst,cst)		B(0xB8+dst); W(cst)
+#define XMov_rc(dst,cst)		B(0xB8+(dst)); W(cst)
 #define XMov_rp(dst,reg,idx)	OP_ADDR(0x8B,idx,reg,dst)
 #define XMov_ra(dst,addr)		OP_RM(0x8B,0,dst,5); W(addr)
 #define XMov_rx(dst,r,idx,mult) OP_RM(0x8B,0,dst,4); SIB(Mult##mult,idx,r)
@@ -196,7 +201,7 @@ enum IOperation {
 #define XMov_xr(r,idx,mult,src) OP_RM(0x89,0,src,4); SIB(Mult##mult,idx,r)
 #define XCall_r(r)				OP_RM(0xFF,3,2,r)
 #define XCall_d(delta)			B(0xE8); W(delta)
-#define XPush_r(r)				B(0x50+r)
+#define XPush_r(r)				B(0x50+(r))
 #define XPush_c(cst)			B(0x68); W(cst)
 #define XPush_p(reg,idx)		OP_ADDR(0xFF,idx,reg,6)
 #define XAdd_rc(reg,cst)		if IS_SBYTE(cst) { OP_RM(0x83,3,0,reg); B(cst); } else { OP_RM(0x81,3,0,reg); W(cst); }
@@ -209,7 +214,7 @@ enum IOperation {
 #define XJump(how,local)		if( (how) == JAlways ) { B(0xE9); } else { B(0x0F); B(how); }; local = buf.i; W(0)
 #define XJump_near(local)		B(0xEB); local = buf.c; B(0)
 #define XJump_r(reg)			OP_RM(0xFF,3,4,reg)
-#define XPop_r(reg)				B(0x58 + reg)
+#define XPop_r(reg)				B(0x58 + (reg))
 
 #define XTest_rc(r,cst)			if( r == Eax ) { B(0xA9); W(cst); } else { B(0xF7); MOD_RM(3,0,r); W(cst); }
 #define XTest_rr(r,src)			B(0x85); MOD_RM(3,r,src)
@@ -268,7 +273,7 @@ enum IOperation {
 #define end_call()		{ XMov_rp(SP,VM,FIELD(0)); XMov_rp(CSP,VM,FIELD(1)); }
 #define label(code)		{ XMov_rc(TMP2,CONST(code)); XCall_r(TMP2); }
 
-#define todo(str)		{ int *loop; XMov_rc(TMP,CONST(str)); XJump(JAlways,loop); *loop = -5; }
+#define todo(str)		{ int *loop; XMov_rc(TMP2,CONST(str)); XJump(JAlways,loop); *loop = -5; }
 
 #define pop(n) if( (n) != 0 ) { \
 		int i = (n); \
@@ -458,6 +463,8 @@ typedef struct {
 	char *make_env_n;
 	char *add;
 	char *mod;
+	char *oop[OP_LAST];
+	char *oop_r[OP_LAST];
 } jit_code;
 
 char *jit_boot_seq = NULL;
@@ -486,6 +493,7 @@ static const char *cstrings[] = {
 	"Invalid End Trap", // 18
 	"$hash", // 19
 	"%", // 20
+	"Unsupported operation", // 21
 };
 
 #define DEFINE_PROC(p,arg) ctx->buf = buf; jit_##p(ctx,arg); buf = ctx->buf
@@ -858,7 +866,7 @@ static void jit_call_fun( jit_ctx *ctx, int nargs, int mode ) {
 #define jit_call_fun_tail(ctx,i)		jit_call_fun(ctx,i,TAIL_CALL)
 #define jit_call_fun_this(ctx,i)		jit_call_fun(ctx,i,THIS_CALL)
 
-static void jit_number_op( jit_ctx *ctx, enum OPCODE op ) {
+static void jit_number_op( jit_ctx *ctx, enum Operation op ) {
 	INIT_BUFFER;
 	int *jnot_int1, *jnot_int2, *jint, *jnext;
 	int *jerr1, *jerr2, *jerr3, *jerr4, *jerr5;
@@ -942,7 +950,9 @@ static void jit_number_op( jit_ctx *ctx, enum OPCODE op ) {
 	PATCH_JUMP(jerr2);
 	XCmp_rb(TMP2,VAL_OBJECT);
 	XJump(JNeq,jnext);
-	todo("object op 1");
+	XPush_c(GET_PC());
+	label(code->oop[op]);
+	stack_pop(Esp,1);
 	XJump_near(jend2);
 
 	// is_object(sp) ?
@@ -953,7 +963,9 @@ static void jit_number_op( jit_ctx *ctx, enum OPCODE op ) {
 	PATCH_JUMP(jerr3);
 	XCmp_rb(TMP2,VAL_OBJECT);
 	XJump(JNeq,jerr5);
-	todo("object op 2");
+	XPush_c(GET_PC());
+	label(code->oop_r[op]);
+	stack_pop(Esp,1);
 	XJump_near(jend3);
 
 	// error
@@ -1001,6 +1013,8 @@ static void jit_number_op( jit_ctx *ctx, enum OPCODE op ) {
 	stack_pop(Esp,2);
 
 	if( op != OP_DIV ) PATCH_JUMP(jend);
+	PATCH_JUMP(jend2);
+	PATCH_JUMP(jend3);
 	pop(1);
 	END_BUFFER;
 }
@@ -1185,7 +1199,7 @@ static void jit_add( jit_ctx *ctx, int _ ) {
 	XCmp_rb(TMP2,VAL_OBJECT);
 	XJump(JEq,joop2);
 	PATCH_JUMP(jnext);
-	todo("OROP");
+	label(code->oop[OP_ADD]);
 	END();
 
 	// is_other(acc) && !is_int(sp) && is_string(sp) -> BUF
@@ -1204,7 +1218,7 @@ static void jit_add( jit_ctx *ctx, int _ ) {
 	// object op
 	PATCH_JUMP(joop1);
 	PATCH_JUMP(joop2);
-	todo("OOP");
+	label(code->oop_r[OP_ADD]);
 	END();
 
 	// errors
@@ -1501,6 +1515,65 @@ static void jit_make_env( jit_ctx *ctx, int esize ) {
 	runtime_error(6,true); // Invalid environment
 	END_BUFFER;
 }
+
+
+static void jit_object_op_gen( jit_ctx *ctx, enum Operation op, int right ) {
+	int *next;
+	INIT_BUFFER;
+	// prepare args
+	XPush_r(right?ACC:TMP);
+	XMov_rr(TMP2,Esp);
+	XPush_c(0);
+	XPush_c(1);
+	XPush_r(TMP2);
+	switch( op ) {
+	case OP_ADD:
+		XPush_c(right?id_radd:id_add);
+		break;
+	case OP_SUB:
+		XPush_c(right?id_rsub:id_sub);
+		break;
+	case OP_MUL:
+		XPush_c(right?id_rmult:id_mult);
+		break;
+	case OP_DIV:
+		XPush_c(right?id_rdiv:id_div);
+		break;
+	case OP_MOD:
+		XPush_c(right?id_rmod:id_mod);
+		break;
+	default:
+		ERROR;
+	}
+	XPush_r(right?TMP:ACC);
+	XMov_rc(TMP2,CONST(val_field));
+	XCall_r(TMP2);
+	XCmp_rc(ACC,CONST(val_null));
+	XJump(JNeq,next);
+	stack_pop(Esp,6);
+	runtime_error(21,true); // Unsupported operation
+	PATCH_JUMP(next);
+	XPop_r(TMP);
+	stack_pop(Esp,1);
+	XPush_r(ACC);
+	XPush_r(TMP);
+	begin_call();
+	XMov_rc(TMP2,CONST(val_callEx));
+	XCall_r(TMP2);
+	end_call();
+	stack_pop(Esp,6);
+	XRet();
+	END_BUFFER;
+}
+
+static void jit_object_op( jit_ctx *ctx, enum Operation op ) {
+	jit_object_op_gen(ctx,op,false);
+}
+
+static void jit_object_op_r( jit_ctx *ctx, enum Operation op ) {
+	jit_object_op_gen(ctx,op,true);
+}
+
 
 static value process_trap_jit( neko_vm *vm, jmp_buf backup ) {
 	value exc = vm->vthis;
@@ -2359,6 +2432,10 @@ void neko_init_jit() {
 	FILL_BUFFER(jit_stack_expand,0,stack_expand_0);
 	FILL_BUFFER(jit_stack_expand,4,stack_expand_4);
 	FILL_BUFFER(jit_runtime_error,0,runtime_error);
+	for(i=0;i<OP_LAST;i++) {
+		FILL_BUFFER(jit_object_op,i,oop[i]);
+		FILL_BUFFER(jit_object_op_r,i,oop_r[i]);
+	}
 	FILL_BUFFER(jit_add,0,add);
 	FILL_BUFFER(jit_mod,0,mod);
 	for(i=0;i<NARGS;i++) {
