@@ -1532,13 +1532,6 @@ static void jit_object_set( jit_ctx *ctx, int _ ) {
 	jit_object_op_gen(ctx,OP_SET,true);
 }
 
-static value process_trap_jit( neko_vm *vm, jmp_buf backup ) {
-	value exc = vm->vthis;
-	memcpy(vm->start,backup,sizeof(jmp_buf));
-	neko_process_trap(vm);
-	return exc;
-}
-
 static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 	INIT_BUFFER;
 	int i;
