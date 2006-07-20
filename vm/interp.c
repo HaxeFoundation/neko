@@ -416,14 +416,14 @@ static value neko_flush_stack( int_val *cspup, int_val *csp, value old ) {
 	return stack_trace;
 }
 
-void neko_setup_trap( neko_vm *vm, int_val where ) {
+void neko_setup_trap( neko_vm *vm ) {
 	vm->sp -= 6;
 	if( vm->sp <= vm->csp && !neko_stack_expand(vm->sp,vm->csp,vm) )
 		val_throw(alloc_string("Stack Overflow"));
 	vm->sp[0] = (int_val)alloc_int((int_val)(vm->csp - vm->spmin));
 	vm->sp[1] = (int_val)vm->vthis;
 	vm->sp[2] = (int_val)vm->env;
-	vm->sp[3] = address_int(where);
+	vm->sp[3] = address_int(vm->jit_val);
 	vm->sp[4] = (int_val)val_null;
 	vm->sp[5] = (int_val)alloc_int((int_val)vm->trap);
 	vm->trap = vm->spmax - vm->sp;
@@ -445,6 +445,7 @@ void neko_process_trap( neko_vm *vm ) {
 	// restore state
 	vm->vthis = (value)trap[1];
 	vm->env = (value)trap[2];
+	vm->jit_val = int_address(trap[3]);
 
 	// pop sp
 	sp = trap + 6;
