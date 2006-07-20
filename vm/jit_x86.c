@@ -583,12 +583,14 @@ static void jit_boot( jit_ctx *ctx, void *_ ) {
 	XPush_r(Esi);
 	XPush_r(Edi);
 	XMov_rp(VM,Esp,FIELD(5));
+	get_var_r(Ebp,VModule);
 	set_var_p(VModule,Esp,FIELD(8));
 	XMov_rp(TMP,Esp,FIELD(6));
 	XMov_rp(ACC,Esp,FIELD(7));
 	end_call();
 	XCall_r(TMP);
 	begin_call();
+	set_var_r(VModule,Ebp);
 	XPop_r(Edi);
 	XPop_r(Esi);
 	XPop_r(Ebx);
@@ -649,7 +651,7 @@ static void jit_test( jit_ctx *ctx, int how ) {
 	// test ok and != invalid_comparison
 	XCmp_rc(ACC,0);
 	XJump(how,jnot1);
-	XCmp_rb(ACC,invalid_comparison);
+	XCmp_rc(ACC,invalid_comparison);
 	XJump(JEq,jnot2);
 	XMov_rc(ACC,CONST(val_true));
 	XJump_near(jend);
@@ -1815,7 +1817,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		// test if ok and != invalid_comparison
 		XCmp_rc(ACC,0);
 		XJump(JNeq,jnot1);
-		XCmp_rb(ACC,invalid_comparison);
+		XCmp_rc(ACC,invalid_comparison);
 		XJump(JEq,jnot2);
 		XMov_rc(ACC,CONST(val_false));
 		XJump_near(jend);
@@ -2237,7 +2239,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		end_call();
 		stack_pop(Esp,2);
 
-		XCmp_rb(ACC,invalid_comparison);
+		XCmp_rc(ACC,invalid_comparison);
 		XJump(JNeq,jint);
 		XMov_rc(ACC,CONST(val_null));
 		XJump_near(jend);
