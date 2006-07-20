@@ -28,6 +28,8 @@ DEFINE_KIND(k_hash);
 extern _context *neko_fields_context;
 extern field id_compare;
 extern field id_string;
+extern char *jit_handle_trap;
+typedef void (*jit_handle)( neko_vm * );
 
 static INLINE int icmp( int a, int b ) {
 	return (a == b)?0:((a < b)?-1:1);
@@ -428,13 +430,19 @@ EXTERN void val_throw( value v ) {
 	neko_vm *vm = NEKO_VM();
 	vm->exc_stack = alloc_array(0);
 	vm->vthis = v;
-	longjmp(vm->start,1);
+	if( *(char**)vm->start == jit_handle_trap )
+		((jit_handle)jit_handle_trap)(vm);
+	else
+		longjmp(vm->start,1);
 }
 
 EXTERN void val_rethrow( value v ) {
 	neko_vm *vm = NEKO_VM();
 	vm->vthis = v;
-	longjmp(vm->start,1);
+	if( *(char**)vm->start == jit_handle_trap )
+		((jit_handle)jit_handle_trap)(vm);
+	else
+		longjmp(vm->start,1);
 }
 
 static value failure_to_string() {
