@@ -296,7 +296,6 @@ EXTERN void neko_global_init( void *s ) {
 	neko_vm_context = context_new();
 	neko_fields_context = context_new();
 	neko_init_builtins();
-	neko_init_jit();
 	id_loader = val_id("loader");
 	id_exports = val_id("exports");
 	id_cache = val_id("cache");
@@ -319,6 +318,7 @@ EXTERN void neko_global_init( void *s ) {
 	INIT_ID(set);
 	apply_string = alloc_root(1);
 	*apply_string = alloc_string("apply");
+	neko_init_jit();
 }
 
 EXTERN void neko_global_free() {
