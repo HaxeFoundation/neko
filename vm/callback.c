@@ -31,7 +31,7 @@ typedef value (*c_prim5)(value,value,value,value,value);
 typedef value (*c_primN)(value*,int);
 typedef value (*jit_prim)( neko_vm *, void *, value, neko_module * );
 
-extern void neko_setup_trap( neko_vm *vm, int_val where );
+extern void neko_setup_trap( neko_vm *vm );
 extern void neko_process_trap( neko_vm *vm );
 extern int neko_stack_expand( int_val *sp, int_val *csp, neko_vm *vm );
 extern char *jit_boot_seq;
@@ -58,7 +58,7 @@ EXTERN value val_callEx( value vthis, value f, value *args, int nargs, value *ex
 			vm->ncalls = old_ncalls;
 			return val_null;
 		}
-		neko_setup_trap(vm,0);
+		neko_setup_trap(vm);
 	}
 	if( val_is_int(f) )
 		val_throw(alloc_string("Invalid call"));
