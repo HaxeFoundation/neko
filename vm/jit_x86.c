@@ -99,7 +99,10 @@ enum Operation {
 	OP_MUL,
 	OP_DIV,
 	OP_MOD,
-	OP_LAST
+	OP_LAST,
+
+	OP_GET,
+	OP_SET
 };
 
 enum IOperation {
@@ -464,6 +467,8 @@ typedef struct {
 	char *mod;
 	char *oop[OP_LAST];
 	char *oop_r[OP_LAST];
+	char *oo_get;
+	char *oo_set;
 } jit_code;
 
 char *jit_boot_seq = NULL;
@@ -1314,7 +1319,11 @@ static void jit_array_access( jit_ctx *ctx, int n ) {
 	PATCH_JUMP(jnot_array);
 	XCmp_rb(TMP2,VAL_OBJECT);
 	XJump(JNeq,jerr2);
-	todo("Object Array Access");
+	XPush_c(GET_PC());
+	XMov_rr(TMP,ACC);
+	XMov_rc(ACC,CONST(alloc_int(n)));
+	label(code->oo_get);
+	stack_pop(Esp,1);
 	XJump_near(jend3);
 	PATCH_JUMP(jerr1);
 	PATCH_JUMP(jerr2);
@@ -1414,9 +1423,13 @@ static void jit_object_op_gen( jit_ctx *ctx, enum Operation op, int right ) {
 
 	// prepare args
 	XPush_r(right?REG_TMP:REG_ACC);
+	if( op == OP_SET ) {		
+		XMov_rp(TMP2,Esp,FIELD(3));
+		XPush_r(TMP2);
+	}
 	XMov_rr(TMP2,Esp);
 	XPush_c(0);
-	XPush_c(1);
+	XPush_c((op == OP_SET)?2:1);
 	XPush_r(TMP2);
 	switch( op ) {
 	case OP_ADD:
@@ -1434,6 +1447,12 @@ static void jit_object_op_gen( jit_ctx *ctx, enum Operation op, int right ) {
 	case OP_MOD:
 		XPush_c(right?id_rmod:id_mod);
 		break;
+	case OP_GET:
+		XPush_c(id_get);
+		break;
+	case OP_SET:
+		XPush_c(id_set);
+		break;
 	default:
 		ERROR;
 	}
@@ -1442,7 +1461,7 @@ static void jit_object_op_gen( jit_ctx *ctx, enum Operation op, int right ) {
 	XCall_r(TMP2);
 	XCmp_rc(ACC,CONST(val_null));
 	XJump(JNeq,next);
-	stack_pop(Esp,6);
+	stack_pop(Esp,(op == OP_SET)?7:6);
 	runtime_error(21,true); // Unsupported operation
 	PATCH_JUMP(next);
 	XPop_r(TMP);
@@ -1453,7 +1472,7 @@ static void jit_object_op_gen( jit_ctx *ctx, enum Operation op, int right ) {
 	XMov_rc(TMP2,CONST(val_callEx));
 	XCall_r(TMP2);
 	end_call();
-	stack_pop(Esp,6);
+	stack_pop(Esp,(op == OP_SET)?7:6);
 	XRet();
 	END_BUFFER;
 }
@@ -1466,6 +1485,13 @@ static void jit_object_op_r( jit_ctx *ctx, enum Operation op ) {
 	jit_object_op_gen(ctx,op,true);
 }
 
+static void jit_object_get( jit_ctx *ctx, int _ ) {
+	jit_object_op_gen(ctx,OP_GET,true);
+}
+
+static void jit_object_set( jit_ctx *ctx, int _ ) {
+	jit_object_op_gen(ctx,OP_SET,true);
+}
 
 static value process_trap_jit( neko_vm *vm, jmp_buf backup ) {
 	value exc = vm->vthis;
@@ -1551,7 +1577,9 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		PATCH_JUMP(jnot_array);
 		XCmp_rb(TMP2,VAL_OBJECT);
 		XJump(JNeq,jerr3);
-		todo("Object Array Access");
+		XPush_c(GET_PC());
+		label(code->oo_get);
+		stack_pop(Esp,1);
 		XJump_near(jend3);
 
 		PATCH_JUMP(jerr1);
@@ -1677,7 +1705,12 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		PATCH_JUMP(jnot_array);
 		XCmp_rb(TMP2,VAL_OBJECT);
 		XJump(JNeq,jerr3);
-		todo("Object Array Access");
+
+		XMov_rp(TMP2,SP,FIELD(1)); // index
+		XPush_r(TMP2);
+		XPush_c(GET_PC());
+		label(code->oo_set);
+		stack_pop(Esp,2);
 		XJump_near(jend3);
 
 		PATCH_JUMP(jerr1);
@@ -1711,7 +1744,10 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		PATCH_JUMP(jnot_array);
 		XCmp_rb(TMP2,VAL_OBJECT);
 		XJump(JNeq,jerr2);
-		todo("Object Array Access");
+		XPush_c(CONST(alloc_int(p)));
+		XPush_c(GET_PC());
+		label(code->oo_set);
+		stack_pop(Esp,2);
 		XJump_near(jend3);
 
 		PATCH_JUMP(jerr1);
@@ -2327,6 +2363,8 @@ void neko_init_jit() {
 		FILL_BUFFER(jit_object_op,i,oop[i]);
 		FILL_BUFFER(jit_object_op_r,i,oop_r[i]);
 	}
+	FILL_BUFFER(jit_object_get,0,oo_get);
+	FILL_BUFFER(jit_object_set,0,oo_set);
 	FILL_BUFFER(jit_add,0,add);
 	for(i=0;i<NARGS;i++) {
 		FILL_BUFFER(jit_call_jit_normal,i,call_normal_jit[i]);
