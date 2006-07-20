@@ -2009,15 +2009,30 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		XMov_rp(TMP,Esp,FIELD(1)); // tmp = saved acc
 		XMov_pr(ACC,FIELD(1),TMP); // val_array_ptr(acc)[0] = tmp
 		stack_pop(Esp,2);
-		i = 0;
-		while( p > 0 ) {
-			p--;
-			i++;
-			XMov_rp(TMP,SP,FIELD(p));
-			XMov_pr(ACC,FIELD(i + 1),TMP);
-			XMov_pc(SP,FIELD(p),0);
+		if( p < 6 ) {
+			i = 0;
+			while( p > 0 ) {
+				p--;
+				i++;
+				XMov_rp(TMP,SP,FIELD(p));
+				XMov_pr(ACC,FIELD(i + 1),TMP);
+				XMov_pc(SP,FIELD(p),0);
+			}
+			stack_pop(SP,i);
+		} else {
+			char *start;
+			int *loop;			
+			XMov_rc(TMP2,(p+1));
+			start = buf.c;
+			XMov_rp(TMP,SP,FIELD(0));
+			XMov_pc(SP,FIELD(0),0);
+			XMov_xr(ACC,TMP2,4,TMP);
+			stack_pop(SP,1);
+			XSub_rc(TMP2,1);
+			XCmp_rc(TMP2,1);
+			XJump(JNeq,loop);
+			*loop = (int)(start - buf.c);
 		}
-		stack_pop(SP,i);
 		break;
 	case MakeEnv:
 		XPush_c(GET_PC());
