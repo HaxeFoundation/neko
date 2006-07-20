@@ -173,7 +173,7 @@ void serialize_rec( sbuffer *b, value o ) {
 			if( s != NULL ) {
 				// cancel reference
 				b->refs = b->refs->next;
-				if( !val_is_function(s) || val_tag(s) != VAL_FUNCTION || (val_fun_nargs(s) != 0 && val_fun_nargs(s) != VAR_ARGS) )
+				if( !val_is_function(s) || (val_fun_nargs(s) != 0 && val_fun_nargs(s) != VAR_ARGS) )
 					failure("Invalid __serialize method");
 				write_char(b,'x');
 				serialize_rec(b,((neko_module*)((vfunction*)s)->module)->name);
