@@ -1199,7 +1199,7 @@ static void jit_add( jit_ctx *ctx, int _ ) {
 	XCmp_rb(TMP2,VAL_OBJECT);
 	XJump(JEq,joop2);
 	PATCH_JUMP(jnext);
-	label(code->oop[OP_ADD]);
+	label(code->oop_r[OP_ADD]);
 	END();
 
 	// is_other(acc) && !is_int(sp) && is_string(sp) -> BUF
@@ -1218,7 +1218,7 @@ static void jit_add( jit_ctx *ctx, int _ ) {
 	// object op
 	PATCH_JUMP(joop1);
 	PATCH_JUMP(joop2);
-	label(code->oop_r[OP_ADD]);
+	label(code->oop[OP_ADD]);
 	END();
 
 	// errors
@@ -1516,12 +1516,15 @@ static void jit_make_env( jit_ctx *ctx, int esize ) {
 	END_BUFFER;
 }
 
+#define REG_ACC ((op == OP_ADD)?ACC:TMP)
+#define REG_TMP	((op == OP_ADD)?TMP:ACC)
 
 static void jit_object_op_gen( jit_ctx *ctx, enum Operation op, int right ) {
 	int *next;
 	INIT_BUFFER;
+
 	// prepare args
-	XPush_r(right?ACC:TMP);
+	XPush_r(right?REG_TMP:REG_ACC);
 	XMov_rr(TMP2,Esp);
 	XPush_c(0);
 	XPush_c(1);
@@ -1545,7 +1548,7 @@ static void jit_object_op_gen( jit_ctx *ctx, enum Operation op, int right ) {
 	default:
 		ERROR;
 	}
-	XPush_r(right?TMP:ACC);
+	XPush_r(right?REG_ACC:REG_TMP);
 	XMov_rc(TMP2,CONST(val_field));
 	XCall_r(TMP2);
 	XCmp_rc(ACC,CONST(val_null));
@@ -1988,14 +1991,14 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		XAdd_rr(ACC,TMP);
 		XSub_rc(ACC,1);
 		XJump_near(jend);
-		PATCH_JUMP(jnot_int);
 
 		// is_float(acc) && is_float(sp)
+		PATCH_JUMP(jnot_int);
 		XMov_rp(TMP2,ACC,FIELD(0));
 		XCmp_rb(TMP2,VAL_FLOAT);
 		XJump(JNeq,jnot_float1);
 		is_int(TMP,true,jint);
-		XMov_rp(TMP2,ACC,FIELD(0));
+		XMov_rp(TMP2,TMP,FIELD(0));
 		XCmp_rb(TMP2,VAL_FLOAT);
 		XJump(JNeq,jnot_float2);
 		XAdd_rc(ACC,8);
@@ -2013,6 +2016,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		// else...
 		PATCH_JUMP(jint);
 		PATCH_JUMP(jnot_float1);
+		PATCH_JUMP(jnot_float2);
 		PATCH_JUMP(jnot_int2);
 		XPush_c(GET_PC());
 		label(code->add);
