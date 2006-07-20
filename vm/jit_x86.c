@@ -247,7 +247,6 @@ enum IOperation {
 #define XFStp_i(r)				B(0xDD); MOD_RM(0,3,r); if( r == Esp ) B(0x24)
 #define XFLd_i(r)				B(0xDD); MOD_RM(0,0,r); if( r == Esp ) B(0x24)
 #define XFILd_i(r)				B(0xDB); MOD_RM(0,0,r); if( r == Esp ) B(0x24)
-#define XFILd_r(r)				B(0xDB); MOD_RM(3,0,r)
 
 #define is_int(r,flag,local)	{ XTest_rc(r,1); XJump((flag)?JNeq:JEq,local); }
 
@@ -483,16 +482,16 @@ static const char *cstrings[] = {
 	"-", // 8
 	"*", // 9
 	"/", // 10
-	"<<", // 11
-	">>", // 12
-	">>>", // 13
-	"&", // 14
-	"|", // 15
-	"^", // 16
-	"$apply", // 17
-	"Invalid End Trap", // 18
-	"$hash", // 19
-	"%", // 20
+	"%", // 11
+	"<<", // 12
+	">>", // 13
+	">>>", // 14
+	"&", // 15
+	"|", // 16
+	"^", // 17
+	"$apply", // 18
+	"Invalid End Trap", // 19
+	"$hash", // 20
 	"Unsupported operation", // 21
 };
 
@@ -873,6 +872,7 @@ static void jit_number_op( jit_ctx *ctx, enum Operation op ) {
 	int *jfloat1, *jend;
 	char *jfloat2, *jfloat3;
 	char *jend2, *jend3;
+	int *jmod0 = NULL;
 
 	// acc <=> sp
 	XMov_rr(TMP,ACC);
@@ -895,6 +895,13 @@ static void jit_number_op( jit_ctx *ctx, enum Operation op ) {
 			break;
 		case OP_MUL:
 			XIMul_rr(ACC,TMP);
+			break;
+		case OP_MOD:
+			XCmp_rc(TMP,0);
+			XJump(JEq,jmod0);
+			XCdq();
+			XIDiv_r(TMP);
+			XMov_rr(ACC,Edx);
 			break;
 		default:
 			ERROR;
@@ -969,6 +976,9 @@ static void jit_number_op( jit_ctx *ctx, enum Operation op ) {
 	XJump_near(jend3);
 
 	// error
+	if( op == OP_MOD ) {
+		PATCH_JUMP(jmod0);
+	}
 	PATCH_JUMP(jerr5);
 	PATCH_JUMP(jerr4);
 	runtime_error(7 + op,false);
@@ -1001,12 +1011,23 @@ static void jit_number_op( jit_ctx *ctx, enum Operation op ) {
 	case OP_MUL:
 		XFMulp();
 		break;
+	case OP_MOD:
+		stack_push(Esp,2);
+		XFStp_i(Esp);
+		stack_push(Esp,2);
+		XFStp_i(Esp);
+		XMov_rc(TMP,CONST(fmod));
+		XCall_r(TMP);
+		stack_pop(Esp,2);
+		break;
 	default:
 		ERROR;
 		break;
 	}
 
-	stack_push(Esp,2);
+	if( op != OP_MOD ) {
+		stack_push(Esp,2);
+	}
 	XFStp_i(Esp);
 	XMov_rc(TMP,CONST(alloc_float));
 	XCall_r(TMP);
@@ -1061,7 +1082,7 @@ static void jit_int_op( jit_ctx *ctx, enum IOperation op ) {
 
 	PATCH_JUMP(jerr1);
 	PATCH_JUMP(jerr2);
-	runtime_error(11 + op,false);
+	runtime_error(12 + op,false);
 	PATCH_JUMP(jend);
 	pop(1);
 
@@ -1262,138 +1283,6 @@ static void jit_add( jit_ctx *ctx, int _ ) {
 	while( nends-- > 0 ) {
 		PATCH_JUMP(jends[nends]);
 	}
-	XRet();
-
-	END_BUFFER;
-}
-
-static void jit_mod( jit_ctx *ctx, int _ ) {
-	INIT_BUFFER;
-	int *jnot_int1, *jnot_int2, *jnot_int3, *jmod0;
-	int *jerr1, *jerr2, *jskip_acc, *jskip_sp, *jnext2;
-	int *jend1;
-	char *jend2, *jend3, *jend4, *jnext;
-
-	// acc <=> sp
-	XMov_rr(TMP,ACC);
-	XMov_rp(ACC,SP,FIELD(0));
-
-	// is_int(sp) && is_int(acc)
-	is_int(TMP,false,jnot_int1);
-	is_int(ACC,false,jnot_int2);
-	XSar_rc(ACC,1);
-	XSar_rc(TMP,1);
-	XCmp_rc(TMP,0);
-	XJump(JEq,jmod0);
-	XCdq();
-	XIDiv_r(TMP);
-	XMov_rr(ACC,Edx);
-	XShl_rc(ACC,1);
-	XOr_rc(ACC,1);
-	XJump(JAlways,jend1);
-
-	// is_float(sp) ? push val_float(sp)
-	PATCH_JUMP(jnot_int1);
-    XMov_rp(TMP2,TMP,FIELD(0));
-	XCmp_rb(TMP2,VAL_FLOAT);
-	XJump(JNeq,jerr1);
-	stack_push(Esp,2);
-	XMov_rp(TMP2,TMP,FIELD(4));
-	XMov_pr(Esp,FIELD(0),TMP2);
-	XMov_rp(TMP2,TMP,FIELD(3));
-	XMov_pr(Esp,FIELD(1),TMP2);
-	XJump_near(jnext);
-
-	// push val_int(sp)
-	PATCH_JUMP(jnot_int2);
-	stack_push(Esp,1);
-	XSar_rc(TMP,1);
-	XPush_r(TMP);
-	XFILd_i(Esp);
-	XFStp_i(Esp);
-
-	// is_int(acc) ? push val_int(acc)
-	PATCH_JUMP(jnext);
-	is_int(ACC,false,jnot_int3);
-	stack_push(Esp,1);
-	XSar_rc(ACC,1);
-	XPush_r(ACC);
-	XFILd_i(Esp);
-	XFStp_i(Esp);
-	XJump_near(jnext);
-
-	// is_float(acc) ? push val_float(acc)
-	PATCH_JUMP(jnot_int3);
-    XMov_rp(TMP2,ACC,FIELD(0));
-	XCmp_rb(TMP2,VAL_FLOAT);
-	XJump(JNeq,jerr2);
-	stack_push(Esp,2);
-	XMov_rp(TMP2,ACC,FIELD(4));
-	XMov_pr(Esp,FIELD(0),TMP2);
-	XMov_rp(TMP2,ACC,FIELD(3));
-	XMov_pr(Esp,FIELD(1),TMP2);
-
-	// alloc_float(fmod(sp,acc))
-	PATCH_JUMP(jnext);
-	XMov_rc(TMP,CONST(fmod));
-	XCall_r(TMP);
-	XFStp_i(Esp);
-	XMov_rc(TMP,CONST(alloc_float));
-	XCall_r(TMP);
-	stack_pop(Esp,4);
-	XJump_near(jend2);
-
-	// pop stack
-	PATCH_JUMP(jerr2);
-	stack_pop(Esp,2);
-	XJump_near(jnext);
-
-	// is_object(acc) ?
-	PATCH_JUMP(jerr1);
-	is_int(ACC,true,jskip_acc);
-	XMov_rp(TMP2,ACC,FIELD(0));
-	PATCH_JUMP(jnext);
-	XCmp_rb(TMP2,VAL_OBJECT);
-	XJump(JNeq,jnext2);
-	todo("object op 1");
-	XJump_near(jend3);
-
-	// is_object(sp) ?
-	PATCH_JUMP(jnext2);
-	is_int(TMP,true,jskip_sp);
-	XMov_rp(TMP2,SP,FIELD(0));
-	PATCH_JUMP(jskip_acc);
-	XCmp_rb(TMP2,VAL_OBJECT);
-	XJump(JNeq,jnext2);
-	todo("object op 2");
-	XJump_near(jend4);
-
-	// error
-	PATCH_JUMP(jnext2);
-	PATCH_JUMP(jskip_sp);
-	runtime_error(20,true); // %
-
-	// call fmod( (tfloat)a, (tfloat)b )
-	PATCH_JUMP(jmod0);
-	stack_push(Esp,2);
-	XFILd_r(TMP);
-	XFStp_i(Esp);
-	stack_push(Esp,2);
-	XFILd_r(ACC);
-	XFStp_i(Esp);
-	XMov_rc(TMP,CONST(fmod));
-	XCall_r(TMP);
-	XFStp_i(Esp);
-	XMov_rc(TMP,CONST(alloc_float));
-	XCall_r(TMP);
-	stack_pop(Esp,4);
-
-	// bye
-	PATCH_JUMP(jend1);
-	PATCH_JUMP(jend2);
-	PATCH_JUMP(jend3);
-	PATCH_JUMP(jend4);
-	pop(1);
 	XRet();
 
 	END_BUFFER;
@@ -2035,6 +1924,9 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 	case Mult:
 		number_op(OP_MUL);
 		break;
+	case Mod:
+		number_op(OP_MOD);
+		break;
 	case Shl:
 		int_op(IOP_SHL);
 		break;
@@ -2109,7 +2001,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 
 		PATCH_JUMP(jerr1);
 		PATCH_JUMP(jerr2);
-		runtime_error(17,false); // $apply
+		runtime_error(18,false); // $apply
 
 		// build the apply
 		PATCH_JUMP(jnext);
@@ -2246,7 +2138,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		XSub_rr(TMP,TMP2);
 		XCmp_rr(TMP,SP);
 		XJump(JEq,jok);
-		runtime_error(18,false); // Invalid End Trap
+		runtime_error(19,false); // Invalid End Trap
 		PATCH_JUMP(jok);
 
 		// restore VM jmp_buf : memcpy(vm->start,backup,sizeof(jmp_buf));
@@ -2346,7 +2238,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		XJump_near(jend);
 		PATCH_JUMP(jerr1);
 		PATCH_JUMP(jerr2);
-		runtime_error(19,false); // $hash
+		runtime_error(20,false); // $hash
 		PATCH_JUMP(jend);
 		break;
 		}
@@ -2389,11 +2281,6 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 
 		break;
 		}
-	case Mod:
-		XPush_c(GET_PC());
-		label(code->mod);
-		stack_pop(Esp,1);
-		break;
 	default:
 		ERROR;
 	}
@@ -2441,7 +2328,6 @@ void neko_init_jit() {
 		FILL_BUFFER(jit_object_op_r,i,oop_r[i]);
 	}
 	FILL_BUFFER(jit_add,0,add);
-	FILL_BUFFER(jit_mod,0,mod);
 	for(i=0;i<NARGS;i++) {
 		FILL_BUFFER(jit_call_jit_normal,i,call_normal_jit[i]);
 		FILL_BUFFER(jit_call_jit_this,i,call_this_jit[i]);

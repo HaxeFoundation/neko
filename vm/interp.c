@@ -832,11 +832,8 @@ static int_val interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_v
 		*sp++ = ERASE;
 		Next;
 	Instr(Mod)
-		if( acc == 1 && val_is_number(*sp) ) {
-			acc	= (int_val)alloc_float( fmod(((tfloat)val_number(*sp)),val_number(acc)) );
-			*sp++ = ERASE;
-			Next;
-		}
+		if( acc == 1 && val_is_int(*sp) )
+			RuntimeError("%",false);
 		NumberOp(%,fmod,id_mod,id_rmod);
 	Instr(Shl)
 		IntOp(<<);

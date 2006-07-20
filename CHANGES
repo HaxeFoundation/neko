@@ -10,6 +10,7 @@
 	added PPC registers
 	neko.h : added NEKO_* OS/CPU flags
 	added JIT for x86
+	vm : (int mod 0) is now an exception (and not NaN)
 	(planned) continuations
 	(todo) think about abstract kinds declaration and interop
 
