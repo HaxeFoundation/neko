@@ -1601,20 +1601,30 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		array_access(1);
 		break;
 	case AccField: {
-		int *jerr1, *jerr2, *jend1;
-		char *jend2;
+		int *jerr1, *jerr2, *jend1, *loop;
+		char *jend2, *start;
+		
 		is_int(ACC,true,jerr1);
 		XMov_rp(TMP,ACC,FIELD(0));
 		XCmp_rb(TMP,VAL_OBJECT);
 		XJump(JNeq,jerr2);
+		XPush_r(VM);
+		XMov_rr(VM,ACC);
 		XPush_c(p);
-		XMov_rp(TMP,ACC,FIELD(1));
+		start = buf.c;
+		XMov_rp(TMP,VM,FIELD(1));
 		XPush_r(TMP);
 		XMov_rc(TMP,CONST(otable_find));
-		XCall_r(TMP);
-		stack_pop(Esp,2);
+		XCall_r(TMP);		
 		XCmp_rc(ACC,0);
 		XJump(JNeq,jend1);
+		stack_pop(Esp,1);
+		XMov_rp(VM,VM,FIELD(2)); // acc = acc->proto
+		XCmp_rc(VM,0);
+		XJump(JNeq,loop);
+		*loop = (int)(start - buf.c);
+		stack_pop(Esp,1);
+		XPop_r(VM);
 		XMov_rc(ACC,CONST(val_null));
 		XJump_near(jend2);
 
@@ -1623,6 +1633,8 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		runtime_error(5,false); // Invalid field access
 
 		PATCH_JUMP(jend1);
+		stack_pop(Esp,2);
+		XPop_r(VM);
 		XMov_rp(ACC,ACC,FIELD(0));
 		PATCH_JUMP(jend2);
 		break;
