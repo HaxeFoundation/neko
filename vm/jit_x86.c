@@ -469,6 +469,7 @@ typedef struct {
 	char *oo_get;
 	char *oo_set;
 	char *handle_trap;
+	char *invalid_access;
 } jit_code;
 
 char *jit_boot_seq = NULL;
@@ -665,6 +666,44 @@ static void jit_runtime_error( jit_ctx *ctx, void *unused ) {
 	begin_call();
 	XMov_rp(TMP,Esp,FIELD(2)); // msg on stack
 	XPush_r(TMP);
+	XMov_rc(TMP,CONST(val_throw));
+	XCall_r(TMP);
+	END_BUFFER;
+}
+
+static void jit_invalid_access( jit_ctx *ctx, int _ ) {
+	INIT_BUFFER;
+	int *jnext;
+
+	// if( val_field_name(f) == val_null ) RuntimeError("Invalid field access")
+	XMov_rp(TMP,Esp,FIELD(2)); // field
+	XPush_r(TMP);
+	XMov_rc(TMP,CONST(val_field_name));
+	XCall_r(TMP);
+	stack_pop(Esp,1);
+	XCmp_rc(ACC,CONST(val_null));
+	XJump(JNeq,jnext);
+	runtime_error(5,true);
+
+	// else {
+	//    b = alloc_buffer("Invalid field access : ");
+	PATCH_JUMP(jnext);
+	XPush_r(ACC);
+	XPush_c(CONST("Invalid field access : "));
+	XMov_rc(TMP,CONST(alloc_buffer));
+	XCall_r(TMP);
+	stack_pop(Esp,1);
+	//    val_buffer(b,v);
+	XPush_r(ACC);
+	XMov_rc(TMP,CONST(val_buffer));
+	XCall_r(TMP);
+	//    buffer_to_string(b);
+	XMov_rc(TMP,CONST(buffer_to_string));
+	XCall_r(TMP);
+	stack_pop(Esp,2);
+	push_infos(PC_ARG); // pc
+	begin_call();
+	XPush_r(ACC);
 	XMov_rc(TMP,CONST(val_throw));
 	XCall_r(TMP);
 	END_BUFFER;
@@ -1657,7 +1696,9 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 
 		PATCH_JUMP(jerr1);
 		PATCH_JUMP(jerr2);
-		runtime_error(5,false); // Invalid field access
+		XPush_c(p);
+		XPush_c(GET_PC());
+		label(code->invalid_access);
 
 		PATCH_JUMP(jend1);
 		stack_pop(Esp,2);
@@ -2376,6 +2417,7 @@ void neko_init_jit() {
 	FILL_BUFFER(jit_stack_expand,0,stack_expand_0);
 	FILL_BUFFER(jit_stack_expand,4,stack_expand_4);
 	FILL_BUFFER(jit_runtime_error,0,runtime_error);
+	FILL_BUFFER(jit_invalid_access,0,invalid_access);
 	for(i=0;i<OP_LAST;i++) {
 		FILL_BUFFER(jit_object_op,i,oop[i]);
 		FILL_BUFFER(jit_object_op_r,i,oop_r[i]);
