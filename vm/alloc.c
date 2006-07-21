@@ -31,6 +31,12 @@
 #	include "gc/gc.h"
 #endif
 
+typedef struct _klist {
+	const char *name;
+	vkind k;
+	struct _klist *next;
+} kind_list;
+
 static int_val op_last = Last;
 static value *apply_string = NULL;
 int_val *callback_return = &op_last;
@@ -46,6 +52,7 @@ EXTERN value val_true = (value)&t_true;
 EXTERN value val_false = (value)&t_false;
 static value empty_array = (value)&t_array;
 static vstring empty_string = { VAL_STRING, 0 };
+static kind_list **kind_names = NULL;
 field id_compare;
 field id_string;
 field id_loader;
@@ -296,6 +303,8 @@ EXTERN void neko_global_init( void *s ) {
 	neko_vm_context = context_new();
 	neko_fields_context = context_new();
 	neko_init_builtins();
+	kind_names = (kind_list**)alloc_root(1);
+	*kind_names = NULL;
 	id_loader = val_id("loader");
 	id_exports = val_id("exports");
 	id_cache = val_id("cache");
@@ -324,6 +333,7 @@ EXTERN void neko_global_init( void *s ) {
 EXTERN void neko_global_free() {
 	neko_clean_thread();
 	neko_free_jit();
+	free_root((value*)kind_names);
 	free_root(apply_string);
 	free_root(neko_builtins);
 	apply_string = NULL;
@@ -335,6 +345,24 @@ EXTERN void neko_global_free() {
 
 EXTERN void neko_set_stack_base( void *s ) {
 	neko_gc_set_stack_base(s);
+}
+
+EXTERN void kind_export( vkind k, const char *name ) {
+	kind_list *l = (kind_list*)alloc(sizeof(kind_list));
+	l->k = k;
+	l->name = name;
+	l->next = *kind_names;
+	*kind_names = l;
+}
+
+EXTERN vkind kind_import( const char *name ) {
+	kind_list *l = *kind_names;
+	while( l != NULL ) {
+		if( strcmp(l->name,name) == 0 )
+			return l->k;
+		l = l->next;
+	}
+	return NULL;
 }
 
 /* ************************************************************************ */
