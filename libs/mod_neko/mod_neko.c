@@ -32,6 +32,7 @@ typedef struct cache {
 	struct cache *next;
 } cache;
 
+static int use_jit = 0;
 static _context *cache_root = NULL;
 
 value cgi_get_cache() {
@@ -140,6 +141,12 @@ static int neko_handler_rec( request_rec *r ) {
 	}
 
 	vm = neko_vm_alloc(&ctx);
+	if( use_jit && !neko_vm_jit(vm,1) ) {
+		send_headers(&ctx);
+		ap_rprintf(r,"<b>Error</b> : JIT required by env. var but not enabled in NekoVM");
+		return OK;
+	}
+
 	neko_vm_redirect(vm,request_print,&ctx);
 	neko_vm_select(vm);
 	
@@ -213,6 +220,7 @@ static int neko_handler( request_rec *r ) {
 
 static int neko_init( apr_pool_t *p, apr_pool_t *plog, apr_pool_t *ptemp, server_rec *s ) {
 	cache_root = context_new();
+	use_jit = getenv("MOD_NEKO_JIT") != NULL;
 	putenv(strdup("MOD_NEKO=1"));
 	neko_global_init(&s);
 	return OK;
@@ -237,6 +245,7 @@ module AP_MODULE_DECLARE_DATA neko_module = {
 
 static void neko_init(server_rec *s, pool *p) {
 	cache_root = context_new();
+	use_jit = getenv("MOD_NEKO_JIT") != NULL;
 	putenv(strdup("MOD_NEKO=1"));
 	neko_global_init(&s);
 }
