@@ -23,8 +23,6 @@
 #  define strcmpi(a,b) strcasecmp(a,b)
 #endif
 
-DEFINE_KIND(k_xml);
-
 #define ERROR(msg)	xml_error(xml,p,line,msg);
 
 // -------------- parsing --------------------------

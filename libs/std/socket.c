@@ -41,7 +41,6 @@
 #endif
 
 DEFINE_KIND(k_socket);
-DEFINE_KIND(k_addr);
 
 #define val_sock(o)		((SOCKET)(int_val)val_data(o))
 
