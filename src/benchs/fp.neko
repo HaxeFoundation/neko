@@ -1,0 +1,9 @@
+var x = 1.0;
+var y = 1.0;
+var i = $float($loader.args[0]);
+while( i > 0.0 ) {
+	x *= 1.000000001;
+	y /= 1.000000001;
+	i -= 1.0;
+}
+$print(x,"\n",y,"\n");
