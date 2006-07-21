@@ -45,7 +45,7 @@ while (true) {
 	}
 	while (true) {
 		if( r == n ) {
-			$print("Pfannkuchen(",n,") = ",maxflips);
+			$print("Pfannkuchen(",n,") = ",maxflips,"\n");
 			$goto(exit);
 		}
 		perm0 = perm1[0];

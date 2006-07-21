@@ -5,4 +5,4 @@ fib = function(n) {
 
 var arg = $int($loader.args[0]);
 if( arg == null ) arg = 30;
-$print("fib(",arg,") = ",fib(arg));
+$print("fib(",arg,") = ",fib(arg),"\n");

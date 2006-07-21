@@ -8,5 +8,5 @@ var arg1 = $int($loader.args[1]);
 var arg2 = $int($loader.args[0]);
 if( arg1 == null ) arg1 = 3;
 if( arg2 == null ) arg2 = 4;
-$print("Ack(",arg1,",",arg2,"): ",ack(arg1,arg2));
+$print("Ack(",arg1,",",arg2,"): ",ack(arg1,arg2),"\n");
 
