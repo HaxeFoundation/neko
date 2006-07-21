@@ -2325,7 +2325,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 			int small_add_size = 3;
 			int jump_rsize = 2;
 			int delta = POS() + add_size + jump_rsize;
-			if( delta < 255 )
+			if( IS_SBYTE(delta) )
 				delta += small_add_size - add_size;
 			XAdd_rc(TMP,delta);
 			XJump_r(TMP);
