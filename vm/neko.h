@@ -98,10 +98,12 @@ typedef double tfloat;
 
 typedef void (*finalizer)(value v);
 
+#pragma pack(4)
 typedef struct {
 	val_type t;
 	tfloat f;
 } vfloat;
+#pragma pack()
 
 typedef struct _vobject {
 	val_type t;

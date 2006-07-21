@@ -965,7 +965,7 @@ static void jit_number_op( jit_ctx *ctx, enum Operation op ) {
 	XSar_rc(ACC,1);
 	XPush_r(ACC);
 	XFILd_i(Esp);
-	XAdd_rc(TMP,8);
+	XAdd_rc(TMP,4);
 	XFLd_i(TMP);
 	stack_pop(Esp,1);
 	XJump(JAlways,jfloat1);
@@ -981,15 +981,15 @@ static void jit_number_op( jit_ctx *ctx, enum Operation op ) {
 	XMov_rp(TMP2,TMP,FIELD(0));
 	XCmp_rb(TMP2,VAL_FLOAT);
 	XJump(JNeq,jerr3);
-	XAdd_rc(ACC,8);
+	XAdd_rc(ACC,4);
 	XFLd_i(ACC);
-	XAdd_rc(TMP,8);
+	XAdd_rc(TMP,4);
 	XFLd_i(TMP);
 	XJump_near(jfloat2);
 
 	// is_number(acc) && is_int(sp)
 	PATCH_JUMP(jint);
-	XAdd_rc(ACC,8);
+	XAdd_rc(ACC,4);
 	XFLd_i(ACC);
 	XSar_rc(TMP,1);
 	XPush_r(TMP);
@@ -1153,7 +1153,7 @@ static void jit_add( jit_ctx *ctx, int _ ) {
 	XMov_rp(TMP2,TMP,FIELD(0));
 	XCmp_rb(TMP2,VAL_FLOAT);
 	XJump(JNeq,jnext);
-	XAdd_rc(TMP,8);
+	XAdd_rc(TMP,4);
 	XFLd_i(TMP);
 	stack_push(Esp,1);
 	XSar_rc(ACC,1);
@@ -1187,7 +1187,7 @@ static void jit_add( jit_ctx *ctx, int _ ) {
 	XSar_rc(TMP,1);
 	XPush_r(TMP);
 	XFILd_i(Esp);
-	XAdd_rc(ACC,8);
+	XAdd_rc(ACC,4);
 	XFLd_i(ACC);
 	XFAddp();
 	XFStp_i(Esp);
@@ -1199,9 +1199,9 @@ static void jit_add( jit_ctx *ctx, int _ ) {
 	XCmp_rb(TMP2,VAL_FLOAT);
 	XJump(JNeq,jnext);
 	stack_push(Esp,2);
-	XAdd_rc(TMP,8);
+	XAdd_rc(TMP,4);
 	XFLd_i(TMP);
-	XAdd_rc(ACC,8);
+	XAdd_rc(ACC,4);
 	XFLd_i(ACC);
 	XFAddp();
 	XFStp_i(Esp);
@@ -1970,9 +1970,9 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		XMov_rp(TMP2,TMP,FIELD(0));
 		XCmp_rb(TMP2,VAL_FLOAT);
 		XJump(JNeq,jnot_float2);
-		XAdd_rc(ACC,8);
+		XAdd_rc(ACC,4);
 		XFLd_i(ACC);
-		XAdd_rc(TMP,8);
+		XAdd_rc(TMP,4);
 		XFLd_i(TMP);
 		XFAddp();
 		stack_push(Esp,2);
