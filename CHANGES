@@ -1,5 +1,9 @@
+2006-??-?? : 1.5
+	(todo : continuations)
+	(todo : __resolve)
+
 2006-??-?? : 1.4
-	std : added a SO_REUSEADDR before socket_bind
+	std : added a SO_REUSEADDR before socket_bind (except windows)
 	nekoc/nekovm : allowed more than 127 filenames in debug infos
 	nekotools server : added -rewrite for mod_rewrite'style urls
 	added zlib wrapper
@@ -11,8 +15,7 @@
 	neko.h : added NEKO_* OS/CPU flags
 	added JIT for x86
 	vm : (int mod 0) is now an exception (and not NaN)
-	(planned) continuations
-	(todo) think about abstract kinds declaration and interop
+	neko.h : added kind_import and kind_export to share abstracts between libraries
 
 2006-05-11 : 1.3
 	neko : fixed endianness bug needed to boot, exported neko_is_big_endian
