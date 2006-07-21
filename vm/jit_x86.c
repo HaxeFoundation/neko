@@ -632,7 +632,7 @@ static void jit_trap( jit_ctx *ctx, int n ) {
 
 	XPush_r(TMP2);
 	XRet();
-	
+
 	END_BUFFER;
 }
 
@@ -777,12 +777,8 @@ static void jit_call_jit( jit_ctx *ctx, int nargs, int mode ) {
 	XJump(JNeq,jerr);
 
 	if( mode == TAIL_CALL ) {
-		// get the pc from stack and pop eip as well
-		XMov_rp(TMP,Esp,FIELD(1));
+		// pop PC and EIP from the stack
 		stack_pop(Esp,2);
-		// replace PC and Module only on stack
-		XMov_pr(CSP,FIELD(-3),TMP);
-		get_var_p(CSP,FIELD(0),VModule);
 
 		set_var_p(VModule,ACC,FIELD(4)); // vm->module = acc->module
 		set_var_p(VEnv,ACC,FIELD(3)); // vm->env = acc->env
@@ -1462,7 +1458,7 @@ static void jit_object_op_gen( jit_ctx *ctx, enum Operation op, int right ) {
 
 	// prepare args
 	XPush_r(right?REG_TMP:REG_ACC);
-	if( op == OP_SET ) {		
+	if( op == OP_SET ) {
 		XMov_rp(TMP2,Esp,FIELD(3));
 		XPush_r(TMP2);
 	}
@@ -1635,7 +1631,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 	case AccField: {
 		int *jerr1, *jerr2, *jend1, *loop;
 		char *jend2, *start;
-		
+
 		is_int(ACC,true,jerr1);
 		XMov_rp(TMP,ACC,FIELD(0));
 		XCmp_rb(TMP,VAL_OBJECT);
@@ -1647,7 +1643,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		XMov_rp(TMP,VM,FIELD(1));
 		XPush_r(TMP);
 		XMov_rc(TMP,CONST(otable_find));
-		XCall_r(TMP);		
+		XCall_r(TMP);
 		XCmp_rc(ACC,0);
 		XJump(JNeq,jend1);
 		stack_pop(Esp,1);
@@ -2051,7 +2047,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 			stack_pop(SP,i);
 		} else {
 			char *start;
-			int *loop;			
+			int *loop;
 			XMov_rc(TMP2,(p+1));
 			start = buf.c;
 			XMov_rp(TMP,SP,FIELD(0));
@@ -2178,11 +2174,11 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 			t->target = (int)((int_val*)(int_val)p - ctx->module->code);
 			t->next = ctx->traps;
 			ctx->traps = t;
-		
+
 		}
 		// neko_setup_trap(vm)
 		XPush_r(ACC);
-		XPush_r(VM);		
+		XPush_r(VM);
 		XMov_rc(TMP,CONST(neko_setup_trap));
 		begin_call();
 		XCall_r(TMP);
