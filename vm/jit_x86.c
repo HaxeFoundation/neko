@@ -464,7 +464,6 @@ typedef struct {
 	char *make_env[MAX_ENV];
 	char *make_env_n;
 	char *add;
-	char *mod;
 	char *oop[OP_LAST];
 	char *oop_r[OP_LAST];
 	char *oo_get;
