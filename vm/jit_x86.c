@@ -27,6 +27,15 @@
 #define JIT_ENABLE
 #endif
 
+#ifdef NEKO_OSX
+#define STACK_ALIGN
+#endif
+
+#if defined(NEKO_WINDOWS) && defined(_DEBUG)
+#define	STACK_ALIGN
+#define STACK_ALIGN_DEBUG
+#endif
+
 //#define JIT_DEBUG
 
 #ifdef JIT_ENABLE
@@ -203,6 +212,32 @@ enum IOperation {
 #define XMov_ar(addr,reg)		B(0x3E); if( reg == Eax ) { B(0xA3); } else { OP_RM(0x89,0,reg,5); }; W(addr)
 #define XMov_xr(r,idx,mult,src) OP_RM(0x89,0,src,4); SIB(Mult##mult,idx,r)
 #define XCall_r(r)				OP_RM(0xFF,3,2,r)
+
+#define XCall_m_debug(v)		{ \
+		int *l; \
+		XMov_rr(TMP,Ebp); \
+		XSub_rr(TMP,Esp); \
+		XAnd_rc(TMP,15); \
+		XCmp_rc(TMP,0); \
+		XJump(JEq,l); \
+		XShr_rc(TMP,2); \
+		XPush_r(TMP); \
+		XPush_c(CONST(__LINE__)); \
+		XMov_rc(TMP,CONST(debug_method_call)); \
+		XCall_r(TMP); \
+		PATCH_JUMP(l); \
+		XMov_rc(TMP,CONST(v)); \
+		XCall_r(TMP); \
+	}
+
+#define XCall_m_real(v)			XMov_rc(TMP,CONST(v)); XCall_r(TMP);
+
+#ifdef STACK_ALIGN_DEBUG
+#	define XCall_m				XCall_m_debug
+#else
+#	define XCall_m				XCall_m_real
+#endif
+
 #define XCall_d(delta)			B(0xE8); W(delta)
 #define XPush_r(r)				B(0x50+(r))
 #define XPush_c(cst)			B(0x68); W(cst)
@@ -252,6 +287,14 @@ enum IOperation {
 #define XFILd_i(r)				B(0xDB); MOD_RM(0,0,r); if( r == Esp ) B(0x24)
 
 #define is_int(r,flag,local)	{ XTest_rc(r,1); XJump((flag)?JNeq:JEq,local); }
+
+#ifdef STACK_ALIGN
+#	define stack_pad(n)				stack_push(Esp,n)
+#	define stack_pop_pad(n,n2)		stack_pop(Esp,((n) + (n2)))
+#else
+#	define stack_pad(n)
+#	define stack_pop_pad(n,n2)		stack_pop(Esp,(n))
+#endif
 
 #define stack_push(r,n) \
 	if( (n) != 0 ) { \
@@ -430,17 +473,16 @@ enum IOperation {
 	set_var_p(VEnv,ACC,FIELD(3)); \
 }
 
-#define restore_after_call(nargs) { \
+#define restore_after_call(nargs,pad) { \
 	int *jok; \
 	XCmp_rc(ACC,0); \
 	XJump(JNeq,jok); \
 	XMov_rp(ACC,Esp,FIELD(nargs)); \
 	XMov_rp(ACC,ACC,FIELD(4)); \
 	XPush_r(ACC); \
-	XMov_rc(TMP,CONST(val_throw)); \
-	XCall_r(TMP); \
+	XCall_m(val_throw); \
 	PATCH_JUMP(jok); \
-	stack_pop(Esp,1+nargs); \
+	stack_pop_pad(1+nargs,pad); \
 	pop_infos(); \
 }
 
@@ -509,6 +551,15 @@ static const char *cstrings[] = {
 #define number_op(arg)	DEFINE_PROC(number_op,arg)
 #define array_access(p)	DEFINE_PROC(array_access,p)
 #define int_op(arg)		DEFINE_PROC(int_op,arg)
+
+#ifdef STACK_ALIGN_DEBUG
+#include <stdlib.h>
+
+static void debug_method_call( int line, int stack ) {
+	printf("Stack align error line %d (%d)\n" , line ,stack);
+	exit(-1);
+}
+#endif
 
 static jit_ctx *jit_init_context( void *ptr, int size ) {
 	jit_ctx *c = (jit_ctx*)alloc(sizeof(jit_ctx));
@@ -583,16 +634,21 @@ static void jit_boot( jit_ctx *ctx, void *_ ) {
 	XPush_r(Ebp);
 	XPush_r(Ebx);
 	XPush_r(Esi);
+#	ifdef STACK_ALIGN_DEBUG
+	XMov_rr(Ebp,Esp); // ALIGNED STACK
+#	endif
 	XPush_r(Edi);
 	XMov_rp(VM,Esp,FIELD(5));
-	get_var_r(Ebp,VModule);
-	set_var_p(VModule,Esp,FIELD(8));
-	XMov_rp(TMP,Esp,FIELD(6));
-	XMov_rp(ACC,Esp,FIELD(7));
+	get_var_r(TMP,VModule);
+	XPush_r(TMP);
+	set_var_p(VModule,Esp,FIELD(9));
+	XMov_rp(TMP,Esp,FIELD(7));
+	XMov_rp(ACC,Esp,FIELD(8));
 	end_call();
 	XCall_r(TMP);
 	begin_call();
-	set_var_r(VModule,Ebp);
+	XPop_r(TMP);
+	set_var_r(VModule,TMP);
 	XPop_r(Edi);
 	XPop_r(Esi);
 	XPop_r(Ebx);
@@ -608,10 +664,10 @@ static void jit_trap( jit_ctx *ctx, int n ) {
 	get_var_r(Ebp,VThis);
 
 	// restore vm
+	stack_pad(3);
 	XPush_r(VM);
-	XMov_rc(TMP,CONST(neko_process_trap));
-	XCall_r(TMP);
-	stack_pop(Esp,1);
+	XCall_m(neko_process_trap);
+	stack_pop_pad(1,3);
 
 	// restore registers
 	end_call();
@@ -644,13 +700,11 @@ static void jit_stack_expand( jit_ctx *ctx, int n ) {
 	XPush_r(VM);
 	XPush_r(CSP);
 	XPush_r(SP);
-	XMov_rc(TMP,CONST(neko_stack_expand));
-	XCall_r(TMP);
+	XCall_m(neko_stack_expand);
 	XCmp_rb(ACC,0);
 	XJump(JNeq,jok);
 	XPush_c(CONST(strings[0])); // Stack overflow
-	XMov_rc(TMP,CONST(val_throw));
-	XCall_r(TMP);
+	XCall_m(val_throw);
 	PATCH_JUMP(jok);
 	XMov_rp(ACC,Esp,FIELD(3));
 	end_call();
@@ -665,9 +719,9 @@ static void jit_runtime_error( jit_ctx *ctx, void *unused ) {
 	push_infos(PC_ARG); // pc
 	begin_call();
 	XMov_rp(TMP,Esp,FIELD(2)); // msg on stack
+	stack_pad(3);
 	XPush_r(TMP);
-	XMov_rc(TMP,CONST(val_throw));
-	XCall_r(TMP);
+	XCall_m(val_throw);
 	END_BUFFER;
 }
 
@@ -678,8 +732,7 @@ static void jit_invalid_access( jit_ctx *ctx, int _ ) {
 	// if( val_field_name(f) == val_null ) RuntimeError("Invalid field access")
 	XMov_rp(TMP,Esp,FIELD(2)); // field
 	XPush_r(TMP);
-	XMov_rc(TMP,CONST(val_field_name));
-	XCall_r(TMP);
+	XCall_m(val_field_name);
 	stack_pop(Esp,1);
 	XCmp_rc(ACC,CONST(val_null));
 	XJump(JNeq,jnext);
@@ -690,22 +743,18 @@ static void jit_invalid_access( jit_ctx *ctx, int _ ) {
 	PATCH_JUMP(jnext);
 	XPush_r(ACC);
 	XPush_c(CONST("Invalid field access : "));
-	XMov_rc(TMP,CONST(alloc_buffer));
-	XCall_r(TMP);
+	XCall_m(alloc_buffer);
 	stack_pop(Esp,1);
 	//    val_buffer(b,v);
 	XPush_r(ACC);
-	XMov_rc(TMP,CONST(val_buffer));
-	XCall_r(TMP);
+	XCall_m(val_buffer);
 	//    buffer_to_string(b);
-	XMov_rc(TMP,CONST(buffer_to_string));
-	XCall_r(TMP);
+	XCall_m(buffer_to_string);
 	stack_pop(Esp,2);
 	push_infos(PC_ARG); // pc
 	begin_call();
 	XPush_r(ACC);
-	XMov_rc(TMP,CONST(val_throw));
-	XCall_r(TMP);
+	XCall_m(val_throw);
 	END_BUFFER;
 }
 
@@ -718,8 +767,7 @@ static void jit_test( jit_ctx *ctx, int how ) {
 	XMov_rp(TMP,SP,FIELD(0));
 	XPush_r(TMP);
 	begin_call();
-	XMov_rc(TMP,CONST(val_compare));
-	XCall_r(TMP);
+	XCall_m(val_compare);
 	end_call();
 	stack_pop(Esp,2);
 	pop(1);
@@ -844,6 +892,7 @@ static void jit_call_prim( jit_ctx *ctx, int nargs, int mode ) {
 	INIT_BUFFER;
 	int *jvararg, *jerr;
 	int i;
+	int pad_size = 4 - ((2+nargs)%4);
 
 	// check arg count
 	XMov_rp(TMP,ACC,FIELD(1)); // acc->nargs
@@ -851,6 +900,7 @@ static void jit_call_prim( jit_ctx *ctx, int nargs, int mode ) {
 	XJump(JNeq,jvararg);
 
 	// push args from VMSP to PROCSP
+	stack_pad(pad_size);
 	setup_before_call(mode,false);
 	for(i=0;i<nargs;i++) {
 		XPush_p(SP,FIELD(i));
@@ -864,7 +914,7 @@ static void jit_call_prim( jit_ctx *ctx, int nargs, int mode ) {
 	begin_call();
 	XCall_r(TMP);
 	end_call();
-	restore_after_call(nargs);
+	restore_after_call(nargs,pad_size);
 
 #	ifdef JIT_DEBUG
 	pop(nargs);
@@ -877,6 +927,7 @@ static void jit_call_prim( jit_ctx *ctx, int nargs, int mode ) {
 	XJump(JNeq,jerr);
 
 	// push args from VMSP to PROCSP
+	stack_pad(3);
 	setup_before_call(mode,false);
 	for(i=0;i<nargs;i++) {
 		XPush_p(SP,FIELD(i));
@@ -891,9 +942,10 @@ static void jit_call_prim( jit_ctx *ctx, int nargs, int mode ) {
 	// call C primitive
 	XMov_rp(TMP,ACC,FIELD(2)); // acc->addr
 	begin_call();
+
 	XCall_r(TMP);
 	end_call();
-	restore_after_call(2 + nargs);
+	restore_after_call(2 + nargs,3);
 	XRet();
 
 // error
@@ -919,9 +971,8 @@ static void jit_call_fun( jit_ctx *ctx, int nargs, int mode ) {
 	XMov_pr(Esp,FIELD(2),ACC);
 	get_var_p(Esp,FIELD(1),VModule);
 	get_var_p(Esp,FIELD(0),VVm);
-	XMov_rc(TMP,CONST(neko_interp));
 	begin_call();
-	XCall_r(TMP);
+	XCall_m(neko_interp);
 	end_call();
 	stack_pop(Esp,4);
 	XRet();
@@ -1094,8 +1145,7 @@ static void jit_number_op( jit_ctx *ctx, enum Operation op ) {
 		XFStp_i(Esp);
 		stack_push(Esp,2);
 		XFStp_i(Esp);
-		XMov_rc(TMP,CONST(fmod));
-		XCall_r(TMP);
+		XCall_m(fmod);
 		stack_pop(Esp,2);
 		break;
 	default:
@@ -1107,8 +1157,7 @@ static void jit_number_op( jit_ctx *ctx, enum Operation op ) {
 		stack_push(Esp,2);
 	}
 	XFStp_i(Esp);
-	XMov_rc(TMP,CONST(alloc_float));
-	XCall_r(TMP);
+	XCall_m(alloc_float);
 	stack_pop(Esp,2);
 
 	if( op != OP_DIV ) PATCH_JUMP(jend);
@@ -1202,6 +1251,7 @@ static void jit_add( jit_ctx *ctx, int _ ) {
 	XAnd_rc(TMP2,7);
 	XCmp_rb(TMP2,VAL_STRING);
 	XJump(JNeq,jsp_object1);
+	stack_pad(3);
 	XPush_c(1);
 	XSar_rc(ACC,1);
 	XPush_r(ACC);
@@ -1256,6 +1306,7 @@ static void jit_add( jit_ctx *ctx, int _ ) {
 
 	// is_string(acc) && is_int(sp) -> prepare args for append_int(vm,acc,val_int(sp),false)
 	is_int(TMP,false,jnext);
+	stack_pad(3);
 	XPush_c(0);
 	XSar_rc(TMP,1);
 	XPush_r(TMP);
@@ -1263,9 +1314,8 @@ static void jit_add( jit_ctx *ctx, int _ ) {
 	XPush_r(VM);
 	// call append_int
 	PATCH_JUMP(jappint1);
-	XMov_rc(TMP,CONST(append_int));
-	XCall_r(TMP);
-	stack_pop(Esp,4);
+	XCall_m(append_int);
+	stack_pop_pad(4,3);
 	END();
 
 	// is_string(acc) && is_string(sp) -> append_strings(sp,acc)
@@ -1274,11 +1324,11 @@ static void jit_add( jit_ctx *ctx, int _ ) {
 	XAnd_rc(TMP2,7);
 	XCmp_rb(TMP2,VAL_STRING);
 	XJump(JNeq,jnext);
+	stack_pad(1);
 	XPush_r(ACC);
 	XPush_r(TMP);
-	XMov_rc(TMP,CONST(append_strings));
-	XCall_r(TMP);
-	stack_pop(Esp,2);
+	XCall_m(append_strings);
+	stack_pop_pad(2,1);
 	END();
 
 	// is_string(acc) && is_object(sp) -> object op (else buffer)
@@ -1333,19 +1383,15 @@ static void jit_add( jit_ctx *ctx, int _ ) {
 	XPush_r(TMP);
 	// alloc_buffer(NULL)
 	XPush_c(0);
-	XMov_rc(TMP,CONST(alloc_buffer));
-	XCall_r(TMP);
+	XCall_m(alloc_buffer);
 	XMov_pr(Esp,FIELD(0),ACC);
 	begin_call();
-	XMov_rc(TMP,CONST(val_buffer));
-	XCall_r(TMP);
+	XCall_m(val_buffer);
 	XMov_rp(TMP,Esp,FIELD(2));
 	XMov_pr(Esp,FIELD(1),TMP);
-	XMov_rc(TMP,CONST(val_buffer));
-	XCall_r(TMP);
+	XCall_m(val_buffer);
 	end_call();
-	XMov_rc(TMP,CONST(buffer_to_string));
-	XCall_r(TMP);
+	XCall_m(buffer_to_string);
 	stack_pop(Esp,3);
 	END();
 
@@ -1353,8 +1399,7 @@ static void jit_add( jit_ctx *ctx, int _ ) {
 	PATCH_JUMP(jalloc1);
 	PATCH_JUMP(jalloc2);
 	PATCH_JUMP(jalloc3);
-	XMov_rc(TMP,CONST(alloc_float));
-	XCall_r(TMP);
+	XCall_m(alloc_float);
 	stack_pop(Esp,2);
 
 	// end
@@ -1441,8 +1486,7 @@ static void jit_make_env( jit_ctx *ctx, int esize ) {
 	} else {
 		XPush_c(esize);
 	}
-	XMov_rc(TMP,CONST(alloc_array));
-	XCall_r(TMP);
+	XCall_m(alloc_array);
 	if( esize == -1 ) {
 		char *start;
 		int *loop;
@@ -1471,8 +1515,7 @@ static void jit_make_env( jit_ctx *ctx, int esize ) {
 
 	// call alloc_module_function
 	XMov_pr(Esp,FIELD(3),ACC); // save acc
-	XMov_rc(TMP,CONST(alloc_module_function));
-	XCall_r(TMP);
+	XCall_m(alloc_module_function);
 	XMov_rp(TMP,Esp,FIELD(3)); // restore acc
 	XMov_rp(TMP2,Esp,FIELD(4)); // restore type
 	stack_pop(Esp,5);
@@ -1530,8 +1573,7 @@ static void jit_object_op_gen( jit_ctx *ctx, enum Operation op, int right ) {
 		ERROR;
 	}
 	XPush_r(right?REG_ACC:REG_TMP);
-	XMov_rc(TMP2,CONST(val_field));
-	XCall_r(TMP2);
+	XCall_m(val_field);
 	XCmp_rc(ACC,CONST(val_null));
 	XJump(JNeq,next);
 	stack_pop(Esp,(op == OP_SET)?7:6);
@@ -1542,8 +1584,7 @@ static void jit_object_op_gen( jit_ctx *ctx, enum Operation op, int right ) {
 	XPush_r(ACC);
 	XPush_r(TMP);
 	begin_call();
-	XMov_rc(TMP2,CONST(val_callEx));
-	XCall_r(TMP2);
+	XCall_m(val_callEx);
 	end_call();
 	stack_pop(Esp,(op == OP_SET)?7:6);
 	XRet();
@@ -1680,8 +1721,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		start = buf.c;
 		XMov_rp(TMP,VM,FIELD(1));
 		XPush_r(TMP);
-		XMov_rc(TMP,CONST(otable_find));
-		XCall_r(TMP);
+		XCall_m(otable_find);
 		XCmp_rc(ACC,0);
 		XJump(JNeq,jend1);
 		stack_pop(Esp,1);
@@ -1735,20 +1775,21 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		XJump(JNeq,jerr2);
 
 		// call otable_replace(table,field,acc)
+		stack_pad(2);
 		XPush_r(ACC);
 		XPush_c(p);
 #		ifdef COMPACT_TABLE
 		XMov_rp(TMP,TMP,FIELD(1));
 		XPush_r(TMP);
-		XMov_rc(TMP,CONST(otable_replace));
+		XCall_m(otable_replace);
 #		else
 		XAdd_rc(TMP,4);	// pass the address as parameter
 		XPush_r(TMP);
-		XMov_rc(TMP,CONST(_otable_replace));
+		XCall_m(_otable_replace);
 #		endif
-		XCall_r(TMP);
 		stack_pop(Esp,3);
 		XMov_rp(ACC,Esp,FIELD(-1));
+		stack_pad(-2);
 		XJump_near(jend);
 
 		PATCH_JUMP(jerr1);
@@ -1875,8 +1916,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		XMov_rp(TMP,SP,FIELD(0));
 		XPush_r(TMP);
 		begin_call();
-		XMov_rc(TMP,CONST(val_compare));
-		XCall_r(TMP);
+		XCall_m(val_compare);
 		end_call();
 		stack_pop(Esp,2);
 		pop(1);
@@ -2013,8 +2053,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		XFAddp();
 		stack_push(Esp,2);
 		XFStp_i(Esp);
-		XMov_rc(TMP,CONST(alloc_float));
-		XCall_r(TMP);
+		XCall_m(alloc_float);
 		stack_pop(Esp,2);
 		XJump_near(jend2);
 
@@ -2063,18 +2102,17 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		break;
 	case New:
 		XPush_r(ACC);
-		XMov_rc(TMP,CONST(alloc_object));
-		XCall_r(TMP);
+		XCall_m(alloc_object);
 		stack_pop(Esp,1);
 		break;
 	case MakeArray:
+		stack_pad(3);
 		XPush_r(ACC);
 		XPush_c(p + 1);
-		XMov_rc(TMP,CONST(alloc_array));
-		XCall_r(TMP);
+		XCall_m(alloc_array);
 		XMov_rp(TMP,Esp,FIELD(1)); // tmp = saved acc
 		XMov_pr(ACC,FIELD(1),TMP); // val_array_ptr(acc)[0] = tmp
-		stack_pop(Esp,2);
+		stack_pop_pad(2,3);
 		if( p < 6 ) {
 			i = 0;
 			while( p > 0 ) {
@@ -2140,8 +2178,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		XPush_r(TMP);
 		XAdd_rc(TMP,1);
 		XPush_r(TMP);
-		XMov_rc(TMP,CONST(alloc_array));
-		XCall_r(TMP);
+		XCall_m(alloc_array);
 		stack_pop(Esp,1);
 		XPop_r(TMP);
 		XPop_r(TMP2);
@@ -2179,8 +2216,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 
 		// call alloc_apply
 		PATCH_JUMP(jdone);
-		XMov_rc(TMP,CONST(alloc_apply));
-		XCall_r(TMP);
+		XCall_m(alloc_apply);
 		stack_pop(Esp,2);
 		XJump_near(jend);
 
@@ -2218,12 +2254,13 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		}
 		// neko_setup_trap(vm)
 		XPush_r(ACC);
+		stack_pad(3);
 		XPush_r(VM);
-		XMov_rc(TMP,CONST(neko_setup_trap));
 		begin_call();
-		XCall_r(TMP);
+		XCall_m(neko_setup_trap);
 		end_call();
 		stack_pop(Esp,1);
+		stack_pad(-3);
 		XPop_r(ACC);
 		break;
 		}
@@ -2277,8 +2314,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		XMov_rp(TMP,SP,FIELD(0));
 		XPush_r(TMP);
 		begin_call();
-		XMov_rc(TMP,CONST(val_compare));
-		XCall_r(TMP);
+		XCall_m(val_compare);
 		end_call();
 		stack_pop(Esp,2);
 
@@ -2323,8 +2359,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		begin_call();
 		XAdd_rc(ACC,4); // val_string(acc)
 		XPush_r(ACC);
-		XMov_rc(TMP,CONST(val_id));
-		XCall_r(TMP);
+		XCall_m(val_id);
 		stack_pop(Esp,1);
 		XShl_rc(ACC,1);
 		XOr_rc(ACC,1);
@@ -2381,13 +2416,13 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 }
 
 
-#ifdef JIT_DEBUG
+#if defined(STACK_ALIGN_DEBUG) || defined(JIT_DEBUG)
 #	define MAX_OP_SIZE		1000
+#	define MAX_BUF_SIZE		1000
 #else
 #	define MAX_OP_SIZE		291 // Apply(4)
+#	define MAX_BUF_SIZE		500
 #endif
-
-#define MAX_BUF_SIZE	500
 
 #define FILL_BUFFER(f,param,ptr) \
 	{ \
@@ -2491,13 +2526,11 @@ void neko_module_jit( neko_module *m ) {
 
 			// val_print(acc)
 			XPush_r(ACC);
-			XMov_rc(TMP,CONST(val_print));
-			XCall_r(TMP);
+			XCall_m_real(val_print);
 			stack_pop(Esp,1);
 			// val_print(pc_pos)
 			XPush_c(CONST(alloc_int(i)));
-			XMov_rc(TMP,CONST(val_print));
-			XCall_r(TMP);
+			XCall_m_real(val_print);
 			stack_pop(Esp,1);
 			// val_print(alloc_int(spmax - sp))
 			get_var_r(TMP,VSpMax);
@@ -2505,8 +2538,7 @@ void neko_module_jit( neko_module *m ) {
 			XShr_rc(TMP,1);
 			XOr_rc(TMP,1);
 			XPush_r(TMP);
-			XMov_rc(TMP,CONST(val_print));
-			XCall_r(TMP);
+			XCall_m_real(val_print);
 			stack_pop(Esp,1);
 			// val_print(alloc_int(csp - spmin))
 			XMov_rp(TMP2,VM,FIELD(4)); // SpMin
@@ -2515,8 +2547,7 @@ void neko_module_jit( neko_module *m ) {
 			XSar_rc(TMP,1);
 			XOr_rc(TMP,1);
 			XPush_r(TMP);
-			XMov_rc(TMP,CONST(val_print));
-			XCall_r(TMP);
+			XCall_m_real(val_print);
 			stack_pop(Esp,1);
 
 			XPop_r(ACC);
