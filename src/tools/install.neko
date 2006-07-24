@@ -79,9 +79,9 @@ nekovm = switch system { "Windows" => "..\\bin\\neko" default => "../bin/neko" }
 
 if( osx_universal ) {
 	libs.regexp.lparams = null;
-	libs.regexp.lib = "../libs/include/osx_universal/libpcre.a";
+	libs.regexp.lib = "osx_universal/libpcre.a";
 	libs.zlib.lparams = null;
-	libs.zlib.lib = "../libs/include/osx_universal/libz.a";
+	libs.zlib.lib = "osx_universal/libz.a";
 }
 
 // COMMANDS
@@ -103,6 +103,7 @@ includes = $array(
 );
 
 libraries = $array(
+	"../libs/include",
 	"/usr/lib",
 	"/usr/local/lib",
 	"/usr/local/lib/mysql",
