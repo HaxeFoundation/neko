@@ -242,7 +242,7 @@ value alloc_apply( int nargs, value env ) {
 EXTERN value alloc_object( value cpy ) {
 	vobject *v;
 	if( cpy != NULL && !val_is_null(cpy) && !val_is_object(cpy) )
-		failure("alloc_object");
+		val_throw(alloc_string("$new")); // 'new' opcode simulate $new
 	v = (vobject*)GC_MALLOC(sizeof(vobject));
 	v->t = VAL_OBJECT;
 	if( cpy == NULL || val_is_null(cpy) ) {
