@@ -57,7 +57,7 @@
   <doc_type>void</doc_type> <doc_name>socket_listen</doc_name><doc_type>('socket, int)</doc_type> <doc_doc>Listen for a number of connections</doc_doc>
 </doc_blk>
 <doc_blk>
-  <doc_type>'socket array array</doc_type> <doc_name>socket_select</doc_name><doc_type>(read : 'socket array, write : 'socket array, others : 'socket array, timeout : number?)</doc_type> <doc_doc>Perform the <doc_code>select</doc_code> operation</doc_doc>
+  <doc_type>'socket array array</doc_type> <doc_name>socket_select</doc_name><doc_type>(read : 'socket array, write : 'socket array, others : 'socket array, timeout : number?)</doc_type> <doc_doc>Perform the <doc_code>select</doc_code> operation. Timeout is in seconds or <doc_code>null</doc_code> if infinite</doc_doc>
 </doc_blk>
 <doc_blk>
   <doc_type>void</doc_type> <doc_name>socket_bind</doc_name><doc_type>('socket, host : 'int32, port : int)</doc_type> <doc_doc>Bind the socket for server usage on the given host and port</doc_doc>
@@ -72,7 +72,7 @@
   <doc_type>#address</doc_type> <doc_name>socket_host</doc_name><doc_type>('socket)</doc_type> <doc_doc>Return the socket local address composed of an (host,port) array</doc_doc>
 </doc_blk>
 <doc_blk>
-  <doc_type>void</doc_type> <doc_name>socket_set_timeout</doc_name><doc_type>('socket, int)</doc_type> <doc_doc>Set the socket send and recv timeout to the given value (0 for blocking)</doc_doc>
+  <doc_type>void</doc_type> <doc_name>socket_set_timeout</doc_name><doc_type>('socket, timout : number?)</doc_type> <doc_doc>Set the socket send and recv timeout in seconds to the given value (or null for blocking)</doc_doc>
 </doc_blk>
 <doc_blk>
   <doc_type>void</doc_type> <doc_name>socket_shutdown</doc_name><doc_type>('socket, read : bool, write : bool)</doc_type> <doc_doc>Prevent the socket from further reading or writing or both.</doc_doc>
