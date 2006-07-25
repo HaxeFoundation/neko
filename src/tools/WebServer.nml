@@ -522,7 +522,15 @@ function client_msg(c) {
 		}
 	}
 	IO.close_out c.out;
-	false
+}
+
+function client_msg_safe(c) {
+	try {
+		client_msg(c);
+		false
+	} catch {
+		Neko_error v when Reflex.value(v) == Reflex.VString("Broken pipe") -> false
+	}
 }
 
 function init() {
@@ -543,6 +551,6 @@ function init() {
 	];
 	Args.parse head decl (function(f) { throw Args.Invalid });
 	log "Starting Neko Server on %s:%d" (*host,*port);
-	Net.start_server Net.host_resolve(*host) (*port) init_client client_msg;
+	Net.start_server Net.host_resolve(*host) (*port) init_client client_msg_safe;
 }
 
