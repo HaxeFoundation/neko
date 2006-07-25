@@ -21,6 +21,7 @@
 #	define SHUT_WR		SD_SEND
 #	define SHUT_RD		SD_RECEIVE
 #	define SHUT_RDWR	SD_BOTH
+#	define MSG_NOSIGNAL	0
 	static bool init_done = false;
 	static WSADATA init_data;
 #else
@@ -123,7 +124,7 @@ static value socket_send_char( value o, value v ) {
 	if( c < 0 || c > 255 )
 		neko_error();
 	cc = (unsigned char)c;
-	if( send(val_sock(o),&cc,1,0) == SOCKET_ERROR )
+	if( send(val_sock(o),&cc,1,MSG_NOSIGNAL) == SOCKET_ERROR )
 		return block_error();
 	return val_true;
 }
@@ -144,7 +145,7 @@ static value socket_send( value o, value data, value pos, value len ) {
 	dlen = val_strlen(data);
 	if( p < 0 || l < 0 || p > dlen || p + l > dlen )
 		neko_error();
-	dlen = send(val_sock(o), val_string(data) + p , l, 0);
+	dlen = send(val_sock(o), val_string(data) + p , l, MSG_NOSIGNAL);
 	if( dlen == SOCKET_ERROR )
 		return block_error();
 	return alloc_int(dlen);
@@ -166,7 +167,7 @@ static value socket_recv( value o, value data, value pos, value len ) {
 	dlen = val_strlen(data);
 	if( p < 0 || l < 0 || p > dlen || p + l > dlen )
 		neko_error();
-	dlen = recv(val_sock(o), val_string(data) + p , l, 0);
+	dlen = recv(val_sock(o), val_string(data) + p , l, MSG_NOSIGNAL);
 	if( dlen == SOCKET_ERROR )
 		return block_error();
 	return alloc_int(dlen);
@@ -179,7 +180,7 @@ static value socket_recv( value o, value data, value pos, value len ) {
 static value socket_recv_char( value o ) {
 	unsigned char cc;
 	val_check_kind(o,k_socket);
-	if( recv(val_sock(o),&cc,1,0) <= 0 )
+	if( recv(val_sock(o),&cc,1,MSG_NOSIGNAL) <= 0 )
 		return block_error();
 	return alloc_int(cc);
 }
@@ -197,7 +198,7 @@ static value socket_write( value o, value data ) {
 	cdata = val_string(data);
 	datalen = val_strlen(data);
 	while( datalen > 0 ) {
-		slen = send(val_sock(o),cdata,datalen,0);
+		slen = send(val_sock(o),cdata,datalen,MSG_NOSIGNAL);
 		if( slen == SOCKET_ERROR )
 			return block_error();
 		cdata += slen;
@@ -220,7 +221,7 @@ static value socket_read( value o ) {
 	val_check_kind(o,k_socket);
 	b = alloc_buffer(NULL);
 	while( true ) {
-		len = recv(val_sock(o),buf,256,0);
+		len = recv(val_sock(o),buf,256,MSG_NOSIGNAL);
 		if( len == SOCKET_ERROR )
 			return block_error();
 		if( len == 0 )
