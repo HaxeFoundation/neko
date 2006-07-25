@@ -1,7 +1,33 @@
+/* ************************************************************************ */
+/*																			*/
+/*  Neko ZLib Binding Library												*/
+/*  Copyright (c)2006 Motion-Twin											*/
+/*																			*/
+/* This library is free software; you can redistribute it and/or			*/
+/* modify it under the terms of the GNU Lesser General Public				*/
+/* License as published by the Free Software Foundation; either				*/
+/* version 2.1 of the License, or (at your option) any later version.		*/
+/*																			*/
+/* This library is distributed in the hope that it will be useful,			*/
+/* but WITHOUT ANY WARRANTY; without even the implied warranty of			*/
+/* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU		*/
+/* Lesser General Public License or the LICENSE file for more details.		*/
+/*																			*/
+/* ************************************************************************ */
 #include <stdlib.h>
 #include <string.h>
 #include <neko.h>
 #include <zlib.h>
+
+/**
+	<doc>
+	<h1>ZLib</h1>
+	<p>
+	Give access to the popular ZLib compression library, used in several file
+	formats such as ZIP and PNG.
+	</p>
+	</doc>
+**/
 
 DEFINE_KIND(k_stream_def);
 DEFINE_KIND(k_stream_inf);
@@ -270,4 +296,4 @@ DEFINE_PRIM(get_adler32,1);
 DEFINE_PRIM(update_adler32,4);
 DEFINE_PRIM(update_crc32,4);
 
-
+/* ************************************************************************ */
