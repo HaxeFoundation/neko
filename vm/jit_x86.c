@@ -342,16 +342,16 @@ enum IOperation {
 	}
 
 #ifdef STACK_ALIGN
-#	define RTT_PAD	2
+#	define PAD_OPT(x)	(x)
 #else
-#	define RTT_PAD	0
+#	define PAD_OPT(x)	0
 #endif
 
 #define runtime_error(msg_id,in_label) { \
-	if( in_label ) { stack_pad(RTT_PAD); } else { stack_pad(1); } \
+	if( in_label ) { stack_pad(2); } else { stack_pad(1); } \
 	XPush_c(CONST(strings[msg_id])); \
 	if( in_label ) { \
-		XMov_rp(TMP2,Esp,FIELD(2+RTT_PAD)); \
+		XMov_rp(TMP2,Esp,FIELD(2+PAD_OPT(2))); \
 		XPush_r(TMP2); \
 	} else { \
 		XPush_c(GET_PC()); \
@@ -484,7 +484,7 @@ enum IOperation {
 	int *jok; \
 	XCmp_rc(ACC,0); \
 	XJump(JNeq,jok); \
-	XMov_rp(ACC,Esp,FIELD(nargs+pad)); \
+	XMov_rp(ACC,Esp,FIELD(nargs+PAD_OPT(pad))); \
 	XMov_rp(ACC,ACC,FIELD(4)); \
 	stack_pad(-1); \
 	XPush_r(ACC); \
