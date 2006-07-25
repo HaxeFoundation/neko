@@ -59,6 +59,8 @@ extern field id_add, id_radd, id_sub, id_rsub, id_mult, id_rmult, id_div, id_rdi
 extern field id_get, id_set;
 extern value alloc_module_function( void *m, int_val pos, int nargs );
 extern char *jit_boot_seq;
+extern char *jit_handle_trap;
+typedef void (*jit_handle)( neko_vm * );
 extern int neko_can_jit();
 
 value NEKO_TYPEOF[] = {
@@ -926,7 +928,10 @@ value neko_interp( neko_vm *vm, void *_m, int_val acc, int_val *pc ) {
 		// if uncaught or outside init stack, reraise
 		if( vm->trap == 0 || vm->trap <= init_sp ) {
 			memcpy(&vm->start,&old,sizeof(jmp_buf));
-			longjmp(vm->start,1);
+			if( *(char**)vm->start == jit_handle_trap )
+				((jit_handle)jit_handle_trap)(vm);
+			else
+				longjmp(vm->start,1);
 		}
 
 		trap = vm->spmax - vm->trap;
