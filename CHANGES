@@ -2,7 +2,7 @@
 	(todo : continuations)
 	(todo : __resolve)
 
-2006-??-?? : 1.4
+2006-07-24 : 1.4
 	std : added a SO_REUSEADDR before socket_bind (except windows)
 	nekoc/nekovm : allowed more than 127 filenames in debug infos
 	nekotools server : added -rewrite for mod_rewrite'style urls
