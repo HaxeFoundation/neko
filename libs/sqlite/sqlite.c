@@ -59,12 +59,12 @@ static void sqlite_error( sqlite3 *db ) {
 	val_throw(buffer_to_string(b));
 }
 
-static void finalize_result( result *r ) {
+static void finalize_result( result *r, int exc ) {
 	r->first = 0;
 	r->done = 1;
 	if( r->ncols == 0 )
 		r->count = sqlite3_changes(r->db->db);
-	if( sqlite3_finalize(r->r) != SQLITE_OK )
+	if( sqlite3_finalize(r->r) != SQLITE_OK && exc )
 		val_throw(alloc_string("Could not finalize request"));
 	r->r = NULL;
 	r->db->last = NULL;
@@ -74,7 +74,7 @@ static void finalize_result( result *r ) {
 static void free_db( value v ) {
 	database *db = val_db(v);
 	if( db->last != NULL )
-		finalize_result(val_result(db->last));
+		finalize_result(val_result(db->last),0);
 	if( sqlite3_close(db->db) != SQLITE_OK )
 		sqlite_error(db->db);
 }
@@ -173,7 +173,7 @@ static value request( value v, value sql ) {
 	}
 	// changes in an update/delete
 	if( db->last != NULL )
-		finalize_result(val_result(db->last));
+		finalize_result(val_result(db->last),0);
 	db->last = alloc_abstract(k_result,r);
 	return db->last;
 }
@@ -248,7 +248,7 @@ static value result_next( value v ) {
 		}
 		return v;
 	case SQLITE_DONE:
-		finalize_result(r);
+		finalize_result(r,1);
 		return val_null;
 	case SQLITE_BUSY:
 		val_throw(alloc_string("Database is busy"));
