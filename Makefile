@@ -16,8 +16,8 @@ NEKO_EXEC = LD_LIBRARY_PATH=../bin:${LD_LIBRARY_PATH} NEKOPATH=../boot:../bin ..
 # MACOSX = 1
 
 # For OSX Universal Binaries
-
-OSX_UNIVERSAL = 1
+#
+# OSX_UNIVERSAL = 1
 
 
 # For 64 bit
