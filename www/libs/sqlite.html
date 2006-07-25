@@ -1,0 +1,37 @@
+
+	<h1>SQLite</h1>
+	<p>
+	Sqlite is a small embeddable SQL database that store all its data into
+	a single file. See http://sqlite.org for more details.
+	</p>
+	
+<doc_blk>
+  <doc_type>'db</doc_type> <doc_name>connect</doc_name><doc_type>(filename : string)</doc_type> <doc_doc>Open or create the database stored in the specified file.</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>void</doc_type> <doc_name>close</doc_name><doc_type>('db)</doc_type> <doc_doc>Closes the database.</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>int</doc_type> <doc_name>last_insert_id</doc_name><doc_type>('db)</doc_type> <doc_doc>Returns the last inserted auto_increment id.</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>'result</doc_type> <doc_name>request</doc_name><doc_type>('db, sql : string)</doc_type> <doc_doc>Executes the SQL request and returns its result</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>int</doc_type> <doc_name>result_get_length</doc_name><doc_type>('result)</doc_type> <doc_doc>Returns the number of rows in the result or the number of rows changed by the request.</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>int</doc_type> <doc_name>result_get_nfields</doc_name><doc_type>('result)</doc_type> <doc_doc>Returns the number of fields in the result.</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>object?</doc_type> <doc_name>result_next</doc_name><doc_type>('result)</doc_type> <doc_doc>Returns the next row in the result or <doc_code>null</doc_code> if no more result.</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>string</doc_type> <doc_name>result_get</doc_name><doc_type>('result, n : int)</doc_type> <doc_doc>Return the <doc_code>n</doc_code>th field of the current result row.</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>int</doc_type> <doc_name>result_get_int</doc_name><doc_type>('result, n : int)</doc_type> <doc_doc>Return the <doc_code>n</doc_code>th field of the current result row as an integer.</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>float</doc_type> <doc_name>result_get_float</doc_name><doc_type>('result, n : int)</doc_type> <doc_doc>Return the <doc_code>n</doc_code>th field of the current result row as a float.</doc_doc>
+</doc_blk>
