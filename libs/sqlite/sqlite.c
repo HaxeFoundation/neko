@@ -1,7 +1,7 @@
 /* ************************************************************************ */
 /*																			*/
-/*  Neko Standard Library													*/
-/*  Copyright (c)2005 Nicolas Cannasse										*/
+/*  Neko Sqlite bindings Library											*/
+/*  Copyright (c)2006 Motion-Twin											*/
 /*																			*/
 /*  This program is free software; you can redistribute it and/or modify	*/
 /*  it under the terms of the GNU General Public License as published by	*/
@@ -21,6 +21,16 @@
 #include <neko.h>
 #include <string.h>
 #include <sqlite3.h>
+
+/**
+	<doc>
+	<h1>SQLite</h1>
+	<p>
+	Sqlite is a small embeddable SQL database that store all its data into
+	a single file. See http://sqlite.org for more details.
+	</p>
+	</doc>
+**/
 
 DEFINE_KIND(k_db);
 DEFINE_KIND(k_result);
@@ -69,6 +79,10 @@ static void free_db( value v ) {
 		sqlite_error(db->db);
 }
 
+/**
+	connect : filename:string -> 'db
+	<doc>Open or create the database stored in the specified file.</doc>
+**/
 static value connect( value filename ) {
 	int err;
 	database *db = (database*)alloc(sizeof(database));
@@ -86,6 +100,10 @@ static value connect( value filename ) {
 	return v;
 }
 
+/**
+	close : 'db -> void
+	<doc>Closes the database.</doc>
+**/
 static value close( value v ) {
 	val_check_kind(v,k_db);
 	free_db(v);
@@ -94,11 +112,19 @@ static value close( value v ) {
 	return val_null;
 }
 
+/**
+	last_insert_id : 'db -> int
+	<doc>Returns the last inserted auto_increment id.</doc>
+**/
 static value last_insert_id( value db ) {
 	val_check_kind(db,k_db);
 	return alloc_int(sqlite3_last_insert_rowid(val_db(db)->db));
 }
 
+/**
+	request : 'db -> sql:string -> 'result
+	<doc>Executes the SQL request and returns its result</doc>
+**/
 static value request( value v, value sql ) {
 	database *db;
 	result *r;
@@ -152,6 +178,10 @@ static value request( value v, value sql ) {
 	return db->last;
 }
 
+/**
+	result_get_length : 'result -> int
+	<doc>Returns the number of rows in the result or the number of rows changed by the request.</doc>
+**/
 static value result_get_length( value v ) {
 	result *r;
 	val_check_kind(v,k_result);
@@ -161,11 +191,19 @@ static value result_get_length( value v ) {
 	return alloc_int(r->count);
 }
 
+/**
+	result_get_nfields : 'result -> int
+	<doc>Returns the number of fields in the result.</doc>
+**/
 static value result_get_nfields( value r ) {
 	val_check_kind(r,k_result);
 	return alloc_int(val_result(r)->ncols);
 }
 
+/**
+	result_next : 'result -> object?
+	<doc>Returns the next row in the result or [null] if no more result.</doc>
+**/
 static value result_next( value v ) {
 	int i;
 	result *r;
@@ -222,6 +260,10 @@ static value result_next( value v ) {
 	return val_null;
 }
 
+/**
+	result_get : 'result -> n:int -> string
+	<doc>Return the [n]th field of the current result row.</doc>
+**/
 static value result_get( value v, value n ) {
 	result *r;
 	val_check_kind(v,k_result);
@@ -235,6 +277,10 @@ static value result_get( value v, value n ) {
 	return alloc_string((char*)sqlite3_column_text(r->r,val_int(n)));
 }
 
+/**
+	result_get_int : 'result -> n:int -> int
+	<doc>Return the [n]th field of the current result row as an integer.</doc>
+**/
 static value result_get_int( value v, value n ) {
 	result *r;
 	val_check_kind(v,k_result);
@@ -248,6 +294,10 @@ static value result_get_int( value v, value n ) {
 	return alloc_int(sqlite3_column_int(r->r,val_int(n)));
 }
 
+/**
+	result_get_float : 'result -> n:int -> float
+	<doc>Return the [n]th field of the current result row as a float.</doc>
+**/
 static value result_get_float( value v, value n ) {
 	result *r;
 	val_check_kind(v,k_result);
