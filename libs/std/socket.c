@@ -101,7 +101,7 @@ static value socket_new( value udp ) {
 	if( s == INVALID_SOCKET )
 		neko_error();
 #	ifdef NEKO_MAC
-	setsockopt(s,SOL_SOCKET,SO_NOSIGPIPE,NULL);
+	setsockopt(s,SOL_SOCKET,SO_NOSIGPIPE,NULL,0);
 #	endif
 	return alloc_abstract(k_socket,(value)(int_val)s);
 }
