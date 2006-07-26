@@ -76,12 +76,14 @@ cflags = $array("-O3","-fPIC");
 linkcmd = switch system { "BSD" => "ld" default => "gcc" };
 linkoptions = switch system { "Mac" => "-bundle -undefined dynamic_lookup -L../../bin -lneko" default => "-shared -L../../bin -lneko" };
 nekovm = switch system { "Windows" => "..\\bin\\neko" default => "../bin/neko" };
+ranlib = function(l) { }
 
 if( osx_universal ) {
 	libs.regexp.lparams = null;
 	libs.regexp.lib = "osx_universal/libpcre.a";
 	libs.zlib.lparams = null;
 	libs.zlib.lib = "osx_universal/libz.a";
+	ranlib = function(l) { exec("ranlib "+l); }
 }
 
 // COMMANDS
@@ -247,6 +249,7 @@ compile_lib = function(lib) {
 				return;
 		}
 		linklib = dir + "/" + linklib;
+		ranlib(linklib);
 	}
 	var i = 0;
 	while( i < $asize(data.src) ) {
