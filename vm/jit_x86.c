@@ -23,11 +23,11 @@
 #include <math.h>
 #include <stdio.h>
 
-#if defined(NEKO_X86) && !defined(NEKO_OSX)
+#if defined(NEKO_X86) && !defined(NEKO_MAC)
 #define JIT_ENABLE
 #endif
 
-#ifdef NEKO_OSX
+#ifdef NEKO_MAC
 #define STACK_ALIGN
 #endif
 
