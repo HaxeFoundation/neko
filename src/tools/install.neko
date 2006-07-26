@@ -103,7 +103,7 @@ includes = $array(
 );
 
 libraries = $array(
-	"../libs/include",
+	"../../libs/include",
 	"/usr/lib",
 	"/usr/local/lib",
 	"/usr/local/lib/mysql",
