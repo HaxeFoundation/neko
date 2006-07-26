@@ -59,7 +59,7 @@ ifeq (${OSX_UNIVERSAL}, 1)
 
 export MACOSX_DEPLOYMENT_TARGET_i386=10.4
 export MACOSX_DEPLOYMENT_TARGET_ppc=10.3
-CFLAGS += -isysroot /Developer/SDKs/MacOSX10.4u.sdk -arch ppc -arch i386 -L/usr/local/lib
+CFLAGS += -arch ppc -arch i386 -L/usr/local/lib
 #linking to shared lib (.a) explicitly:
 LIBNEKO_DEPS = libs/include/osx_univeral/libgc.a  -lSystemStubs
 LIBNEKO_LIBS = ${LIBNEKO_DEPS} -dynamiclib -single_module ${LIBNEKO_INSTALL} ${CFLAGS} 
