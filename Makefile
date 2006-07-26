@@ -61,7 +61,7 @@ export MACOSX_DEPLOYMENT_TARGET_i386=10.4
 export MACOSX_DEPLOYMENT_TARGET_ppc=10.3
 CFLAGS += -arch ppc -arch i386 -L/usr/local/lib
 #linking to shared lib (.a) explicitly:
-LIBNEKO_DEPS = libs/include/osx_univeral/libgc.a  -lSystemStubs
+LIBNEKO_DEPS = libs/include/osx_universal/libgc.a  -lSystemStubs
 LIBNEKO_LIBS = ${LIBNEKO_DEPS} -dynamiclib -single_module ${LIBNEKO_INSTALL} ${CFLAGS} 
 NEKOVM_FLAGS = -L${PWD}/bin -lneko
 STD_NDLL_FLAGS = -bundle ${NEKOVM_FLAGS} ${CFLAGS}
