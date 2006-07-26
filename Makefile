@@ -8,6 +8,7 @@ LIBNEKO_LIBS = -ldl -lgc -lm
 NEKOVM_FLAGS = -Lbin -lneko
 STD_NDLL_FLAGS = ${NEKOVM_FLAGS}
 INSTALL_FLAGS = 
+RANLIB =
 
 NEKO_EXEC = LD_LIBRARY_PATH=../bin:${LD_LIBRARY_PATH} NEKOPATH=../boot:../bin ../bin/neko
 
@@ -66,6 +67,7 @@ LIBNEKO_LIBS = ${LIBNEKO_DEPS} -dynamiclib -single_module ${LIBNEKO_INSTALL} ${C
 NEKOVM_FLAGS = -L${PWD}/bin -lneko
 STD_NDLL_FLAGS = -bundle ${NEKOVM_FLAGS} ${CFLAGS}
 INSTALL_FLAGS = -osx-universal
+RANLIB = ranlib libs/include/osx_universal/libgc.a
 
 endif
 
@@ -106,6 +108,7 @@ compiler:
 	(cd src; ${NEKO_EXEC} nekoc -link ../boot/nekoml.n nekoml/Main)
 
 bin/${LIBNEKO_NAME}: ${LIBNEKO_OBJECTS}
+	${RANLIB}
 	${MAKESO} -o $@ ${LIBNEKO_OBJECTS} ${LIBNEKO_LIBS}
 
 bin/neko: $(VM_OBJECTS)
