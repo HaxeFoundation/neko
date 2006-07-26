@@ -21,7 +21,6 @@
 #	define SHUT_WR		SD_SEND
 #	define SHUT_RD		SD_RECEIVE
 #	define SHUT_RDWR	SD_BOTH
-#	define MSG_NOSIGNAL	0
 	static bool init_done = false;
 	static WSADATA init_data;
 #else
@@ -39,6 +38,10 @@
 #	define closesocket close
 #	define SOCKET_ERROR (-1)
 #	define INVALID_SOCKET (-1)
+#endif
+
+#ifndef NEKO_LINUX
+#	define MSG_NOSIGNAL 0
 #endif
 
 DEFINE_KIND(k_socket);
@@ -97,6 +100,9 @@ static value socket_new( value udp ) {
 		s = socket(AF_INET,SOCK_STREAM,0);
 	if( s == INVALID_SOCKET )
 		neko_error();
+#	ifdef NEKO_MAC
+	setsockopt(s,SOL_SOCKET,SO_NOSIGPIPE,NULL);
+#	endif
 	return alloc_abstract(k_socket,(value)(int_val)s);
 }
 
