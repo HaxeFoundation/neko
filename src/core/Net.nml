@@ -67,7 +67,15 @@ function socket_io(s) {
 			try socket_recv_char s 
 			catch { e -> throw IO.Eof }
 		})
-		(function(b,p,l) { try socket_recv s b p l catch { e -> throw IO.Eof } })
+		(function(b,p,l) {
+			try {
+				var n = socket_recv s b p l;
+				if n == 0 then throw IO.Eof;
+				n
+			} catch {
+				e -> throw IO.Eof
+			}
+		})
 		(function() { socket_close s })
 	,IO.create_out
 		(socket_send_char s)
