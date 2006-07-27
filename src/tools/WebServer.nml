@@ -529,7 +529,8 @@ function client_msg_safe(c) {
 		client_msg(c);
 		false
 	} catch {
-		Neko_error v when Reflex.value(v) == Reflex.VString("Broken pipe") -> false
+		| IO.Eof -> false
+		| Neko_error v when Reflex.value(v) == Reflex.VString("Broken pipe") -> false
 	}
 }
 
