@@ -73,6 +73,7 @@ try {
 } catch {
 	| Neko.Lexer.Error (msg,p) -> report Neko.Lexer.error_msg(msg) p
 	| Neko.Parser.Error (msg,p) -> report Neko.Parser.error_msg(msg) p
+	| Neko.Compile.Error (msg,p) -> report Neko.Compile.error_msg(msg) p
 	| Nekoml.Lexer.Error (msg,p) -> report Nekoml.Lexer.error_msg(msg) p
 	| Nekoml.Parser.Error (msg,p) -> report Nekoml.Parser.error_msg(msg) p
 	| Nekoml.Typer.Error (msg,p) -> report Nekoml.Typer.error_msg(msg) p
