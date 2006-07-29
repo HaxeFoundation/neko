@@ -72,13 +72,15 @@ libs = {
 
 // PLATFORM
 
-cflags = $array("-O3","-fPIC");
+cflags = "-O3 -fPIC";
 linkcmd = switch system { "BSD" => "ld" default => "gcc" };
 linkoptions = switch system { "Mac" => "-bundle -undefined dynamic_lookup -L../../bin -lneko" default => "-shared -L../../bin -lneko" };
 nekovm = switch system { "Windows" => "..\\bin\\neko" default => "../bin/neko" };
 ranlib = function(l) { }
 
 if( osx_universal ) {
+	cflags += " -arch ppc -arch i386";
+	linkoptions += " -arch ppc -arch i386";
 	libs.regexp.lparams = null;
 	libs.regexp.lib = "osx_universal/libpcre.a";
 	libs.zlib.lparams = null;
@@ -207,7 +209,7 @@ copy = function(file,path) {
 }
 
 compile = function(file) {
-	exec("gcc "+make("",cflags)+"-c "+make("-I",includes)+file+".c");
+	exec("gcc "+cflags+" -c "+make("-I",includes)+file+".c");
 }
 
 nekoboot = function(file) {
