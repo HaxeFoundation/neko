@@ -174,6 +174,9 @@ enum IOperation {
 	} \
 
 #define FIELD(n)				((n) * 4)
+#define VMFIELD(f)				((int)(int_val)&((neko_vm*)0)->f)
+#define FUNFIELD(f)				((int)(int_val)&((vfunction*)0)->f)
+
 #define POS()					((int)((int_val)ctx->buf.p - (int_val)ctx->baseptr))
 #define GET_PC()				CONST(ctx->module->code + ctx->curpc)
 
@@ -186,9 +189,9 @@ enum IOperation {
 
 #define OP_RM(op,mod,reg,rm)	{ B(op); MOD_RM(mod,reg,rm); }
 #define OP_ADDR(op,addr,reg,rm) { B(op); \
-								MOD_RM((addr == 0 && reg != Ebp)?0:(IS_SBYTE(addr)?1:2),rm,reg); \
+								MOD_RM(((addr) == 0 && reg != Ebp)?0:(IS_SBYTE(addr)?1:2),rm,reg); \
 								if( reg == Esp ) B(0x24); \
-								if( addr == 0 && reg != Ebp ) {} \
+								if( (addr) == 0 && reg != Ebp ) {} \
 								else if IS_SBYTE(addr) B(addr); \
 								else W(addr); }
 
@@ -314,8 +317,8 @@ enum IOperation {
 		} \
 	}
 
-#define begin_call()	{ XMov_pr(VM,FIELD(0),SP); XMov_pr(VM,FIELD(1),CSP); }
-#define end_call()		{ XMov_rp(SP,VM,FIELD(0)); XMov_rp(CSP,VM,FIELD(1)); }
+#define begin_call()	{ XMov_pr(VM,VMFIELD(sp),SP); XMov_pr(VM,VMFIELD(csp),CSP); }
+#define end_call()		{ XMov_rp(SP,VM,VMFIELD(sp)); XMov_rp(CSP,VM,VMFIELD(csp)); }
 #define label(code)		{ XMov_rc(TMP2,CONST(code)); XCall_r(TMP2); }
 
 #define todo(str)		{ int *loop; XMov_rc(TMP2,CONST(str)); XJump(JAlways,loop); *loop = -5; }
@@ -362,22 +365,22 @@ enum IOperation {
 #define get_var_r(reg,v) { \
 	switch( v ) { \
 	case VThis: \
-		XMov_rp(reg,VM,FIELD(3)); \
+		XMov_rp(reg,VM,VMFIELD(vthis)); \
 		break; \
 	case VEnv: \
-		XMov_rp(reg,VM,FIELD(2)); \
+		XMov_rp(reg,VM,VMFIELD(env)); \
 		break; \
 	case VModule: \
-		XMov_rp(reg,VM,FIELD(7)); \
+		XMov_rp(reg,VM,VMFIELD(jit_val)); \
 		break; \
 	case VVm: \
 		XMov_rr(reg,VM); \
 		break; \
 	case VSpMax: \
-		XMov_rp(reg,VM,FIELD(5)); \
+		XMov_rp(reg,VM,VMFIELD(spmax)); \
 		break; \
 	case VTrap: \
-		XMov_rp(reg,VM,FIELD(6)); \
+		XMov_rp(reg,VM,VMFIELD(trap)); \
 		break; \
 	default: \
 		ERROR; \
@@ -388,26 +391,26 @@ enum IOperation {
 #define get_var_p(reg,idx,v) { \
 	switch( v ) { \
 	case VThis: \
-		XMov_rp(TMP,VM,FIELD(3)); \
+		XMov_rp(TMP,VM,VMFIELD(vthis)); \
 		XMov_pr(reg,idx,TMP); \
 		break; \
 	case VEnv: \
-		XMov_rp(TMP,VM,FIELD(2)); \
+		XMov_rp(TMP,VM,VMFIELD(env)); \
 		XMov_pr(reg,idx,TMP); \
 		break; \
 	case VModule: \
-		XMov_rp(TMP,VM,FIELD(7)); \
+		XMov_rp(TMP,VM,VMFIELD(jit_val)); \
 		XMov_pr(reg,idx,TMP); \
 		break; \
 	case VVm: \
 		XMov_pr(reg,idx,VM); \
 		break; \
 	case VSpMax: \
-		XMov_rp(TMP,VM,FIELD(5)); \
+		XMov_rp(TMP,VM,VMFIELD(spmax)); \
 		XMov_pr(reg,idx,TMP); \
 		break; \
 	case VTrap: \
-		XMov_rp(TMP,VM,FIELD(6)); \
+		XMov_rp(TMP,VM,VMFIELD(trap)); \
 		XMov_pr(reg,idx,TMP); \
 		break; \
 	default: \
@@ -419,16 +422,16 @@ enum IOperation {
 #define set_var_r(v,reg) { \
 	switch( v ) { \
 	case VThis: \
-		XMov_pr(VM,FIELD(3),reg); \
+		XMov_pr(VM,VMFIELD(vthis),reg); \
 		break; \
 	case VEnv: \
-		XMov_pr(VM,FIELD(2),reg); \
+		XMov_pr(VM,VMFIELD(env),reg); \
 		break; \
 	case VTrap: \
-		XMov_pr(VM,FIELD(6),reg); \
+		XMov_pr(VM,VMFIELD(trap),reg); \
 		break; \
 	case VModule: \
-		XMov_pr(VM,FIELD(7),reg); \
+		XMov_pr(VM,VMFIELD(jit_val),reg); \
 		break; \
 	default: \
 		ERROR; \
@@ -440,19 +443,19 @@ enum IOperation {
 	switch( v ) { \
 	case VThis: \
 		XMov_rp(TMP,reg,idx); \
-		XMov_pr(VM,FIELD(3),TMP); \
+		XMov_pr(VM,VMFIELD(vthis),TMP); \
 		break; \
 	case VEnv: \
 		XMov_rp(TMP,reg,idx); \
-		XMov_pr(VM,FIELD(2),TMP); \
+		XMov_pr(VM,VMFIELD(env),TMP); \
 		break; \
 	case VTrap: \
 		XMov_rp(TMP,reg,idx); \
-		XMov_pr(VM,FIELD(6),TMP); \
+		XMov_pr(VM,VMFIELD(trap),TMP); \
 		break; \
 	case VModule: \
 		XMov_rp(TMP,reg,idx); \
-		XMov_pr(VM,FIELD(7),TMP); \
+		XMov_pr(VM,VMFIELD(jit_val),TMP); \
 		break; \
 	default: \
 		ERROR; \
@@ -477,7 +480,7 @@ enum IOperation {
 		set_var_p(VThis,SP,FIELD(0)); \
 		pop(1); \
 	} \
-	set_var_p(VEnv,ACC,FIELD(3)); \
+	set_var_p(VEnv,ACC,FUNFIELD(env)); \
 }
 
 #define restore_after_call(nargs,pad) { \
@@ -485,7 +488,7 @@ enum IOperation {
 	XCmp_rc(ACC,0); \
 	XJump(JNeq,jok); \
 	XMov_rp(ACC,Esp,FIELD(nargs+PAD_OPT(pad))); \
-	XMov_rp(ACC,ACC,FIELD(4)); \
+	XMov_rp(ACC,ACC,FUNFIELD(module)); \
 	stack_pad(-1); \
 	XPush_r(ACC); \
 	XCall_m(val_throw); \
@@ -680,19 +683,19 @@ static void jit_trap( jit_ctx *ctx, int n ) {
 	// restore registers
 	end_call();
 	XMov_rr(ACC,Ebp);
-	XMov_rp(Ebp,VM,FIELD(9));
-	XMov_rp(Esp,VM,FIELD(10));
-	XMov_rp(TMP2,VM,FIELD(11));
+	XMov_rp(Ebp,VM,VMFIELD(start)+FIELD(1));
+	XMov_rp(Esp,VM,VMFIELD(start)+FIELD(2));
+	XMov_rp(TMP2,VM,VMFIELD(start)+FIELD(3));
 
 	// restore vm jmp_buf
 	XPop_r(TMP);
-	XMov_pr(VM,FIELD(11),TMP);
+	XMov_pr(VM,VMFIELD(start)+FIELD(3),TMP);
 	XPop_r(TMP);
-	XMov_pr(VM,FIELD(10),TMP);
+	XMov_pr(VM,VMFIELD(start)+FIELD(2),TMP);
 	XPop_r(TMP);
-	XMov_pr(VM,FIELD(9),TMP);
+	XMov_pr(VM,VMFIELD(start)+FIELD(1),TMP);
 	XPop_r(TMP);
-	XMov_pr(VM,FIELD(8),TMP);
+	XMov_pr(VM,VMFIELD(start),TMP);
 
 	XPush_r(TMP2);
 	XRet();
@@ -804,7 +807,7 @@ static void jit_call( jit_ctx *ctx, int mode, int nargs ) {
 	is_int(ACC,1,jerr);
 
 // if( type == jit )
-	XMov_rp(TMP,ACC,FIELD(0)); // acc->type
+	XMov_rp(TMP,ACC,FUNFIELD(t));
 	XCmp_rb(TMP,VAL_JITFUN);
 	XJump(JNeq,jother);
 
@@ -868,7 +871,7 @@ static void jit_call_jit( jit_ctx *ctx, int nargs, int mode ) {
 	int *jerr;
 
 	// check arg count
-	XMov_rp(TMP,ACC,FIELD(1));
+	XMov_rp(TMP,ACC,FUNFIELD(nargs));
 	XCmp_rb(TMP,nargs);
 	XJump(JNeq,jerr);
 
@@ -876,19 +879,19 @@ static void jit_call_jit( jit_ctx *ctx, int nargs, int mode ) {
 		// pop PC and EIP from the stack
 		stack_pop(Esp,2);
 
-		set_var_p(VModule,ACC,FIELD(4)); // vm->module = acc->module
-		set_var_p(VEnv,ACC,FIELD(3)); // vm->env = acc->env
-		XMov_rp(TMP,ACC,FIELD(2)); // rtmp = acc->addr
+		set_var_p(VModule,ACC,FUNFIELD(module));
+		set_var_p(VEnv,ACC,FUNFIELD(env));
+		XMov_rp(TMP,ACC,FUNFIELD(addr));
 		XJump_r(TMP);
 	} else {
 		push_infos(PC_ARG);
-		set_var_p(VModule,ACC,FIELD(4)); // vm->module = acc->module
-		set_var_p(VEnv,ACC,FIELD(3)); // vm->env = acc->env
+		set_var_p(VModule,ACC,FUNFIELD(module));
+		set_var_p(VEnv,ACC,FUNFIELD(env));
 		if( mode == THIS_CALL ) {
 			set_var_p(VThis,SP,FIELD(0));
 			pop(1);
 		}
-		XMov_rp(TMP,ACC,FIELD(2)); // acc->addr
+		XMov_rp(TMP,ACC,FUNFIELD(addr));
 		stack_pad(1);
 		XCall_r(TMP);
 		stack_pad(-1);
@@ -907,7 +910,7 @@ static void jit_call_prim( jit_ctx *ctx, int nargs, int mode ) {
 	int pad_size = 4 - ((2+nargs)%4);
 
 	// check arg count
-	XMov_rp(TMP,ACC,FIELD(1)); // acc->nargs
+	XMov_rp(TMP,ACC,FUNFIELD(nargs));
 	XCmp_rb(TMP,nargs);
 	XJump(JNeq,jvararg);
 
@@ -922,7 +925,7 @@ static void jit_call_prim( jit_ctx *ctx, int nargs, int mode ) {
 #	endif
 
 	// call C primitive
-	XMov_rp(TMP,ACC,FIELD(2)); // acc->addr
+	XMov_rp(TMP,ACC,FUNFIELD(addr));
 	begin_call();
 	XCall_r(TMP);
 	end_call();
@@ -952,7 +955,7 @@ static void jit_call_prim( jit_ctx *ctx, int nargs, int mode ) {
 	XPush_r(TMP);
 
 	// call C primitive
-	XMov_rp(TMP,ACC,FIELD(2)); // acc->addr
+	XMov_rp(TMP,ACC,FUNFIELD(addr));
 	begin_call();
 
 	XCall_r(TMP);
@@ -971,14 +974,14 @@ static void jit_call_fun( jit_ctx *ctx, int nargs, int mode ) {
 	int *jerr;
 
 	// check arg count
-	XMov_rp(TMP,ACC,FIELD(1));
+	XMov_rp(TMP,ACC,FUNFIELD(nargs));
 	XCmp_rb(TMP,nargs);
 	XJump(JNeq,jerr);
 
 	// C call : neko_interp(vm,m,acc,pc)
 	setup_before_call(mode,true);
 	stack_push(Esp,4);
-	XMov_rp(TMP,ACC,FIELD(2)); // acc->addr
+	XMov_rp(TMP,ACC,FUNFIELD(addr));
 	XMov_pr(Esp,FIELD(3),TMP);
 	XMov_pr(Esp,FIELD(2),ACC);
 	get_var_p(Esp,FIELD(1),VModule);
@@ -1487,7 +1490,7 @@ static void jit_make_env( jit_ctx *ctx, int esize ) {
 
 	// check type t_function or t_jit
 	is_int(ACC,true,jerr1);
-	XMov_rp(TMP,ACC,FIELD(0)); // acc->type
+	XMov_rp(TMP,ACC,FUNFIELD(t));
 	XCmp_rb(TMP,VAL_JITFUN);
 	XJump(JEq,jok);
 	XCmp_rb(TMP,VAL_FUNCTION);
@@ -1498,11 +1501,11 @@ static void jit_make_env( jit_ctx *ctx, int esize ) {
 	XPush_r(TMP);				// acc->type
 	stack_push(Esp,1);			// empty cell
 	stack_pad(2);
-	XMov_rp(TMP,ACC,FIELD(1));	// acc->nargs
+	XMov_rp(TMP,ACC,FUNFIELD(nargs));
 	XPush_r(TMP);
-	XMov_rp(TMP,ACC,FIELD(2));  // acc->addr
+	XMov_rp(TMP,ACC,FUNFIELD(addr));
 	XPush_r(TMP);
-	XMov_rp(TMP,ACC,FIELD(4));  // acc->module
+	XMov_rp(TMP,ACC,FUNFIELD(module));
 	XPush_r(TMP);
 
 	// call alloc_array(n)
@@ -1546,8 +1549,8 @@ static void jit_make_env( jit_ctx *ctx, int esize ) {
 	XMov_rp(TMP,Esp,FIELD(3)); // restore acc
 	XMov_rp(TMP2,Esp,FIELD(4)); // restore type
 	stack_pop_pad(5,2);
-	XMov_pr(ACC,FIELD(0),TMP2); // acc->type = type
-	XMov_pr(ACC,FIELD(3),TMP);  // acc->env = env
+	XMov_pr(ACC,FUNFIELD(t),TMP2);
+	XMov_pr(ACC,FUNFIELD(env),TMP);
 	XRet();
 
 	// errors
@@ -2187,7 +2190,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		XAnd_rc(TMP,7);
 		XCmp_rb(TMP,VAL_FUNCTION);
 		XJump(JNeq,jerr2);
-		XMov_rp(TMP,ACC,FIELD(1)); // f->nargs
+		XMov_rp(TMP,ACC,FUNFIELD(nargs));
 
 		// what do we do depending of the number of args ?
 		XCmp_rb(TMP,p);
@@ -2258,19 +2261,19 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		}
 	case Trap: {
 		// save some vm->start on the stack
-		XMov_rp(TMP,VM,FIELD(8));
+		XMov_rp(TMP,VM,VMFIELD(start));
 		XPush_r(TMP);
-		XMov_rp(TMP,VM,FIELD(9));
+		XMov_rp(TMP,VM,VMFIELD(start)+FIELD(1));
 		XPush_r(TMP);
-		XMov_rp(TMP,VM,FIELD(10));
+		XMov_rp(TMP,VM,VMFIELD(start)+FIELD(2));
 		XPush_r(TMP);
-		XMov_rp(TMP,VM,FIELD(11));
+		XMov_rp(TMP,VM,VMFIELD(start)+FIELD(3));
 		XPush_r(TMP);
 		// save magic, ebp , esp and ret_pc
-		XMov_pc(VM,FIELD(8),CONST(jit_handle_trap));
-		XMov_pr(VM,FIELD(9),Ebp);
-		XMov_pr(VM,FIELD(10),Esp);
-		XMov_pc(VM,FIELD(11),-1);
+		XMov_pc(VM,VMFIELD(start),CONST(jit_handle_trap));
+		XMov_pr(VM,VMFIELD(start)+FIELD(1),Ebp);
+		XMov_pr(VM,VMFIELD(start)+FIELD(2),Esp);
+		XMov_pc(VM,VMFIELD(start)+FIELD(3),-1);
 		{
 			jlist *t = (jlist*)alloc(sizeof(jlist));
 			ctx->buf = buf;
@@ -2305,13 +2308,13 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 
 		// restore VM jmp_buf
 		XPop_r(TMP);
-		XMov_pr(VM,FIELD(11),TMP);
+		XMov_pr(VM,VMFIELD(start)+FIELD(3),TMP);
 		XPop_r(TMP);
-		XMov_pr(VM,FIELD(10),TMP);
+		XMov_pr(VM,VMFIELD(start)+FIELD(2),TMP);
 		XPop_r(TMP);
-		XMov_pr(VM,FIELD(9),TMP);
+		XMov_pr(VM,VMFIELD(start)+FIELD(1),TMP);
 		XPop_r(TMP);
-		XMov_pr(VM,FIELD(8),TMP);
+		XMov_pr(VM,VMFIELD(start),TMP);
 
 		// trap = val_int(sp[5])
 		XMov_rp(TMP,SP,FIELD(5));
@@ -2569,7 +2572,7 @@ void neko_module_jit( neko_module *m ) {
 			XCall_m_real(val_print);
 			stack_pop(Esp,1);
 			// val_print(alloc_int(csp - spmin))
-			XMov_rp(TMP2,VM,FIELD(4)); // SpMin
+			XMov_rp(TMP2,VM,VMFIELD(spmin));
 			XMov_rr(TMP,CSP);
 			XSub_rr(TMP,TMP2);
 			XSar_rc(TMP,1);
