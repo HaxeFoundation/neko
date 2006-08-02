@@ -191,13 +191,21 @@ static value sys_exit( value ecode ) {
 }
 
 /**
-	file_exists : string -> bool
-	<doc>Returns true if the file or directory exists</doc>
+	sys_exists : string -> bool	
+	<doc>Returns true if the file or directory exists.</doc>
 **/
-static value file_exists( value path ) {
+static value sys_exists( value path ) {
 	struct stat st;
 	val_check(path,string);
 	return alloc_bool(stat(val_string(path),&st) == 0);
+}
+
+/**
+	file_exists : string -> bool
+	<doc>Deprecated : use sys_exists instead.</doc>
+**/
+static value file_exists( value path ) {
+	return sys_exists(path);
 }
 
 /**
@@ -546,6 +554,7 @@ DEFINE_PRIM(sys_remove_dir,1);
 DEFINE_PRIM(sys_read_dir,1);
 DEFINE_PRIM(file_full_path,1);
 DEFINE_PRIM(file_exists,1);
+DEFINE_PRIM(sys_exists,1);
 DEFINE_PRIM(file_delete,1);
 DEFINE_PRIM(sys_rename,2);
 DEFINE_PRIM(sys_exe_path,0);

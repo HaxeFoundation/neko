@@ -26,7 +26,7 @@ stdin = $loader.loadprim("std@file_stdin",0)();
 read_char = $loader.loadprim("std@file_read_char",1);
 ftype = $loader.loadprim("std@sys_file_type",1);
 command = $loader.loadprim("std@sys_command",1);
-file_exists = $loader.loadprim("std@file_exists",1);
+exists = $loader.loadprim("std@sys_exists",1);
 split = $loader.loadprim("std@string_split",2);
 mkdir = $loader.loadprim("std@sys_create_dir",2);
 delete = $loader.loadprim("std@file_delete",1);
@@ -169,7 +169,7 @@ request_lib = function() {
 find_file = function(f,arr) {
 	var i = 0;
 	while( i < $asize(arr) ) {
-		if( file_exists(arr[i]+"/"+f) )
+		if( exists(arr[i]+"/"+f) )
 			return arr[i];
 		i = i + 1;
 	}

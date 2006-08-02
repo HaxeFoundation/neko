@@ -56,7 +56,7 @@ function exit(code : int) : 'a {
 	");
 }
 
-var file_exists : string -> bool = neko "$loader.loadprim('std@file_exists',1)"
+var exists : string -> bool = neko "$loader.loadprim('std@sys_exists',1)"
 
 var version : (int, int) = {
 	var v : int = neko "$version()";
