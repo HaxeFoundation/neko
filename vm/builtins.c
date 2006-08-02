@@ -1092,6 +1092,21 @@ static value builtin_version() {
 	return alloc_int(NEKO_VERSION);
 }
 
+/**
+	$setresolver : function:2? -> void
+	<doc>Set a function to callback with object and field id when an object field is not found.</doc>
+**/
+static value builtin_setresolver( value f ) {
+	neko_vm *vm = NEKO_VM();
+	if( val_is_null(f) )
+		vm->resolver = NULL;
+	else {
+		val_check_function(f,2);
+		vm->resolver = f;
+	}
+	return val_null;
+}
+
 #define BUILTIN(name,nargs)	\
 	alloc_field(neko_builtins[0],val_id(#name),alloc_function(builtin_##name,nargs,"$" #name));
 
@@ -1167,6 +1182,7 @@ void neko_init_builtins() {
 	BUILTIN(excstack,0);
 	BUILTIN(callstack,0);
 	BUILTIN(version,0);
+	BUILTIN(setresolver,1);
 }
 
 /* ************************************************************************ */

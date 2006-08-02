@@ -1738,15 +1738,16 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		array_access(1);
 		break;
 	case AccField: {
-		int *jerr1, *jerr2, *jend1, *loop;
-		char *jend2, *start;
+		int *jerr1, *jerr2, *jend1, *loop, *no_resolver;
+		char *jend2, *jend3, *start;
 
 		is_int(ACC,true,jerr1);
 		XMov_rp(TMP,ACC,FIELD(0));
 		XCmp_rb(TMP,VAL_OBJECT);
 		XJump(JNeq,jerr2);
+		XPush_r(ACC);
 		XPush_r(VM);
-		stack_pad(2);
+		stack_pad(1);
 		XMov_rr(VM,ACC);
 		XPush_c(p);
 		start = buf.c;
@@ -1760,8 +1761,23 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		XCmp_rc(VM,0);
 		XJump(JNeq,loop);
 		*loop = (int)(start - buf.c);
-		stack_pop_pad(1,2);
+		stack_pop_pad(1,1);
 		XPop_r(VM);
+		XPop_r(ACC);
+		XMov_rp(TMP,VM,VMFIELD(resolver));
+		XCmp_rc(TMP,0);
+		XJump(JEq,no_resolver);
+
+        XPush_c(CONST(alloc_int(p)));
+		XPush_r(ACC);
+		XPush_r(TMP);
+		begin_call();
+		XCall_m(val_call2);
+		end_call();
+		stack_pop(Esp,3);
+		XJump_near(jend3);
+
+		PATCH_JUMP(no_resolver);
 		XMov_rc(ACC,CONST(val_null));
 		XJump_near(jend2);
 
@@ -1774,8 +1790,10 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		PATCH_JUMP(jend1);
 		stack_pop_pad(2,2);
 		XPop_r(VM);
+		stack_pop(Esp,1);
 		XMov_rp(ACC,ACC,FIELD(0));
 		PATCH_JUMP(jend2);
+		PATCH_JUMP(jend3);
 		break;
 		}
 	case SetStack:

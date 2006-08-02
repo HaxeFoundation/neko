@@ -41,6 +41,7 @@ struct _neko_vm {
 	neko_printer print;
 	void *print_param;
 	void *custom;
+	value resolver;
 	char tmp[100];
 };
 
