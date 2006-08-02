@@ -907,7 +907,9 @@ static void jit_call_prim( jit_ctx *ctx, int nargs, int mode ) {
 	INIT_BUFFER;
 	int *jvararg, *jerr;
 	int i;
+#	ifdef STACK_ALIGN
 	int pad_size = 4 - ((2+nargs)%4);
+#	endif
 
 	// check arg count
 	XMov_rp(TMP,ACC,FUNFIELD(nargs));
