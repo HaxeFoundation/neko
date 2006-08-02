@@ -48,6 +48,7 @@ typedef struct _result {
 	int ncols;
 	int count;
 	field *names;
+	int *bools;
 	int done;
 	int first;
 	sqlite3_stmt *r;
@@ -148,6 +149,7 @@ static value request( value v, value sql ) {
 	}
 	r->ncols = sqlite3_column_count(r->r);
 	r->names = (field*)alloc(sizeof(field)*r->ncols);
+	r->bools = (int*)alloc(sizeof(int)*r->ncols);
 	r->first = 1;
 	r->done = 0;
 	for(i=0;i<r->ncols;i++) {
@@ -170,6 +172,7 @@ static value request( value v, value sql ) {
 				}
 			}
 		r->names[i] = id;
+		r->bools[i] = strcmp(sqlite3_column_decltype(r->r,i),"BOOL") == 0;
 	}
 	// changes in an update/delete
 	if( db->last != NULL )
@@ -222,7 +225,10 @@ static value result_next( value v ) {
 				f = val_null;
 				break;
 			case SQLITE_INTEGER:
-				f = alloc_int(sqlite3_column_int(r->r,i));
+				if( r->bools[i] )
+					f = alloc_bool(sqlite3_column_int(r->r,i));
+				else
+					f = alloc_int(sqlite3_column_int(r->r,i));
 				break;
 			case SQLITE_FLOAT:
 				f = alloc_float(sqlite3_column_double(r->r,i));
