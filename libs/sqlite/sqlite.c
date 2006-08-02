@@ -154,6 +154,7 @@ static value request( value v, value sql ) {
 	r->done = 0;
 	for(i=0;i<r->ncols;i++) {
 		field id = val_id(sqlite3_column_name(r->r,i));
+		const char *dtype = sqlite3_column_decltype(r->r,i);
 		for(j=0;j<i;j++)
 			if( r->names[j] == id ) {
 				if( strcmp(sqlite3_column_name(r->r,i),sqlite3_column_name(r->r,j)) == 0 ) {
@@ -172,7 +173,7 @@ static value request( value v, value sql ) {
 				}
 			}
 		r->names[i] = id;
-		r->bools[i] = strcmp(sqlite3_column_decltype(r->r,i),"BOOL") == 0;
+		r->bools[i] = dtype?(strcmp(dtype,"BOOL") == 0):0;
 	}
 	// changes in an update/delete
 	if( db->last != NULL )
