@@ -1,3 +1,7 @@
+2006-??-?? : 1.5
+	sqlite : added BOOL handling
+	(TODO) continuations
+
 2006-08-02 : 1.4
 	std : added a SO_REUSEADDR before socket_bind (except windows)
 	nekoc/nekovm : allowed more than 127 filenames in debug infos
