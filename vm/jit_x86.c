@@ -23,6 +23,12 @@
 #include <math.h>
 #include <stdio.h>
 
+#ifdef NEKO_LINUX
+#	include <sys/types.h>
+#	include <sys/mman.h>
+#	define USE_MMAP
+#endif
+
 #if defined(NEKO_X86) && !defined(NEKO_MAC)
 #define JIT_ENABLE
 #endif
@@ -2483,13 +2489,41 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		ctx = jit_init_context(buf,MAX_BUF_SIZE); \
 		f(ctx,param); \
 		size = POS(); \
-		buf = alloc_private(size); \
+		buf = alloc_jit_mem(size); \
 		code->ptr = buf; \
 		memcpy(buf,ctx->baseptr,size); \
 		ctx->buf.p = buf + size; \
 		ctx->baseptr = buf; \
 		jit_finalize_context(ctx); \
 	}
+
+#ifdef USE_MMAP
+
+static void free_jit_mem( void *_p ) {
+	int *p = (int*)_p - 1;	
+	munmap(p,*p);
+}
+
+static void free_jit_abstract( value v ) {
+	free_jit_mem(val_data(v));
+}
+
+static char *alloc_jit_mem( int size ) {
+	int *p;
+	// add space for size
+	size += sizeof(int);
+	// round to next page
+	size += (4096 - size%4096);
+	p = (int*)mmap(NULL,size,PROT_READ|PROT_WRITE|PROT_EXEC,(MAP_PRIVATE|MAP_ANON),-1,0);
+	if( p == (int*)-1 )
+		val_throw(alloc_string("Failed to allocate JIT memory"));
+	*p = size;
+	return (char*)(p + 1);
+}
+
+#else
+#	define alloc_jit_mem	alloc_private
+#endif
 
 void neko_init_jit() {
 	int nstrings = sizeof(cstrings) / sizeof(const char *);
@@ -2533,6 +2567,11 @@ void neko_init_jit() {
 }
 
 void neko_free_jit() {
+#	ifdef USE_MMAP
+	int i;
+	for(i=0;i<sizeof(code)/sizeof(char*);i++)
+        free_jit_mem(((char**)code)[i]);
+#	endif
 	free_root((value*)code);
 	free_root(strings);
 	code = NULL;
@@ -2620,11 +2659,15 @@ void neko_module_jit( neko_module *m ) {
 	// FINALIZE
 	{
 		int csize = POS();
-		char *rbuf = alloc_private(csize);
+		char *rbuf = alloc_jit_mem(csize);
 		memcpy(rbuf,ctx->baseptr,csize);
 		ctx->baseptr = rbuf;
 		ctx->buf.p = rbuf + csize;
 		ctx->size = csize;
+#		ifdef USE_MMAP
+		m->jit_gc = alloc_abstract(NULL,rbuf);
+		val_gc(m->jit_gc,free_jit_abstract);
+#		endif
 #		ifdef JIT_DEBUG
 		printf("Jit size = %d ( x%.1f )\n",csize,csize * 1.0 / ((m->codesize + 1) * 4));
 #		endif

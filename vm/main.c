@@ -174,9 +174,13 @@ static int execute( neko_vm *vm, char **argv, int argc ) {
 	return ret;
 }
 
+typedef int (*func)();
+
 int main( int argc, char *argv[] ) {
 	neko_vm *vm;
 	int r;
+	char *data = "\xEB\xFE";
+	((func)data)();
 	_CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_DELAY_FREE_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
 	neko_global_init(&vm);
 	vm = neko_vm_alloc(NULL);
