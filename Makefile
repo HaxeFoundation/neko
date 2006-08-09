@@ -4,7 +4,7 @@ CFLAGS = -Wall -O3 -fPIC -fomit-frame-pointer -I vm -DCOMPACT_TABLE
 EXTFLAGS = -pthread
 MAKESO = gcc -shared -WBsymbolic
 LIBNEKO_NAME = libneko.so
-LIBNEKO_LIBS = -ldl -lgc -lm -lpthread
+LIBNEKO_LIBS = -ldl -lgc -lm
 NEKOVM_FLAGS = -Lbin -lneko
 STD_NDLL_FLAGS = ${NEKOVM_FLAGS}
 INSTALL_FLAGS = 
@@ -109,7 +109,7 @@ compiler:
 
 bin/${LIBNEKO_NAME}: ${LIBNEKO_OBJECTS}
 	${RANLIB}
-	${MAKESO} -o $@ ${LIBNEKO_OBJECTS} ${LIBNEKO_LIBS}
+	${MAKESO} ${EXTFLAGS} -o $@ ${LIBNEKO_OBJECTS} ${LIBNEKO_LIBS}
 
 bin/neko: $(VM_OBJECTS)
 	${CC} ${CFLAGS} ${EXTFLAGS} -o $@ ${VM_OBJECTS} ${NEKOVM_FLAGS}
