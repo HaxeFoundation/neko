@@ -1,6 +1,7 @@
 2006-??-?? : 1.5
 	sqlite : added BOOL handling
 	jit : added mmap support (for execution protection)
+	jit : fixed bug when unsupported operation exception
 	(TODO) continuations
 
 2006-08-02 : 1.4
