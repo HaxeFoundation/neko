@@ -235,7 +235,7 @@ static value builtin_sset( value s, value p, value c ) {
 }
 
 /**
-	$sblit : dst:string -> dst_pos:int -> src:string -> src_pos:int -> len:int -> string
+	$sblit : dst:string -> dst_pos:int -> src:string -> src_pos:int -> len:int -> void
 	<doc>
 	Copy [len] chars from [src_pos] of [src] to [dst_pos] of [dst].
 	An error occurs if out of strings bounds.
