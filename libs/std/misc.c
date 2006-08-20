@@ -14,7 +14,7 @@
 /* Lesser General Public License or the LICENSE file for more details.		*/
 /*																			*/
 /* ************************************************************************ */
-#include <neko.h>
+#include <neko_vm.h>
 
 /**
 	<doc>
@@ -26,52 +26,88 @@
 **/
 
 /**
-	float_bytes : number -> string
+	float_bytes : number -> bigendian:bool -> string
 	<doc>Returns the 4 bytes representation of the number as an IEEE 32-bit float</doc>
 **/
-static value float_bytes( value n ) {
+static value float_bytes( value n, value be ) {
 	float f;
 	val_check(n,number);
+	val_check(be,bool);
 	f = (float)val_number(n);
+	if( neko_is_big_endian() != val_bool(be) ) {
+		char *c = (char*)&f;
+		char tmp;
+		tmp = c[0];	c[0] = c[3]; c[3] = tmp;
+		tmp = c[1];	c[1] = c[2]; c[2] = tmp;
+	}
 	return copy_string((char *)&f,4);
 }
 
 /**
-	double_bytes : number -> string
+	double_bytes : number -> bigendian:bool -> string
 	<doc>Returns the 8 bytes representation of the number as an IEEE 64-bit float</doc>
 **/
-static value double_bytes( value n ) {
+static value double_bytes( value n, value be ) {
 	double f;
 	val_check(n,number);
+	val_check(be,bool);
 	f = (double)val_number(n);
-	return copy_string((char *)&f,8);
+	if( neko_is_big_endian() != val_bool(be) ) {
+		char *c = (char*)&f;
+		char tmp;
+		tmp = c[0]; c[0] = c[7]; c[7] = tmp;
+		tmp = c[1];	c[1] = c[6]; c[6] = tmp;
+		tmp = c[2]; c[2] = c[5]; c[5] = tmp;
+		tmp = c[3];	c[3] = c[4]; c[4] = tmp;
+	}
+	return copy_string((char*)&f,8);
 }
 
 /**
-	float_of_bytes : string -> float
+	float_of_bytes : string -> bigendian:bool -> float
 	<doc>Returns a float from a 4 bytes IEEE 32-bit representation</doc>
 **/
-static value float_of_bytes( value s ) {
+static value float_of_bytes( value s, value be ) {
+	float f;
 	val_check(s,string);
+	val_check(be,bool);
 	if( val_strlen(s) != 4 )
-		neko_error();	
-	return alloc_float( *(float*)val_string(s) );
+		neko_error();
+	f = *(float*)val_string(s);
+	if( neko_is_big_endian() != val_bool(be) ) {
+		char *c = (char*)&f;
+		char tmp;
+		tmp = c[0];	c[0] = c[3]; c[3] = tmp;
+		tmp = c[1];	c[1] = c[2]; c[2] = tmp;
+	}
+	return alloc_float(f);
 }
 
 /**
-	double_of_bytes : string -> float
+	double_of_bytes : string -> bigendian:bool -> float
 	<doc>Returns a float from a 8 bytes IEEE 64-bit representation</doc>
 **/
-static value double_of_bytes( value s ) {
+static value double_of_bytes( value s, value be ) {
+	double f;
 	val_check(s,string);
+	val_check(be,bool);
 	if( val_strlen(s) != 8 )
-		neko_error();	
-	return alloc_float( *(double*)val_string(s) );
+		neko_error();
+	f = *(double*)val_string(s);
+	if( neko_is_big_endian() != val_bool(be) ) {
+		char *c = (char*)&f;
+		char tmp;
+		tmp = c[0]; c[0] = c[7]; c[7] = tmp;
+		tmp = c[1];	c[1] = c[6]; c[6] = tmp;
+		tmp = c[2]; c[2] = c[5]; c[5] = tmp;
+		tmp = c[3];	c[3] = c[4]; c[4] = tmp;
+	}
+	return alloc_float(f);
 }
 
-DEFINE_PRIM(float_bytes,1);
-DEFINE_PRIM(double_bytes,1);
-DEFINE_PRIM(float_of_bytes,1);
-DEFINE_PRIM(double_of_bytes,1);
+DEFINE_PRIM(float_bytes,2);
+DEFINE_PRIM(double_bytes,2);
+DEFINE_PRIM(float_of_bytes,2);
+DEFINE_PRIM(double_of_bytes,2);
 
 /* ************************************************************************ */
