@@ -217,6 +217,7 @@ static value read_debug_infos( reader r, readp p, char *tmp ) {
 	int curpos = 0;
 	value curfile;
 	unsigned int npos;
+	unsigned int nfiles;
 	unsigned char c,c2;
 	value files;
 	value pos, pp;
@@ -224,13 +225,14 @@ static value read_debug_infos( reader r, readp p, char *tmp ) {
 	READ(&c,1);
 	if( c >= 0x80 ) {
 		READ(&c2,1);
-		c = ((c & 0x7F) << 8) | c2;
+		nfiles = ((c & 0x7F) << 8) | c2;
 		lot_of_files = 1;
-	}
-	if( c == 0 )
+	} else
+		nfiles = c;
+	if( nfiles == 0 )
 		ERROR();
-	files = alloc_array(c);
-	for(i=0;i<c;i++) {
+	files = alloc_array(nfiles);
+	for(i=0;i<nfiles;i++) {
 		if( read_string(r,p,tmp) == -1 )
 			ERROR();
 		val_array_ptr(files)[i] = alloc_string(tmp);
@@ -245,11 +247,12 @@ static value read_debug_infos( reader r, readp p, char *tmp ) {
 			c >>= 1;
 			if( lot_of_files ) {
 				READ(&c2,1);
-				c = (c << 8) | c2;
-			}	
-			if( c >= val_array_size(files) )
+				nfiles = (c << 8) | c2;
+			} else
+				nfiles = c;
+			if( nfiles >= (unsigned int)val_array_size(files) )
 				ERROR();
-			curfile = val_array_ptr(files)[c];
+			curfile = val_array_ptr(files)[nfiles];
 		} else if( c & 2 ) {
 			int delta = c >> 6;
 			int count = (c >> 2) & 15;
