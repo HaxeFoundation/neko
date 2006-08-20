@@ -141,6 +141,9 @@
 			RelativePath=".\memory.c">
 		</File>
 		<File
+			RelativePath=".\misc.c">
+		</File>
+		<File
 			RelativePath=".\module.c">
 		</File>
 		<File
