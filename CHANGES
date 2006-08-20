@@ -2,6 +2,7 @@
 	sqlite : added BOOL handling
 	jit : added mmap support (for execution protection)
 	jit : fixed bug when unsupported operation exception
+	vm : fixed bug in debug infos reading when nfiles >= 128
 	(TODO) continuations
 
 2006-08-02 : 1.4
