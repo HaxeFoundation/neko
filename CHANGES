@@ -3,6 +3,7 @@
 	jit : added mmap support (for execution protection)
 	jit : fixed bug when unsupported operation exception
 	vm : fixed bug in debug infos reading when nfiles > 255
+	vm : fixed bug in interp -> jit call
 	std : added misc.c (float & double bytes manipulations)
 	(TODO) continuations
 
