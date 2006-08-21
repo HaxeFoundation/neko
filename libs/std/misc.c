@@ -118,10 +118,21 @@ static value run_gc( value b ) {
 	return val_null;
 }
 
+/**
+	enable_jit : bool -> void
+	<doc>Enable or disable the JIT.</doc>
+**/
+static value enable_jit( value b ) {	
+	val_check(b,bool);
+	neko_vm_jit(neko_vm_current(),val_bool(b));
+	return val_null;
+}
+
 DEFINE_PRIM(float_bytes,2);
 DEFINE_PRIM(double_bytes,2);
 DEFINE_PRIM(float_of_bytes,2);
 DEFINE_PRIM(double_of_bytes,2);
 DEFINE_PRIM(run_gc,1);
+DEFINE_PRIM(enable_jit,1);
 
 /* ************************************************************************ */
