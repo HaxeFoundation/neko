@@ -313,7 +313,6 @@ static int_val jit_run( neko_vm *vm, vfunction *acc ) {
 				RestoreAfterCall(); \
 			} else \
 				CallFailure(); \
-			PopMacro(pc_args); \
 		} else \
 			CallFailure();
 
