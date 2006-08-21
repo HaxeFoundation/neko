@@ -220,7 +220,6 @@ function init_client(s) {
 }
 
 function rec find_url_file(url,recursive) {
-	printf "%s\n" url;
 	var len = String.length url;
 	if String.get url (len - 1) == '/' then {
 		function rec loop(l) {
@@ -321,9 +320,13 @@ function request() {
 
 function do_print(v) {
 	var c = client();
-	send_headers(c);
-	var s = string(v);
-	IO.write c.out s;
+	try {
+		send_headers(c);
+		var s = string(v);
+		IO.write c.out s;
+	} catch {
+		Neko_error e when magic e == "std@socket_send" -> ()
+	}
 }
 
 function init_mod_neko() {
@@ -511,7 +514,7 @@ function client_msg(c) {
 			match r.post_data { None -> () | Some d -> log "Post [%s]" d };
 			mod_neko c r file
 		} else {
-			// directly the send the file content
+			// directly send the file content
 			IO.write c.out "HTTP/1.x 200 OK\r\n";
 			var ctype = try { List.assoc ext mime } catch { Not_found -> "unknown/unknown" };
 			var data = IO.file_contents file;
@@ -527,11 +530,12 @@ function client_msg(c) {
 function client_msg_safe(c) {
 	try {
 		client_msg(c);
-		false
 	} catch {
-		| IO.Eof -> false
-		| Neko_error v when Reflex.value(v) == Reflex.VString("Broken pipe") -> false
+		| IO.Eof -> printf "Connection aborted\n" ();
+		| Neko_error e when Reflex.value e == Reflex.VString "std@socket_send" -> printf "Sending file aborted\n" ();
 	}
+	neko "$loader.loadprim('std@run_gc',1)(true)";
+	false
 }
 
 function init() {
