@@ -105,9 +105,23 @@ static value double_of_bytes( value s, value be ) {
 	return alloc_float(f);
 }
 
+/**
+	run_gc : major:bool -> void
+	<doc>Run the Neko garbage collector</doc>
+**/
+static value run_gc( value b ) {
+	val_check(b,bool);
+	if( val_bool(b) )
+		neko_gc_major();
+	else
+		neko_gc_loop();
+	return val_null;
+}
+
 DEFINE_PRIM(float_bytes,2);
 DEFINE_PRIM(double_bytes,2);
 DEFINE_PRIM(float_of_bytes,2);
 DEFINE_PRIM(double_of_bytes,2);
+DEFINE_PRIM(run_gc,1);
 
 /* ************************************************************************ */
