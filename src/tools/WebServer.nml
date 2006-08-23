@@ -519,11 +519,23 @@ function client_msg(c) {
 			// directly send the file content
 			IO.write c.out "HTTP/1.x 200 OK\r\n";
 			var ctype = try { List.assoc ext mime } catch { Not_found -> "unknown/unknown" };
-			var data = IO.file_contents file;
+			var file_size : int = neko "$loader.loadprim('std@sys_stat',1)(file).size";			
 			IO.write c.out ("Content-Type: " + ctype + "\r\n");
-			IO.write c.out ("Content-Length: " + String.length data + "\r\n");
+			IO.write c.out ("Content-Length: " + file_size + "\r\n");
 			IO.write c.out "\r\n";
-			IO.write c.out data;
+			var fin = IO.read_file file true;
+			var bufsize = 100000;
+			var n = &(file_size / bufsize);
+			try {
+				while *n > 0 {
+					IO.write c.out IO.read(fin,bufsize);
+					n := *n - 1;
+				}
+				IO.write c.out IO.read(fin,file_size % bufsize);
+			} catch {
+				e -> IO.close_in fin; throw e
+			}
+			IO.close_in fin
 		}
 	}
 	IO.close_out c.out;
