@@ -7,6 +7,7 @@
 	std : added misc.c (float & double bytes manipulations)
 	allowed break & continues in try/catch if they don't break outside
 	nekoml : fixed bug in lexer allocating too bug memory when small reads
+	nekotools : bugfixes in server, added static file streaming
 	(TODO) continuations
 
 2006-08-02 : 1.4
