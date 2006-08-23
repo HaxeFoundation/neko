@@ -113,7 +113,7 @@ function current(l) : string {
 
 function read(l) : char {
 	if l.bin == 0 then {
-		if l.cpos == 0 then {
+		if l.bpos == 0 then {
 			var buf = String.create (l.bsize * 2);
 			String.blit buf l.bsize l.buffer 0 l.bsize;
 			l.cpos := l.cpos + l.bsize;
