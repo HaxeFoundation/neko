@@ -828,8 +828,16 @@ function rec compile(ctx,tail,(e,p)) {
 		};
 	| ETry (e,v,ecatch) ->
 		var trap = trap ctx;
+		var breaks = ctx.breaks;
+		var continues = ctx.continues;
+		ctx.breaks := [];
+		ctx.continues := [];
 		ctx.traps := ctx.stack :: ctx.traps;
 		compile ctx false e;
+		if ctx.breaks != [] then error "Break in try...catch is not allowed" p;
+		if ctx.continues != [] then error "Continue in try...catch is not allowed" p;
+		ctx.breaks := breaks;
+		ctx.continues := continues;
 		write ctx EndTrap;
 		ctx.traps := match ctx.traps { [] -> assert() | _ :: l -> l };
 		var jend = jmp ctx;
@@ -854,7 +862,6 @@ function rec compile(ctx,tail,(e,p)) {
 		write ctx (Ret (ctx.stack - ctx.limit));
 		ctx.stack := stack
 	| EBreak e ->
-		if ctx.traps != [] then error "Break in try...catch is not allowed" p;
 		match e {
 		| None -> ()
 		| Some e -> compile ctx false e
@@ -866,7 +873,6 @@ function rec compile(ctx,tail,(e,p)) {
 		}
 		ctx.breaks := (jmp ctx , p) :: ctx.breaks
 	| EContinue ->
-		if ctx.traps != [] then error "Continue in try...catch is not allowed" p;
 		if ctx.loop_limit != ctx.stack then {
 			var s = ctx.stack;
 			write ctx Pop(ctx.stack - ctx.loop_limit);
