@@ -5,6 +5,7 @@
 	vm : fixed bug in debug infos reading when nfiles > 255
 	vm : fixed bug in interp -> jit call
 	std : added misc.c (float & double bytes manipulations)
+	allowed break & continues in try/catch if they don't break outside
 	(TODO) continuations
 
 2006-08-02 : 1.4
