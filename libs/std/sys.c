@@ -418,7 +418,7 @@ static value sys_read_dir( value path ) {
 		if( !FindNextFile(handle,&d) )
 			break;
 	}
-	CloseHandle(handle);
+	FindClose(handle);
 #else
 	DIR *d;
 	struct dirent *e;
