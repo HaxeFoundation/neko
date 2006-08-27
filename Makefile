@@ -6,7 +6,7 @@ MAKESO = gcc -shared -WBsymbolic
 LIBNEKO_NAME = libneko.so
 LIBNEKO_LIBS = -ldl -lgc -lm
 NEKOVM_FLAGS = -Lbin -lneko
-STD_NDLL_FLAGS = ${NEKOVM_FLAGS}
+STD_NDLL_FLAGS = ${NEKOVM_FLAGS} -lcurses
 INSTALL_FLAGS = 
 RANLIB =
 
@@ -54,7 +54,7 @@ LIBNEKO_NAME = libneko.dylib
 LIBNEKO_INSTALL = -install_name @executable_path/${LIBNEKO_NAME}
 LIBNEKO_LIBS = -ldl -lgc -lm -dynamiclib -single_module ${LIBNEKO_INSTALL}
 NEKOVM_FLAGS = -L${PWD}/bin -lneko
-STD_NDLL_FLAGS = -bundle -undefined dynamic_lookup ${NEKOVM_FLAGS}
+STD_NDLL_FLAGS = -bundle -undefined dynamic_lookup -lcurses ${NEKOVM_FLAGS}
 
 ifeq (${OSX_UNIVERSAL}, 1)
 
@@ -65,7 +65,7 @@ CFLAGS += -arch ppc -arch i386 -L/usr/local/lib
 LIBNEKO_DEPS = libs/include/osx_universal/libgc.a  -lSystemStubs
 LIBNEKO_LIBS = ${LIBNEKO_DEPS} -dynamiclib -single_module ${LIBNEKO_INSTALL} ${CFLAGS} 
 NEKOVM_FLAGS = -L${PWD}/bin -lneko
-STD_NDLL_FLAGS = -bundle ${NEKOVM_FLAGS} ${CFLAGS}
+STD_NDLL_FLAGS = -bundle -lcurses ${NEKOVM_FLAGS} ${CFLAGS}
 INSTALL_FLAGS = -osx-universal
 RANLIB = ranlib libs/include/osx_universal/libgc.a
 
