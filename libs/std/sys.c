@@ -20,6 +20,7 @@
 #include <string.h>
 #include <locale.h>
 #include <time.h>
+#include <conio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -536,6 +537,15 @@ static value sys_env() {
 	return h;
 }
 
+/**
+	sys_getch : bool -> int
+	<doc>Read a character from stdin with or without echo</doc>
+**/
+static value sys_getch( value b ) {	
+	val_check(b,bool);
+	return alloc_int( val_bool(b)?getche():getch() );
+}
+
 DEFINE_PRIM(get_env,1);
 DEFINE_PRIM(put_env,2);
 DEFINE_PRIM(set_time_locale,1);
@@ -559,5 +569,6 @@ DEFINE_PRIM(file_delete,1);
 DEFINE_PRIM(sys_rename,2);
 DEFINE_PRIM(sys_exe_path,0);
 DEFINE_PRIM(sys_file_type,1);
+DEFINE_PRIM(sys_getch,1);
 
 /* ************************************************************************ */
