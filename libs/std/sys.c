@@ -20,14 +20,15 @@
 #include <string.h>
 #include <locale.h>
 #include <time.h>
-#include <conio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
 #ifdef NEKO_WINDOWS
 #	include <windows.h>
 #	include <direct.h>
+#	include <conio.h>
 #else
+#	include <curses.h>
 #	include <unistd.h>
 #	include <dirent.h>
 #	include <limits.h>
