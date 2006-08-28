@@ -22,13 +22,15 @@
 #include <string.h>
 #include <math.h>
 #include <stdio.h>
-#include <malloc.h>
 
 #ifdef NEKO_LINUX
 #	include <sys/types.h>
 #	include <sys/mman.h>
 #	define USE_MMAP
 #endif
+
+#define tmp_alloc		alloc_private
+#define tmp_free(ptr)
 
 #if defined(NEKO_X86) && !defined(NEKO_MAC)
 #define JIT_ENABLE
@@ -166,7 +168,7 @@ enum IOperation {
 #define JSignLte	0x8E
 #define JSignGt		0x8F
 
-#define ERROR	{ free(ctx->pos); free(ctx->baseptr); failure("JIT error"); }
+#define ERROR	{ tmp_free(ctx->pos); tmp_free(ctx->baseptr); failure("JIT error"); }
 #define CONST(v)				((int)(int_val)(v))
 
 #define PATCH_JUMP(local)		if( local != NULL ) { \
@@ -2587,7 +2589,7 @@ int neko_can_jit() {
 void neko_module_jit( neko_module *m ) {
 	unsigned int i = 0;
 	jit_ctx *ctx = jit_init_context(NULL,0);
-	ctx->pos = (int*)malloc(sizeof(int)*(m->codesize + 1));
+	ctx->pos = (int*)tmp_alloc(sizeof(int)*(m->codesize + 1));
 	ctx->module = m;
 	while( i <= m->codesize ) {
 		enum OPCODE op = m->code[i];
@@ -2600,9 +2602,9 @@ void neko_module_jit( neko_module *m ) {
 			int nsize = ctx->size ? (ctx->size * 4) / 3 : ((m->codesize + 1) * 20);
 			char *buf2;
 			if( nsize - curpos < MAX_OP_SIZE ) nsize = curpos + MAX_OP_SIZE;
-			buf2 = malloc(nsize);
+			buf2 = tmp_alloc(nsize);
 			memcpy(buf2,ctx->baseptr,curpos);
-			free(ctx->baseptr);
+			tmp_free(ctx->baseptr);
 			ctx->baseptr = buf2;
 			ctx->buf.p = buf2 + curpos;
 			ctx->size = nsize;
@@ -2663,7 +2665,7 @@ void neko_module_jit( neko_module *m ) {
 		int csize = POS();
 		char *rbuf = alloc_jit_mem(csize);
 		memcpy(rbuf,ctx->baseptr,csize);
-		free(ctx->baseptr);
+		tmp_free(ctx->baseptr);
 		ctx->baseptr = rbuf;
 		ctx->buf.p = rbuf + csize;
 		ctx->size = csize;
@@ -2688,7 +2690,7 @@ void neko_module_jit( neko_module *m ) {
 		}
 	}
 	m->jit = ctx->baseptr;
-	free(ctx->pos);
+	tmp_free(ctx->pos);
 }
 
 #else // JIT_ENABLE
