@@ -34,6 +34,9 @@
 #	include <limits.h>
 #	include <sys/time.h>
 #	include <sys/times.h>
+
+extern int getche();
+
 #endif
 
 #ifdef NEKO_MAC
