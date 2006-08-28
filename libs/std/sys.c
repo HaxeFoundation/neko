@@ -559,7 +559,7 @@ static value sys_getch( value b ) {
 	tcsetattr(fileno(stdin), 0, &term);
 	c = getchar();
 	tcsetattr(fileno(stdin), 0, &old);
-	if( val_bool(b) ) fputc(stdout,c);
+	if( val_bool(b) ) fputc(c,stdout);
 	return alloc_int(c);
 #	endif
 }
