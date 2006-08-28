@@ -28,15 +28,12 @@
 #	include <direct.h>
 #	include <conio.h>
 #else
-#	include <curses.h>
 #	include <unistd.h>
 #	include <dirent.h>
 #	include <limits.h>
+#	include <termios.h>
 #	include <sys/time.h>
 #	include <sys/times.h>
-
-extern int getche();
-
 #endif
 
 #ifdef NEKO_MAC
@@ -546,8 +543,25 @@ static value sys_env() {
 	<doc>Read a character from stdin with or without echo</doc>
 **/
 static value sys_getch( value b ) {	
+#	ifdef NEKO_WINDOWS
 	val_check(b,bool);
 	return alloc_int( val_bool(b)?getche():getch() );
+#	else
+	// took some time to figure out how to do that
+	// without relying on ncurses, which clear the
+	// terminal on initscr()
+	int c;
+	struct termios term, old;
+	val_check(b,bool);
+	tcgetattr(fileno(stdin), &old); 
+	term = old;
+	cfmakeraw(&term);
+	tcsetattr(fileno(stdin), 0, &term);
+	c = getchar();
+	tcsetattr(fileno(stdin), 0, &old);
+	if( val_bool(b) ) fputc(stdout,c);
+	return alloc_int(c);
+#	endif
 }
 
 DEFINE_PRIM(get_env,1);
