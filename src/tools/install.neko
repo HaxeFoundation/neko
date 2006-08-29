@@ -92,7 +92,7 @@ if( osx_universal ) {
 
 includes = $array(
 	"../../vm",
-	"/usr/local/include/apache2",
+	"/usr/local/apache2/include",
 	"/usr/include/apache2",
 	"/usr/local/apache/include",
 	"/usr/apache/include",
