@@ -85,6 +85,8 @@ if( osx_universal ) {
 	libs.regexp.lib = "osx_universal/libpcre.a";
 	libs.zlib.lparams = null;
 	libs.zlib.lib = "osx_universal/libz.a";
+	libs.mysql.lparams = null;
+	libs.mysql.lib = "osx_universal/libmysqlclient.a";
 	ranlib = function(l) { exec("ranlib "+l); }
 }
 
