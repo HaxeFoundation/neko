@@ -5,6 +5,7 @@
 	vm : fixed bug in debug infos reading when nfiles > 255
 	vm : fixed bug in interp -> jit call
 	vm : default NEKOPATH is now the same on OSX/Linux
+	vm : optimized debug infos runtime memory size
 	std : added misc.c (float & double bytes manipulations)
 	std : fixed buf in sys_read_dir on windows (directory not closed correctly)
 	std : added sys_getch
