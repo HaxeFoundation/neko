@@ -40,10 +40,13 @@ find = function(str,sub,pos) {
 
 // find a file in a path
 
-find_in_path = function(path,file) {
+find_exe_in_path = function(path,file) {
 	while( path != null ) {
 		try {
-			return file_contents(path[0]+file);
+			var s = file_contents(path[0]+file);
+			if( $sget(s,0) == 35 ) // '#'
+				$throw("Is a script");
+			return s;
 		} catch e {
 			path = path[1];
 		}
@@ -62,7 +65,7 @@ var bytecode = file_contents(file);
 // load boot.bin
 
 var exe_ext = switch system { "Windows" => ".exe" default => "" };
-var boot = find_in_path($loader.path,"neko"+exe_ext);
+var boot = find_exe_in_path($loader.path,"neko"+exe_ext);
 var boot_str = "##BOOT_POS\000\000\000\000##";
 var pos = find(boot,boot_str,$ssize(boot_str));
 if( pos == null )
