@@ -204,9 +204,11 @@ static void *sys_alloc_pages( int npages ) {
 			page_count++;
 			page_count &= PAGE_COUNT - 1;
 		} else {
+#ifdef NEKO_WINDOWS
 			void *addr2 = VirtualAlloc(addr,npages * PAGE_SIZE,MEM_COMMIT,PAGE_READWRITE);
 			if( addr != addr2 )
 				ASSERT();
+#endif
 			return addr;
 		}
 	}
