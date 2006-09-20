@@ -20,6 +20,7 @@
 #	include <windows.h>
 #else
 #	include <stdint.h>
+#	include <sys/mman.h>
 #endif
 
 #include <stddef.h>
@@ -105,7 +106,6 @@ static gc_root *roots = NULL;
 static gc_final *finals = NULL;
 static int prev_gc, cur_gc;
 static int page_bits[PAGE_COUNT];
-static int page_count = 0;
 static char **base_stack;
 #ifdef NEKO_WINDOWS
 static CRITICAL_SECTION plock;
@@ -131,7 +131,9 @@ void neko_gc_init( void *s ) {
 #endif
 }
 
-// multiple threads = multiple stacks !
+// TODO : store one stack per thread !
+// This needs threads to register/unregister themselves
+// so the GC can track them down. See gc_world_stop as well
 void neko_gc_set_stack_base( void *s ) {
 	base_stack = s;
 }
@@ -178,7 +180,12 @@ static void dump_stats() {
 #endif
 }
 
-static void *alloc_page( int npages ) {
+// allocate a given number of pages which first address is aligned
+// on PAGE_SIZE
+
+static void *sys_alloc_pages( int npages ) {
+#ifdef NEKO_WINDOWS
+	static int page_count = 0;
 	while( 1 ) {
 		void *addr =  (void*)(uintptr_t)(page_count * PAGE_SIZE);
 		addr = VirtualAlloc(addr,npages * PAGE_SIZE,MEM_RESERVE,PAGE_READWRITE);
@@ -191,20 +198,23 @@ static void *alloc_page( int npages ) {
 			void *addr2 = VirtualAlloc(addr,npages * PAGE_SIZE,MEM_COMMIT,PAGE_READWRITE);
 			if( addr != addr2 )
 				ASSERT();
-			page_count = (int)(((uintptr_t)addr) >> PAGE_BITS);
-			STATS(current_pages,npages);
-			while( npages-- )
-				page_bits[page_count++] = 1;
 			return addr;
 		}
 	}
+#else
+	void *addr = mmap((void *)PAGE_SIZE,npages * PAGE_SIZE,PROT_READ | PROT_WRITE,MAP_ALIGN | MAP_ANON,-1,0);
+	if( addr == NULL )
+		ASSERT();
+	return addr;
+#endif
 }
 
-static void free_page( void *addr, int npages ) {
-	int pc = (int)(((uintptr_t)addr) >> PAGE_BITS);
+static void sys_free_pages( void *addr, int npages ) {
+#ifdef NEKO_WINDOWS
 	VirtualFree(addr,0,MEM_RELEASE);
-	while( npages-- )
-		page_bits[pc++] = 0;
+#else
+	munmap(addr,npages * PAGE_SIZE);
+#endif
 }
 
 static void gc_lock( int flag ) {
@@ -216,8 +226,15 @@ static void gc_lock( int flag ) {
 #endif
 }
 
+static void gc_world_stop( int flag ) {
+	gc_lock(flag);
+	// TODO : need to stop other threads
+	// currently running and save their registers
+	// in the case they are manipulating values
+}
+
 void neko_gc_collect() {
-	gc_lock(1);
+	gc_world_stop(1);
 	while( pages != NULL ) {
 		gc_page *tmp = pages->next;
 		pages->next = full_pages;
@@ -234,7 +251,7 @@ void neko_gc_collect() {
 	infos.last_gc = infos.next_gc;
 	STATS(total_gc,1);
 	dump_stats();
-	gc_lock(0);
+	gc_world_stop(0);
 }
 
 void neko_gc_close() {
@@ -278,8 +295,7 @@ int neko_gc_free_bytes() {
 
 static bheader *gc_alloc_block( unsigned int start_size, int can_gc ) {
 	// already locked
-	gc_page *p = pages;
-	int npages;
+	gc_page *p = pages;	
 	unsigned int size = start_size + sizeof(bheader);
 	size += DELTA[size&3];
 	while( p != NULL ) {
@@ -325,13 +341,20 @@ static bheader *gc_alloc_block( unsigned int start_size, int can_gc ) {
 	p = malloc(sizeof(gc_page));
 	if( p == NULL )
 		ASSERT();
-	npages = (size > PAGE_SIZE)?((size + PAGE_SIZE - 1)/PAGE_SIZE):1;
-	p->base = alloc_page(npages);
-	p->npages = npages;
+	p->npages = (size > PAGE_SIZE)?((size + PAGE_SIZE - 1)/PAGE_SIZE):1;
+	p->base = sys_alloc_pages(p->npages);
+	// fill page bits
+	{
+		int pc = (int)(((uintptr_t)p->base) >> PAGE_BITS);
+		int i;
+		STATS(current_pages,p->npages);
+		for(i=0;i<p->npages;i++)
+			page_bits[pc++] = 1;
+	}	
 	p->base->magic = MAGIC_FREE;
-	p->base->size = npages * PAGE_SIZE;
+	p->base->size = p->npages * PAGE_SIZE;
 	p->ptr = p->base;
-	p->end = DELTA(p->base,npages * PAGE_SIZE);
+	p->end = DELTA(p->base,p->npages * PAGE_SIZE);
 	p->next = pages;
 	pages = p;
 	return gc_alloc_block(start_size,0);
@@ -438,7 +461,7 @@ static void gc_mark_block( void *_p ) {
 	if( ((uintptr_t)c) & 3 )
 		return;
 	i = (int)(((uintptr_t)c) >> PAGE_BITS);
-	if( i >= page_count || !page_bits[i] )
+	if( !page_bits[i] )
 		return;
 	i = c->magic & ~NO_SCAN;
 	if( i != prev_gc || i == cur_gc )
@@ -466,7 +489,6 @@ static void gc_mark_block( void *_p ) {
 		while( i-- )
 			gc_mark_block( ((void**)_p)[i] );
 		break;
-
 	}
 }
 
@@ -518,9 +540,13 @@ static void gc_sweep() {
 		}
 		tmp = p->next;
 		// free page
-		if( prev == p->base ) {
+		if( prev == p->base ) {			
+			int pc = (int)(((uintptr_t)p->base) >> PAGE_BITS);
+			sys_free_pages(p->base,p->npages);
 			STATS(current_pages,-p->npages);
-			free_page(p->base,p->npages);
+			// unmark page bits			
+			while( p->npages-- )
+				page_bits[pc++] = 0;
 			free(p);
 		} else {
 			p->ptr = p->base;
