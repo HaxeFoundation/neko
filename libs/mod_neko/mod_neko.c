@@ -212,6 +212,7 @@ static int neko_handler( request_rec *r ) {
 	if( strcmp(r->handler,"neko-handler") != 0)
 		return DECLINED;
 	ret = neko_handler_rec(r);
+	neko_vm_select(NULL);
 	neko_gc_major();
 	return ret;
 }
