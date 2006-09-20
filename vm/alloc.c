@@ -94,6 +94,11 @@ EXTERN void neko_gc_major() {
 	GC_gcollect();
 }
 
+EXTERN void neko_gc_stats( int *heap, int *free ) {
+	*heap = (int)GC_get_heap_size();
+	*free = (int)GC_get_free_bytes();
+}
+
 EXTERN char *alloc( unsigned int nbytes ) {
 	return (char*)GC_MALLOC(nbytes);
 }

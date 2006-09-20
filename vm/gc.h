@@ -28,6 +28,8 @@ void *neko_gc_alloc_private( unsigned int size );
 void *neko_gc_alloc_root( unsigned int size );
 void neko_gc_free_root( void *gc_block );
 void neko_gc_finalizer( void *gc_block, gc_final_fun f );
+int neko_gc_heap_size();
+int neko_gc_free_bytes();
 
 #define GC_MALLOC neko_gc_alloc
 #define GC_MALLOC_ATOMIC neko_gc_alloc_private
@@ -35,6 +37,8 @@ void neko_gc_finalizer( void *gc_block, gc_final_fun f );
 #define GC_collect_a_little neko_gc_collect
 #define GC_gcollect neko_gc_collect
 #define GC_free neko_gc_free_root
+#define GC_get_heap_size neko_gc_heap_size
+#define GC_get_free_bytes neko_gc_free_bytes
 
 #endif
 

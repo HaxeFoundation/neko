@@ -29,6 +29,7 @@ EXTERN void neko_set_stack_base( void *s );
 EXTERN void neko_global_free();
 EXTERN void neko_gc_major();
 EXTERN void neko_gc_loop();
+EXTERN void neko_gc_stats( int *heap, int *free );
 
 EXTERN neko_vm *neko_vm_alloc( void *custom );
 EXTERN neko_vm *neko_vm_current();
