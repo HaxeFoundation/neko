@@ -27,6 +27,7 @@
 #include <malloc.h>
 #include <stdio.h>
 #include <setjmp.h>
+#include <string.h>
 
 #define PAGE_BITS	18
 #define PAGE_SIZE	(1 << PAGE_BITS)
@@ -184,15 +185,22 @@ static void dump_stats() {
 // allocate a given number of pages which first address is aligned
 // on PAGE_SIZE
 
-static void *sys_alloc_pages( int npages ) {
 #ifdef NEKO_WINDOWS
+#	define SysAlloc(addr,npages) VirtualAlloc(addr,npages * PAGE_SIZE,MEM_RESERVE,PAGE_READWRITE)
+#	define SysFree(addr,npages)	VirtualFree(addr,0,MEM_RELEASE)
+#else
+#	define SysAlloc(addr,npages) mmap(addr,npages * PAGE_SIZE,PROT_READ | PROT_WRITE,MAP_ANONYMOUS,-1,0)
+#	define SysFree(addr,npages) munmap(addr,npages * PAGE_SIZE)
+#endif
+
+static void *sys_alloc_pages( int npages ) {
 	static int page_count = 0;
 	while( 1 ) {
 		void *addr =  (void*)(uintptr_t)(page_count * PAGE_SIZE);
-		addr = VirtualAlloc(addr,npages * PAGE_SIZE,MEM_RESERVE,PAGE_READWRITE);
+		addr = SysAlloc(addr,npages);
 		if( addr == NULL || (((uintptr_t)addr) & ((1 << PAGE_BITS) - 1)) != 0 ) {
 			if( addr != NULL )
-				VirtualFree(addr,0,MEM_RELEASE);
+				SysFree(addr,npages);
 			page_count++;
 			page_count &= PAGE_COUNT - 1;
 		} else {
@@ -202,20 +210,6 @@ static void *sys_alloc_pages( int npages ) {
 			return addr;
 		}
 	}
-#else
-	void *addr = mmap((void *)PAGE_SIZE,npages * PAGE_SIZE,PROT_READ | PROT_WRITE,MAP_ALIGN | MAP_ANON,-1,0);
-	if( addr == NULL )
-		ASSERT();
-	return addr;
-#endif
-}
-
-static void sys_free_pages( void *addr, int npages ) {
-#ifdef NEKO_WINDOWS
-	VirtualFree(addr,0,MEM_RELEASE);
-#else
-	munmap(addr,npages * PAGE_SIZE);
-#endif
 }
 
 static void gc_lock( int flag ) {
@@ -585,7 +579,7 @@ static void gc_sweep_pages() {
 	while( full_pages ) {
 		gc_page *p = full_pages;
 		int pc = (int)(((uintptr_t)p->base) >> PAGE_BITS);
-		sys_free_pages(p->base,p->npages);
+		SysFree(p->base,p->npages);
 		STATS(current_pages,-p->npages);
 		// unmark page bits
 		while( p->npages-- )
