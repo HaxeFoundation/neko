@@ -64,10 +64,14 @@ field id_get, id_set;
 field id_add, id_radd, id_sub, id_rsub, id_mult, id_rmult, id_div, id_rdiv, id_mod, id_rmod;
 EXTERN field neko_id_module;
 
+#ifndef NEKO_GC
+
 static void null_warn_proc( char *msg, int arg ) {
 }
 
-#ifndef NEKO_GC
+static void __on_finalize(value v, void *f ) {
+	((finalizer)f)(v);
+}
 
 void neko_gc_init( void *ptr ) {
 	GC_no_dls = 1;
@@ -271,15 +275,11 @@ EXTERN void alloc_field( value obj, field f, value v ) {
 	otable_replace(((vobject*)obj)->table,f,v);
 }
 
-static void __on_finalize(value v, void *f ) {
-	((finalizer)f)(v);
-}
-
 EXTERN void val_gc(value v, finalizer f ) {
 	if( !val_is_abstract(v) )
 		failure("val_gc");
 #ifdef NEKO_GC
-	neko_gc_finalizer(v,f);
+	neko_gc_finalizer(v,(gc_final_fun)f);
 #else
 	if( f )
 		GC_register_finalizer(v,(GC_finalization_proc)__on_finalize,f,0,0);
