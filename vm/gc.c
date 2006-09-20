@@ -113,6 +113,7 @@ static CRITICAL_SECTION plock;
 
 static void gc_mark();
 static void gc_sweep();
+static void gc_sweep_pages();
 static void gc_finalize();
 
 void neko_gc_init( void *s ) {
@@ -244,6 +245,7 @@ void neko_gc_collect() {
 	gc_mark();
 	gc_sweep();
 	gc_finalize();
+	gc_sweep_pages();
 	if( infos.mark_blocks > 0 )
 		infos.living_ratio = infos.living_ratio * 0.2 + (infos.sweep_blocks * 1.0 / (infos.sweep_blocks + infos.mark_blocks)) * 0.8;
 	infos.next_gc = (int)(0.25 / infos.living_ratio) * (infos.last_gc ? infos.last_gc : 1);
@@ -295,7 +297,7 @@ int neko_gc_free_bytes() {
 
 static bheader *gc_alloc_block( unsigned int start_size, int can_gc ) {
 	// already locked
-	gc_page *p = pages;	
+	gc_page *p = pages;
 	unsigned int size = start_size + sizeof(bheader);
 	size += DELTA[size&3];
 	while( p != NULL ) {
@@ -350,7 +352,7 @@ static bheader *gc_alloc_block( unsigned int start_size, int can_gc ) {
 		STATS(current_pages,p->npages);
 		for(i=0;i<p->npages;i++)
 			page_bits[pc++] = 1;
-	}	
+	}
 	p->base->magic = MAGIC_FREE;
 	p->base->size = p->npages * PAGE_SIZE;
 	p->ptr = p->base;
@@ -539,15 +541,10 @@ static void gc_sweep() {
 			}
 		}
 		tmp = p->next;
-		// free page
-		if( prev == p->base ) {			
-			int pc = (int)(((uintptr_t)p->base) >> PAGE_BITS);
-			sys_free_pages(p->base,p->npages);
-			STATS(current_pages,-p->npages);
-			// unmark page bits			
-			while( p->npages-- )
-				page_bits[pc++] = 0;
-			free(p);
+		// mark page to be freed
+		if( prev == p->base ) {
+			p->next = full_pages;
+			full_pages = p;
 		} else {
 			p->ptr = p->base;
 			p->next = pages;
@@ -575,14 +572,26 @@ static void gc_finalize() {
 			free(f);
 			if( prev == NULL)
 				f = finals;
-			else {
-				prev = f;
+			else
 				f = prev->next;
-			}
 		} else {
 			prev = f;
 			f = f->next;
 		}
+	}
+}
+
+static void gc_sweep_pages() {
+	while( full_pages ) {
+		gc_page *p = full_pages;
+		int pc = (int)(((uintptr_t)p->base) >> PAGE_BITS);
+		sys_free_pages(p->base,p->npages);
+		STATS(current_pages,-p->npages);
+		// unmark page bits
+		while( p->npages-- )
+			page_bits[pc++] = 0;
+		full_pages = p->next;
+		free(p);
 	}
 }
 
