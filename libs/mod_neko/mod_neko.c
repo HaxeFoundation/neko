@@ -77,6 +77,10 @@ static value cache_find( request_rec *r ) {
 			else
 				prev->next = c->next;
 			free_root((value*)c);
+			// try to lower memory partitioning
+			// when a module is updated
+			c = NULL;
+			neko_gc_major();
 			break;
 		}
 		prev = c;
