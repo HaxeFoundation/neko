@@ -29,6 +29,9 @@
 #		define GC_WIN32_THREADS
 #	endif
 #	include "gc/gc.h"
+#	ifndef GC_MALLOC
+#		error Looks like libgc was not installed, please install it before compiling
+#	endif
 #endif
 
 typedef struct _klist {
