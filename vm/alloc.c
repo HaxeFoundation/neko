@@ -29,10 +29,11 @@
 #		define GC_WIN32_THREADS
 #	endif
 #	include "gc/gc.h"
-#	ifndef GC_MALLOC
-#		error Looks like libgc was not installed, please install it before compiling
-#	endif
 #endif
+
+#ifndef GC_MALLOC
+#	error Looks like libgc was not installed, please install it before compiling
+#else
 
 typedef struct _klist {
 	const char *name;
@@ -372,5 +373,7 @@ EXTERN vkind kind_import( const char *name ) {
 	}
 	return NULL;
 }
+
+#endif
 
 /* ************************************************************************ */
