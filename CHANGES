@@ -6,13 +6,14 @@
 	vm : fixed bug in interp -> jit call
 	vm : default NEKOPATH is now the same on OSX/Linux
 	vm : optimized debug infos runtime memory size
-	std : added misc.c (float & double bytes manipulations)
+	std : added misc.c (float & double bytes manipulations + gc/vm functions)
 	std : fixed buf in sys_read_dir on windows (directory not closed correctly)
-	std : added sys_getch
+	std : added sys_getch, sys_get_pid
 	allowed break & continues in try/catch if they don't break outside
 	nekoml : fixed bug in lexer allocating too bug memory when small reads
 	nekotools : bugfixes in server, added static file streaming
 	nekotools : fixed boot for universal binaries
+	mod_neko : minor updates for better memory handling
 	(TODO) continuations
 
 2006-08-02 : 1.4
