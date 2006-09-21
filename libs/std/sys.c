@@ -564,6 +564,18 @@ static value sys_getch( value b ) {
 #	endif
 }
 
+/**
+	sys_get_pid : void -> int
+	<doc>Returns the current process identifier</doc>
+**/
+static value sys_get_pid() {
+#	ifdef NEKO_WINDOWS
+	return alloc_int(GetCurrentProcessId());
+#	else
+	return alloc_int(getpid());
+#	endif
+}
+
 DEFINE_PRIM(get_env,1);
 DEFINE_PRIM(put_env,2);
 DEFINE_PRIM(set_time_locale,1);
@@ -588,5 +600,6 @@ DEFINE_PRIM(sys_rename,2);
 DEFINE_PRIM(sys_exe_path,0);
 DEFINE_PRIM(sys_file_type,1);
 DEFINE_PRIM(sys_getch,1);
+DEFINE_PRIM(sys_get_pid,0);
 
 /* ************************************************************************ */
