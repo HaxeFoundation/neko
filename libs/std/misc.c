@@ -119,6 +119,20 @@ static value run_gc( value b ) {
 }
 
 /**
+	gc_stats : void -> { heap => int, free => int }
+	<doc>Return the size of the GC heap and the among of free space, in bytes</doc>
+**/
+static value gc_stats() {
+	int heap, free;
+	value o;
+	neko_gc_stats(&heap,&free);
+	o = alloc_object(NULL);
+	alloc_field(o,val_id("heap"),alloc_int(heap));
+	alloc_field(o,val_id("free"),alloc_int(free));
+	return o;
+}
+
+/**
 	enable_jit : bool -> void
 	<doc>Enable or disable the JIT.</doc>
 **/
@@ -133,6 +147,7 @@ DEFINE_PRIM(double_bytes,2);
 DEFINE_PRIM(float_of_bytes,2);
 DEFINE_PRIM(double_of_bytes,2);
 DEFINE_PRIM(run_gc,1);
+DEFINE_PRIM(gc_stats,0);
 DEFINE_PRIM(enable_jit,1);
 
 /* ************************************************************************ */
