@@ -62,10 +62,10 @@ static void request_print( const char *data, int size, void *_c ) {
 	mcontext *c = (mcontext *)_c;
 	if( c == NULL ) c = CONTEXT();
 	if( size == -1 ) size = (int)strlen(data);
-	ap_soft_timeout("Client Timeout",r);
+	ap_soft_timeout("Client Timeout",c->r);
 	send_headers(c);
 	ap_rwrite(data,size,c->r);
-	ap_kill_timeout(r);
+	ap_kill_timeout(c->r);
 }
 
 static value cache_find( request_rec *r ) {
