@@ -34,7 +34,6 @@ typedef struct {
 	value post_data;
 	value content_type;
 	bool headers_sent;
-	bool allow_write;
 } mcontext;
 
 #define CONTEXT()	((mcontext*)neko_vm_custom(neko_vm_current()))
