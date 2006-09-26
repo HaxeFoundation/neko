@@ -19,6 +19,8 @@
 #ifdef APACHE_2_X
 #	define FTIME(r)		r->finfo.mtime
 #	define ap_send_http_header(x)
+#	define ap_soft_timeout(msg,r)
+#	define ap_kill_timeout(r)
 typedef apr_time_t aptime;
 #else
 #	define FTIME(r)		r->finfo.st_mtime
@@ -59,9 +61,11 @@ static void send_headers( mcontext *c ) {
 static void request_print( const char *data, int size, void *_c ) {
 	mcontext *c = (mcontext *)_c;
 	if( c == NULL ) c = CONTEXT();
+	if( size == -1 ) size = (int)strlen(data);
+	ap_soft_timeout("Client Timeout",r);
 	send_headers(c);
-	if( c->allow_write )
-		ap_rwrite(data,size,c->r);
+	ap_rwrite(data,size,c->r);
+	ap_kill_timeout(r);
 }
 
 static value cache_find( request_rec *r ) {
@@ -123,7 +127,6 @@ static int neko_handler_rec( request_rec *r ) {
 	ctx.r = r;
 	ctx.main = cache_find(r);
 	ctx.post_data = val_null;
-	ctx.allow_write = true;
 	ctx.headers_sent = false;
 	ctx.content_type = alloc_string("text/html");
     r->content_type = val_string(ctx.content_type);
@@ -175,6 +178,7 @@ static int neko_handler_rec( request_rec *r ) {
 		const char *p, *start;
 		value st = neko_exc_stack(vm);
 		val_buffer(b,exc);
+		ap_soft_timeout("Client Timeout",r);
 		send_headers(&ctx);
 		v = buffer_to_string(b);
 		p = val_string(v);
@@ -204,6 +208,7 @@ static int neko_handler_rec( request_rec *r ) {
 				ap_rprintf(r,"Called from %s<br/>",val_string(buffer_to_string(b)));
 			}
 		}
+		ap_kill_timeout(r);
 		return OK;
 	}
 
