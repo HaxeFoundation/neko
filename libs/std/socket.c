@@ -459,7 +459,7 @@ static value socket_host( value o ) {
 	unsigned int addrlen = sizeof(addr);
 	value ret;
 	val_check_kind(o,k_socket);
-	if( getpeername(val_sock(o),(struct sockaddr*)&addr,&addrlen) == SOCKET_ERROR )
+	if( getsockname(val_sock(o),(struct sockaddr*)&addr,&addrlen) == SOCKET_ERROR )
 		neko_error();
 	ret = alloc_array(2);
 	val_array_ptr(ret)[0] = alloc_int32(*(int*)&addr.sin_addr);
