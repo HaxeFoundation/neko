@@ -155,7 +155,7 @@ static bool write_ref( sbuffer *b, value o, value *serialize ) {
 static void add_ref( sbuffer *b, value v ) {
 	if( b->nrefs == b->tsize ) {
 		int nsize = b->tsize?(b->tsize*2):16;
-		value *ntrefs = (value*)alloc_private(sizeof(value) * nsize);
+		value *ntrefs = (value*)alloc(sizeof(value) * nsize);
 		memcpy(ntrefs,b->trefs,b->tsize * sizeof(value));
 		b->trefs = ntrefs;
 		b->tsize = nsize;
