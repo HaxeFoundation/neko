@@ -27,12 +27,17 @@ typedef struct strlist {
 } strlist;
 
 typedef struct odatalist {
+	int k;
 	value data;
-	struct odatalist *next;
+	struct odatalist *left;
+	struct odatalist *right;
 } odatalist;
 
 typedef struct {
 	odatalist *refs;
+	int nrefs;
+	value *trefs;
+	int tsize;
 	strlist *olds;
 	unsigned char *cur;
 	int size;
@@ -107,35 +112,58 @@ static int read_int( sbuffer *b ) {
 	return n;
 }
 
-static void add_ref( sbuffer *b, value o ) {
-	odatalist *d = (odatalist*)alloc(sizeof(odatalist));
-	d->data = o;
-	d->next = b->refs;
-	b->refs = d;
-}
-
-static bool write_ref( sbuffer *b, value o ) {
-	int i = 0;
-	odatalist *d = b->refs;
-	while( d != NULL ) {
-		if( d->data == o ) {
-			write_char(b,'r');
-			write_int(b,i);
-			return true;
-		}
-		i++;
-		d = d->next;
-	}
-	add_ref(b,o);
-	return false;
-}
-
-static void serialize_fields_rec( value data, field id, void *b );
-
 static void lookup_serialize_field( value data, field id, void *v ) {
 	if( id == id_serialize )
 		*(value*)v = data;
 }
+
+static bool write_ref( sbuffer *b, value o, value *serialize ) {
+	odatalist *d = b->refs, *prev = NULL;
+	while( d != NULL ) {		
+		if( d->data < o ) {
+			prev = d;
+			d = d->left;
+		} else if( d->data == o ) {
+			write_char(b,'r');
+			write_int(b,b->nrefs - 1 - d->k);
+			return true;
+		} else {
+			prev = d;
+			d = d->right;
+		}
+	}
+	if( serialize != NULL ) {
+		*serialize = NULL;
+		val_iter_fields(o,lookup_serialize_field,serialize);
+		if( *serialize != NULL )
+			return false;
+	}
+	d = (odatalist*)alloc(sizeof(odatalist));
+	d->data = o;
+	d->k = b->nrefs++;
+	d->left = NULL;
+	d->right = NULL;
+	if( prev == NULL )
+		b->refs = d;
+	else if( prev->data < o )
+		prev->left = d;
+	else
+		prev->right = d;
+	return false;
+}
+
+static void add_ref( sbuffer *b, value v ) {
+	if( b->nrefs == b->tsize ) {
+		int nsize = b->tsize?(b->tsize*2):16;
+		value *ntrefs = (value*)alloc_private(sizeof(value) * nsize);
+		memcpy(ntrefs,b->trefs,b->tsize * sizeof(value));
+		b->trefs = ntrefs;
+		b->tsize = nsize;
+	}
+	b->trefs[b->nrefs++] = v;
+}
+
+static void serialize_fields_rec( value data, field id, void *b );
 
 void serialize_rec( sbuffer *b, value o ) {
 	b->nrec++;
@@ -160,42 +188,42 @@ void serialize_rec( sbuffer *b, value o ) {
 		write_str(b,sizeof(tfloat),&val_float(o));
 		break;
 	case VAL_STRING:
-		if( !write_ref(b,o) ) {
+		if( !write_ref(b,o,NULL) ) {
 			write_char(b,'s');
 			write_int(b,val_strlen(o));
 			write_str(b,val_strlen(o),val_string(o));
 		}
 		break;
 	case VAL_OBJECT:
-		if( !write_ref(b,o) ) {
-			value s = NULL;
-			val_iter_fields(o,lookup_serialize_field,&s);
-			if( s != NULL ) {
-				// cancel reference
-				b->refs = b->refs->next;
-				if( !val_is_function(s) || (val_fun_nargs(s) != 0 && val_fun_nargs(s) != VAR_ARGS) )
-					failure("Invalid __serialize method");
-				write_char(b,'x');
-				serialize_rec(b,((neko_module*)((vfunction*)s)->module)->name);
-				serialize_rec(b,val_ocall0(o,id_serialize));
-				// put reference back
-				add_ref(b,o);
-				break;
-			}
-			write_char(b,'o');
-			val_iter_fields(o,serialize_fields_rec,b);
-			write_int(b,0);
-			o = (value)((vobject*)o)->proto;
-			if( o == NULL )
-				write_char(b,'z');
-			else {
-				write_char(b,'p');
-				serialize_rec(b,o);
+		{
+			value s;
+			if( !write_ref(b,o,&s) ) {			
+				if( s != NULL ) {
+					// reference was not written
+					if( !val_is_function(s) || (val_fun_nargs(s) != 0 && val_fun_nargs(s) != VAR_ARGS) )
+						failure("Invalid __serialize method");
+					write_char(b,'x');
+					serialize_rec(b,((neko_module*)((vfunction*)s)->module)->name);
+					serialize_rec(b,val_ocall0(o,id_serialize));
+					// put reference back
+					write_ref(b,o,NULL);
+					break;
+				}
+				write_char(b,'o');
+				val_iter_fields(o,serialize_fields_rec,b);
+				write_int(b,0);
+				o = (value)((vobject*)o)->proto;
+				if( o == NULL )
+					write_char(b,'z');
+				else {
+					write_char(b,'p');
+					serialize_rec(b,o);
+				}
 			}
 		}
 		break;
 	case VAL_ARRAY:
-		if( !write_ref(b,o) ) {
+		if( !write_ref(b,o,NULL) ) {
 			int i;
 			int n = val_array_size(o);
 			write_char(b,'a');
@@ -205,7 +233,7 @@ void serialize_rec( sbuffer *b, value o ) {
 		}
 		break;
 	case VAL_FUNCTION:
-		if( !write_ref(b,o) ) {
+		if( !write_ref(b,o,NULL) ) {
 			neko_module *m;
 			if( val_tag(o) == VAL_PRIMITIVE ) {
 				// assume that alloc_array(0) return a constant array ptr
@@ -294,6 +322,7 @@ static value serialize( value o ) {
 	strlist *l;
 	b.olds = NULL;
 	b.refs = NULL;
+	b.nrefs = 0;
 	b.cur = (unsigned char*)alloc_private(BUF_SIZE);
 	b.size = BUF_SIZE;
 	b.pos = 0;
@@ -370,14 +399,9 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 	case 'r':
 		{
 			int n = read_int(b);
-			odatalist *d = b->refs;
-			while( n > 0 && d != NULL ) {
-				d = d->next;
-				n--;
-			}
-			if( d == NULL )
+			if( n < 0 || n >= b->nrefs )
 				ERROR();
-			return d->data;
+			return b->trefs[b->nrefs - n - 1];
 		}
 	case 'a':
 		{
@@ -529,7 +553,9 @@ static value unserialize( value s, value loader ) {
 	b.cur = (unsigned char*)val_string(s);
 	b.pos = 0;
 	b.olds = NULL;
-	b.refs = NULL;
+	b.trefs = NULL;
+	b.tsize = 0;
+	b.nrefs = 0;
 	b.size = val_strlen(s);
 	b.totlen = 0;
 	return unserialize_rec(&b,loader);
