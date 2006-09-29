@@ -10,6 +10,7 @@
 	std : fixed buf in sys_read_dir on windows (directory not closed correctly)
 	std : added sys_getch, sys_get_pid
 	std : fixed socket_host (was returning the same as socket_peer)
+	std : improved performances of serialize/unserialize
 	allowed break & continues in try/catch if they don't break outside
 	nekoml : fixed bug in lexer allocating too bug memory when small reads
 	nekotools : bugfixes in server, added static file streaming
