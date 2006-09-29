@@ -1,12 +1,12 @@
 make = function(i,d) {
-	if( d == 0 ) return null;
+	if( d == 0 ) return $array(i,null,null);
 	var i2 = 2 * i;
 	d -= 1;
 	$array(i,make(i2-1,d),make(i2,d));
 };
 
 check = function(n) {
-	if( n == null ) return 0;
+	if( n[1] == null ) return n[0];
 	return n[0] + check(n[1]) - check(n[2]);
 }
 
