@@ -1,3 +1,8 @@
+/* The Computer Language Shootout
+   http://shootout.alioth.debian.org/
+
+   contributed by Nicolas Cannasse
+*/
 nsieve = function(m) {
 	var a = $amake(m);
 	var count = 0;

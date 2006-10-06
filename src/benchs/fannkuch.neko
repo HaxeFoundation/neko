@@ -1,3 +1,8 @@
+/* The Computer Language Shootout
+   http://shootout.alioth.debian.org/
+
+   contributed by Nicolas Cannasse
+*/
 var n = $int($loader.args[0]);
 if( n == null ) n = 7;
 

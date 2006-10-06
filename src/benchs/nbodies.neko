@@ -1,3 +1,8 @@
+/* The Computer Language Shootout
+   http://shootout.alioth.debian.org/
+
+   contributed by Nicolas Cannasse
+*/
 pi = 3.141592653589793;
 solar_mass = (4 * pi * pi);
 days_per_year = 365.24;

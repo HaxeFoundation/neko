@@ -1,3 +1,8 @@
+/* The Computer Language Shootout
+   http://shootout.alioth.debian.org/
+
+   contributed by Nicolas Cannasse
+*/
 ack = function(x,y) {
 	if( x == 0 ) return y + 1;
 	if( y == 0 ) return ack(x - 1,1);

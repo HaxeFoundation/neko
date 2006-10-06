@@ -1,0 +1,6 @@
+/* The Computer Language Shootout
+   http://shootout.alioth.debian.org/
+
+   contributed by Nicolas Cannasse
+*/
+$print("hello world\n");

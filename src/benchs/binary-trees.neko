@@ -1,3 +1,8 @@
+/* The Computer Language Shootout
+   http://shootout.alioth.debian.org/
+
+   contributed by Nicolas Cannasse
+*/
 make = function(i,d) {
 	if( d == 0 ) return $array(i,null,null);
 	var i2 = 2 * i;
