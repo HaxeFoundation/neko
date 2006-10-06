@@ -18,7 +18,7 @@ nsieve = function(m) {
 		}
 		i += 1;
 	}
-	$print("Primes up to ",m," ",count,"\n");
+	$print("Primes up to\t",m,"\t",count,"\n");
 }
 
 var n = $int($loader.args[0]);
