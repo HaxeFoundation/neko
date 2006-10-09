@@ -1,4 +1,8 @@
 2006-??-?? : 1.5
+	(TODO) continuations
+	(TODO) threading api
+
+2006-10-09 : 1.4.5
 	sqlite : added BOOL handling
 	jit : added mmap support (for execution protection)
 	jit : fixed bug when unsupported operation exception
@@ -17,7 +21,6 @@
 	nekotools : fixed boot for universal binaries
 	mod_neko : minor updates for better memory handling
 	mod_neko : use soft timeout for Apache 1.3
-	(TODO) continuations
 
 2006-08-02 : 1.4
 	std : added a SO_REUSEADDR before socket_bind (except windows)
