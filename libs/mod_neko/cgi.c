@@ -21,6 +21,7 @@
 #	define ap_table_get		apr_table_get
 #	define ap_table_set		apr_table_set
 #	define ap_table_add		apr_table_add
+#	define ap_table_do		apr_table_do
 #	define REDIRECT			HTTP_TEMPORARY_REDIRECT
 #endif
 
@@ -172,14 +173,28 @@ static value set_header( value s, value k ) {
 	return val_true;
 }
 
+static int find_client_header( void *result, const char *key, const char *value ) {
+	if( key == NULL || value == NULL )
+		return 1;
+	if( strcmpi(((const char**)result)[0],key) == 0 ) {
+		((const char**)result)[1] = value;
+		return 0;
+	}
+	return 1;
+}
+
 /**
 	get_client_header : name:string -> string?
 	<doc>Get a HTTP header sent by the client</doc>
 **/
 static value get_client_header( value s ) {
 	mcontext *c = CONTEXT();
+	char *result[2];
 	val_check(s,string);
-	return alloc_string( ap_table_get(c->r->headers_in,val_string(s)) );
+	result[0] = val_string(s);
+	result[1] = NULL;
+	ap_table_do(find_client_header,result,c->r->headers_in,NULL);
+	return alloc_string( result[1] );
 }
 
 /**
