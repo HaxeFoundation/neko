@@ -396,7 +396,7 @@ function init_mod_neko() {
 	});
 	def "get_client_header" (function(name) {
 		try {
-			snd (List.find (function((n,_)) { n == name }) request().headers)
+			snd (List.find (function((n,_)) { String.lowercase n == String.lowercase name }) request().headers)
 		} catch {
 			Not_found -> neko "null"
 		}
