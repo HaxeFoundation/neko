@@ -194,8 +194,8 @@ int main( int argc, char *argv[] ) {
 	act.sa_sigaction = NULL;
 	act.sa_handler = handle_signal;
 	act.sa_flags = 0;
-	sigemptyset(&sigact.sa_mask);
-	sigaction(SIGSEGV,&sigact,NULL);
+	sigemptyset(&act.sa_mask);
+	sigaction(SIGSEGV,&act,NULL);
 #	endif
 	if( argc > 1 && strcmp(argv[1],"-interp") == 0 ) {
 		argc--;
