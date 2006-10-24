@@ -1,7 +1,7 @@
 2006-??-?? : 1.5
 	(TODO) continuations
 	(TODO) threading api
-	mod_neko + neko web server : get_client_header is now case-insensitive
+	neko web server : get_client_header is now case-insensitive
 
 2006-10-09 : 1.4.5
 	sqlite : added BOOL handling
