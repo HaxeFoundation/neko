@@ -27,6 +27,9 @@
 #	include <sys/param.h>
 #	include <mach-o/dyld.h>
 #endif
+#ifdef NEKO_LINUX
+#	include <signal.h>	
+#endif
 
 static char *data = "##BOOT_POS\0\0\0\0##";
 static FILE *self;
@@ -174,12 +177,26 @@ static int execute( neko_vm *vm, char **argv, int argc ) {
 	return ret;
 }
 
+#ifdef NEKO_LINUX
+static void handle_signal( int signal ) {
+	val_throw(alloc_string("Segmentation fault"));
+}
+#endif
+
 int main( int argc, char *argv[] ) {
 	neko_vm *vm;
 	int r;
 	_CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_DELAY_FREE_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
 	neko_global_init(&vm);
 	vm = neko_vm_alloc(NULL);
+#	ifdef NEKO_LINUX
+	struct sigaction act;
+	act.sa_sigaction = NULL;
+	act.sa_handler = handle_signal;
+	act.sa_flags = 0;
+	sigemptyset(&sigact.sa_mask);
+	sigaction(SIGSEGV,&sigact,NULL);
+#	endif
 	if( argc > 1 && strcmp(argv[1],"-interp") == 0 ) {
 		argc--;
 		argv++;
