@@ -110,6 +110,7 @@ static void *ThreadMain( void *_t ) {
 	ReleaseSemaphore(t->tlock,1,NULL);
 #	else
 	set_local_thread(t);
+	pthread_mutex_unlock(&t->qlock);
 #	endif
 	// init and run the VM
 	vm = neko_vm_alloc(NULL);
@@ -148,8 +149,12 @@ static value thread_create( value f, value param ) {
 #	else
 	get_local_thread(); // ensure that the key is initialized
 	init_thread_queue(t);
+	pthread_mutex_lock(&t->qlock);
 	if( pthread_create(&t->phandle,NULL,&ThreadMain,t) != 0 )
 		neko_error();
+	// wait that the thread unlock the data (prevent t from being GC)
+	pthread_mutex_lock(&t->qlock);
+	pthread_mutex_unlock(&t->qlock);
 #	endif
 	return alloc_abstract(k_thread,t);
 }
