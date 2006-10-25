@@ -350,13 +350,13 @@ static value lock_wait( value lock, value timeout ) {
 		while( !found ) {			
 			pthread_mutex_lock(&l->wait);
 			pthread_mutex_lock(&l->lock);
-			if( t->counter > 0 ) {
-				t->counter--;
-				if( t->counter > 0 )
+			if( l->counter > 0 ) {
+				l->counter--;
+				if( l->counter > 0 )
 					pthread_mutex_unlock(&l->wait);
 				found = 1;
 			}
-			pthread_mutex_unlock(&t->qlock);
+			pthread_mutex_unlock(&l->lock);
 		}
 		// has_timeout : stop alarm
 		return alloc_bool(found);
