@@ -14,6 +14,8 @@
 /* Lesser General Public License or the LICENSE file for more details.		*/
 /*																			*/
 /* ************************************************************************ */
+#define	FD_SETSIZE	(1 << 13)
+
 #include <string.h>
 #include <neko.h>
 #ifdef NEKO_WINDOWS
@@ -351,6 +353,8 @@ static value make_array_result( value a, fd_set *tmp ) {
 	if( tmp == NULL )
 		return val_null;
 	len = val_array_size(a);
+	if( len > FD_SETSIZE )
+		val_throw(alloc_string("Too many sockets in select"));
 	r = alloc_array(len);
 	for(i=0;i<len;i++) {
 		value s = val_array_ptr(a)[i];
