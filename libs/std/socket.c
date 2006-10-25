@@ -48,9 +48,6 @@ DEFINE_KIND(k_socket);
 
 #define val_sock(o)		((SOCKET)(int_val)val_data(o))
 
-#undef FD_SETSIZE
-#define	FD_SETSIZE	(1 << 13)
-
 /**
 	<doc>
 	<h1>Socket</h1>
