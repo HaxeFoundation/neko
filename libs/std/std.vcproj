@@ -162,6 +162,9 @@
 			RelativePath=".\sys.c">
 		</File>
 		<File
+			RelativePath=".\thread.c">
+		</File>
+		<File
 			RelativePath=".\utf8.c">
 		</File>
 		<File
