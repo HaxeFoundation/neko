@@ -14,8 +14,6 @@
 /* Lesser General Public License or the LICENSE file for more details.		*/
 /*																			*/
 /* ************************************************************************ */
-#define	FD_SETSIZE	(1 << 13)
-
 #include <string.h>
 #include <neko.h>
 #ifdef NEKO_WINDOWS
@@ -49,6 +47,9 @@
 DEFINE_KIND(k_socket);
 
 #define val_sock(o)		((SOCKET)(int_val)val_data(o))
+
+#undef FD_SETSIZE
+#define	FD_SETSIZE	(1 << 13)
 
 /**
 	<doc>
