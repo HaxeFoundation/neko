@@ -363,7 +363,7 @@ static value lock_wait( value lock, value timeout ) {
 				struct timespec t;				
 				double delta = val_number(timeout) * 1000.0;
 				int idelta = (int)delta;
-				gettimeofday(&tv);				
+				gettimeofday(&tv,NULL);				
 				t.tv_sec = tv.tv_sec + idelta;
 				t.tv_nsec = (long)((delta - idelta) * 1.0e9 + t.tv_usec * 1000.0);
 				if( pthread_cond_timedwait(&l->cond,&l->lock,&t) != 0 ) {
