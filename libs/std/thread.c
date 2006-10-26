@@ -25,6 +25,7 @@ typedef HANDLE vlock;
 
 #else
 #	include <pthread.h>
+#	include <sys/time.h>
 
 typedef struct _tqueue {
 	value msg;
