@@ -39,6 +39,11 @@ typedef struct _vlock {
 
 #endif
 
+// this is useful to ensure that calls to pthread_create
+// are correctly redefined by the GC so it can scan their heap
+#define GC_THREADS
+#include <gc/gc.h>
+
 #define val_thread(t)	((vthread*)val_data(t))
 #define val_lock(l)		((vlock)val_data(l))
 
