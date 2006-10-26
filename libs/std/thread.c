@@ -365,7 +365,7 @@ static value lock_wait( value lock, value timeout ) {
 				int idelta = (int)delta;
 				gettimeofday(&tv,NULL);				
 				t.tv_sec = tv.tv_sec + idelta;
-				t.tv_nsec = (long)((delta - idelta) * 1.0e9 + t.tv_usec * 1000.0);
+				t.tv_nsec = (long)((delta - idelta) * 1.0e9 + tv.tv_usec * 1000.0);
 				if( pthread_cond_timedwait(&l->cond,&l->lock,&t) != 0 ) {
 					pthread_mutex_unlock(&l->lock);
 					return val_false;
