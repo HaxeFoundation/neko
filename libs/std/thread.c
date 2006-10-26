@@ -56,10 +56,10 @@ typedef struct {
 	HANDLE thandle;
 	HANDLE tlock;
 	DWORD tid;
-#	else	
+#	else
 	pthread_t phandle;
 	tqueue *first;
-	tqueue *last;	
+	tqueue *last;
 	pthread_mutex_t qlock;
 	pthread_mutex_t qwait;
 #	endif
@@ -71,7 +71,7 @@ typedef struct {
 
 static pthread_key_t local_thread = (pthread_key_t)-1;
 
-static void free_key( void *r ) {	
+static void free_key( void *r ) {
 	free_root((value*)r);
 }
 
@@ -135,7 +135,7 @@ static void *ThreadMain( void *_t ) {
 	<doc>Creates a thread that will be running the function [f(p)]</doc>
 **/
 static value thread_create( value f, value param ) {
-	vthread *t;	
+	vthread *t;
 	val_check_function(f,1);
 	t = (vthread*)alloc(sizeof(vthread));
 	memset(t,0,sizeof(vthread));
@@ -237,7 +237,7 @@ static value thread_read_message( value block ) {
 		if( !PeekMessage(&msg,NULL,0,0,PM_REMOVE) )
 			return val_null;
 	} else if( !GetMessage(&msg,NULL,0,0) )
-		neko_error();	
+		neko_error();
 	switch( msg.message ) {
 	case WM_TMSG:
 		r = (value*)msg.lParam;
@@ -272,7 +272,7 @@ static value thread_read_message( value block ) {
 			break;
 	}
 	return val_null;
-#	endif	
+#	endif
 }
 
 static void free_lock( value l ) {
@@ -315,7 +315,7 @@ static value lock_create() {
 	</doc>
 **/
 static value lock_release( value lock ) {
-	vlock l; 
+	vlock l;
 	val_check_kind(lock,k_lock);
 	l = val_lock(lock);
 #	ifdef NEKO_WINDOWS
@@ -336,7 +336,7 @@ static value lock_release( value lock ) {
 	Waits for a lock to be released and acquire it.
 	If [timeout] (in seconds) is not null and expires then
 	the returned value is false
-	</doc>	
+	</doc>
 **/
 static value lock_wait( value lock, value timeout ) {
 	int has_timeout = !val_is_null(timeout);
@@ -360,10 +360,10 @@ static value lock_wait( value lock, value timeout ) {
 		while( l->counter == 0 ) {
 			if( has_timeout ) {
 				struct timeval tv;
-				struct timespec t;				
-				double delta = val_number(timeout) * 1000.0;
+				struct timespec t;
+				double delta = val_number(timeout);
 				int idelta = (int)delta;
-				gettimeofday(&tv,NULL);				
+				gettimeofday(&tv,NULL);
 				t.tv_sec = tv.tv_sec + idelta;
 				t.tv_nsec = (long)((delta - idelta) * 1.0e9 + tv.tv_usec * 1000.0);
 				if( pthread_cond_timedwait(&l->cond,&l->lock,&t) != 0 ) {
@@ -377,7 +377,7 @@ static value lock_wait( value lock, value timeout ) {
 		pthread_mutex_unlock(&l->lock);
 		return val_true;
 	}
-#	endif	
+#	endif
 }
 
 DEFINE_PRIM(thread_create,2);
