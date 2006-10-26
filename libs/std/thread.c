@@ -33,7 +33,7 @@ typedef struct _tqueue {
 
 typedef struct _vlock {
 	pthread_mutex_t lock;
-	pthread_mutex_t wait;
+	pthread_cond_t cond;
 	int counter;
 } *vlock;
 
@@ -278,7 +278,7 @@ static void free_lock( value l ) {
 #	ifdef NEKO_WINDOWS
 	CloseHandle( val_lock(l) );
 #	else
-	pthread_mutex_destroy( &val_lock(l)->wait );
+	pthread_cond_destroy( &val_lock(l)->cond );
 	pthread_mutex_destroy( &val_lock(l)->lock );
 #	endif
 }
@@ -297,7 +297,7 @@ static value lock_create() {
 #	else
 	l = (vlock)alloc_private(sizeof(struct _vlock));
 	l->counter = 0;
-	if( pthread_mutex_init(&l->lock,NULL) != 0 || pthread_mutex_init(&l->wait,NULL) != 0 )
+	if( pthread_mutex_init(&l->lock,NULL) != 0 || pthread_cond_init(&l->cond,NULL) != 0 )
 		neko_error();
 #	endif
 	vl = alloc_abstract(k_lock,l);
@@ -323,7 +323,7 @@ static value lock_release( value lock ) {
 #	else
 	pthread_mutex_lock(&l->lock);
 	l->counter++;
-	pthread_mutex_unlock(&l->wait);
+	pthread_cond_signal(&l->cond);
 	pthread_mutex_unlock(&l->lock);
 #	endif
 	return val_true;
@@ -340,10 +340,10 @@ static value lock_release( value lock ) {
 static value lock_wait( value lock, value timeout ) {
 	int has_timeout = !val_is_null(timeout);
 	val_check_kind(lock,k_lock);
-	if( !has_timeout )
+	if( has_timeout )
 		val_check(timeout,number);
 #	ifdef NEKO_WINDOWS
-	switch( WaitForSingleObject(val_lock(lock),has_timeout?(DWORD)(val_number(timeout) * 1000):INFINITE) ) {
+	switch( WaitForSingleObject(val_lock(lock),has_timeout?(DWORD)(val_number(timeout) * 1000.0):INFINITE) ) {
 	case WAIT_ABANDONED:
 	case WAIT_OBJECT_0:
 		return val_true;
@@ -355,21 +355,25 @@ static value lock_wait( value lock, value timeout ) {
 #	else
 	{
 		vlock l = val_lock(lock);
-		int found = 0;
-		// has_timeout : set alarm
-		while( !found ) {			
-			pthread_mutex_lock(&l->wait);
-			pthread_mutex_lock(&l->lock);
-			if( l->counter > 0 ) {
-				l->counter--;
-				if( l->counter > 0 )
-					pthread_mutex_unlock(&l->wait);
-				found = 1;
-			}
-			pthread_mutex_unlock(&l->lock);
+		pthread_mutex_lock(&l->lock);
+		while( l->counter == 0 ) {
+			if( has_timeout ) {
+				struct timespec t;				
+				double delta = val_number(timeout) * 1000.0;
+				int idelta = (int)delta;
+				clock_gettime(CLOCK_REALTIME,&t);
+				t.tv_sec += idelta;
+				t.tv_nsec += (int)((delta - idelta) * 1e9);
+				if( pthread_cond_timedwait(&l->cond,&l->lock,&t) == ETIMEDOUT ) {
+					pthread_mutex_unlock(&l->lock);
+					return val_false;
+				}
+			} else
+				pthread_cond_wait(&l->cond,&l->lock);
 		}
-		// has_timeout : stop alarm
-		return alloc_bool(found);
+		l->counter--;
+		pthread_mutex_unlock(&l->lock);
+		return val_true;
 	}
 #	endif	
 }
