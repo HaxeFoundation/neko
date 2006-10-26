@@ -358,12 +358,13 @@ static value lock_wait( value lock, value timeout ) {
 		pthread_mutex_lock(&l->lock);
 		while( l->counter == 0 ) {
 			if( has_timeout ) {
+				struct timeval tv;
 				struct timespec t;				
 				double delta = val_number(timeout) * 1000.0;
 				int idelta = (int)delta;
-				clock_gettime(CLOCK_REALTIME,&t);
-				t.tv_sec += idelta;
-				t.tv_nsec += (int)((delta - idelta) * 1e9);
+				gettimeofday(&tv);				
+				t.tv_sec = tv.tv_sec + idelta;
+				t.tv_nsec = (long)((delta - idelta) * 1.0e9 + t.tv_usec * 1000.0);
 				if( pthread_cond_timedwait(&l->cond,&l->lock,&t) == ETIMEDOUT ) {
 					pthread_mutex_unlock(&l->lock);
 					return val_false;
