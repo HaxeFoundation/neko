@@ -40,11 +40,6 @@ typedef struct _vlock {
 
 #endif
 
-// this is useful to ensure that calls to pthread_create
-// are correctly redefined by the GC so it can scan their heap
-#define GC_THREADS
-#include <gc/gc.h>
-
 #define val_thread(t)	((vthread*)val_data(t))
 #define val_lock(l)		((vlock)val_data(l))
 
@@ -53,15 +48,13 @@ DEFINE_KIND(k_lock);
 
 typedef struct {
 #	ifdef NEKO_WINDOWS
-	HANDLE thandle;
-	HANDLE tlock;
 	DWORD tid;
 #	else
 	pthread_t phandle;
 	tqueue *first;
 	tqueue *last;
-	pthread_mutex_t qlock;
-	pthread_mutex_t qwait;
+	pthread_mutex_t lock;
+	pthread_cond_t cond;
 #	endif
 	value callb;
 	value callparam;
@@ -93,30 +86,24 @@ static void set_local_thread( vthread *t ) {
 }
 
 static void init_thread_queue( vthread *t ) {
-	pthread_mutex_init(&t->qlock,NULL);
-	pthread_mutex_init(&t->qwait,NULL);
-	pthread_mutex_lock(&t->qwait);
+	pthread_mutex_init(&t->lock,NULL);
+	pthread_cond_init(&t->cond,NULL);	
+}
+
+static void free_thread( value v ) {
+	vthread *t = val_thread(v);
+	pthread_mutex_destroy(&t->lock);
+	pthread_cond_destroy(&t->cond);
 }
 
 #endif
 
-
-#ifdef NEKO_WINDOWS
-static DWORD WINAPI ThreadMain( void *_t ) {
-#else
-static void *ThreadMain( void *_t ) {
-#endif
+static int thread_loop( void *_t ) {
 	vthread *t = (vthread*)_t;
 	value exc = NULL;
 	neko_vm *vm;
-#	ifdef NEKO_WINDOWS
-	// this will create the thread message queue
-	PeekMessage(NULL,NULL,0,0,0);
-	// now we can give back control to the main thread
-	ReleaseSemaphore(t->tlock,1,NULL);
-#	else
+#	ifndef NEKO_WINDOWS
 	set_local_thread(t);
-	pthread_mutex_unlock(&t->qlock);
 #	endif
 	// init and run the VM
 	vm = neko_vm_alloc(NULL);
@@ -124,9 +111,6 @@ static void *ThreadMain( void *_t ) {
 	val_callEx(val_null,t->callb,&t->callparam,1,&exc);
 	// cleanup
 	vm = NULL;
-#	ifdef NEKO_WINDOWS
-	CloseHandle(t->thandle);
-#	endif
 	return 0;
 }
 
@@ -135,6 +119,7 @@ static void *ThreadMain( void *_t ) {
 	<doc>Creates a thread that will be running the function [f(p)]</doc>
 **/
 static value thread_create( value f, value param ) {
+	value vt;
 	vthread *t;
 	val_check_function(f,1);
 	t = (vthread*)alloc(sizeof(vthread));
@@ -142,27 +127,20 @@ static value thread_create( value f, value param ) {
 	t->callb = f;
 	t->callparam = param;
 #	ifdef NEKO_WINDOWS
-	t->tlock = CreateSemaphore(NULL,0,1,NULL);
-	if( t->tlock == NULL )
+	if( !neko_thread_create(thread_loop,t,&t->tid) )			
 		neko_error();
-	t->thandle = CreateThread(NULL,0,ThreadMain,t,0,&t->tid);
-	if( t->thandle == NULL ) {
-		CloseHandle(t->tlock);
-		neko_error();
-	}
-	WaitForSingleObject(t->tlock,INFINITE);
-	CloseHandle(t->tlock);
+	vt = alloc_abstract(k_thread,t);
 #	else
 	get_local_thread(); // ensure that the key is initialized
 	init_thread_queue(t);
-	pthread_mutex_lock(&t->qlock);
-	if( pthread_create(&t->phandle,NULL,&ThreadMain,t) != 0 )
+	vt = alloc_abstract(k_thread,t);
+	if( !neko_thread_create(thread_loop,t,&t->phandle) ) {
+		free_thread(vt);
 		neko_error();
-	// wait that the thread unlock the data (prevent t from being GC)
-	pthread_mutex_lock(&t->qlock);
-	pthread_mutex_unlock(&t->qlock);
+	}
+	val_gc(vt,free_thread);
 #	endif
-	return alloc_abstract(k_thread,t);
+	return vt;
 }
 
 /**
@@ -206,14 +184,14 @@ static value thread_send( value vt, value msg ) {
 		tqueue *q = (tqueue*)alloc(sizeof(tqueue));
 		q->msg = msg;
 		q->next = NULL;
-		pthread_mutex_lock(&t->qlock);
+		pthread_mutex_lock(&t->lock);
 		if( t->last == NULL )
 			t->first = q;
 		else
 			t->last->next = q;
 		t->last = q;
-		pthread_mutex_unlock(&t->qwait);
-		pthread_mutex_unlock(&t->qlock);
+		pthread_cond_signal(&t->cond);
+		pthread_mutex_unlock(&t->lock);
 	}
 #	endif
 	return val_null;
@@ -251,27 +229,24 @@ static value thread_read_message( value block ) {
 	return v;
 #	else
 	vthread *t = val_thread(thread_current());
+	value msg;
 	val_check(block,bool);
-	while( true ) {
-		value msg = NULL;
+	pthread_mutex_lock(&t->lock);
+	while( t->first == NULL )
 		if( val_bool(block) )
-			pthread_mutex_lock(&t->qwait);
-		pthread_mutex_lock(&t->qlock);
-		if( t->first != NULL ) {
-			msg = t->first->msg;
-			t->first = t->first->next;
-			if( t->first == NULL )
-				t->last = NULL;
-			else
-				pthread_mutex_unlock(&t->qwait);
+			pthread_cond_wait(&t->cond,&t->lock);
+		else {
+			pthread_mutex_unlock(&t->lock);
+			return val_null;
 		}
-		pthread_mutex_unlock(&t->qlock);
-		if( msg != NULL )
-			return msg;
-		if( !val_bool(block) )
-			break;
-	}
-	return val_null;
+	msg = t->first->msg;
+	t->first = t->first->next;
+	if( t->first == NULL )
+		t->last = NULL;
+	else
+		pthread_cond_signal(&t->cond);
+	pthread_mutex_unlock(&t->lock);
+	return msg;
 #	endif
 }
 
@@ -374,6 +349,8 @@ static value lock_wait( value lock, value timeout ) {
 				pthread_cond_wait(&l->cond,&l->lock);
 		}
 		l->counter--;
+		if( l->counter > 0 )
+			pthread_cond_signal(&l->cond);
 		pthread_mutex_unlock(&l->lock);
 		return val_true;
 	}
