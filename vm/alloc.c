@@ -135,7 +135,7 @@ static void *ThreadMain( void *_p ) {
 	tparams p = *(tparams*)_p;
 	// we have the 'param' value on this thread C stack 
 	// so it's safe to give back control to main thread
-	pthread_mutex_unlock(&p.lock);
+	pthread_mutex_unlock(&((tparams*)p)->lock);
 	return (void*)(int_val)p.main(p.param);
 }
 #endif
