@@ -136,7 +136,7 @@ static void *ThreadMain( void *_p ) {
 	// we have the 'param' value on this thread C stack 
 	// so it's safe to give back control to main thread
 	pthread_mutex_unlock(&p.lock);
-	return p.main(p.param);
+	return (void*)(int_val)p.main(p.param);
 }
 #endif
 
@@ -160,7 +160,7 @@ EXTERN int neko_thread_create( thread_main_func main, void *param, void *handle 
 #	else
 	pthread_mutex_init(&p.lock,NULL);
 	pthread_mutex_lock(&p.lock);
-	if( !pthread_create(&handle,NULL,&ThreadMain,&p) ) {
+	if( !pthread_create((pthread_t*)handle,NULL,&ThreadMain,&p) ) {
 		pthread_mutex_destroy(&p.lock);
 		return 0;
 	}
