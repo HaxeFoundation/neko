@@ -19,6 +19,7 @@
 #include "neko.h"
 
 typedef void (*neko_printer)( const char *data, int size, void *param );
+typedef int (*thread_main_func)( void *param );
 
 typedef struct _neko_vm neko_vm;
 
@@ -30,6 +31,7 @@ EXTERN void neko_global_free();
 EXTERN void neko_gc_major();
 EXTERN void neko_gc_loop();
 EXTERN void neko_gc_stats( int *heap, int *free );
+EXTERN int neko_thread_create( thread_main_func main, void *param, void *handle );
 
 EXTERN neko_vm *neko_vm_alloc( void *custom );
 EXTERN neko_vm *neko_vm_current();

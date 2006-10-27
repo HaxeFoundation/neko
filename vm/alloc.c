@@ -35,6 +35,10 @@
 #	error Looks like libgc was not installed, please install it before compiling
 #else
 
+#ifndef NEKO_WINDOWS
+#	include <pthread.h>
+#endif
+
 typedef struct _klist {
 	const char *name;
 	vkind k;
@@ -106,6 +110,66 @@ EXTERN void neko_gc_stats( int *heap, int *free ) {
 	*heap = (int)GC_get_heap_size();
 	*free = (int)GC_get_free_bytes();
 }
+
+typedef struct {
+	thread_main_func main;
+	void *param;
+#	ifdef NEKO_WINDOWS
+	HANDLE lock;
+#	else
+	pthread_mutex_t lock;
+#	endif
+} tparams;
+
+#ifdef NEKO_WINDOWS
+static DWORD WINAPI ThreadMain( void *_p ) {
+	tparams p = *(tparams*)_p;
+	// this will create the thread message queue
+	PeekMessage(NULL,NULL,0,0,0);
+	// now we can give back control to the main thread
+	ReleaseSemaphore(p.lock,1,NULL);
+	return p.main(p.param);
+}
+#else
+static void *ThreadMain( void *_p ) {
+	tparams p = *(tparams*)_p;
+	// we have the 'param' value on this thread C stack 
+	// so it's safe to give back control to main thread
+	pthread_mutex_unlock(&p.lock);
+	return p.main(p.param);
+}
+#endif
+
+EXTERN int neko_thread_create( thread_main_func main, void *param, void *handle ) {
+	tparams p;
+	p.main = main;
+	p.param = param;
+#	ifdef NEKO_WINDOWS
+	{
+		HANDLE h;
+		p.lock = CreateSemaphore(NULL,0,1,NULL);
+		h = CreateThread(NULL,0,ThreadMain,&p,0,handle);
+		if( h == NULL ) {
+			CloseHandle(p.lock);
+			return 0;
+		}
+		WaitForSingleObject(p.lock,INFINITE);
+		CloseHandle(p.lock);
+		return 1;
+	}	
+#	else
+	pthread_mutex_init(&p.lock,NULL);
+	pthread_mutex_lock(&p.lock);
+	if( !pthread_create(&handle,NULL,&ThreadMain,&p) ) {
+		pthread_mutex_destroy(&p.lock);
+		return 0;
+	}
+	pthread_mutex_lock(&p.lock);
+	pthread_mutex_destroy(&p.lock);
+	return 1;
+#	endif
+}
+
 
 EXTERN char *alloc( unsigned int nbytes ) {
 	return (char*)GC_MALLOC(nbytes);
