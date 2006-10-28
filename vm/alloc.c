@@ -132,10 +132,11 @@ static DWORD WINAPI ThreadMain( void *_p ) {
 }
 #else
 static void *ThreadMain( void *_p ) {
-	tparams p = *(tparams*)_p;
+	tparams *lp = (tparams*)_p;
+	tparams p = *lp;
 	// we have the 'param' value on this thread C stack 
 	// so it's safe to give back control to main thread
-	pthread_mutex_unlock(&((tparams*)p)->lock);
+	pthread_mutex_unlock(&lp->lock);
 	return (void*)(int_val)p.main(p.param);
 }
 #endif
