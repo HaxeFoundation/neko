@@ -1,0 +1,27 @@
+
+	<h1>Misc</h1>
+	<p>
+	Misc. functions for different usages.
+	</p>
+	
+<doc_blk>
+  <doc_type>string</doc_type> <doc_name>float_bytes</doc_name><doc_type>(number, bigendian : bool)</doc_type> <doc_doc>Returns the 4 bytes representation of the number as an IEEE 32-bit float</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>string</doc_type> <doc_name>double_bytes</doc_name><doc_type>(number, bigendian : bool)</doc_type> <doc_doc>Returns the 8 bytes representation of the number as an IEEE 64-bit float</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>float</doc_type> <doc_name>float_of_bytes</doc_name><doc_type>(string, bigendian : bool)</doc_type> <doc_doc>Returns a float from a 4 bytes IEEE 32-bit representation</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>float</doc_type> <doc_name>double_of_bytes</doc_name><doc_type>(string, bigendian : bool)</doc_type> <doc_doc>Returns a float from a 8 bytes IEEE 64-bit representation</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>void</doc_type> <doc_name>run_gc</doc_name><doc_type>(major : bool)</doc_type> <doc_doc>Run the Neko garbage collector</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>{ heap => int, free => int}</doc_type> <doc_name>gc_stats</doc_name><doc_type>()</doc_type> <doc_doc>Return the size of the GC heap and the among of free space, in bytes</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>void</doc_type> <doc_name>enable_jit</doc_name><doc_type>(bool)</doc_type> <doc_doc>Enable or disable the JIT.</doc_doc>
+</doc_blk>
