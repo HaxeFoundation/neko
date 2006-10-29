@@ -283,10 +283,6 @@ exec(nekovm+" nekoml -p tools Tools.nml");
 exec(nekovm+" nekoc -link tools/nekotools.n Tools");
 copy("tools/nekotools.n",base);
 
-exec(nekovm+" nekoc mtypes/std.neko");
-try { mkdir(base+"/mtypes",rights); } catch e { };
-copy("mtypes/std.n",base+"/mtypes");
-
 nekoboot(base+"/nekoc.n");
 nekoboot(base+"/nekoml.n");
 nekoboot(base+"/nekotools.n");
