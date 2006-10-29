@@ -40,6 +40,15 @@ typedef struct _vlock {
 
 #endif
 
+/**
+	<doc>
+	<h1>Thread</h1>
+	<p>
+	An API to create and manager system threads and locks.
+	</p>
+	</doc>	
+**/
+
 #define val_thread(t)	((vthread*)val_data(t))
 #define val_lock(l)		((vlock)val_data(l))
 
