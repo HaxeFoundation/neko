@@ -231,7 +231,7 @@ link = function(files,target,params1,params2) {
 
 // COMPILATION
 
-loop_include = function(data,header) {
+loop_include = function(data,incl) {
 	var dir;
 	while( (dir = find_file(data.inc,incl)) == null ) {
 		$print("The file "+data.inc+" provided when installing "+data.incname+" was not found\n");
