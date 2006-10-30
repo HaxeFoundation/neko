@@ -228,15 +228,29 @@ static int neko_handler( request_rec *r ) {
 
 #ifdef APACHE_2_X
 
+static int neko_2_0_handler( request_rec *r ) {
+	if( strcmp(r->handler,"neko-handler") != 0)
+		return DECLINED;
+	ap_send_http_header(r);
+	ap_rprintf(r,"You have Apache 2.0.x installed. Mod_neko2 can only run on Apache 2.2.x because of a BoehmGC issue with Apache 2.0, please upgrade to Apache 2.2.x");
+	return OK;
+}
+
 static int neko_init( apr_pool_t *p, apr_pool_t *plog, apr_pool_t *ptemp, server_rec *s ) {
 	cache_root = context_new();
 	use_jit = getenv("MOD_NEKO_JIT") != NULL;
 	putenv(strdup("MOD_NEKO=1"));
-	neko_global_init(&s);
+	neko_global_init(&s);	
 	return OK;
 }
 
 static void neko_register_hooks( apr_pool_t *p ) {
+	ap_version_t v;
+	ap_get_server_revision(&v);
+	if( v.major == 2 && v.minor < 2 ) {
+		ap_hook_handler( neko_2_0_handler, NULL, NULL, APR_HOOK_LAST );
+		return;
+	}
 	ap_hook_post_config( neko_init, NULL, NULL, APR_HOOK_MIDDLE );
 	ap_hook_handler( neko_handler, NULL, NULL, APR_HOOK_LAST );
 };
