@@ -39,6 +39,7 @@
 #ifdef NEKO_MAC
 #	include <sys/syslimits.h>
 #	include <limits.h>
+#	include <mach-o/dyld.h>
 #endif
 
 #ifndef CLK_TCK
