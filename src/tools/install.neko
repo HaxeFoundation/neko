@@ -117,6 +117,7 @@ search_includes = function(ism2) {
 		"/opt/local/include",
 		"/opt/local/include/apr-0",
 		"/opt/local/include/apr-1",
+		"/opt/local/include/mysql",
 	);
 }
 
