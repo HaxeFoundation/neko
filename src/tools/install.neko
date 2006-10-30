@@ -40,12 +40,12 @@ buffer_string = $loader.loadprim("std@buffer_string",1);
 libs = {
 	mod_neko => {
 		src => $array("mod_neko","cgi"),
-		inc => "ap_md5.h",
+		inc => "httpd.h",
 		incname => "Apache 1.3.x"
 	},
 	mod_neko2 => {
 		src => $array("mod_neko","cgi"),
-		inc => "apr.h",
+		inc => "httpd.h",
 		incname => "Apache 2.2.x"
 	},
 	mysql => {
@@ -101,19 +101,15 @@ includes = $array(
 	"../../vm",
 );
 
-search_includes = $array(
+search_includes = function(ism2) {
+	return $array(
 	"/usr/include",
-	"/usr/local/apache2/include",
-	"/usr/include/apache2",
-	"/usr/local/apache/include",
-	"/usr/apache/include",
+	if( ism2 ) "/usr/local/apache2/include" else "/usr/local/apache/include",
+	if( ism2 ) "/usr/include/apache2" else "/usr/apache/include",
 	"/usr/local/include/mysql",
 	"/usr/include/mysql",
 	"/usr/local/include",
-	"/usr/include/apr-0/",
-	"/usr/include/apr-1/",
-	"/usr/local/include/apr-0/",
-	"/usr/local/include/apr-1/",
+	);
 );
 
 libraries = $array(
@@ -160,12 +156,11 @@ readline = function() {
 	return buffer_string(b);
 }
 
-request_include = function() {
+request_include = function(incl) {
 	var s = readline();
 	if( s == "s" )
-		return false;
-	search_includes = append(search_includes,s);
-	return true;
+		return null;
+	return append(incl,s);
 }
 
 request_lib = function() {
@@ -242,11 +237,13 @@ compile_lib = function(lib) {
 	if( data == null )
 		return $print("No data found for this library : Skipping\n");
 	var inc;
-	while( (inc = find_file(data.inc,search_includes)) == null ) {
+	var incl = search_includes(lib == "mod_neko2");
+	while( (inc = find_file(data.inc,incl)) == null ) {
 		$print("The file "+data.inc+" provided when installing "+data.incname+" was not found\n");
 		$print("Please enter a valid include path to look for it\n");
 		$print("Or 's' to skip this library\n");
-		if( $not(request_include()) )
+		incl = request_include(incl);
+		if( incl == null )
 			return;
 	}
 	var linklib = data.lib;
