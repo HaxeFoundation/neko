@@ -1,0 +1,74 @@
+version = $int($version() / 100) + "." + ($version() % 100);
+
+sys = $loader.loadprim("std@sys_string",0)();
+sys = switch( sys ) {
+	"Windows" => "win"
+	"Mac" => "osx"
+	"Linux" => "linux"
+	"BSD" => "bsd"
+	default => $throw("Unknown system")
+}
+
+rights = 493; // octal 755
+_mkdir = $loader.loadprim("std@sys_create_dir",2);
+mkdir = function(d) {
+	_mkdir(d,rights);
+}
+
+chdir = $loader.loadprim("std@set_cwd",1);
+
+_cmd = $loader.loadprim("std@sys_command",1);
+cmd = function(c) {
+	if( _cmd(c) != 0 ) $throw("Command '"+c+"' failed");
+}
+
+dir = "neko-"+version+"-"+sys;
+cmd("rm -rf "+dir);
+mkdir(dir);
+
+switch( sys ) {
+"win" =>
+	cmd("cp neko.exe nekoc.exe nekotools.exe neko.lib neko.dll gc.dll "+dir)
+"osx" =>
+	cmd("cp neko nekoc nekotools libneko.dylib "+dir)
+"bsd" =>
+	cmd("cp neko nekoc nekotools libneko.so "+dir)
+"linux" =>
+	cmd("cp neko nekoc nekotools libneko.so "+dir)
+}
+
+cmd("cp *.ndll ../CHANGES ../LICENSE test.n "+dir);
+mkdir(dir+"/include");
+cmd("cp ../vm/neko.h ../vm/neko_mod.h ../vm/neko_vm.h "+dir+"/include");
+
+if( sys == "win" )
+	cmd("7z a -tzip "+dir+".zip "+dir);
+else
+	cmd("tar -czf "+dir+".tar.gz "+dir);
+cmd("rm -rf "+dir);
+
+// make source release
+
+if( $loader.args[0] == "-src" ) {
+	dir = "neko-"+version;
+	cmd("rm -rf "+dir);
+	mkdir(dir);
+	mkdir(dir+"/bin");
+	cmd("cp -r ../boot ../libs ../src ../vm "+dir);
+	cmd("cp ../CHANGES ../LICENSE ../Makefile ../neko.sln "+dir);
+	chdir(dir);
+	cmd("rm -rf */CVS */.cvsignore */*/CVS */*/.cvsignore");
+	cmd("rm -rf */*.suo */*.ncb */*/*.suo */*/*.ncb");
+	cmd("rm -rf */*.o */*/*.o");
+	cmd("rm -rf src/*.n src/*/*.n");
+	cmd("rm -rf */debug */release */*/debug */*/release");
+	cmd("rm -rf libs/include libs/mod_neko/debug2 libs/mod_neko/release2 libs/std/std2.sln");
+	cmd("rm -rf src/mtypes src/Makefile src/benchs/*.n src/*.dump src/*/*.dump");
+	chdir("..");
+	cmd("tar -czf "+dir+".tar.gz "+dir);
+	cmd("rm -rf "+dir);
+}
+
+
+
+
