@@ -231,7 +231,7 @@ link = function(files,target,params1,params2) {
 
 // COMPILATION
 
-loop_include(data,header) {
+loop_include = function(data,header) {
 	var dir;
 	while( (dir = find_file(data.inc,incl)) == null ) {
 		$print("The file "+data.inc+" provided when installing "+data.incname+" was not found\n");
@@ -239,7 +239,7 @@ loop_include(data,header) {
 		$print("Or 's' to skip this library\n");
 		incl = request_include(incl);
 		if( incl == null )
-			return;
+			return null;
 	}
 	return dir;
 }
