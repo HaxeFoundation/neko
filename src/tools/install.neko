@@ -261,6 +261,7 @@ compile_lib = function(lib) {
 		if( dir == null )
 			return;
 		dirs = append(dirs,dir);
+		i += 1;
 	}
 	var linklib = data.lib;
 	var dir = "";
