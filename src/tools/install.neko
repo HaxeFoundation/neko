@@ -45,7 +45,7 @@ libs = {
 	},
 	mod_neko2 => {
 		src => $array("mod_neko","cgi"),
-		inc => "httpd.h",
+		inc => $array("httpd.h","apr.h"),
 		incname => "Apache 2.2.x"
 	},
 	mysql => {
@@ -231,10 +231,10 @@ link = function(files,target,params1,params2) {
 
 // COMPILATION
 
-loop_include = function(data,incl) {
+loop_include = function(data,i,incl) {
 	var dir;
-	while( (dir = find_file(data.inc,incl)) == null ) {
-		$print("The file "+data.inc+" provided when installing "+data.incname+" was not found\n");
+	while( (dir = find_file(data.inc[i],incl)) == null ) {
+		$print("The file "+data.inc[i]+" provided when installing "+data.incname+" was not found\n");
 		$print("Please enter a valid include path to look for it\n");
 		$print("Or 's' to skip this library\n");
 		incl = request_include(incl);
@@ -252,10 +252,15 @@ compile_lib = function(lib) {
 		return $print("No data found for this library : Skipping\n");
 	var ism2 = lib == "mod_neko2";
 	var incl = search_includes(ism2);
-	var dirs = $array(loop_include(data,incl));
-	if( ism2 ) {
-		data.inc = "apr.h";
-		dirs = $array(dirs[0],loop_include(data,incl));
+	var dirs = $array();
+	if( $typeof(data.inc) == $tstring )
+		data.inc = $array(data.inc);
+	var i = 0;
+	while( i < $asize(data.inc) ) {
+		var dir = loop_include(data,i,incl);
+		if( dir == null )
+			return;
+		dirs = append(dirs,dir);
 	}
 	var linklib = data.lib;
 	var dir = "";
