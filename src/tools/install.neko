@@ -103,14 +103,14 @@ includes = $array(
 
 search_includes = function(ism2) {
 	return $array(
-	"/usr/include",
-	if( ism2 ) "/usr/local/apache2/include" else "/usr/local/apache/include",
-	if( ism2 ) "/usr/include/apache2" else "/usr/apache/include",
-	"/usr/local/include/mysql",
-	"/usr/include/mysql",
-	"/usr/local/include",
+		"/usr/include",
+		if( ism2 ) "/usr/local/apache2/include" else "/usr/local/apache/include",
+		if( ism2 ) "/usr/include/apache2" else "/usr/apache/include",
+		"/usr/local/include/mysql",
+		"/usr/include/mysql",
+		"/usr/local/include",
 	);
-);
+}
 
 libraries = $array(
 	"../../libs/include",
