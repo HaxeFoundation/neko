@@ -42,7 +42,7 @@ static char *executable_path() {
 	return path;
 #elif defined(NEKO_MAC)
 	static char path[MAXPATHLEN+1];
-	unsigned long path_len = MAXPATHLEN;
+	uint32_t path_len = MAXPATHLEN;
 	if ( _NSGetExecutablePath(path, &path_len) )
 		return NULL;
 	return path;

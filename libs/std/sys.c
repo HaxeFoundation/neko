@@ -482,7 +482,7 @@ static value sys_exe_path() {
 	return alloc_string(path);
 #elif defined(NEKO_MAC)
 	char path[PATH_MAX+1];
-	unsigned long path_len = PATH_MAX;
+	uint32_t path_len = PATH_MAX;
 	if( _NSGetExecutablePath(path, &path_len) )
 		neko_error();
 	return alloc_string(path);
