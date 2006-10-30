@@ -114,6 +114,7 @@ search_includes = function(ism2) {
 		"/usr/include/apr-1",
 		"/usr/local/include/apr-0",
 		"/usr/local/include/apr-1",
+		"/opt/local/include",
 		"/opt/local/include/apr-0",
 		"/opt/local/include/apr-1",
 	);
@@ -124,6 +125,8 @@ libraries = $array(
 	"/usr/lib",
 	"/usr/local/lib",
 	"/usr/local/lib/mysql",
+	"/opt/local/lib",
+	"/opt/local/lib/mysql",
 );
 
 exec = function(cmd) {
