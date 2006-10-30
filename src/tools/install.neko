@@ -306,6 +306,8 @@ while( libs != null ) {
 		$goto(next);
 	chdir(l);
 	compile_lib(l);
+	if( l == "mod_neko" )
+		compile_lib("mod_neko2");
 	chdir("..");
 next:
 	libs = libs[1];
