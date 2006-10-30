@@ -40,8 +40,13 @@ buffer_string = $loader.loadprim("std@buffer_string",1);
 libs = {
 	mod_neko => {
 		src => $array("mod_neko","cgi"),
-		inc => "httpd.h",
-		incname => "Apache"
+		inc => "ap_md5.h",
+		incname => "Apache 1.3.x"
+	},
+	mod_neko2 => {
+		src => $array("mod_neko","cgi"),
+		inc => "apr.h",
+		incname => "Apache 2.2.x"
 	},
 	mysql => {
 		src => $array("mysql"),
@@ -94,13 +99,16 @@ if( osx_universal ) {
 
 includes = $array(
 	"../../vm",
+);
+
+search_includes = $array(
+	"/usr/include",
 	"/usr/local/apache2/include",
 	"/usr/include/apache2",
 	"/usr/local/apache/include",
 	"/usr/apache/include",
 	"/usr/local/include/mysql",
 	"/usr/include/mysql",
-	"/usr/include",
 	"/usr/local/include",
 	"/usr/include/apr-0/",
 	"/usr/include/apr-1/",
@@ -156,7 +164,7 @@ request_include = function() {
 	var s = readline();
 	if( s == "s" )
 		return false;
-	includes = append(includes,s);
+	search_includes = append(search_includes,s);
 	return true;
 }
 
@@ -210,8 +218,8 @@ copy = function(file,path) {
 	};
 }
 
-compile = function(file) {
-	exec("gcc "+cflags+" -c "+make("-I",includes)+file+".c");
+compile = function(file,inc) {
+	exec("gcc "+cflags+" -c "+make("-I",includes)+" -I "+inc+" "+file+".c");
 }
 
 nekoboot = function(file) {
@@ -233,7 +241,8 @@ compile_lib = function(lib) {
 	var data = $objget(libs,$hash(lib));
 	if( data == null )
 		return $print("No data found for this library : Skipping\n");
-	while( find_file(data.inc,includes) == null ) {
+	var inc;
+	while( (inc = find_file(data.inc,search_includes)) == null ) {
 		$print("The file "+data.inc+" provided when installing "+data.incname+" was not found\n");
 		$print("Please enter a valid include path to look for it\n");
 		$print("Or 's' to skip this library\n");
@@ -257,7 +266,7 @@ compile_lib = function(lib) {
 	}
 	var i = 0;
 	while( i < $asize(data.src) ) {
-		compile(data.src[i]);
+		compile(data.src[i],inc);
 		i = i + 1;
 	}
 	link(data.src,lib,if( data.lparams != null ) { data.lparams+" " } else ""," "+linklib);
