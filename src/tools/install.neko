@@ -213,8 +213,8 @@ copy = function(file,path) {
 	};
 }
 
-compile = function(file,inc) {
-	exec("gcc "+cflags+" -c "+make("-I",includes)+" -I "+inc+" "+file+".c");
+compile = function(file,incl) {
+	exec("gcc "+cflags+" -c "+make("-I",includes)+make("-I",incl)+file+".c");
 }
 
 nekoboot = function(file) {
@@ -231,20 +231,31 @@ link = function(files,target,params1,params2) {
 
 // COMPILATION
 
-compile_lib = function(lib) {
-	$print("Compiling ",lib,"...\n");
-	var data = $objget(libs,$hash(lib));
-	if( data == null )
-		return $print("No data found for this library : Skipping\n");
-	var inc;
-	var incl = search_includes(lib == "mod_neko2");
-	while( (inc = find_file(data.inc,incl)) == null ) {
+loop_include(data,header) {
+	var dir;
+	while( (dir = find_file(data.inc,incl)) == null ) {
 		$print("The file "+data.inc+" provided when installing "+data.incname+" was not found\n");
 		$print("Please enter a valid include path to look for it\n");
 		$print("Or 's' to skip this library\n");
 		incl = request_include(incl);
 		if( incl == null )
 			return;
+	}
+	return dir;
+}
+
+
+compile_lib = function(lib) {
+	$print("Compiling ",lib,"...\n");
+	var data = $objget(libs,$hash(lib));
+	if( data == null )
+		return $print("No data found for this library : Skipping\n");
+	var ism2 = lib == "mod_neko2";
+	var incl = search_includes(ism2);
+	var dirs = $array(loop_include(data,incl));
+	if( ism2 ) {
+		data.inc = "apr.h";
+		dirs = $array(dirs[0],loop_include(data,incl));
 	}
 	var linklib = data.lib;
 	var dir = "";
@@ -263,7 +274,7 @@ compile_lib = function(lib) {
 	}
 	var i = 0;
 	while( i < $asize(data.src) ) {
-		compile(data.src[i],inc);
+		compile(data.src[i],dirs);
 		i = i + 1;
 	}
 	link(data.src,lib,if( data.lparams != null ) { data.lparams+" " } else ""," "+linklib);
