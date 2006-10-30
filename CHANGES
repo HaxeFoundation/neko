@@ -2,6 +2,7 @@
 	neko web server : get_client_header is now case-insensitive
 	std : new thread and lock api
 	neko : when run from commandline, SEGV on Linux are turned into exceptions
+	+ added mod_neko2 error if used with Apache 2.0.x
 
 2006-10-09 : 1.4.5
 	sqlite : added BOOL handling
