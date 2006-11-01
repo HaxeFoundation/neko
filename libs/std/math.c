@@ -58,7 +58,7 @@ static value math_pow( value a, value b ) {
 	val_check(a,number);
 	val_check(b,number);
 	r = (tfloat)pow(val_number(a),val_number(b));
-	if( fabs(r) < (1 << 30) )
+	if( (int)r == r && fabs(r) < (1 << 30) )
 		return alloc_int((int)r);
 	return alloc_float(r);
 }
