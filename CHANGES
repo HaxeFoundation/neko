@@ -1,3 +1,6 @@
+2006-??-??
+	fixed std math_pow float
+	
 2006-10-29 : 1.5
 	neko web server : get_client_header is now case-insensitive
 	std : new thread and lock api
