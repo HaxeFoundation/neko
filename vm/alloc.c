@@ -161,7 +161,9 @@ EXTERN int neko_thread_create( thread_main_func main, void *param, void *handle 
 #	else
 	pthread_mutex_init(&p.lock,NULL);
 	pthread_mutex_lock(&p.lock);
-	if( pthread_create((pthread_t*)handle,NULL,&ThreadMain,&p) != 0 ) {
+	// force the use of a the GC method to capture created threads
+	// this function should be defined in gc/gc.h
+	if( GC_pthread_create((pthread_t*)handle,NULL,&ThreadMain,&p) != 0 ) {
 		pthread_mutex_destroy(&p.lock);
 		return 0;
 	}
