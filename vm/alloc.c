@@ -156,6 +156,7 @@ EXTERN int neko_thread_create( thread_main_func main, void *param, void *handle 
 		}
 		WaitForSingleObject(p.lock,INFINITE);
 		CloseHandle(p.lock);
+		CloseHandle(h);
 		return 1;
 	}	
 #	else
