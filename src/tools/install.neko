@@ -110,13 +110,13 @@ search_includes = function(ism2) {
 		"/usr/local/include/mysql",
 		"/usr/include/mysql",
 		"/usr/local/include",
-		"/usr/include/apr-0",
 		"/usr/include/apr-1",
-		"/usr/local/include/apr-0",
+		"/usr/include/apr-0",
 		"/usr/local/include/apr-1",
+		"/usr/local/include/apr-0",
 		"/opt/local/include",
-		"/opt/local/include/apr-0",
 		"/opt/local/include/apr-1",
+		"/opt/local/include/apr-0",
 		"/opt/local/include/mysql",
 	);
 }
