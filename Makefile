@@ -1,6 +1,6 @@
 ### CONFIG
 
-CFLAGS = -Wall -O3 -fPIC -fomit-frame-pointer -I vm -DCOMPACT_TABLE
+CFLAGS = -Wall -O3 -fPIC -fomit-frame-pointer -fno-stack-protector -I vm -DCOMPACT_TABLE
 EXTFLAGS = -pthread
 MAKESO = gcc -shared -WBsymbolic
 LIBNEKO_NAME = libneko.so
