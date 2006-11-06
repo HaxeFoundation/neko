@@ -27,6 +27,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sqlite", "sqlite\sqlite.vcp
 	ProjectSection(ProjectDependencies) = postProject
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mysql5", "mysql\mysql5.vcproj", "{159607BD-674F-44DA-9290-CF923B2703CC}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfiguration) = preSolution
 		Debug = Debug
@@ -57,6 +61,10 @@ Global
 		{311DC43B-AABB-4796-883C-F2482165F8C4}.Debug.Build.0 = Debug|Win32
 		{311DC43B-AABB-4796-883C-F2482165F8C4}.Release.ActiveCfg = Release|Win32
 		{311DC43B-AABB-4796-883C-F2482165F8C4}.Release.Build.0 = Release|Win32
+		{159607BD-674F-44DA-9290-CF923B2703CC}.Debug.ActiveCfg = Debug|Win32
+		{159607BD-674F-44DA-9290-CF923B2703CC}.Debug.Build.0 = Debug|Win32
+		{159607BD-674F-44DA-9290-CF923B2703CC}.Release.ActiveCfg = Release|Win32
+		{159607BD-674F-44DA-9290-CF923B2703CC}.Release.Build.0 = Release|Win32
 		{159607BD-674F-44DA-9290-CF923B2703CC}.Debug.ActiveCfg = Debug|Win32
 		{159607BD-674F-44DA-9290-CF923B2703CC}.Debug.Build.0 = Debug|Win32
 		{159607BD-674F-44DA-9290-CF923B2703CC}.Release.ActiveCfg = Release|Win32
