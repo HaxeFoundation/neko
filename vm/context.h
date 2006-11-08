@@ -18,11 +18,17 @@
 #define _NEKO_CONTEXT_H
 
 typedef struct _context _context;
+typedef struct _clock _clock;
 
 _context *context_new();
 void context_delete( _context *ctx );
 void context_set( _context *ctx, void *v );
 void *context_get( _context *ctx );
+
+_clock *context_lock_new();
+void context_lock( _clock *l );
+void context_release( _clock *l );
+void context_lock_delete( _clock *l );
 
 #endif
 /* ************************************************************************ */

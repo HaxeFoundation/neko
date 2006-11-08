@@ -43,6 +43,22 @@ void *context_get( _context *ctx ) {
 	return (void*)TlsGetValue((DWORD)ctx);
 }
 
+_clock *context_lock_new() {
+	return (_clock*)CreateMutex(NULL,FALSE,NULL);
+}
+
+void context_lock( _clock *l ) {
+	WaitForSingleObject((HANDLE)l,INFINITE);
+}
+
+void context_release( _clock *l ) {
+	ReleaseMutex((HANDLE)l);
+}
+
+void context_lock_delete( _clock *l ) {
+	CloseHandle((HANDLE)l);
+}
+
 #else
 /* ************************************************************************ */
 #include <stdlib.h>
@@ -71,6 +87,28 @@ void *context_get( _context *ctx ) {
 	if( ctx == NULL )
 		return NULL;
 	return pthread_getspecific( ctx->key );
+}
+
+struct _lock {
+	pthread_mutex_t lock;
+};
+
+_clock *context_lock_new() {
+	_lock *l = malloc(sizeof(_lock));
+	pthread_mutex_init(&l->lock,NULL);
+	return  l;
+}
+
+void context_lock( _clock *l ) {
+	pthread_mutex_lock(&l->lock);
+}
+
+void context_release( _clock *l ) {
+	pthread_mutex_unlock(&l->lock);
+}
+
+void context_lock_delete( _clock *l ) {
+	pthread_mutex_destroy(&l->lock);
 }
 
 #endif
