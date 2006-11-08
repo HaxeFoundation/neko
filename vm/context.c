@@ -70,7 +70,7 @@ struct _context {
 
 _context *context_new() {
 	_context *ctx = malloc(sizeof(_context));
-	pthread_key_create( &ctx->key, NULL );	
+	pthread_key_create( &ctx->key, NULL );
 	return ctx;
 }
 
@@ -96,7 +96,8 @@ struct _lock {
 _clock *context_lock_new() {
 	_lock *l = malloc(sizeof(_lock));
 	pthread_mutex_init(&l->lock,NULL);
-	return  l;
+	pthread_mutex_unlock(&l->lock);
+	return l;
 }
 
 void context_lock( _clock *l ) {
