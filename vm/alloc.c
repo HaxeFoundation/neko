@@ -49,7 +49,8 @@ static int_val op_last = Last;
 static value *apply_string = NULL;
 int_val *callback_return = &op_last;
 value *neko_builtins = NULL;
-_context *neko_fields_context = NULL;
+objtable *neko_fields = NULL;
+_clock *neko_fields_lock = NULL;
 _context *neko_vm_context = NULL;
 static val_type t_null = VAL_NULL;
 static val_type t_true = VAL_BOOL;
@@ -134,7 +135,7 @@ static DWORD WINAPI ThreadMain( void *_p ) {
 static void *ThreadMain( void *_p ) {
 	tparams *lp = (tparams*)_p;
 	tparams p = *lp;
-	// we have the 'param' value on this thread C stack 
+	// we have the 'param' value on this thread C stack
 	// so it's safe to give back control to main thread
 	pthread_mutex_unlock(&lp->lock);
 	return (void*)(int_val)p.main(p.param);
@@ -158,7 +159,7 @@ EXTERN int neko_thread_create( thread_main_func main, void *param, void *handle 
 		CloseHandle(p.lock);
 		CloseHandle(h);
 		return 1;
-	}	
+	}
 #	else
 	pthread_mutex_init(&p.lock,NULL);
 	pthread_mutex_lock(&p.lock);
@@ -378,7 +379,9 @@ extern void neko_free_jit();
 EXTERN void neko_global_init( void *s ) {
 	neko_gc_init(s);
 	neko_vm_context = context_new();
-	neko_fields_context = context_new();
+	neko_fields_lock = context_lock_new();
+	neko_fields = (objtable*)alloc_root(1);
+	*neko_fields = otable_empty();
 	neko_init_builtins();
 	kind_names = (kind_list**)alloc_root(1);
 	*kind_names = NULL;
@@ -408,14 +411,14 @@ EXTERN void neko_global_init( void *s ) {
 }
 
 EXTERN void neko_global_free() {
-	neko_clean_thread();
 	neko_free_jit();
 	free_root((value*)kind_names);
 	free_root(apply_string);
 	free_root(neko_builtins);
+	free_root((value*)neko_fields);
 	apply_string = NULL;
 	context_delete(neko_vm_context);
-	context_delete(neko_fields_context);
+	context_lock_delete(neko_fields_lock);
 	neko_gc_major();
 	neko_gc_close();
 }

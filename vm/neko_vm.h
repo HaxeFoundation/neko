@@ -41,7 +41,6 @@ EXTERN void *neko_vm_custom( neko_vm *vm );
 EXTERN value neko_vm_execute( neko_vm *vm, void *module );
 EXTERN void neko_vm_select( neko_vm *vm );
 EXTERN int neko_vm_jit( neko_vm *vm, int enable_jit );
-EXTERN void neko_clean_thread();
 EXTERN value neko_default_loader( char **argv, int argc );
 EXTERN void neko_vm_redirect( neko_vm *vm, neko_printer print, void *param );
 

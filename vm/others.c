@@ -25,7 +25,8 @@
 DEFINE_KIND(k_int32);
 DEFINE_KIND(k_hash);
 
-extern _context *neko_fields_context;
+extern _clock *neko_fields_lock;
+extern objtable *neko_fields;
 extern field id_compare;
 extern field id_string;
 extern char *jit_handle_trap;
@@ -351,7 +352,6 @@ int neko_stack_expand( int_val *sp, int_val *csp, neko_vm *vm ) {
 }
 
 EXTERN field val_id( const char *name ) {
-	objtable *data;
 	value *fdata;
 	field f;
 	value acc = alloc_int(0);
@@ -361,42 +361,31 @@ EXTERN field val_id( const char *name ) {
 		name++;
 	}
 	f = val_int(acc);
-	data = (objtable*)context_get(neko_fields_context);
-	if( data == NULL ) {
-		data = (objtable*)alloc_root(1);
-		*data = otable_empty();
-		context_set(neko_fields_context,data);
-	}
-	fdata = otable_find(*data,f);
+	context_lock(neko_fields_lock);
+	fdata = otable_find(*neko_fields,f);
 	if( fdata != NULL ) {
 		if( scmp(val_string(*fdata),val_strlen(*fdata),oname,(int)(name - oname)) != 0 ) {
 			buffer b = alloc_buffer("Field conflict between ");
 			val_buffer(b,*fdata);
 			buffer_append(b," and ");
 			buffer_append(b,oname);
+			context_release(neko_fields_lock);
 			bfailure(b);
 		}
 	} else
-		otable_replace(*data,f,copy_string(oname,name - oname));
+		otable_replace(*neko_fields,f,copy_string(oname,name - oname));
+	context_release(neko_fields_lock);
 	return f;
 }
 
 EXTERN value val_field_name( field id ) {
-	objtable *data = (objtable*)context_get(neko_fields_context);
 	value *fdata;
-	if( data == NULL )
-		return val_null;
-	fdata = otable_find(*data,id);
+	context_lock(neko_fields_lock);
+	fdata = otable_find(*neko_fields,id);
+	context_release(neko_fields_lock);
 	if( fdata == NULL )
 		return val_null;
 	return *fdata;
-}
-
-EXTERN void neko_clean_thread() {
-	void *f = context_get(neko_fields_context);
-	if( f )
-		free_root(f);
-	context_set(neko_vm_context,NULL);
 }
 
 EXTERN value val_field( value _o, field id ) {

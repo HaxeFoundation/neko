@@ -120,7 +120,6 @@ static int thread_loop( void *_t ) {
 	val_callEx(val_null,t->callb,&t->callparam,1,&exc);
 	// cleanup
 	vm = NULL;
-	neko_clean_thread();
 	return 0;
 }
 

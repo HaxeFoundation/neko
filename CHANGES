@@ -2,6 +2,7 @@
 	fixed std math_pow float
 	minor thread cleanup
 	added MySQL5.ndll for Windows
+	fields hash cache is now global (instead of per-thread)
 	
 2006-10-29 : 1.5
 	neko web server : get_client_header is now case-insensitive
