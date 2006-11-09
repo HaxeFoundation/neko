@@ -89,12 +89,12 @@ void *context_get( _context *ctx ) {
 	return pthread_getspecific( ctx->key );
 }
 
-struct _lock {
+struct _clock {
 	pthread_mutex_t lock;
 };
 
 _clock *context_lock_new() {
-	_lock *l = malloc(sizeof(_lock));
+	_clock *l = malloc(sizeof(_clock));
 	pthread_mutex_init(&l->lock,NULL);
 	pthread_mutex_unlock(&l->lock);
 	return l;
