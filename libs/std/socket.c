@@ -375,22 +375,30 @@ static value socket_select( value rs, value ws, value es, value timeout ) {
 	fd_set rx, wx, ex;
 	fd_set *ra, *wa, *ea;
 	value r;
-	ra = make_socket_array(rs,&rx,&n);
-	wa = make_socket_array(ws,&wx,&n);
-	ea = make_socket_array(es,&ex,&n);
-	if( ra == &INVALID || wa == &INVALID || ea == &INVALID )
-		neko_error();
-	if( val_is_null(timeout) )
-		tt = NULL;
-	else {
-		val_check(timeout,number);
-		f = val_number(timeout);
-		tval.tv_usec = ((int)(f*1000000)) % 1000000;
-		tval.tv_sec = (int)f;
-		tt = &tval;
+	while( true ) {
+		ra = make_socket_array(rs,&rx,&n);
+		wa = make_socket_array(ws,&wx,&n);
+		ea = make_socket_array(es,&ex,&n);
+		if( ra == &INVALID || wa == &INVALID || ea == &INVALID )
+			neko_error();
+		if( val_is_null(timeout) )
+			tt = NULL;
+		else {
+			val_check(timeout,number);
+			f = val_number(timeout);
+			tval.tv_usec = ((int)(f*1000000)) % 1000000;
+			tval.tv_sec = (int)f;
+			tt = &tval;
+		}
+		if( select((int)(n+1),ra,wa,ea,tt) == SOCKET_ERROR ) {
+#			if defined(NEKO_LINUX) || defined(NEKO_MAC)
+			if( errno == EINTR )
+				continue;
+#			endif
+			neko_error();
+		}
+		break;
 	}
-	if( select((int)(n+1),ra,wa,ea,tt) == SOCKET_ERROR )
-		neko_error();
 	r = alloc_array(3);
 	val_array_ptr(r)[0] = make_array_result(rs,ra);
 	val_array_ptr(r)[1] = make_array_result(ws,wa);
