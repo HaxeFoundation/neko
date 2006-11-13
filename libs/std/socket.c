@@ -35,6 +35,10 @@
 #	include <errno.h>
 #	include <stdio.h>
 	typedef int SOCKET;
+	typedef struct {
+		int count;
+		struct fd *fds;
+	} polldata;
 #	define closesocket close
 #	define SOCKET_ERROR (-1)
 #	define INVALID_SOCKET (-1)
@@ -45,6 +49,7 @@
 #endif
 
 DEFINE_KIND(k_socket);
+DEFINE_KIND(k_polldata);
 
 #define val_sock(o)		((SOCKET)(int_val)val_data(o))
 
@@ -331,6 +336,8 @@ static fd_set *make_socket_array( value a, fd_set *tmp, SOCKET *n ) {
 	if( !val_is_array(a) )
 		return &INVALID;
 	len = val_array_size(a);
+	if( len > FD_SETSIZE )
+		val_throw(alloc_string("Too many sockets in select"));
 	FD_ZERO(tmp);
 	for(i=0;i<len;i++) {
 		value s = val_array_ptr(a)[i];
@@ -351,8 +358,6 @@ static value make_array_result( value a, fd_set *tmp ) {
 	if( tmp == NULL )
 		return val_null;
 	len = val_array_size(a);
-	if( len > FD_SETSIZE )
-		val_throw(alloc_string("Too many sockets in select"));
 	r = alloc_array(len);
 	for(i=0;i<len;i++) {
 		value s = val_array_ptr(a)[i];
@@ -556,6 +561,74 @@ static value socket_set_blocking( value o, value b ) {
 	return val_true;
 }
 
+static value socket_poll_alloc( value nsocks ) {
+	val_check(nsocks,int);
+	if( val_int(nsocks) < 0 || val_int(nsocks) > 1000000 )
+		neko_error();
+#	ifdef NEKO_WINDOWS
+	return alloc_abstract(k_polldata, nsocks);
+#	else
+	{
+		polldata *p = (polldata*)alloc(sizeof(polldata));
+		p->count = val_int(socks);
+		p->fds = (struct pollfd*)alloc_private(sizeof(struct pollfd) * p->count);
+		return alloc_abstract(k_polldata, p);
+	}
+#	endif
+}
+
+static value socket_poll( value socks, value pdata, value timeout ) {
+#	ifdef NEKO_WINDOWS
+	value r;
+	val_check(socks,array);
+	val_check_kind(pdata,k_polldata);
+	if( val_array_size(socks) > val_int(val_data(pdata)) )
+		val_throw(alloc_string("Too many sockets in poll"));
+	r = socket_select(socks,val_null,val_null,timeout);
+	if( r == NULL )
+		neko_error();
+	return val_array_ptr(r)[0];
+#else
+	int i,len,rlen;
+	polldata *d;
+	val_check(socks,array);
+	val_check_kind(pdata,k_polldata);
+	val_check(timeout,number);
+	len = val_array_size(socks);	
+	d = (polldata*)val_data(pdata);
+	if( len > d->count )
+		val_throw(alloc_string("Too many sockets in poll"));
+	while( true ) {
+		for(i=0;i<len;i++) {
+			value s = val_array_ptr(socks)[i];
+			val_check_kind(s,k_socket);
+			d->fds[i].fd = val_sock(s);
+			d->fds[i].events = POLLIN;
+			d->fds[i].revents = 0;
+		}
+		if( (rlen = poll(d->fds,len,(int)(val_number(timeout) * 1000))) < 0 ) {
+			if( errno == EINTR )
+				continue;
+			neko_error();
+		}
+		break;
+	}
+	if( rlen == 0 )
+		return alloc_array(0);
+	{
+		value r = alloc_array(rlen);
+		int pos = 0;
+		for(i=0;i<len;i++)
+			if( d->fds[i].revents & POLLIN ) {
+				val_array_ptr(r)[pos++] = val_array_ptr(socks)[i];
+				if( pos == rlen )
+					return r;
+			}
+		neko_error();		
+	}
+#endif
+}
+
 DEFINE_PRIM(socket_init,0);
 DEFINE_PRIM(socket_new,1);
 DEFINE_PRIM(socket_send,4);
@@ -575,6 +648,9 @@ DEFINE_PRIM(socket_host,1);
 DEFINE_PRIM(socket_set_timeout,2);
 DEFINE_PRIM(socket_shutdown,3);
 DEFINE_PRIM(socket_set_blocking,2);
+
+DEFINE_PRIM(socket_poll_alloc,1);
+DEFINE_PRIM(socket_poll,3);
 
 DEFINE_PRIM(host_local,0);
 DEFINE_PRIM(host_resolve,1);
