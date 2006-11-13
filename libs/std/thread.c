@@ -46,7 +46,7 @@ typedef struct _vlock {
 	<p>
 	An API to create and manager system threads and locks.
 	</p>
-	</doc>	
+	</doc>
 **/
 
 #define val_thread(t)	((vthread*)val_data(t))
@@ -96,7 +96,7 @@ static void set_local_thread( vthread *t ) {
 
 static void init_thread_queue( vthread *t ) {
 	pthread_mutex_init(&t->lock,NULL);
-	pthread_cond_init(&t->cond,NULL);	
+	pthread_cond_init(&t->cond,NULL);
 }
 
 static void free_thread( value v ) {
@@ -136,7 +136,7 @@ static value thread_create( value f, value param ) {
 	t->callb = f;
 	t->callparam = param;
 #	ifdef NEKO_WINDOWS
-	if( !neko_thread_create(thread_loop,t,&t->tid) )			
+	if( !neko_thread_create(thread_loop,t,&t->tid) )
 		neko_error();
 	vt = alloc_abstract(k_thread,t);
 #	else
@@ -346,10 +346,15 @@ static value lock_wait( value lock, value timeout ) {
 				struct timeval tv;
 				struct timespec t;
 				double delta = val_number(timeout);
-				int idelta = (int)delta;
+				int idelta = (int)delta, idelta2;
+				delta -= idelta;
+				delta *= 1.0e9;
 				gettimeofday(&tv,NULL);
-				t.tv_sec = tv.tv_sec + idelta;
-				t.tv_nsec = (long)((delta - idelta) * 1.0e9 + tv.tv_usec * 1000.0);
+				delta += tv.tv_usec * 1000.0;
+				idelta2 = (int)delta;
+				delta -= idelta2;
+				t.tv_sec = tv.tv_sec + idelta + idelta2;
+				t.tv_nsec = (long)delta;
 				if( pthread_cond_timedwait(&l->cond,&l->lock,&t) != 0 ) {
 					pthread_mutex_unlock(&l->lock);
 					return val_false;

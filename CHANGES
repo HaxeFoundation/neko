@@ -4,6 +4,7 @@
 	added MySQL5.ndll for Windows
 	fields hash cache is now global (instead of per-thread)
 	retry select on EINTR
+	fixed under-second lock timeout for Linux/OSX
 	
 2006-10-29 : 1.5
 	neko web server : get_client_header is now case-insensitive
