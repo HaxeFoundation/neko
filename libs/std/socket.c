@@ -34,10 +34,11 @@
 #	include <fcntl.h>
 #	include <errno.h>
 #	include <stdio.h>
+#	include <poll.h>
 	typedef int SOCKET;
 	typedef struct {
 		int count;
-		struct fd *fds;
+		struct pollfd *fds;
 	} polldata;
 #	define closesocket close
 #	define SOCKET_ERROR (-1)
@@ -570,7 +571,7 @@ static value socket_poll_alloc( value nsocks ) {
 #	else
 	{
 		polldata *p = (polldata*)alloc(sizeof(polldata));
-		p->count = val_int(socks);
+		p->count = val_int(nsocks);
 		p->fds = (struct pollfd*)alloc_private(sizeof(struct pollfd) * p->count);
 		return alloc_abstract(k_polldata, p);
 	}
