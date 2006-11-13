@@ -351,8 +351,8 @@ static value lock_wait( value lock, value timeout ) {
 				delta *= 1.0e9;
 				gettimeofday(&tv,NULL);
 				delta += tv.tv_usec * 1000.0;
-				idelta2 = (int)delta;
-				delta -= idelta2;
+				idelta2 = (int)(delta / 1e9);
+				delta -= idelta2 * 1e9;
 				t.tv_sec = tv.tv_sec + idelta + idelta2;
 				t.tv_nsec = (long)delta;
 				if( pthread_cond_timedwait(&l->cond,&l->lock,&t) != 0 ) {
