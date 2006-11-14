@@ -3,8 +3,10 @@
 	minor thread cleanup
 	added MySQL5.ndll for Windows
 	fields hash cache is now global (instead of per-thread)
-	retry select on EINTR
+	socket_select retry on EINTR
 	fixed under-second lock timeout for Linux/OSX
+	added socket_poll for Linux/OSX (emulate with select() on Windows)
+	fixed compilation bug when accessing 'this' in arguments and more than 5 args
 	
 2006-10-29 : 1.5
 	neko web server : get_client_header is now case-insensitive

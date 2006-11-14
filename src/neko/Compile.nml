@@ -744,14 +744,10 @@ function rec compile(ctx,tail,(e,p)) {
 	| ECall (e,a :: b :: c :: d :: x1 :: x2 :: l) ->
 		match e {
 		| (EField (e,name) , p2) ->
-			var ethis = (EConst This,p2);
 			var etmp = (EConst (Ident "$tmp"),p2);
-			compile ctx false (EVars [("$this",Some ethis);("$tmp",Some e)],p2);
-			compile ctx false (EBinop "=" ethis etmp,p2);
-			var app = ECall (EConst (Builtin "apply"),p) [(EField etmp name,p2);a;b;c;d];
-			compile ctx false (EBinop "=" etmp (ECall (app,p) (x1 :: x2 :: l),p),p);
-			compile ctx false (EBinop "=" ethis (EConst (Ident "$this"),p2),p2);
-			compile ctx false etmp
+			compile ctx false (EVars [("$tmp",Some e)],p2);
+			var args = (ECall (EConst (Builtin "array"),p) (a :: b :: c :: d :: x1 :: x2 :: l),p);
+			compile ctx false (ECall (EConst (Builtin "call"),p) [(EField etmp name,p2);etmp;args], p);
 		| _ ->
 			var app = ECall (EConst (Builtin "apply"),p) [e;a;b;c;d];
 			compile ctx tail (ECall (app,p) (x1 :: x2 :: l) ,p)
