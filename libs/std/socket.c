@@ -65,7 +65,7 @@ DEFINE_KIND(k_polldata);
 
 static value block_error() {
 #ifdef NEKO_WINDOWS
-	int err = WSAGetLastError();	
+	int err = WSAGetLastError();
 	if( err == WSAEWOULDBLOCK || err == WSAEALREADY )
 #else
 	if( errno == EAGAIN || errno == EWOULDBLOCK || errno == EINPROGRESS || errno == EALREADY )
@@ -489,16 +489,16 @@ static value socket_host( value o ) {
 **/
 static value socket_set_timeout( value o, value t ) {
 #ifdef NEKO_WINDOWS
-	int time;	
+	int time;
 	val_check_kind(o,k_socket);
 	if( val_is_null(t) )
 		time = 0;
 	else {
 		val_check(t,number);
-		time = (int)(val_number(t) * 1000);		
-	}	
+		time = (int)(val_number(t) * 1000);
+	}
 #else
-	struct timeval time;	
+	struct timeval time;
 	tfloat f;
 	val_check_kind(o,k_socket);
 	if( val_is_null(t) ) {
@@ -508,7 +508,7 @@ static value socket_set_timeout( value o, value t ) {
 		val_check(t,number);
 		f = val_number(t);
 		time.tv_usec = ((int)(f*1000000)) % 1000000;
-		time.tv_sec = (int)f;		
+		time.tv_sec = (int)f;
 	}
 #endif
 	if( setsockopt(val_sock(o),SOL_SOCKET,SO_SNDTIMEO,(char*)&time,sizeof(time)) != 0 )
@@ -537,7 +537,7 @@ static value socket_shutdown( value o, value r, value w ) {
 	socket_set_blocking : 'socket -> bool -> void
 	<doc>Turn on/off the socket blocking mode.</doc>
 **/
-static value socket_set_blocking( value o, value b ) {	
+static value socket_set_blocking( value o, value b ) {
 	val_check_kind(o,k_socket);
 	val_check(b,bool);
 #ifdef NEKO_WINDOWS
@@ -595,7 +595,7 @@ static value socket_poll( value socks, value pdata, value timeout ) {
 	val_check(socks,array);
 	val_check_kind(pdata,k_polldata);
 	val_check(timeout,number);
-	len = val_array_size(socks);	
+	len = val_array_size(socks);
 	d = (polldata*)val_data(pdata);
 	if( len > d->count )
 		val_throw(alloc_string("Too many sockets in poll"));
@@ -604,7 +604,7 @@ static value socket_poll( value socks, value pdata, value timeout ) {
 			value s = val_array_ptr(socks)[i];
 			val_check_kind(s,k_socket);
 			d->fds[i].fd = val_sock(s);
-			d->fds[i].events = POLLIN;
+			d->fds[i].events = POLLIN | POLLHUP;
 			d->fds[i].revents = 0;
 		}
 		if( (rlen = poll(d->fds,len,(int)(val_number(timeout) * 1000))) < 0 ) {
@@ -625,7 +625,7 @@ static value socket_poll( value socks, value pdata, value timeout ) {
 				if( pos == rlen )
 					return r;
 			}
-		neko_error();		
+		neko_error();
 	}
 #endif
 }
