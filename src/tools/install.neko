@@ -30,6 +30,7 @@ exists = $loader.loadprim("std@sys_exists",1);
 split = $loader.loadprim("std@string_split",2);
 mkdir = $loader.loadprim("std@sys_create_dir",2);
 delete = $loader.loadprim("std@file_delete",1);
+getenv = $loader.loadprim("std@get_env",1);
 
 buffer_new = $loader.loadprim("std@buffer_new",0);
 buffer_add_char = $loader.loadprim("std@buffer_add_char",2);
@@ -78,7 +79,9 @@ libs = {
 // PLATFORM
 
 cflags = "-O3 -fPIC";
-linkcmd = switch system { "BSD" => "ld" default => "gcc" };
+cc = getenv("CC");
+if( cc == null ) cc = "gcc";
+linkcmd = switch system { "BSD" => "ld" default => cc };
 linkoptions = switch system { "Mac" => "-bundle -undefined dynamic_lookup -L../../bin -lneko" default => "-shared -L../../bin -lneko" };
 nekovm = switch system { "Windows" => "..\\bin\\neko" default => "../bin/neko" };
 ranlib = function(l) { }
@@ -225,7 +228,7 @@ copy = function(file,path) {
 }
 
 compile = function(file,incl) {
-	exec("gcc "+cflags+" -c "+make("-I",includes)+make("-I",incl)+file+".c");
+	exec(cc+" "+cflags+" -c "+make("-I",includes)+make("-I",incl)+file+".c");
 }
 
 nekoboot = function(file) {

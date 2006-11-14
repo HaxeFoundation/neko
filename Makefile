@@ -2,7 +2,7 @@
 
 CFLAGS = -Wall -O3 -fPIC -fomit-frame-pointer -I vm -DCOMPACT_TABLE
 EXTFLAGS = -pthread
-MAKESO = gcc -shared -WBsymbolic
+MAKESO = $(CC) -shared -WBsymbolic
 LIBNEKO_NAME = libneko.so
 LIBNEKO_LIBS = -ldl -lgc -lm
 NEKOVM_FLAGS = -Lbin -lneko
@@ -38,7 +38,7 @@ NEKO_EXEC = LD_LIBRARY_PATH=../bin:${LD_LIBRARY_PATH} NEKOPATH=../boot:../bin ..
 ifeq (${WIN32}, 1)
 CFLAGS = -g -Wall -O3 -momit-leaf-frame-pointer -I vm -I /usr/local/include -DCOMPACT_TABLE
 EXTFLAGS =
-MAKESO = gcc -O -shared
+MAKESO = $(CC) -O -shared
 LIBNEKO_NAME = neko.dll
 LIBNEKO_LIBS = -Lbin -lgc 
 STD_NDLL_FLAGS = ${NEKOVM_FLAGS} -lws2_32
