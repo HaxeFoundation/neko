@@ -45,7 +45,7 @@ static value string_split( value o, value s ) {
 	slen = val_strlen(s);
 	l = NULL;
 	first = NULL;
-	for(pos=0;pos<=ilen-slen;pos++)
+	for(pos=slen?0:1;pos<=ilen-slen;pos++)
 		if( memcmp(val_string(o)+pos,val_string(s),slen) == 0 ) {
 			value ss = copy_string(val_string(o)+start,pos-start);
 			value l2 = alloc_array(2);
@@ -57,9 +57,10 @@ static value string_split( value o, value s ) {
 				val_array_ptr(l)[1] = l2;
 			l = l2;
 			start = pos + slen;
-			pos = start - 1;
+			if( slen )
+				pos = start - 1;
 		}
-	if( ilen > 0 ) {
+	if( ilen > 0 && slen ) {
 		value ss = copy_string(val_string(o)+start,ilen-start);
 		value l2 = alloc_array(2);
 		val_array_ptr(l2)[0] = ss;
