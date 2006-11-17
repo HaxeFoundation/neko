@@ -678,15 +678,6 @@ function rec compile_builtin(ctx,tail,b,el,p) {
 		}) el;
 		compile ctx false e;
 		write ctx (MakeArray (List.length el))
-	| (bname,a :: b :: c :: d :: x1 :: x2 :: l) ->
-		var apply = (EConst (Builtin "apply"),p);
-		if bname == "apply" then {
-			var app = ECall apply [a;b;c;d;x1];
-			compile ctx tail (ECall apply ((app,p) :: x2 :: l),p)
-		} else {
-			var app = ECall apply [(EConst (Builtin bname),p);a;b;c;d];
-			compile ctx tail (ECall (app,p) (x1 :: x2 :: l) ,p)
-		}
 	| ("apply",e :: el) ->
 		List.iter (function(e) {
 			compile ctx false e;
@@ -739,19 +730,19 @@ function rec compile(ctx,tail,(e,p)) {
 	| EField (e,f) ->
 		compile ctx false e;
 		write ctx (AccField f)
-	| ECall ((EConst (Builtin b),_),el) ->
-		compile_builtin ctx tail b el p
-	| ECall (e,a :: b :: c :: d :: x1 :: x2 :: l) ->
+	| ECall (e,a :: b :: c :: d :: x1 :: x2 :: l) when match e { (EConst (Builtin "array"),_) -> false | _ -> true } ->
+		var call = (EConst (Builtin "call"),p);
+		var args = (ECall (EConst (Builtin "array"),p) (a :: b :: c :: d :: x1 :: x2 :: l),p);
 		match e {
 		| (EField (e,name) , p2) ->
 			var etmp = (EConst (Ident "$tmp"),p2);
 			compile ctx false (EVars [("$tmp",Some e)],p2);
-			var args = (ECall (EConst (Builtin "array"),p) (a :: b :: c :: d :: x1 :: x2 :: l),p);
-			compile ctx false (ECall (EConst (Builtin "call"),p) [(EField etmp name,p2);etmp;args], p);
+			compile ctx tail (ECall call [(EField etmp name,p2);etmp;args], p);
 		| _ ->
-			var app = ECall (EConst (Builtin "apply"),p) [e;a;b;c;d];
-			compile ctx tail (ECall (app,p) (x1 :: x2 :: l) ,p)
+			compile ctx tail (ECall call [e; (EConst This,p); args],p);
 		}
+	| ECall ((EConst (Builtin b),_),el) ->
+		compile_builtin ctx tail b el p
 	| ECall ((EField (e,f),_),el) ->
 		List.iter (function(e) {
 			compile ctx false e;
