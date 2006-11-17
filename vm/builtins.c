@@ -297,7 +297,6 @@ static value builtin_new( value o ) {
 	return alloc_object(o);
 }
 
-
 /**
 	$objget : o:any -> f:int -> any
 	<doc>Return the field [f] of [o] or [null] if doesn't exists or [o] is not an object</doc>
@@ -527,6 +526,30 @@ static value builtin_apply( value *args, int nargs ) {
 	while( i++ < fargs )
 		val_array_ptr(env)[i] = val_null;
 	return alloc_apply(fargs-nargs,env);
+}
+
+static value varargs_callback( value *args, int nargs ) {
+	value f = NEKO_VM()->env;
+	value a = alloc_array(nargs);
+	int i;
+	for(i=0;i<nargs;i++)
+		val_array_ptr(a)[i] = args[i];
+	return val_call1(f,a);
+}
+
+/**
+	$varargs : f:function:1 -> function
+	<doc>
+	Return a variable argument function that, when called, will callback
+	[f] with the array of arguments.
+	</doc>
+**/
+static value builtin_varargs( value f ) {
+	value fvar;
+	val_check_function(f,1);
+	fvar = alloc_function(varargs_callback,VAR_ARGS,"varargs");
+	((vfunction*)fvar)->env = f;
+	return fvar;
 }
 
 /** <doc><h2>Number Builtins</h2></doc> **/
@@ -1151,6 +1174,7 @@ void neko_init_builtins() {
 	BUILTIN(typeof,1);
 	BUILTIN(closure,VAR_ARGS);
 	BUILTIN(apply,VAR_ARGS);
+	BUILTIN(varargs,1);
 	BUILTIN(compare,2);
 	BUILTIN(pcompare,2);
 	BUILTIN(not,1);
