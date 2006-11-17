@@ -63,10 +63,10 @@ EXTERN value val_callEx( value vthis, value f, value *args, int nargs, value *ex
 	if( val_is_int(f) )
 		val_throw(alloc_string("Invalid call"));
 	if( val_tag(f) == VAL_PRIMITIVE ) {
-		if( nargs > CALL_MAX_ARGS )
-			failure("Too many arguments for a call");
 		vm->env = ((vfunction *)f)->env;
 		if( nargs == ((vfunction*)f)->nargs ) {
+			if( nargs > CALL_MAX_ARGS )
+				failure("Too many arguments for a call");
 			switch( nargs ) {
 			case 0:
 				ret = ((c_prim0)((vfunction*)f)->addr)();
