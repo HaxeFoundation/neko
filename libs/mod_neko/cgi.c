@@ -21,6 +21,7 @@
 #	define ap_table_get		apr_table_get
 #	define ap_table_set		apr_table_set
 #	define ap_table_add		apr_table_add
+#	define ap_table_do		apr_table_do
 #	define REDIRECT			HTTP_TEMPORARY_REDIRECT
 #endif
 
@@ -182,6 +183,29 @@ static value get_client_header( value s ) {
 	return alloc_string( ap_table_get(c->r->headers_in,val_string(s)) );
 }
 
+
+static int store_table( void *r, const char *key, const char *val ) {
+	value a;
+	if( key == NULL || val == NULL )
+		return 1;
+	a = alloc_array(2);
+	a = alloc_array(3);
+	val_array_ptr(a)[0] = alloc_string(key);
+	val_array_ptr(a)[1] = alloc_string(val);
+	val_array_ptr(a)[2] = *(value*)r;
+	*((value*)r) = a;
+	return 1;
+}
+/**
+	get_client_headers : void -> string list
+	<doc>Get all the HTTP client headers</doc>
+**/
+static value get_client_headers() {
+	value r = val_null;
+	ap_table_do(store_table,&r,CONTEXT()->r->headers_in,NULL);
+	return r;
+}
+
 /**
 	get_params_string : void -> string
 	<doc>Return the whole parameters string</doc>
@@ -214,60 +238,116 @@ static char *memfind( char *mem, int mlen, const char *v ) {
 	return NULL;
 }
 
-static void parse_multipart( mcontext *c, const char *ctype, const char *args, int argslen, value *p ) {
-	char *boundary = strstr(ctype,"boundary=");
-	char *bend;
-	char old, oldb1, oldb2;
-	value vtmp;
-	if( boundary == NULL )
-		return;
-	boundary += 9;
-	PARSE_HEADER(boundary,bend);
-	boundary-=2;
-	oldb1 = *boundary;
-	oldb2 = boundary[1];
-	*boundary = '-';
-	boundary[1] = '-';
-	old = *bend;
-	*bend = 0;
+#define BUFSIZE 1024
+
+static void fill_buffer( mcontext *c, value buf, int *len ) {
+	int pos = *len;
+	while( pos < BUFSIZE ) {
+		int k = ap_get_client_block(c->r,val_string(buf)+pos,BUFSIZE-pos);
+		if( k == 0 )
+			break;
+		pos += k;
+	}
+	*len = pos;
+}
+
+/**
+	parse_multipart_data : onpart:function:2 -> ondata:function:3 -> void
+	<doc>
+	Incrementally parse the multipart data. call [onpart(name,filename)] for each part
+	found and [ondata(buf,pos,len)] when some data is available
+	</doc>
+**/
+static value parse_multipart_data( value onpart, value ondata ) {
+	value buf;
+	int len = 0;	
+	mcontext *c = CONTEXT();
+	const char *ctype = ap_table_get(c->r->headers_in,"Content-Type");
+	value boundstr;
+	val_check_function(onpart,2);
+	val_check_function(ondata,3);
+	buf = alloc_empty_string(BUFSIZE);
+	if( !ctype || strstr(ctype,"multipart/form-data") == NULL )
+		return val_null;
+	// extract boundary value
 	{
-		char *name, *end_name;
-		char *data, *end_data;
-		char tmp;
-		name = strstr(args,boundary);
-		while( name != NULL ) {
-			name = strstr(name,"Content-Disposition:");
-			if( name == NULL )
+		const char *boundary, *bend;
+		if( (boundary = strstr(ctype,"boundary=")) == NULL )
+			neko_error();	
+		boundary += 9;
+		PARSE_HEADER(boundary,bend);
+		len = (int)(bend - boundary);
+		boundstr = alloc_empty_string(len+2);
+		if( val_strlen(boundstr) > BUFSIZE / 2 )
+			neko_error();
+		val_string(boundstr)[0] = '-';
+		val_string(boundstr)[1] = '-';
+		memcpy(val_string(boundstr)+2,boundary,len);
+	}
+	len = 0;
+    if( !ap_should_client_block(c->r) )
+		neko_error();	
+	while( true ) {
+		char *name, *end_name, *filename, *end_file_name, *data;
+		int pos;
+		// refill buffer
+		// we assume here that the the whole multipart header can fit in the buffer
+		fill_buffer(c,buf,&len);
+		// is boundary at the beginning of buffer ?
+		if( len < val_strlen(boundstr) || memcmp(val_string(buf),val_string(boundstr),val_strlen(boundstr)) != 0 )
+			neko_error();
+		name = memfind(val_string(buf),len,"Content-Disposition:");
+		if( name == NULL ) {
+			if( len == val_strlen(boundstr) + 4 )
+				return val_null;
+			neko_error();
+		}
+		name = memfind(name,len - (int)(name - val_string(buf)),"name=");
+		if( name == NULL )
+			neko_error();
+		name += 5;
+		PARSE_HEADER(name,end_name);
+		data = memfind(end_name,len - (int)(end_name - val_string(buf)),"\r\n\r\n");
+		if( data == NULL )
+			neko_error();
+		filename = memfind(name,(int)(data - name),"filename=");
+		if( filename != NULL ) {
+			filename += 9;
+			PARSE_HEADER(filename,end_file_name);
+		}
+		data += 4;
+		pos = (int)(data - val_string(buf));
+		// send part name		
+		val_call2(onpart,copy_string(name,(int)(end_name - name)),filename?copy_string(filename,(int)(end_file_name - filename)):val_null);
+		// read data
+		while( true ) {
+			const char *boundary;
+			// recall buffer
+			memcpy(val_string(buf),val_string(buf)+pos,len - pos);
+			len -= pos;
+			pos = 0;			
+			fill_buffer(c,buf,&len);
+			// lookup bounds
+			boundary = memfind(val_string(buf),len,val_string(boundstr));
+			if( boundary == NULL ) {
+				// send as much buffer as possible to client
+				if( len < BUFSIZE )
+					pos = len;
+				else
+					pos = len - val_strlen(boundstr) + 1;
+				val_call3(ondata,buf,alloc_int(0),alloc_int(pos));
+			} else {
+				// send remaining data
+				pos = (int)(boundary - val_string(buf));
+				val_call3(ondata,buf,alloc_int(0),alloc_int(pos-2));
+				// recall
+				memcpy(val_string(buf),val_string(buf)+pos,len - pos);
+				len -= pos;
 				break;
-			name = strstr(name,"name=");
-			if( name == NULL )
-				break;
-			name += 5;
-			PARSE_HEADER(name,end_name);
-			data = strstr(end_name,"\r\n\r\n");
-			if( data == NULL )
-				break;
-			data += 4;
-			end_data = memfind(data,argslen - (int)(data - args),boundary);
-			if( end_data == NULL )
-				break;
-			tmp = *end_name;
-			*end_name = 0;
-
-			vtmp = alloc_array(3);
-			val_array_ptr(vtmp)[0] = copy_string(name,(int)(end_name - name));
-			val_array_ptr(vtmp)[1] = copy_string(data,(int)(end_data-data-2));
-			val_array_ptr(vtmp)[2] = *p;
-			*p = vtmp;
-
-			*end_name = tmp;
-
-			name = end_data;
+			}
 		}
 	}
-	*boundary = oldb1;
-	boundary[1] = oldb2;
-	*bend = old;
+	return val_null;
 }
 
 static value url_decode( const char *in, int len ) {
@@ -357,15 +437,8 @@ static value get_params() {
 		parse_get(&p,args);
 	 
 	// PARSE "POST" PARAMS
-	if( c->post_data != NULL ) {
-		const char *ctype = ap_table_get(c->r->headers_in,"Content-Type");
-		if( ctype && strstr(ctype,"application/octet-stream") != NULL )
-			return p;
-		if( ctype && strstr(ctype,"multipart/form-data") != NULL )
-			parse_multipart(c,ctype,val_string(c->post_data),val_strlen(c->post_data),&p);
-		else
-			parse_get(&p,val_string(c->post_data));
-	}
+	if( c->post_data != NULL )
+		parse_get(&p,val_string(c->post_data));
 
 	return p;
 }
@@ -400,6 +473,15 @@ static value cgi_set_main( value f ) {
 }
 
 /**
+	cgi_flush : void -> void
+	<doc>Flush the data written so it's immediatly sent to the client</doc>
+**/
+static value cgi_flush() {
+	ap_rflush(CONTEXT()->r);
+	return val_null;
+}
+
+/**
 	cgi_get_cache : void -> #list
 	<doc>Return the list of modules cached by mod_neko</doc>
 **/
@@ -419,6 +501,9 @@ DEFINE_PRIM(get_post_data,0);
 DEFINE_PRIM(set_header,2);
 DEFINE_PRIM(set_return_code,1);
 DEFINE_PRIM(get_client_header,1);
+DEFINE_PRIM(get_client_headers,0);
 DEFINE_PRIM(cgi_get_cache,0);
+DEFINE_PRIM(parse_multipart_data,2);
+DEFINE_PRIM(cgi_flush,0);
 
 /* ************************************************************************ */
