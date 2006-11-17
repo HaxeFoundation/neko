@@ -16,6 +16,10 @@
 /* ************************************************************************ */
 #include "mod_neko.h"
 
+#ifndef MOD_NEKO_POST_SIZE
+#	define MOD_NEKO_POST_SIZE (1 << 18) // 256 K
+#endif
+
 #ifdef APACHE_2_X
 #	define FTIME(r)		r->finfo.mtime
 #	define ap_send_http_header(x)
@@ -121,6 +125,7 @@ static void cache_module( request_rec *r, value main ) {
 static int neko_handler_rec( request_rec *r ) {
 	mcontext ctx;
 	neko_vm *vm;
+	const char *ctype;
 	value exc = NULL;
 
 	neko_set_stack_base(&ctx);
@@ -137,13 +142,22 @@ static int neko_handler_rec( request_rec *r ) {
 		return OK;
 	}
 
-	if( ap_should_client_block(r) ) {
+	ctype = ap_table_get(r->headers_in,"Content-Type");
+	if( (!ctype || strstr(ctype,"multipart/form-data") == NULL) && ap_should_client_block(r) ) {
 #		define MAXLEN 1024
 		char buf[MAXLEN];
 		int len;
+		int tlen = 0;
 		buffer b = alloc_buffer(NULL);
-		while( (len = ap_get_client_block(r,buf,MAXLEN)) > 0 )
+		while( (len = ap_get_client_block(r,buf,MAXLEN)) > 0 ) {
 			buffer_append_sub(b,buf,len);
+			tlen += len;
+			if( tlen >= MOD_NEKO_POST_SIZE ) {
+				send_headers(&ctx);
+				ap_rprintf(r,"<b>Error</b> : Maximum POST data exceeded. Try using multipart encoding");
+				return OK;
+			}
+		}
 		ctx.post_data = buffer_to_string(b);
 	}
 
