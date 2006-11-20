@@ -3,6 +3,12 @@
 
    contributed by Nicolas Cannasse
 */
+fmt = function(i) {
+	var s = $string(i);
+	while( $ssize(s) < 8 )
+		s = " "+s;
+	return s;
+}
 nsieve = function(m) {
 	var a = $amake(m);
 	var count = 0;
@@ -18,7 +24,7 @@ nsieve = function(m) {
 		}
 		i += 1;
 	}
-	$print("Primes up to\t",m,"\t",count,"\n");
+	$print("Primes up to ",fmt(m)," ",fmt(count),"\n");
 }
 
 var n = $int($loader.args[0]);
