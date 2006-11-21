@@ -92,6 +92,7 @@ type http_request {
 	res : string;
 	url : (string, string);
 	version : string;
+	ctype : string option;
 	headers : (string,string) list;
 	mutable params : (string, string) list;
 	mutable post_data : string option;
@@ -155,6 +156,14 @@ http_headers := Lexer.build [
 	});
 ] invalid_char;
 
+function header(name,headers) {
+	try {
+		Some snd(List.find (function((n,_)) { String.lowercase n == String.lowercase name }) headers)
+	} catch {
+		Not_found -> None
+	}
+}
+
 function parse_http_request(in) {
 	var l = Lexer.create();
 	Lexer.input l "http-stream" in 1 0;
@@ -163,12 +172,10 @@ function parse_http_request(in) {
 	var version = Lexer.token l http_request_version;
 	var headers = Lexer.token l (*http_headers);
 	var params = parse_get_params snd(url);
-	var post_data, params = if meth == MethodPost then {
-		var len = try
-			int (List.assoc "Content-Length" headers)
-		catch {
-			Not_found -> try int (List.assoc "Content-length" headers) catch { Not_found -> 0 }
-		};
+	var ctype = header "Content-Type" headers;
+	var post_data, params = if meth == MethodPost && ctype != Some "multipart/form-data" then {
+		var len = match header "Content-Length" headers { None -> 0 | Some len -> int len };
+		if len >= (1 << 18) then error "max post data exceeded";
 		var b = Buffer.create();
 		var i = &0;
 		while *i < len {
@@ -187,6 +194,7 @@ function parse_http_request(in) {
 		version = version;
 		headers = headers;
 		post_data = post_data;
+		ctype = ctype;
 	}
 }
 
@@ -350,18 +358,19 @@ function init_mod_neko() {
 		def name neko("function() { f(null) }");
 	}
 	no_param "get_cookies" (function() {
-		flatten (try {
-			var k = List.assoc "Cookie" request().headers;
-			var l = String.split k "; ";
-			List.map (function(k) {
-				match String.split k "=" {
-				| [] | [_] -> (k,"")
-				| k :: l -> (k,String.concat "=" l)
-				}
-			}) l
-		} catch {
-			Not_found -> []
-		})
+		flatten (
+			match header "Cookie" request().headers {
+			| None -> []
+			| Some k ->
+				var l = String.split k "; ";
+				List.map (function(k) {
+					match String.split k "=" {
+					| [] | [_] -> (k,"")
+					| k :: l -> (k,String.concat "=" l)
+					}
+				}) l
+			}
+		)
 	});
 	def "set_cookie" (function(name,val) {
 		var c = client();
@@ -395,11 +404,13 @@ function init_mod_neko() {
 		set_header c name val;
 	});
 	def "get_client_header" (function(name) {
-		try {
-			snd (List.find (function((n,_)) { String.lowercase n == String.lowercase name }) request().headers)
-		} catch {
-			Not_found -> neko "null"
+		match header name request().headers {
+		| None -> neko "null"
+		| Some h -> h
 		}
+	});
+	no_param "get_client_headers" (function() {
+		flatten request().headers
 	});
 	no_param "get_params_string" (function() {
 		snd request().url
@@ -418,6 +429,12 @@ function init_mod_neko() {
 	});
 	def "cgi_set_main" (function(f) {
 		client().main := Some f;
+	});
+	no_param "cgi_flush" (function() {
+		IO.flush client().out;
+	});
+	def "parse_multipart_data" (function(part,data) {
+		if request().ctype == Some "multipart/form-data" then (neko "$throw")("parse_multipart_data not implemented");
 	});
 	function resolve_method(f:string) {
 		try {
