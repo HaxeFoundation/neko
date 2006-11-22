@@ -25,6 +25,7 @@
 #	define ap_send_http_header(x)
 #	define ap_soft_timeout(msg,r)
 #	define ap_kill_timeout(r)
+#	define ap_table_get		apr_table_get
 typedef apr_time_t aptime;
 #else
 #	define FTIME(r)		r->finfo.st_mtime
