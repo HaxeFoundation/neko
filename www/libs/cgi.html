@@ -32,10 +32,19 @@
   <doc_type>string?</doc_type> <doc_name>get_client_header</doc_name><doc_type>(name : string)</doc_type> <doc_doc>Get a HTTP header sent by the client</doc_doc>
 </doc_blk>
 <doc_blk>
+  <doc_type>string list</doc_type> <doc_name>get_client_headers</doc_name><doc_type>()</doc_type> <doc_doc>Get all the HTTP client headers</doc_doc>
+</doc_blk>
+<doc_blk>
   <doc_type>string</doc_type> <doc_name>get_params_string</doc_name><doc_type>()</doc_type> <doc_doc>Return the whole parameters string</doc_doc>
 </doc_blk>
 <doc_blk>
   <doc_type>string</doc_type> <doc_name>get_post_data</doc_name><doc_type>()</doc_type> <doc_doc>Return the whole unparsed POST string</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>void</doc_type> <doc_name>parse_multipart_data</doc_name><doc_type>(onpart : function:2, ondata : function:3)</doc_type> <doc_doc>
+	Incrementally parse the multipart data. call <doc_code>onpart(name,filename)</doc_code> for each part
+	found and <doc_code>ondata(buf,pos,len)</doc_code> when some data is available
+	</doc_doc>
 </doc_blk>
 <doc_blk>
   <doc_type>#list</doc_type> <doc_name>get_params</doc_name><doc_type>()</doc_type> <doc_doc>parse all GET and POST params and return them into a chained list</doc_doc>
@@ -45,6 +54,9 @@
 </doc_blk>
 <doc_blk>
   <doc_type>void</doc_type> <doc_name>cgi_set_main</doc_name><doc_type>(function:0)</doc_type> <doc_doc>Set the main entry point function</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>void</doc_type> <doc_name>cgi_flush</doc_name><doc_type>()</doc_type> <doc_doc>Flush the data written so it's immediatly sent to the client</doc_doc>
 </doc_blk>
 <doc_blk>
   <doc_type>#list</doc_type> <doc_name>cgi_get_cache</doc_name><doc_type>()</doc_type> <doc_doc>Return the list of modules cached by mod_neko</doc_doc>
