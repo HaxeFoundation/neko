@@ -61,6 +61,7 @@ if( $loader.args[0] == "-src" ) {
 	cmd("rm -rf */*.suo */*.ncb */*/*.suo */*/*.ncb");
 	cmd("rm -rf */*.o */*/*.o");
 	cmd("rm -rf src/*.n src/*/*.n");
+	cmd("rm -rf src/nekoc.exe src/nekoml.exe src/nekotools.exe");
 	cmd("rm -rf */debug */release */*/debug */*/release");
 	cmd("rm -rf libs/include libs/mod_neko/debug2 libs/mod_neko/release2 libs/std/std2.sln");
 	cmd("rm -rf src/mtypes src/Makefile src/benchs/*.n src/*.dump src/*/*.dump");

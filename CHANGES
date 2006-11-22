@@ -1,4 +1,4 @@
-2006-??-??
+2006-11-22 : 1.5.2
 	fixed std math_pow float
 	minor thread cleanup
 	added MySQL5.ndll for Windows
