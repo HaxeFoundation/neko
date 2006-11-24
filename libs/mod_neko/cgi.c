@@ -297,11 +297,8 @@ static value parse_multipart_data( value onpart, value ondata ) {
 		if( len < val_strlen(boundstr) || memcmp(val_string(buf),val_string(boundstr),val_strlen(boundstr)) != 0 )
 			neko_error();
 		name = memfind(val_string(buf),len,"Content-Disposition:");
-		if( name == NULL ) {
-			if( len == val_strlen(boundstr) + 4 )
-				return val_null;
-			neko_error();
-		}
+		if( name == NULL )
+			break;
 		name = memfind(name,len - (int)(name - val_string(buf)),"name=");
 		if( name == NULL )
 			neko_error();
