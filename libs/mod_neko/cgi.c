@@ -251,6 +251,13 @@ static void fill_buffer( mcontext *c, value buf, int *len ) {
 	*len = pos;
 }
 
+static value discard_body( mcontext *c ) {
+	char buf[256];
+	while( ap_get_client_block(c->r,buf,256) > 0 ) {
+	}
+	neko_error();
+}
+
 /**
 	parse_multipart_data : onpart:function:2 -> ondata:function:3 -> void
 	<doc>
@@ -295,18 +302,18 @@ static value parse_multipart_data( value onpart, value ondata ) {
 		fill_buffer(c,buf,&len);
 		// is boundary at the beginning of buffer ?
 		if( len < val_strlen(boundstr) || memcmp(val_string(buf),val_string(boundstr),val_strlen(boundstr)) != 0 )
-			neko_error();
+			return discard_body(c);
 		name = memfind(val_string(buf),len,"Content-Disposition:");
 		if( name == NULL )
 			break;
 		name = memfind(name,len - (int)(name - val_string(buf)),"name=");
 		if( name == NULL )
-			neko_error();
+			return discard_body(c);
 		name += 5;
 		PARSE_HEADER(name,end_name);
 		data = memfind(end_name,len - (int)(end_name - val_string(buf)),"\r\n\r\n");
 		if( data == NULL )
-			neko_error();
+			return discard_body(c);
 		filename = memfind(name,(int)(data - name),"filename=");
 		if( filename != NULL ) {
 			filename += 9;
@@ -327,6 +334,8 @@ static value parse_multipart_data( value onpart, value ondata ) {
 			// lookup bounds
 			boundary = memfind(val_string(buf),len,val_string(boundstr));
 			if( boundary == NULL ) {
+				if( len == 0 )
+					return discard_body(c);
 				// send as much buffer as possible to client
 				if( len < BUFSIZE )
 					pos = len;

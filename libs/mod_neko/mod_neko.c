@@ -151,13 +151,14 @@ static int neko_handler_rec( request_rec *r ) {
 		int tlen = 0;
 		buffer b = alloc_buffer(NULL);
 		while( (len = ap_get_client_block(r,buf,MAXLEN)) > 0 ) {
-			buffer_append_sub(b,buf,len);
+			if( tlen < MOD_NEKO_POST_SIZE )
+				buffer_append_sub(b,buf,len);
 			tlen += len;
-			if( tlen >= MOD_NEKO_POST_SIZE ) {
-				send_headers(&ctx);
-				ap_rprintf(r,"<b>Error</b> : Maximum POST data exceeded. Try using multipart encoding");
-				return OK;
-			}
+		}
+		if( tlen >= MOD_NEKO_POST_SIZE ) {
+			send_headers(&ctx);
+			ap_rprintf(r,"<b>Error</b> : Maximum POST data exceeded. Try using multipart encoding");
+			return OK;
 		}
 		ctx.post_data = buffer_to_string(b);
 	}
