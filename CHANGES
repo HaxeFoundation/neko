@@ -1,3 +1,6 @@
+2006-??-?? : ?.?.?
+	minor fixes in mod_neko multipart and POST data handling
+
 2006-11-22 : 1.5.2
 	fixed std math_pow float
 	minor thread cleanup
