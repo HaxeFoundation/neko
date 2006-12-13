@@ -735,9 +735,12 @@ function rec compile(ctx,tail,(e,p)) {
 		var args = (ECall (EConst (Builtin "array"),p) (a :: b :: c :: d :: x1 :: x2 :: l),p);
 		match e {
 		| (EField (e,name) , p2) ->
+			var locals = ctx.locals;
 			var etmp = (EConst (Ident "$tmp"),p2);
 			compile ctx false (EVars [("$tmp",Some e)],p2);
 			compile ctx tail (ECall call [(EField etmp name,p2);etmp;args], p);
+			write ctx (Pop 1);
+			ctx.locals := locals
 		| _ ->
 			compile ctx tail (ECall call [e; (EConst This,p); args],p);
 		}

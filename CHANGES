@@ -1,6 +1,7 @@
 2006-??-?? : ?.?.?
 	minor fixes in mod_neko multipart and POST data handling
 	fixed $objremove result (was always true)
+	fixed one-last-bug when using more-than-five-arguments method call return value
 
 2006-11-22 : 1.5.2
 	fixed std math_pow float
