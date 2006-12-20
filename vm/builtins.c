@@ -348,7 +348,7 @@ static value builtin_objfield( value o, value f ) {
 static value builtin_objremove( value o, value f ) {
 	val_check(o,object);
 	val_check(f,int);
-	return alloc_bool( otable_remove(((vobject*)o)->table,val_int(f)) != (unsigned int)-1 );
+	return alloc_bool( otable_remove(((vobject*)o)->table,val_int(f)) );
 }
 
 static void builtin_objfields_rec( value d, field id, void *a ) {

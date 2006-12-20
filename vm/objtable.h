@@ -32,7 +32,7 @@ value *otable_find(objtable t,field id);
 
 #define otable_empty()	NULL
 #define otable_replace(t,id,data) _otable_replace(&(t),id,data)
-#define otable_remove(t,id) _otable_remove(&(t),id)
+#define otable_remove(t,id) (_otable_remove(&(t),id) != (unsigned int)-1)
 #define otable_optimize(t) _otable_optimize(&(t))
 
 int otable_count(objtable t);
