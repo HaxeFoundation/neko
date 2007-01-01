@@ -24,7 +24,11 @@
 #	include "gc.h"
 #else
 #	ifdef NEKO_WINDOWS
-#		define GC_DLL
+#		ifdef NEKO_INSTALLER
+#			define GC_NOT_DLL
+#		else
+#			define GC_DLL
+#		endif
 #		define GC_WIN32_THREADS
 #	endif
 #	define GC_THREADS
@@ -83,6 +87,7 @@ static void __on_finalize(value v, void *f ) {
 }
 
 void neko_gc_init( void *ptr ) {
+	GC_init();
 	GC_no_dls = 1;
 #ifdef LOW_MEM
 	GC_dont_expand = 1;
@@ -150,7 +155,7 @@ EXTERN int neko_thread_create( thread_main_func main, void *param, void *handle 
 	{
 		HANDLE h;
 		p.lock = CreateSemaphore(NULL,0,1,NULL);
-		h = CreateThread(NULL,0,ThreadMain,&p,0,handle);
+		h = GC_CreateThread(NULL,0,ThreadMain,&p,0,handle);
 		if( h == NULL ) {
 			CloseHandle(p.lock);
 			return 0;

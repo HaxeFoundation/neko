@@ -264,7 +264,7 @@ static value regexp_matched_pos( value o, value n ) {
 	}
 }
 
-static void init() {
+void regexp_main() {
 	id_pos = val_id("pos");
 	id_len = val_id("len");	
 }
@@ -277,6 +277,6 @@ DEFINE_PRIM(regexp_replace_all,3);
 DEFINE_PRIM(regexp_replace_fun,3);
 DEFINE_PRIM(regexp_matched,2);
 DEFINE_PRIM(regexp_matched_pos,2);
-DEFINE_ENTRY_POINT(init);
+DEFINE_ENTRY_POINT(regexp_main);
 
 /* ************************************************************************ */

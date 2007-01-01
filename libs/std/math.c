@@ -27,7 +27,7 @@
 	</doc>
 **/
 
-#ifdef NEKO_VCC
+#if defined(NEKO_VCC) && !defined(NEKO_INSTALLER)
 	long _ftol( double f );
 	long _ftol2( double f) { return _ftol(f); };
 #endif

@@ -200,8 +200,14 @@ typedef struct {
 #	define IMPORT
 #endif
 
-#ifdef NEKO_SOURCES
+#if defined(NEKO_SOURCES)
 #	define EXTERN EXPORT
+#elif defined(NEKO_INSTALLER)
+#	define EXTERN
+#	undef EXPORT
+#	undef IMPORT
+#	define EXPORT
+#	define IMPORT
 #else
 #	define EXTERN IMPORT
 #endif
@@ -239,7 +245,12 @@ typedef struct {
 #define DEFINE_PRIM_MULT(func) C_FUNCTION_BEGIN EXPORT void *func##__MULT() { return &func; } C_FUNCTION_END
 #define DEFINE_PRIM(func,nargs) C_FUNCTION_BEGIN EXPORT void *func##__##nargs() { return &func; } C_FUNCTION_END
 #define DEFINE_KIND(name) int_val __kind_##name = 0; vkind name = (vkind)&__kind_##name;
-#define DEFINE_ENTRY_POINT(name) C_FUNCTION_BEGIN void name(); EXPORT void *__neko_entry_point() { return &name; } C_FUNCTION_END
+
+#ifdef NEKO_INSTALLER
+#	define DEFINE_ENTRY_POINT(name)
+#else
+#	define DEFINE_ENTRY_POINT(name) C_FUNCTION_BEGIN void name(); EXPORT void *__neko_entry_point() { return &name; } C_FUNCTION_END
+#endif
 
 #ifdef HEADER_IMPORTS
 #	define DECLARE_PRIM(func,nargs) C_FUNCTION_BEGIN IMPORT void *func##__##nargs(); C_FUNCTION_END
