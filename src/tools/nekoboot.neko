@@ -51,21 +51,26 @@ find_exe_in_path = function(path,file) {
 			path = path[1];
 		}
 	}
-	$throw("File not found : "+file);
+	$throw("The bootable executable file was not found : "+file);
 }
 
 // bytecode = first argument
 
 var args = $loader.args;
+var exe_ext = switch system { "Windows" => ".exe" default => "" };
+var boot_exe = "neko" + exe_ext;
+if( args[0] == "-b" ) {
+	boot_exe = args[1];
+	args = $asub(args,2,$asize(args)-2);
+}
 if( $asize(args) != 1 )
 	$throw("Need bytecode argument");
 var file = args[0];
 var bytecode = file_contents(file);
 
-// load boot.bin
+// load boot binary
 
-var exe_ext = switch system { "Windows" => ".exe" default => "" };
-var boot = find_exe_in_path($loader.path,"neko"+exe_ext);
+var boot = find_exe_in_path($loader.path,boot_exe);
 var boot_str = "##BOOT_POS\000\000\000\000##";
 var pos = find(boot,boot_str,$ssize(boot_str));
 if( pos == null )
