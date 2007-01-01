@@ -28,7 +28,7 @@
 #	include <mach-o/dyld.h>
 #endif
 #ifdef NEKO_LINUX
-#	include <signal.h>	
+#	include <signal.h>
 #endif
 
 #ifdef NEKO_INSTALLER
@@ -88,17 +88,17 @@ static void report( neko_vm *vm, value exc, int isexc ) {
 			buffer_append(b," line ");
 			val_buffer(b,val_array_ptr(s)[1]);
 		} else
-			val_buffer(b,s);		
+			val_buffer(b,s);
 		buffer_append_char(b,'\n');
 	}
 	if( isexc )
 		buffer_append(b,"Uncaught exception - ");
-	val_buffer(b,exc);	
+	val_buffer(b,exc);
 #	ifdef NEKO_INSTALLER
 	neko_installer_error(val_string(buffer_to_string(b)));
 #	else
 	fprintf(stderr,"%s\n",val_string(buffer_to_string(b)));
-#	endif	
+#	endif
 }
 
 static value read_bytecode( value str, value pos, value len ) {
@@ -128,11 +128,12 @@ int neko_execute_self( neko_vm *vm, value mload ) {
 		report(vm,alloc_string("Could not resolve current executable name"),0);
 		return 1;
 	}
-	self = fopen("rb",exe);
+	self = fopen(exe,"rb");
 	if( self == NULL ) {
 		report(vm,alloc_string("Failed to open current executable for reading"),0);
 		return 1;
-	}	
+	}
+	fseek(self,data_pos,0);
 	module_read = val_callEx(mload,val_field(mload,val_id("loadprim")),args,2,&exc);
 	if( exc != NULL ) {
 		report(vm,exc,1);
@@ -160,7 +161,7 @@ int neko_execute_self( neko_vm *vm, value mload ) {
 
 static int execute_file( neko_vm *vm, char *file, value mload ) {
 	value args[] = { alloc_string(file), mload };
-	value exc = NULL;	
+	value exc = NULL;
 	val_callEx(mload,val_field(mload,val_id("loadmodule")),args,2,&exc);
 	if( exc != NULL ) {
 		report(vm,exc,1);
