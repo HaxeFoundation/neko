@@ -162,7 +162,7 @@ INT32_OP_ZERO(mod,%);
 **/
 INT32_UNOP(neg,-);
 /** 
-	int32_complement : #int32 -> #int32 -> #int32
+	int32_complement : #int32 -> #int32
 	<doc>Return the one-complement bitwised integer</doc>
 **/
 INT32_UNOP(complement,~);
