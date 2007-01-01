@@ -45,6 +45,10 @@ var file_log = &None;
 var module_cache = Hashtbl.create();
 var mod_rewrite = &false;
 
+function sys_is_file(file) {
+	neko "$loader.loadprim('std@sys_file_type',1)(file)" == "file"
+}
+
 function page_404(url) {
 "<HTML><HEAD>
 <TITLE>404 Not Found</TITLE>
@@ -248,7 +252,7 @@ function rec find_url_file(url,recursive) {
 	} else {
 		var path = if String.get url 0 == '/' then String.sub url 1 (len - 1) else url;
 		var path = *cur_path + path;
-		if Sys.exists path then
+		if Sys.exists path && sys_is_file path then
 			Some path
 		else if recursive && *mod_rewrite then
 			// if path like /path/to/file then lookup /path/to/file.n
