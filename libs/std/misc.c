@@ -142,6 +142,39 @@ static value enable_jit( value b ) {
 	return val_null;
 }
 
+/**
+	test : void -> void
+	<doc>The test function, to check that library is reachable and correctly linked</doc>
+**/
+static value test() {
+	val_print(alloc_string("Calling a function inside std library...\n"));
+	return val_null;
+}
+
+/**
+	print_redirect : function:1? -> void
+	<doc>
+	Set a redirection function for all printed values. 
+	Setting it to null will cancel the redirection and restore previous printer.
+	</doc>
+**/
+
+static void print_callback( const char *s, int size, void *f ) {	
+	val_call1(f,copy_string(s,size));
+}
+
+static value print_redirect( value f ) {
+	neko_vm *vm = neko_vm_current();
+	if( val_is_null(f) ) {
+		neko_vm_redirect(vm,NULL,NULL);
+		return val_true;
+	}
+	val_check_function(f,1);
+	neko_vm_redirect(vm,print_callback,f);
+	return val_true;
+}
+
+
 DEFINE_PRIM(float_bytes,2);
 DEFINE_PRIM(double_bytes,2);
 DEFINE_PRIM(float_of_bytes,2);
@@ -149,5 +182,7 @@ DEFINE_PRIM(double_of_bytes,2);
 DEFINE_PRIM(run_gc,1);
 DEFINE_PRIM(gc_stats,0);
 DEFINE_PRIM(enable_jit,1);
+DEFINE_PRIM(test,0);
+DEFINE_PRIM(print_redirect,1);
 
 /* ************************************************************************ */
