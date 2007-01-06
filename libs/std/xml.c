@@ -15,12 +15,14 @@
 /*																			*/
 /* ************************************************************************ */
 #include <neko.h>
-#include <string.h>
+#include <memory.h>
 
 #ifndef NEKO_WINDOWS
 #  include <strings.h>
 #  undef strcmpi
 #  define strcmpi(a,b) strcasecmp(a,b)
+#else
+#	include <string.h>
 #endif
 
 #define ERROR(msg)	xml_error(xml,p,line,msg);
@@ -79,7 +81,7 @@ static bool is_valid_char( int c ) {
 
 static void do_parse_xml( const char *xml, const char **lp, int *line, value callb, const char *parentname ) {
 	STATE state = BEGIN;
-	STATE next = BEGIN;	
+	STATE next = BEGIN;
 	field aname = (field)0;
 	value attribs = NULL;
 	value nodename = NULL;
@@ -134,7 +136,7 @@ static void do_parse_xml( const char *xml, const char **lp, int *line, value cal
 			case '!':
 				if( p[1] == '[' ) {
 					p += 2;
-					if( (p[0] != 'C' && p[0] != 'c') || 
+					if( (p[0] != 'C' && p[0] != 'c') ||
 						(p[1] != 'D' && p[1] != 'd') ||
 						(p[2] != 'A' && p[2] != 'a') ||
 						(p[3] != 'T' && p[3] != 't') ||
@@ -219,7 +221,7 @@ static void do_parse_xml( const char *xml, const char **lp, int *line, value cal
 				tmp = copy_string(start,p-start);
 				aname = val_id(val_string(tmp));
 				if( !val_is_null(val_field(attribs,aname)) )
-					ERROR("Duplicate attribute");				
+					ERROR("Duplicate attribute");
 				state = IGNORE_SPACES;
 				next = EQUALS;
 				continue;
@@ -263,7 +265,7 @@ static void do_parse_xml( const char *xml, const char **lp, int *line, value cal
 			break;
 		case WAIT_END:
 			switch( c ) {
-			case '>': 
+			case '>':
 				val_ocall0(callb,id_done);
 				state = BEGIN;
 				break;
@@ -273,7 +275,7 @@ static void do_parse_xml( const char *xml, const char **lp, int *line, value cal
 			break;
 		case WAIT_END_RET:
 			switch( c ) {
-			case '>': 
+			case '>':
 				if( nsubs == 0 )
 					val_ocall1(callb,id_pcdata,alloc_string(""));
 				val_ocall0(callb,id_done);
@@ -377,7 +379,7 @@ static value parse_xml( value str, value callb ) {
 	p = val_string(str);
 	// skip BOM
 	if( p[0] == (char)0xEF && p[1] == (char)0xBB && p[2] == (char)0xBF )
-		p += 3;	
+		p += 3;
 	do_parse_xml(p,&p,&line,callb,NULL);
 	return val_true;
 }
