@@ -67,13 +67,18 @@ ifeq (${OSX_UNIVERSAL}, 1)
 export MACOSX_DEPLOYMENT_TARGET_i386=10.4
 export MACOSX_DEPLOYMENT_TARGET_ppc=10.3
 CFLAGS += -arch ppc -arch i386 -L/usr/local/lib
+UNIV = libs/include/osx_universal
 #linking to shared lib (.a) explicitly:
-LIBNEKO_DEPS = libs/include/osx_universal/libgc.a  -lSystemStubs
+LIBNEKO_DEPS = ${UNIV}/libgc.a  -lSystemStubs
 LIBNEKO_LIBS = ${LIBNEKO_DEPS} -dynamiclib -single_module ${LIBNEKO_INSTALL} ${CFLAGS} 
 NEKOVM_FLAGS = -L${PWD}/bin -lneko
 STD_NDLL_FLAGS = -bundle ${NEKOVM_FLAGS} ${CFLAGS}
 INSTALL_FLAGS = -osx-universal
 RANLIB = ranlib libs/include/osx_universal/libgc.a
+
+INSTALLER_FLAGS = -D NEKO_INSTALLER -I /opt/local/include -I /Developer/Headers/FlatCarbon
+INSTALLER_API = osx
+INSTALLER_LIBS = ${UNIV}/libpcre.a ${UNIV}/libz.a ${UNIV}/libgc.a /System/Library/Frameworks/Carbon.framework/Carbon
 
 endif
 
