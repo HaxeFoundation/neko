@@ -32,6 +32,7 @@
 #endif
 
 #ifdef NEKO_INSTALLER
+extern void neko_installer_init();
 extern void neko_installer_error( const char *error );
 extern value neko_installer_loader( char *argv[], int argc );
 #	define default_loader neko_installer_loader
@@ -197,6 +198,9 @@ int main( int argc, char *argv[] ) {
 	act.sa_flags = 0;
 	sigemptyset(&act.sa_mask);
 	sigaction(SIGSEGV,&act,NULL);
+#	endif
+#	ifdef NEKO_INSTALLER
+	neko_installer_init();
 #	endif
 	if( argc > 1 && strcmp(argv[1],"-interp") == 0 ) {
 		argc--;
