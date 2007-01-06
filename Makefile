@@ -12,12 +12,6 @@ RANLIB =
 
 NEKO_EXEC = LD_LIBRARY_PATH=../bin:${LD_LIBRARY_PATH} NEKOPATH=../boot:../bin ../bin/neko
 
-### INSTALLER (optional)
-
-INSTALLER_FLAGS = -D NEKO_INSTALLER `pkg-config --cflags gtk+-2.0`
-INSTALLER_API = linux
-INSTALLER_LIBS = -lm -ldl /usr/lib/libgc.a /usr/lib/libpcre.a /usr/lib/libz.a `pkg-config --libs gtk+-2.0`
-
 # For OSX
 #
 # MACOSX = 1
@@ -76,10 +70,6 @@ STD_NDLL_FLAGS = -bundle ${NEKOVM_FLAGS} ${CFLAGS}
 INSTALL_FLAGS = -osx-universal
 RANLIB = ranlib libs/include/osx_universal/libgc.a
 
-INSTALLER_FLAGS = -D NEKO_INSTALLER -I /opt/local/include -I /Developer/Headers/FlatCarbon
-INSTALLER_API = osx
-INSTALLER_LIBS = ${UNIV}/libpcre.a ${UNIV}/libz.a ${UNIV}/libgc.a /System/Library/Frameworks/Carbon.framework/Carbon
-
 endif
 
 endif
@@ -89,7 +79,6 @@ endif
 VM_OBJECTS = vm/main.o
 STD_OBJECTS = libs/std/buffer.o libs/std/date.o libs/std/file.o libs/std/init.o libs/std/int32.o libs/std/math.o libs/std/string.o libs/std/random.o libs/std/serialize.o libs/std/socket.o libs/std/sys.o libs/std/xml.o libs/std/module.o libs/std/md5.o libs/std/utf8.o libs/std/memory.o libs/std/misc.o libs/std/thread.o
 LIBNEKO_OBJECTS = vm/alloc.o vm/builtins.o vm/callback.o vm/context.o vm/interp.o vm/load.o vm/objtable.o vm/others.o vm/hash.o vm/module.o vm/jit_x86.o
-INSTALLER_OBJECTS = libs/installer/installer.o libs/installer/api_${INSTALLER_API}.o libs/regexp/regexp.o libs/zlib/zlib.o ${STD_OBJECTS} ${LIBNEKO_OBJECTS} ${VM_OBJECTS}
 
 all: createbin libneko neko std compiler libs
 
@@ -114,8 +103,6 @@ neko: bin/neko
 
 std: bin/std.ndll
 
-installer: bin/installer
-
 compiler:
 	(cd src; ${NEKO_EXEC} nekoml -v neko/Main.nml nekoml/Main.nml)
 	(cd src; ${NEKO_EXEC} nekoc -link ../boot/nekoc.n neko/Main)
@@ -132,25 +119,16 @@ bin/neko: $(VM_OBJECTS)
 bin/std.ndll: ${STD_OBJECTS}
 	${MAKESO} -o $@ ${STD_OBJECTS} ${STD_NDLL_FLAGS}
 
-bin/installer: $(INSTALLER_OBJECTS:.o=.o2)
-	${CC} ${CFLAGS} ${EXTFLAGS} ${INSTALLER_FLAGS} -o $@ ${INSTALLER_OBJECTS:.o=.o2} ${INSTALLER_LIBS}
-	strip bin/installer
-
 clean:
 	rm -rf bin/${LIBNEKO_NAME} ${LIBNEKO_OBJECTS} ${VM_OBJECTS}
-	rm -rf bin/installer ${INSTALLER_OBJECTS:.o=.o2}
 	rm -rf bin/neko bin/nekoc bin/nekoml bin/nekotools 
 	rm -rf bin/std bin/*.ndll bin/*.n libs/*/*.o
 	rm -rf src/*.n src/neko/*.n src/nekoml/*.n src/tools/*.n
 	rm -rf bin/mtypes bin/tools
 
-.SUFFIXES : .c .o .o2
+.SUFFIXES : .c .o
 
 .c.o :
 	${CC} ${CFLAGS} ${EXTFLAGS} -o $@ -c $<
 
-.c.o2:
-	${CC} ${CFLAGS} ${EXTFLAGS} ${INSTALLER_FLAGS} -o $@ -c $<
-
-.PHONY: all libneko libs neko std compiler clean doc test installer
-
+.PHONY: all libneko libs neko std compiler clean doc test

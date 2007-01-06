@@ -16,10 +16,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "nekoml", "src\nekoml.vcproj
 	ProjectSection(ProjectDependencies) = postProject
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "installer", "vm\installer.vcproj", "{6B929050-741B-46D7-B990-1DF975A77201}"
-	ProjectSection(ProjectDependencies) = postProject
-	EndProjectSection
-EndProject
 Global
 	GlobalSection(SolutionConfiguration) = preSolution
 		Debug = Debug
@@ -42,10 +38,6 @@ Global
 		{4662A8A2-AE65-465A-B97B-7F1269433BD5}.Debug.Build.0 = Debug|Win32
 		{4662A8A2-AE65-465A-B97B-7F1269433BD5}.Release.ActiveCfg = Release|Win32
 		{4662A8A2-AE65-465A-B97B-7F1269433BD5}.Release.Build.0 = Release|Win32
-		{6B929050-741B-46D7-B990-1DF975A77201}.Debug.ActiveCfg = Debug|Win32
-		{6B929050-741B-46D7-B990-1DF975A77201}.Debug.Build.0 = Debug|Win32
-		{6B929050-741B-46D7-B990-1DF975A77201}.Release.ActiveCfg = Release|Win32
-		{6B929050-741B-46D7-B990-1DF975A77201}.Release.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 	EndGlobalSection
