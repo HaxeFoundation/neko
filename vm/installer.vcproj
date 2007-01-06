@@ -233,6 +233,9 @@
 				RelativePath="..\libs\std\sys.c">
 			</File>
 			<File
+				RelativePath="..\libs\std\thread.c">
+			</File>
+			<File
 				RelativePath="..\libs\std\utf8.c">
 			</File>
 			<File
