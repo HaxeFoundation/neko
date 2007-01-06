@@ -127,12 +127,14 @@ bin/${LIBNEKO_NAME}: ${LIBNEKO_OBJECTS}
 
 bin/neko: $(VM_OBJECTS)
 	${CC} ${CFLAGS} ${EXTFLAGS} -o $@ ${VM_OBJECTS} ${NEKOVM_FLAGS}
+	strip bin/neko
 
 bin/std.ndll: ${STD_OBJECTS}
 	${MAKESO} -o $@ ${STD_OBJECTS} ${STD_NDLL_FLAGS}
 
 bin/installer: $(INSTALLER_OBJECTS:.o=.o2)
 	${CC} ${CFLAGS} ${EXTFLAGS} ${INSTALLER_FLAGS} -o $@ ${INSTALLER_OBJECTS:.o=.o2} ${INSTALLER_LIBS}
+	strip bin/installer
 
 clean:
 	rm -rf bin/${LIBNEKO_NAME} ${LIBNEKO_OBJECTS} ${VM_OBJECTS}
