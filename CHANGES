@@ -5,7 +5,6 @@
 	fixed bug in dev webserver when accessing a directory
 	added xcross support
 	fixed bug with $setresolver in bytecode interpreter
-	added socket_poll_rw
 
 2006-11-22 : 1.5.2
 	fixed std math_pow float
