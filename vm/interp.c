@@ -510,7 +510,14 @@ static int_val interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_v
 					break;
 				acc = (int_val)((vobject*)acc)->proto;
 			} while( acc );
-			acc = (int_val)(f?*f:(vm->resolver?val_call2(vm->resolver,old,alloc_int(*pc)):val_null));
+			if( f )
+				acc = (int_val)*f;
+			else if( vm->resolver ) {
+				BeginCall();
+				acc = (int_val)val_call2(vm->resolver,old,alloc_int(*pc));
+				EndCall();
+			} else
+                acc = (int_val)val_null;
 		} else
 			InvalidFieldAccess();
 		pc++;
