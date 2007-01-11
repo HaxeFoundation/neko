@@ -1,5 +1,7 @@
 ## CONFIG
 
+INSTALL_PREFIX = /usr
+
 CFLAGS = -Wall -O3 -fPIC -fomit-frame-pointer -I vm -DCOMPACT_TABLE
 EXTFLAGS = -pthread
 MAKESO = $(CC) -shared -WBsymbolic
@@ -125,6 +127,17 @@ clean:
 	rm -rf bin/std bin/*.ndll bin/*.n libs/*/*.o
 	rm -rf src/*.n src/neko/*.n src/nekoml/*.n src/tools/*.n
 	rm -rf bin/mtypes bin/tools
+
+install:	
+	cp bin/${LIBNEKO_NAME} ${INSTALL_PREFIX}/lib
+	cp bin/neko bin/nekoc bin/nekotools ${INSTALL_PREFIX)/bin
+	mkdir ${INSTALL_PREFIX}/lib/neko
+	cp bin/*.ndll ${INSTALL_PREFIX}/lib/neko
+
+uninstall:
+	rm -rf ${INSTALL_PREFIX}/lib/${LIBNEKO_NAME}
+	rm -rf ${INSTALL_PREFIX}/bin/neko ${INSTALL_PREFIX}/bin/nekoc ${INSTALL_PREFIX}/bin/nekotools
+	rm -rf ${INSTALL_PREFIX}/lib/neko
 
 .SUFFIXES : .c .o
 
