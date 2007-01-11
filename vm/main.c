@@ -40,11 +40,11 @@ extern value neko_installer_loader( char *argv[], int argc );
 #	define default_loader neko_default_loader
 #endif
 
-static char *data = "##BOOT_POS\0\0\0\0##";
+static char *data = "########BOOT_POS\0\0\0\0##";
 static FILE *self;
 
 int neko_embedded_module() {
-	unsigned int data_pos = *(unsigned int*)(data+10);
+	unsigned int data_pos = *(unsigned int*)(data+16);
 	if( neko_is_big_endian() )
 		data_pos = (data_pos >> 24) | ((data_pos >> 8) & 0xFF00) | ((data_pos << 8) & 0xFF0000) | (data_pos << 24);
 	return data_pos;
