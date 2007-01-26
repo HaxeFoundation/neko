@@ -40,15 +40,7 @@ extern value neko_installer_loader( char *argv[], int argc );
 #	define default_loader neko_default_loader
 #endif
 
-static char *data = "########BOOT_POS\0\0\0\0##";
 static FILE *self;
-
-int neko_embedded_module() {
-	unsigned int data_pos = *(unsigned int*)(data+16);
-	if( neko_is_big_endian() )
-		data_pos = (data_pos >> 24) | ((data_pos >> 8) & 0xFF00) | ((data_pos << 8) & 0xFF0000) | (data_pos << 24);
-	return data_pos;
-}
 
 static char *executable_path() {
 #if defined(NEKO_WINDOWS)
@@ -70,6 +62,28 @@ static char *executable_path() {
 	path[length] = '\0';
 	return path;
 #endif
+}
+
+int neko_has_embedded_module() {
+	char *exe = executable_path();
+	char id[4];
+	int pos;
+	if( exe == NULL )
+		return 0;
+	self = fopen(exe,"rb");
+	if( self == NULL )
+		return 0;
+	fseek(self,-8,SEEK_END);
+	fread(id,1,4,self);
+	if( id[0] != 'N' || id[1] != 'E' || id[2] != 'K' || id[3] != 'O' ) {
+		fclose(self);
+		return 0;
+	}
+	fread(&pos,1,4,self);
+	if( neko_is_big_endian() )
+		pos = (pos >> 24) | ((pos >> 8) & 0xFF00) | ((pos << 8) & 0xFF0000) | (pos << 24);
+	fseek(self,pos,SEEK_SET);
+	return 1;
 }
 
 static void report( neko_vm *vm, value exc, int isexc ) {
@@ -118,23 +132,11 @@ static value read_bytecode( value str, value pos, value len ) {
 */
 
 int neko_execute_self( neko_vm *vm, value mload ) {
-	unsigned int data_pos = neko_embedded_module();
-	char *exe = executable_path();
 	value args[] = { alloc_string("std@module_read"), alloc_int(2) };
 	value args2[] = { alloc_string("std@module_exec"), alloc_int(1) };
 	value args3[] = { alloc_function(read_bytecode,3,"boot_read_bytecode"), mload };
 	value exc = NULL;
 	value module_read, module_exec, module_val;
-	if( exe == NULL ) {
-		report(vm,alloc_string("Could not resolve current executable name"),0);
-		return 1;
-	}
-	self = fopen(exe,"rb");
-	if( self == NULL ) {
-		report(vm,alloc_string("Failed to open current executable for reading"),0);
-		return 1;
-	}
-	fseek(self,data_pos,0);
 	module_read = val_callEx(mload,val_field(mload,val_id("loadprim")),args,2,&exc);
 	if( exc != NULL ) {
 		report(vm,exc,1);
@@ -209,7 +211,7 @@ int main( int argc, char *argv[] ) {
 		neko_vm_jit(vm,1);
 		// ignore error
 	}
-	if( neko_embedded_module() == 0 ) {
+	if( !neko_has_embedded_module() ) {
 		if( argc == 1 ) {
 #			ifdef NEKO_INSTALLER
 			report(vm,alloc_string("No embedded module in this executable"),0);

@@ -71,42 +71,25 @@ var bytecode = file_contents(file);
 // load boot binary
 
 var boot = find_exe_in_path($loader.path,boot_exe);
-var boot_str = "##BOOT_POS\000\000\000\000##";
-var pos = find(boot,boot_str,$ssize(boot_str));
-if( pos == null )
-	$throw("Invalid boot.bin file");
-
-var pos2 = find(boot,boot_str,$ssize(boot)-pos+1);
-
 var boot_size = $ssize(boot);
-
-//  create executable file :
-//  this is the content of boot.bin where was stored
-//  the size of the executable and append the Neko bytecode
 
 var dot_pos = find(file,".",1);
 if( dot_pos != null )
 	file = $ssub(file,0,dot_pos);
 
+//  create executable file :
+//  this is the content of boot.bin where is appended
+//  the neko bytecode followed by 'NEKO' and the original exe size
+
 var out_name = file+exe_ext;
 var out = file_open(out_name,"wb");
-
-write_boot = function() {
-	file_write_char(out,boot_size & 0xFF);
-	file_write_char(out,(boot_size >> 8) & 0xFF);
-	file_write_char(out,(boot_size >> 16) & 0xFF);
-	file_write_char(out,boot_size >>> 24);
-}
-
-if( pos2 != null ) {
-	file_write(out,boot,0,pos2+10);
-	write_boot();
-	file_write(out,boot,pos2+14,pos-pos2-4);
-} else
-	file_write(out,boot,0,pos+10);
-write_boot();
-file_write(out,boot,pos+14,boot_size-(pos+14));
+file_write(out,boot,0,boot_size);
 file_write(out,bytecode,0,$ssize(bytecode));
+file_write(out,"NEKO",0,4);
+file_write_char(out,boot_size & 0xFF);
+file_write_char(out,(boot_size >> 8) & 0xFF);
+file_write_char(out,(boot_size >> 16) & 0xFF);
+file_write_char(out,boot_size >>> 24);
 file_close(out);
 
 // set execution rights
