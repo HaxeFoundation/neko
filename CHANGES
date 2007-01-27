@@ -6,6 +6,7 @@
 	added xcross support
 	fixed bug with $setresolver in bytecode interpreter
 	changed bootable vm implementation (easier, allow compressed bin)
+	added .mode in sys_stat
 
 2006-11-22 : 1.5.2
 	fixed std math_pow float

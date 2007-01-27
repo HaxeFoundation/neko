@@ -248,6 +248,7 @@ static value sys_rename( value path, value newname ) {
 		ino => int,
 		nlink => int,
 		rdev => int,
+		mode => int,
 		size => int
 	}
 	<doc>Run the [stat] command on the given file or directory.</doc>
@@ -270,6 +271,7 @@ static value sys_stat( value path ) {
 	STATF(nlink);
 	STATF(rdev);
 	STATF(size);
+	STATF(mode);
 	return o;
 }
 
