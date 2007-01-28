@@ -110,6 +110,7 @@ search_includes = function(ism2) {
 		if( ism2 ) "/usr/local/apache2/include" else "/usr/local/apache/include",
 		if( ism2 ) "/usr/include/apache2" else "/usr/apache/include",
 		if( ism2 ) "/opt/local/apache2/include" else "/opt/local/include/apache",
+		if( ism2 ) "" else "/usr/include/apache-1.3",
 		"/usr/local/include/mysql",
 		"/usr/include/mysql",
 		"/usr/local/include",
