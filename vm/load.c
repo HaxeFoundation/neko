@@ -136,8 +136,17 @@ EXTERN value neko_select_file( value path, const char *file, const char *ext ) {
 	buffer b = alloc_buffer(file);
 	buffer_append(b,ext);
 	ff = buffer_to_string(b);
-	if( stat(val_string(ff),&s) == 0 )
-		return ff;
+	if( stat(val_string(ff),&s) == 0 ) {
+		char *p = strchr(file,'/');
+		if( p == NULL )
+			p = strchr(file,'\\');
+		if( p != NULL )
+			return ff;
+		b = alloc_buffer("./");
+		buffer_append(b,file);
+		buffer_append(b,ext);
+		return buffer_to_string(b);
+	}
 	while( val_is_array(path) && val_array_size(path) == 2 ) {
 		value p = val_array_ptr(path)[0];
 		buffer b = alloc_buffer(NULL);
