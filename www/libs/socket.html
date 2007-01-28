@@ -80,3 +80,12 @@
 <doc_blk>
   <doc_type>void</doc_type> <doc_name>socket_set_blocking</doc_name><doc_type>('socket, bool)</doc_type> <doc_doc>Turn on/off the socket blocking mode.</doc_doc>
 </doc_blk>
+<doc_blk>
+  <doc_type>'poll</doc_type> <doc_name>socket_poll_alloc</doc_name><doc_type>(int)</doc_type> <doc_doc>Allocate memory to perform polling on a given number of sockets</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>'socket array</doc_type> <doc_name>socket_poll</doc_name><doc_type>('socket array, 'pool, timeout : float)</doc_type> <doc_doc>
+	Perform a polling for data available over a given set of sockets. This is similar to <doc_code>socket_select</doc_code>
+	except that <doc_code>socket_select</doc_code> is limited to a given number of simultaneous sockets to check.
+	</doc_doc>
+</doc_blk>
