@@ -583,7 +583,7 @@ static value socket_poll_alloc( value nsocks ) {
 }
 
 /**
-	socket_poll : socket array -> 'pool -> timeout:float -> 'socket array
+	socket_poll : 'socket array -> 'pool -> timeout:float -> 'socket array
 	<doc>
 	Perform a polling for data available over a given set of sockets. This is similar to [socket_select]
 	except that [socket_select] is limited to a given number of simultaneous sockets to check.
