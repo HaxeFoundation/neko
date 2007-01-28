@@ -19,6 +19,12 @@ neko("
 	@get_cwd = $loader.loadprim('std@get_cwd',0);
 ");
 
+type version {
+	maj : int;
+	min : int;
+	build : int;
+}
+
 function without_extension(s) {
 	match List.rev (String.split s ".") {
 	| [] -> ""
@@ -58,9 +64,13 @@ function exit(code : int) : 'a {
 
 var exists : string -> bool = neko "$loader.loadprim('std@sys_exists',1)"
 
-var version : (int, int) = {
+var version = {
 	var v : int = neko "$version()";
-	(v / 100, v % 100)
+	{
+		maj = v / 100; 
+		min = (v / 10) % 10;
+		build = v % 10;
+	}
 }
 
 function get_env( s : string ) : string option {

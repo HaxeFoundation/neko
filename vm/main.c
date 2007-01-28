@@ -216,7 +216,7 @@ int main( int argc, char *argv[] ) {
 #			ifdef NEKO_INSTALLER
 			report(vm,alloc_string("No embedded module in this executable"),0);
 #			else
-			printf("NekoVM %d.%d (c)2005-2006 Motion-Twin\n  Usage : neko <file>\n",NEKO_VERSION/100,NEKO_VERSION%100);
+			printf("NekoVM %d.%d.%d (c)2005-2007 Motion-Twin\n  Usage : neko <file>\n",NEKO_VERSION/100,(NEKO_VERSION/10)%10,NEKO_VERSION%10);
 #			endif
 			mload = NULL;
 			r = 1;

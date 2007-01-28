@@ -54,7 +54,8 @@ function compile(ctx,m,e) {
 }
 
 try {
-	var head = "NekoML Compiler v" + fst Sys.version + "." + snd Sys.version + " - (c)2005-2006 Motion-Twin\n Usage : nekoml [options] files...";
+	var v = Sys.version;
+	var head = "NekoML Compiler v" + v.maj + "." + v.min + "." + v.build + " - (c)2005-2007 Motion-Twin\n Usage : nekoml [options] files...";
 	var path = &["";"core/"];
 	var files = &[];
 	var neko = &false;

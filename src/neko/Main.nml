@@ -112,7 +112,8 @@ function complete(dir) {
 }
 
 try {
-	var head = "Neko Compiler v" + fst Sys.version + "." + snd Sys.version + " - (c)2005-2006 Motion-Twin\n Usage : neko [options] files...";
+	var v = Sys.version;
+	var head = "Neko Compiler v" + v.maj + "." + v.min + "." + v.build + " - (c)2005-2007 Motion-Twin\n Usage : neko [options] files...";
 	var link = &None;
 	var links = &[];
 	var decl = [

@@ -1109,7 +1109,7 @@ static value builtin_callstack() {
 
 /**
     $version : void -> int
-	<doc>Return the version of Neko : 103 means 1.3</doc>
+	<doc>Return the version of Neko : 135 means 1.3.5</doc>
 **/
 static value builtin_version() {
 	return alloc_int(NEKO_VERSION);
