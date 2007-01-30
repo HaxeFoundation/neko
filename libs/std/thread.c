@@ -17,6 +17,7 @@
 #include <neko.h>
 #include <neko_vm.h>
 #include <string.h>
+#include <stdio.h>
 #ifdef NEKO_WINDOWS
 #	include <windows.h>
 #	define WM_TMSG			(WM_USER + 1)
@@ -118,6 +119,13 @@ static int thread_loop( void *_t ) {
 	vm = neko_vm_alloc(NULL);
 	neko_vm_select(vm);
 	val_callEx(val_null,t->callb,&t->callparam,1,&exc);
+	// display exception
+	if( exc != NULL ) {
+		buffer b = alloc_buffer(NULL);
+		fprintf(stderr,"An exception occured in a neko Thread :\n");
+		val_buffer(b,exc);
+		fprintf(stderr,"%s\n",val_string(b));
+	}
 	// cleanup
 	vm = NULL;
 	return 0;
