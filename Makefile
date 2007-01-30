@@ -3,7 +3,7 @@
 INSTALL_PREFIX = /usr
 
 CFLAGS = -Wall -O3 -fPIC -fomit-frame-pointer -I vm -DCOMPACT_TABLE
-EXTFLAGS = -pthread
+EXTFLAGS = -pthread -fno-stack-protector
 MAKESO = $(CC) -shared -WBsymbolic
 LIBNEKO_NAME = libneko.so
 LIBNEKO_LIBS = -ldl -lgc -lm
