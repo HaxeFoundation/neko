@@ -89,13 +89,25 @@ static void default_printer( const char *s, int len, void *out ) {
 
 EXTERN neko_vm *neko_vm_alloc( void *custom ) {
 	neko_vm *vm = (neko_vm*)alloc(sizeof(neko_vm));
+#	ifdef NEKO_WINDOWS
+	int stack_size = 0x100000; // 1MB default
+#	else
+	struct rlimit st;
+	int stack_size;
+	getrlimit(RLIMIT_STACK,&st);
+	stack_size = st.rlim_cur;
+#	endif
 	vm->spmin = (int_val*)alloc(INIT_STACK_SIZE*sizeof(int_val));
 	vm->print = default_printer;
 	vm->print_param = stdout;
 	vm->custom = custom;
+	// the maximum stack position for a C call is estimated
+	//  - stack grows bottom
+	//  - neko_vm_alloc should be near the beginning of the stack
+	//  - we keep 64KB for the C call work space and error margin
+	vm->c_stack_max = (void*)(((int_val)&vm) - (stack_size - 0x10000));
 	vm->exc_stack = alloc_array(0);
 	vm->spmax = vm->spmin + INIT_STACK_SIZE;
-	vm->ncalls = 0;
 	vm->sp = vm->spmax;
 	vm->csp = vm->spmin - 1;
 	vm->vthis = val_null;
@@ -107,7 +119,7 @@ EXTERN neko_vm *neko_vm_alloc( void *custom ) {
 }
 
 EXTERN int neko_vm_jit( neko_vm *vm, int enable_jit ) {
-	if( enable_jit ) 
+	if( enable_jit )
 		vm->run_jit = neko_can_jit();
 	else
 		vm->run_jit = 0;
@@ -925,12 +937,10 @@ end:
 value neko_interp( neko_vm *vm, void *_m, int_val acc, int_val *pc ) {
 	int_val *sp, *csp, *trap;
 	int_val init_sp = vm->spmax - vm->sp;
-	int old_ncalls = vm->ncalls;
 	neko_module *m = (neko_module*)_m;
 	jmp_buf old;
 	memcpy(&old,&vm->start,sizeof(jmp_buf));
 	if( setjmp(vm->start) ) {
-		vm->ncalls = old_ncalls;
 		acc = (int_val)vm->vthis;
 
 		// if uncaught or outside init stack, reraise
@@ -968,8 +978,8 @@ value neko_interp( neko_vm *vm, void *_m, int_val acc, int_val *pc ) {
 			*vm->sp++ = ERASE;
 
 		// jit return ?
-		if( val_is_kind(m,neko_kind_module) ) {			
-			m = (neko_module*)val_data(m);			
+		if( val_is_kind(m,neko_kind_module) ) {
+			m = (neko_module*)val_data(m);
 			pc = (int_val*)((((int_val)pc)>>1) + (int_val)m->jit);
 			acc = ((jit_prim)jit_boot_seq)(vm,pc,(value)acc,m);
 			return (value)acc;

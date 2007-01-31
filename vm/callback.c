@@ -42,9 +42,8 @@ EXTERN value val_callEx( value vthis, value f, value *args, int nargs, value *ex
 	value old_env = vm->env;
 	value ret = val_null;
 	jmp_buf oldjmp;
-	int old_ncalls = vm->ncalls++;
-	if( old_ncalls > MAXCALLS )
-		failure("Stack Overflow");
+	if( ((int_val)&vm) < (int_val)vm->c_stack_max )
+		val_throw(alloc_string("C Stack Overflow"));
 	if( vthis != NULL )
 		vm->vthis = vthis;
 	if( exc ) {
@@ -55,7 +54,6 @@ EXTERN value val_callEx( value vthis, value f, value *args, int nargs, value *ex
 			vm->vthis = old_this;
 			vm->env = old_env;
 			memcpy(&vm->start,&oldjmp,sizeof(jmp_buf));
-			vm->ncalls = old_ncalls;
 			return val_null;
 		}
 		neko_setup_trap(vm);
@@ -126,7 +124,6 @@ EXTERN value val_callEx( value vthis, value f, value *args, int nargs, value *ex
 		neko_process_trap(vm);
 		memcpy(&vm->start,&oldjmp,sizeof(jmp_buf));	
 	}
-	vm->ncalls = old_ncalls;
 	vm->vthis = old_this;
 	vm->env = old_env;
 	return ret;
