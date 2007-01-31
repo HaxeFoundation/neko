@@ -124,7 +124,7 @@ static int thread_loop( void *_t ) {
 		buffer b = alloc_buffer(NULL);
 		fprintf(stderr,"An exception occured in a neko Thread :\n");
 		val_buffer(b,exc);
-		fprintf(stderr,"%s\n",val_string(b));
+		fprintf(stderr,"%s\n",val_string(buffer_to_string(b)));
 	}
 	// cleanup
 	vm = NULL;
