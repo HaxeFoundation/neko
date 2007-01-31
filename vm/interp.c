@@ -23,6 +23,10 @@
 #include "neko_mod.h"
 #include "objtable.h"
 
+#ifndef NEKO_WINDOWS
+#	include <sys/resource.h>
+#endif
+
 #if defined(NEKO_GCC) && defined(NEKO_X86)
 #	define ACC_BACKUP	int_val __acc = acc;
 #	define ACC_RESTORE	acc = __acc;
