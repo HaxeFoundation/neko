@@ -130,7 +130,7 @@ clean:
 
 install:	
 	cp bin/${LIBNEKO_NAME} ${INSTALL_PREFIX}/lib
-	cp bin/neko bin/nekoc bin/nekotools ${INSTALL_PREFIX)/bin
+	cp bin/neko bin/nekoc bin/nekotools ${INSTALL_PREFIX}/bin
 	mkdir ${INSTALL_PREFIX}/lib/neko
 	cp bin/*.ndll ${INSTALL_PREFIX}/lib/neko
 
