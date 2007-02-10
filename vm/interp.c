@@ -98,8 +98,10 @@ EXTERN neko_vm *neko_vm_alloc( void *custom ) {
 #	else
 	struct rlimit st;
 	int stack_size;
-	getrlimit(RLIMIT_STACK,&st);
-	stack_size = st.rlim_cur;
+	if( getrlimit(RLIMIT_STACK,&st) != 0 || st.rlim_cur == RLIM_INFINITY )
+		stack_size = 8192 << 10;
+	else
+		stack_size = st.rlim_cur;
 #	endif
 	vm->spmin = (int_val*)alloc(INIT_STACK_SIZE*sizeof(int_val));
 	vm->print = default_printer;
