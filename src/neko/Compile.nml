@@ -132,6 +132,10 @@ function stack_delta(o) {
 	}
 }
 
+function check_stack(ctx,stack,p) {
+	if ctx.stack != stack then error "Stack alignment failure" p;
+}
+
 function pos(ctx) {
 	Array.length ctx.ops
 }
@@ -574,7 +578,7 @@ function rec compile_function(ctx,params,e) {
 	var s = ctx.stack;
 	compile ctx true e;
 	write ctx (Ret (ctx.stack - ctx.limit));
-	if ctx.stack != s then assert();
+	check_stack ctx s (snd e);
 	check_breaks ctx;
 	ctx.stack := ctx.limit;
 	ctx.limit := limit;
@@ -723,7 +727,7 @@ function rec compile(ctx,tail,(e,p)) {
 		}
 		loop el;
 		if stack < ctx.stack then write ctx (Pop (ctx.stack - stack));
-		if stack != ctx.stack then assert();
+		check_stack ctx stack p;
 		ctx.locals := locals
 	| EParenthesis e ->
 		compile ctx tail e
@@ -805,7 +809,7 @@ function rec compile(ctx,tail,(e,p)) {
 		compile ctx false e;
 		var jelse = cjmp false ctx;
 		compile ctx tail e1;
-		if stack != ctx.stack then assert();
+		check_stack ctx stack p;
 		match e2 {
 		| None ->
 			jelse()
@@ -813,7 +817,7 @@ function rec compile(ctx,tail,(e,p)) {
 			var jend = jmp ctx;
 			jelse();
 			compile ctx tail e2;
-			if stack != ctx.stack then assert();
+			check_stack ctx stack p;
 			jend()
 		};
 	| ETry (e,v,ecatch) ->
