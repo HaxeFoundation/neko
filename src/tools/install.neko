@@ -79,8 +79,6 @@ libs = {
 // PLATFORM
 
 cflags = "-O3 -fPIC";
-if( system == "Linux" )
-	cflags += " -fno-stack-protector";
 cc = getenv("CC");
 if( cc == null ) cc = "gcc";
 linkcmd = switch system { "BSD" => "ld" default => cc };

@@ -57,8 +57,12 @@ static char *executable_path() {
 #else
 	static char path[200];
 	int length = readlink("/proc/self/exe", path, sizeof(path));
-	if( length < 0 || length >= 200 )
-		return getenv("_");
+	if( length < 0 || length >= 200 ) {
+		char *p = getenv("   "); // for upx
+		if( p == NULL )
+			p = getenv("_");
+		return p;
+	}
 	path[length] = '\0';
 	return path;
 #endif
