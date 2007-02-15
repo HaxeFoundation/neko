@@ -14,8 +14,8 @@
 
 
 NEKOVM = neko
-NEKOVM1 = NEKOPATH='../boot' neko1
-NEKOVM2 = NEKOPATH='' neko1
+NEKOVM1 = NEKOPATH='../boot' c:/neko/neko1
+NEKOVM2 = NEKOPATH='' c:/neko/neko1
 TIME = @c:/progra~1/cygwin/bin/times -f %e make 
 
 all: clean pass1 pass2 pass3
