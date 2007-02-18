@@ -16,8 +16,6 @@
 /* ************************************************************************ */
 #include "vm.h"
 #include "neko_mod.h"
-#define PARAMETER_TABLE
-#include "opcodes.h"
 #include "objtable.h"
 #include <string.h>
 #include <math.h>
@@ -48,6 +46,9 @@
 //#define JIT_DEBUG
 
 #ifdef JIT_ENABLE
+
+#define PARAMETER_TABLE
+#include "opcodes.h"
 
 extern field id_add, id_radd, id_sub, id_rsub, id_mult, id_rmult, id_div, id_rdiv, id_mod, id_rmod;
 extern field id_get, id_set;
@@ -511,8 +512,7 @@ enum IOperation {
 
 typedef struct {
 	char *boot;
-	char *stack_expand_0;
-	char *stack_expand_4;
+	char *stack_expand;	
 	char *runtime_error;
 	char *call_normal_jit[NARGS];
 	char *call_this_jit[NARGS];
@@ -612,13 +612,8 @@ static void jit_finalize_context( jit_ctx *ctx ) {
 }
 
 static void jit_push_infos( jit_ctx *ctx, enum PushInfosMode callb ) {
-	INIT_BUFFER;
-	int *jend;
+	INIT_BUFFER;	
 	stack_push(CSP,4);
-	XCmp_rr(SP,CSP);
-	XJump(JGt,jend);
-	label(code->stack_expand_4);
-	PATCH_JUMP(jend);
 	if( callb == CALLBACK ) {
 		XMov_pc(CSP,FIELD(-3),CONST(callback_return));
 		get_var_p(CSP,FIELD(-2),VEnv);
@@ -712,26 +707,30 @@ static void jit_trap( jit_ctx *ctx, int n ) {
 	END_BUFFER;
 }
 
-static void jit_stack_expand( jit_ctx *ctx, int n ) {
-	INIT_BUFFER;
-	int *jok;
-	stack_pop(CSP,n);
-	stack_pad(0);
+static void jit_stack_expand( jit_ctx *ctx, int _ ) {
+	int *jresize, *jdone;
+	INIT_BUFFER;	
+	stack_push(CSP,MAX_STACK_PER_FUNCTION);
+	XCmp_rr(SP,CSP);
+	XJump(JLt,jresize);
+	stack_pop(CSP,MAX_STACK_PER_FUNCTION);
+	XRet();
+	PATCH_JUMP(jresize);
+	stack_pop(CSP,MAX_STACK_PER_FUNCTION);
 	XPush_r(ACC);
 	XPush_r(VM);
 	XPush_r(CSP);
 	XPush_r(SP);
 	XCall_m(neko_stack_expand);
 	XCmp_rb(ACC,0);
-	XJump(JNeq,jok);
+	XJump(JNeq,jdone);
 	stack_pad(-1);
 	XPush_c(CONST(strings[0])); // Stack overflow
 	XCall_m(val_throw);
-	PATCH_JUMP(jok);
+	PATCH_JUMP(jdone);
 	XMov_rp(ACC,Esp,FIELD(3));
 	end_call();
-	stack_pop_pad(4,0);
-	stack_push(CSP,n);
+	stack_pop(Esp,4);	
 	XRet();
 	END_BUFFER;
 }
@@ -1940,16 +1939,10 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		PATCH_JUMP(jend3);
 		break;
 		}
-	case Push: {
-		int *jend;
+	case Push:
 		stack_push(SP,1);
-		XCmp_rr(SP,CSP);
-		XJump(JGt,jend);
-		label(code->stack_expand_0);
-		PATCH_JUMP(jend);
 		XMov_pr(SP,FIELD(0),ACC);
 		break;
-		}
 	case Pop:
 		if( p > 10 ) {
 			pop_loop(p);
@@ -2480,7 +2473,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 #	define MAX_OP_SIZE		1000
 #	define MAX_BUF_SIZE		1000
 #else
-#	define MAX_OP_SIZE		291 // Apply(4)
+#	define MAX_OP_SIZE		298 // Apply(4) + label(stack_expand)
 #	define MAX_BUF_SIZE		500
 #endif
 
@@ -2537,8 +2530,7 @@ void neko_init_jit() {
 	code = (jit_code*)alloc_root(sizeof(jit_code) / sizeof(char*));
 	FILL_BUFFER(jit_boot,NULL,boot);
 	FILL_BUFFER(jit_trap,0,handle_trap);
-	FILL_BUFFER(jit_stack_expand,0,stack_expand_0);
-	FILL_BUFFER(jit_stack_expand,4,stack_expand_4);
+	FILL_BUFFER(jit_stack_expand,0,stack_expand);	
 	FILL_BUFFER(jit_runtime_error,0,runtime_error);
 	FILL_BUFFER(jit_invalid_access,0,invalid_access);
 	for(i=0;i<OP_LAST;i++) {
@@ -2586,8 +2578,21 @@ int neko_can_jit() {
 	return 1;
 }
 
+static unsigned int next_function( neko_module *m, unsigned int k, int_val *faddr ) {
+	while( k < m->nglobals && !val_is_function(m->globals[k]) )
+		k++;
+	if( k == m->nglobals ) {
+		*faddr = -1;
+		return 0;
+	}
+	*faddr = (int_val*)((vfunction*)m->globals[k])->addr - m->code;
+	return k;
+}
+
 void neko_module_jit( neko_module *m ) {
 	unsigned int i = 0;
+	int_val faddr;
+	unsigned int fcursor = next_function(m,0,&faddr);
 	jit_ctx *ctx = jit_init_context(NULL,0);
 	ctx->pos = (int*)tmp_alloc(sizeof(int)*(m->codesize + 1));
 	ctx->module = m;
@@ -2608,6 +2613,14 @@ void neko_module_jit( neko_module *m ) {
 			ctx->baseptr = buf2;
 			ctx->buf.p = buf2 + curpos;
 			ctx->size = nsize;
+		}
+
+		// begin of function : check stack overflow
+		if( faddr == i ) {
+			INIT_BUFFER;
+			label(code->stack_expand);
+			END_BUFFER;
+			fcursor = next_function(m,fcursor+1,&faddr);
 		}
 
 		// --------- debug ---------
