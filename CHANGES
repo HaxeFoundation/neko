@@ -1,9 +1,10 @@
 2007-??-?? : 1.5.4
 	display error message when uncaught exception in neko thread
-	use -fno-stack-protector at compile for no glic2.4 dependency
 	fix big in long run JIT programs : no C functions callable anymore
 	use a smarter way to prevent C stack overflow
-	stack align error message
+	nekoc : stack align error message
+	set max-stack-per-function to 128 and default-stack-size to 256
+	jit now check stack overflow on function entry and not on every push
 	
 2007-01-28 : 1.5.3
 	minor fixes in mod_neko multipart and POST data handling
