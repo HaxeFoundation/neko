@@ -20,8 +20,9 @@
 #include "neko_vm.h"
 #include "context.h"
 
-#define INIT_STACK_SIZE (1 << 7)
+#define INIT_STACK_SIZE (1 << 8)
 #define MAX_STACK_SIZE	(1 << 18)
+#define MAX_STACK_PER_FUNCTION	128
 #define PROF_SIZE		(1 << 20)
 #define CALL_MAX_ARGS	5
 

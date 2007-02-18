@@ -144,7 +144,8 @@ static int neko_check_stack( neko_module *m, unsigned char *tmp, unsigned int i,
 			stack -= (int)m->code[i+1];
 		else
 			stack += s;
-		if( stack < istack || stack >= UNKNOWN )
+		// 4 because it's the size of a push-infos needed in case of subcall
+		if( stack < istack || stack >= MAX_STACK_PER_FUNCTION - 4 )
 			return 0;
 		switch( c ) {
 		case Jump:
@@ -484,6 +485,7 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 	// Check stack preservation
 	{
 		unsigned char *stmp = (unsigned char*)alloc_private(m->codesize+1);
+		unsigned int prev = 0;
 		memset(stmp,UNKNOWN,m->codesize+1);
 		if( !neko_check_stack(m,stmp,0,0,0) )
 			ERROR();
@@ -491,11 +493,12 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 			vfunction *f = (vfunction*)m->globals[i];
 			if( val_type(f) == VAL_FUNCTION ) {
 				itmp = (unsigned int)(int_val)f->addr;
-				if( itmp >= m->codesize || !tmp[itmp]  )
+				if( itmp >= m->codesize || !tmp[itmp] || itmp < prev )
 					ERROR();
 				if( !neko_check_stack(m,stmp,itmp,f->nargs,f->nargs) )
 					ERROR();
 				f->addr = m->code + itmp;
+				prev = itmp;
 			}
 		}
 	}
