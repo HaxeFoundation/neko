@@ -5,6 +5,7 @@
 	nekoc : stack align error message
 	set max-stack-per-function to 128 and default-stack-size to 256
 	jit now check stack overflow on function entry and not on every push
+	mod_neko2 set MOD_NEKO=2 env var (for version detection)
 	
 2007-01-28 : 1.5.3
 	minor fixes in mod_neko multipart and POST data handling

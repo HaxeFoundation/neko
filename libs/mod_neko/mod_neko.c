@@ -256,7 +256,7 @@ static int neko_2_0_handler( request_rec *r ) {
 static int neko_init( apr_pool_t *p, apr_pool_t *plog, apr_pool_t *ptemp, server_rec *s ) {
 	cache_root = context_new();
 	use_jit = getenv("MOD_NEKO_JIT") != NULL;
-	putenv(strdup("MOD_NEKO=1"));
+	putenv(strdup("MOD_NEKO=2"));
 	neko_global_init(&s);	
 	return OK;
 }
