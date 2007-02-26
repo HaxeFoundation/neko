@@ -6,7 +6,8 @@
 	set max-stack-per-function to 128 and default-stack-size to 256
 	jit now check stack overflow on function entry and not on every push
 	mod_neko2 set MOD_NEKO=2 env var (for version detection)
-	
+	mod_neko2 : remove Apache 2.0 error message
+
 2007-01-28 : 1.5.3
 	minor fixes in mod_neko multipart and POST data handling
 	fixed $objremove result (was always true)
@@ -30,7 +31,7 @@
 	fixed string_split with empty string (was causing infinite loop)
 	fixes in more-than-five-arguments-calls
 	added $varargs
-	
+
 2006-10-29 : 1.5
 	neko web server : get_client_header is now case-insensitive
 	std : new thread and lock api
@@ -103,7 +104,7 @@
 	std : fixed put_env on Linux (GC issue)
 	cleanup of some stuff needed by experimental JIT
 	std : added memory module
-	
+
 2006-01-09 : 1.2
 	nekoc:
 		added linker : provide linked versions of neko & nekoml compilers
@@ -127,10 +128,10 @@
 			- field accesses of not-an-object
 			- binary operations on invalid types
 			- array accesses on not-an-array and not-an-object
-	license change : from GPL to LGPL	
+	license change : from GPL to LGPL
 
 2005-11-10 : 1.1
-	vm : 
+	vm :
 		ports PPC (big endian) and AMD64
 		added stack conservation check at bytecode loadtime : faster VM runtime
 		some more opcodes for better speed
@@ -140,8 +141,8 @@
 		tuned GC usage
 		reorganized VM apis
 	neko:
-		added labels in the language specification 
-		added $goto and $apply 
+		added labels in the language specification
+		added $goto and $apply
 		added switchs
 		added documentation generator
 	nekoml:
