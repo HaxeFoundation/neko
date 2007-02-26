@@ -19,6 +19,10 @@ function erase_argument() {
 	neko "$loader.args = $asub($loader.args,1,$asize($loader.args)-1)"
 }
 
+function invalid_arg(f) {
+	throw Args.Invalid
+}
+
 try {
 	var head = "Neko Tools v1.0 - (c)2006 Motion-Twin\nUsage : nekotools [options]";
 	var decl = [
@@ -33,7 +37,7 @@ try {
 			throw Done;
 		}) , "<file.n> : build an standalone executable");
 	];
-	Args.parse head decl (function(f) { throw Args.Invalid });
+	Args.parse head decl invalid_arg;
 } catch {
 	| e ->
 		if e == Done then Sys.exit(0);
