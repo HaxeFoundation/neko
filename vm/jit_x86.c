@@ -512,7 +512,7 @@ enum IOperation {
 
 typedef struct {
 	char *boot;
-	char *stack_expand;	
+	char *stack_expand;
 	char *runtime_error;
 	char *call_normal_jit[NARGS];
 	char *call_this_jit[NARGS];
@@ -612,7 +612,7 @@ static void jit_finalize_context( jit_ctx *ctx ) {
 }
 
 static void jit_push_infos( jit_ctx *ctx, enum PushInfosMode callb ) {
-	INIT_BUFFER;	
+	INIT_BUFFER;
 	stack_push(CSP,4);
 	if( callb == CALLBACK ) {
 		XMov_pc(CSP,FIELD(-3),CONST(callback_return));
@@ -709,14 +709,15 @@ static void jit_trap( jit_ctx *ctx, int n ) {
 
 static void jit_stack_expand( jit_ctx *ctx, int _ ) {
 	int *jresize, *jdone;
-	INIT_BUFFER;	
-	stack_push(CSP,MAX_STACK_PER_FUNCTION);
+	int max = MAX_STACK_PER_FUNCTION;
+	INIT_BUFFER;
+	stack_push(CSP,max);
 	XCmp_rr(SP,CSP);
 	XJump(JLt,jresize);
-	stack_pop(CSP,MAX_STACK_PER_FUNCTION);
+	stack_pop(CSP,max);
 	XRet();
 	PATCH_JUMP(jresize);
-	stack_pop(CSP,MAX_STACK_PER_FUNCTION);
+	stack_pop(CSP,max);
 	XPush_r(ACC);
 	XPush_r(VM);
 	XPush_r(CSP);
@@ -730,7 +731,7 @@ static void jit_stack_expand( jit_ctx *ctx, int _ ) {
 	PATCH_JUMP(jdone);
 	XMov_rp(ACC,Esp,FIELD(3));
 	end_call();
-	stack_pop(Esp,4);	
+	stack_pop(Esp,4);
 	XRet();
 	END_BUFFER;
 }
@@ -2530,7 +2531,7 @@ void neko_init_jit() {
 	code = (jit_code*)alloc_root(sizeof(jit_code) / sizeof(char*));
 	FILL_BUFFER(jit_boot,NULL,boot);
 	FILL_BUFFER(jit_trap,0,handle_trap);
-	FILL_BUFFER(jit_stack_expand,0,stack_expand);	
+	FILL_BUFFER(jit_stack_expand,0,stack_expand);
 	FILL_BUFFER(jit_runtime_error,0,runtime_error);
 	FILL_BUFFER(jit_invalid_access,0,invalid_access);
 	for(i=0;i<OP_LAST;i++) {
