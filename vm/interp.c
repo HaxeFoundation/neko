@@ -354,16 +354,20 @@ static int_val jit_run( neko_vm *vm, vfunction *acc ) {
 #define MULT(x,y) ((x) * (y))
 #define DIV(x,y) ((x) / (y))
 
-#define ObjectOp(obj,param,id) { \
+#define ObjectOpGen(obj,param,id,err) { \
 		value _o = (value)obj; \
 		value _arg = (value)param; \
 		value _f = val_field(_o,id); \
-		if( _f == val_null ) \
-			RuntimeError("Unsupported operation",false); \
-		BeginCall(); \
-		acc = (int_val)val_callEx(_o,_f,&_arg,1,NULL); \
-		EndCall(); \
+		if( _f == val_null ) { \
+			err; \
+		} else { \
+			BeginCall(); \
+			acc = (int_val)val_callEx(_o,_f,&_arg,1,NULL); \
+			EndCall(); \
+		} \
 	}
+
+#define ObjectOp(obj,param,id) ObjectOpGen(obj,param,id,RuntimeError("Unsupported operation",false))
 
 #define NumberOp(op,fop,id_op,id_rop) \
 		if( (acc & 1) && (*sp & 1) ) \
@@ -385,11 +389,14 @@ static int_val jit_run( neko_vm *vm, vfunction *acc ) {
 		} else if( val_tag(acc) == VAL_FLOAT && val_tag(*sp) == VAL_FLOAT ) \
 			acc = (int_val)alloc_float(fop(val_float(*sp),val_float(acc))); \
 		else if( val_tag(*sp) == VAL_OBJECT ) \
-			ObjectOp(*sp,acc,id_op) \
-		else if( val_tag(acc) == VAL_OBJECT ) \
-			ObjectOp(acc,*sp,id_rop) \
-		else \
-			RuntimeError(#op,false); \
+			ObjectOpGen(*sp,acc,id_op,goto id_op##_next) \
+		else { \
+			id_op##_next: \
+			if( val_tag(acc) == VAL_OBJECT ) \
+				ObjectOp(acc,*sp,id_rop) \
+			else \
+				RuntimeError(#op,false); \
+		} \
 		*sp++ = ERASE; \
 		Next;
 
@@ -829,20 +836,26 @@ static int_val interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_v
 		else if( (val_tag(acc)&7) == VAL_STRING && (val_tag(*sp)&7) == VAL_STRING )
 			acc = (int_val)append_strings((value)*sp,(value)acc);
 		else if( val_tag(*sp) == VAL_OBJECT )
-			ObjectOp(*sp,acc,id_add)
-		else if( val_tag(acc) == VAL_OBJECT )
-			ObjectOp(acc,*sp,id_radd)
-		else if( (val_tag(acc)&7) == VAL_STRING || (val_tag(*sp)&7) == VAL_STRING ) {
-			ACC_BACKUP
-			buffer b = alloc_buffer(NULL);
-			BeginCall();
-			val_buffer(b,(value)*sp);
-			ACC_RESTORE;
-			val_buffer(b,(value)acc);
-			EndCall();
-			acc = (int_val)buffer_to_string(b);
-		} else
-			RuntimeError("+",false);
+			ObjectOpGen(*sp,acc,id_add,goto add_2)			
+		else {
+			add_2:
+			if( val_tag(acc) == VAL_OBJECT )
+				ObjectOpGen(acc,*sp,id_radd,goto add_3)				
+			else {
+				add_3:
+				if( (val_tag(acc)&7) == VAL_STRING || (val_tag(*sp)&7) == VAL_STRING ) {
+					ACC_BACKUP
+					buffer b = alloc_buffer(NULL);
+					BeginCall();
+					val_buffer(b,(value)*sp);
+					ACC_RESTORE;
+					val_buffer(b,(value)acc);
+					EndCall();
+					acc = (int_val)buffer_to_string(b);
+				} else
+					RuntimeError("+",false);
+			}
+		}		
 		*sp++ = ERASE;
 		Next;
 	Instr(Sub)
@@ -853,11 +866,14 @@ static int_val interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_v
 		if( val_is_number(acc) && val_is_number(*sp) )
 			acc = (int_val)alloc_float( ((tfloat)val_number(*sp)) / val_number(acc) );
 		else if( val_is_object(*sp) )
-			ObjectOp(*sp,acc,id_div)
-		else if( val_is_object(acc) )
-			ObjectOp(acc,*sp,id_rdiv)
-		else
-			RuntimeError("/",false);
+			ObjectOpGen(*sp,acc,id_div,goto div_next)
+		else {
+			div_next:
+			if( val_is_object(acc) ) 
+				ObjectOp(acc,*sp,id_rdiv)
+			else
+				RuntimeError("/",false);
+		}
 		*sp++ = ERASE;
 		Next;
 	Instr(Mod)
