@@ -70,7 +70,7 @@ static char *executable_path() {
 
 int neko_has_embedded_module() {
 	char *exe = executable_path();
-	char id[4];
+	unsigned char id[8];
 	int pos;
 	if( exe == NULL )
 		return 0;
@@ -78,14 +78,12 @@ int neko_has_embedded_module() {
 	if( self == NULL )
 		return 0;
 	fseek(self,-8,SEEK_END);
-	fread(id,1,4,self);
+	fread(id,1,8,self);
 	if( id[0] != 'N' || id[1] != 'E' || id[2] != 'K' || id[3] != 'O' ) {
 		fclose(self);
 		return 0;
 	}
-	fread(&pos,1,4,self);
-	if( neko_is_big_endian() )
-		pos = (pos >> 24) | ((pos >> 8) & 0xFF00) | ((pos << 8) & 0xFF0000) | (pos << 24);
+	pos = id[4] | id[5] << 8 | id[6] << 16 | id[7] << 24;
 	fseek(self,pos,SEEK_SET);
 	return 1;
 }
