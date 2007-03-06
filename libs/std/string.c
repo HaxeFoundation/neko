@@ -14,11 +14,9 @@
 /* Lesser General Public License or the LICENSE file for more details.		*/
 /*																			*/
 /* ************************************************************************ */
-#define sprintf __sprintf
 #include <neko.h>
 #include <neko_vm.h>
 #include <string.h>
-#undef sprintf
 
 /**
 	<doc>
@@ -79,7 +77,7 @@ static value string_split( value o, value s ) {
 /**
 	sprintf : fmt:string -> params:(any | array) -> string
 	<doc>
-	Format a string. If only one parameter is needed then it can be 
+	Format a string. If only one parameter is needed then it can be
 	directly passed, either the parameters need to be stored in an array.
 	The following formats are accepted (with corresponding types) :
 	<ul>
@@ -91,7 +89,7 @@ static value string_split( value o, value s ) {
 	</ul>
 	</doc>
 **/
-static value sprintf( value fmt, value params ) {
+static value neko_sprintf( value fmt, value params ) {
 	char *last, *cur, *end;
 	int count = 0;
 	buffer b;
@@ -108,7 +106,7 @@ static value sprintf( value fmt, value params ) {
 			while( *cur >= '0' && *cur <= '9' ) {
 				width = width * 10 + (*cur - '0');
 				cur++;
-			}			
+			}
 			if( *cur == '.' ) {
 				cur++;
 				while( *cur >= '0' && *cur <= '9' ) {
@@ -126,7 +124,7 @@ static value sprintf( value fmt, value params ) {
 					count++;
 				} else if( !val_is_array(params) || val_array_size(params) <= count )
 					neko_error();
-				else 
+				else
 					param = val_array_ptr(params)[count++];
 				switch( *cur ) {
 				case 'c':
@@ -279,7 +277,7 @@ static value url_decode( value v ) {
 			out[pout++] = c;
 		}
 		out[pout] = 0;
-		val_set_size(v2,pout);		
+		val_set_size(v2,pout);
 		return v2;
 	}
 }
@@ -317,7 +315,7 @@ static value url_encode( value v ) {
 /**
 	base_encode : s:string -> base:string -> string
 	<doc>
-	Encode a string using the specified base. 
+	Encode a string using the specified base.
 	The base length must be a power of two.
 	</doc>
 **/
@@ -361,7 +359,7 @@ static value base_encode( value s, value base ) {
 /**
 	base_decode : s:string -> base:string -> string
 	<doc>
-	Decode a string encode in the specified base. 
+	Decode a string encode in the specified base.
 	The base length must be a power of two.
 	</doc>
 **/
@@ -409,7 +407,8 @@ static value base_decode( value s, value base ) {
 	return out;
 }
 
-DEFINE_PRIM(sprintf,2);
+#define neko_sprintf__2 sprintf__2
+DEFINE_PRIM(neko_sprintf,2);
 DEFINE_PRIM(string_split,2);
 DEFINE_PRIM(url_decode,1);
 DEFINE_PRIM(url_encode,1);
