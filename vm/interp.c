@@ -836,11 +836,11 @@ static int_val interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_v
 		else if( (val_tag(acc)&7) == VAL_STRING && (val_tag(*sp)&7) == VAL_STRING )
 			acc = (int_val)append_strings((value)*sp,(value)acc);
 		else if( val_tag(*sp) == VAL_OBJECT )
-			ObjectOpGen(*sp,acc,id_add,goto add_2)			
+			ObjectOpGen(*sp,acc,id_add,goto add_2)
 		else {
 			add_2:
 			if( val_tag(acc) == VAL_OBJECT )
-				ObjectOpGen(acc,*sp,id_radd,goto add_3)				
+				ObjectOpGen(acc,*sp,id_radd,goto add_3)
 			else {
 				add_3:
 				if( (val_tag(acc)&7) == VAL_STRING || (val_tag(*sp)&7) == VAL_STRING ) {
@@ -855,7 +855,7 @@ static int_val interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_v
 				} else
 					RuntimeError("+",false);
 			}
-		}		
+		}
 		*sp++ = ERASE;
 		Next;
 	Instr(Sub)
@@ -869,7 +869,7 @@ static int_val interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_v
 			ObjectOpGen(*sp,acc,id_div,goto div_next)
 		else {
 			div_next:
-			if( val_is_object(acc) ) 
+			if( val_is_object(acc) )
 				ObjectOp(acc,*sp,id_rdiv)
 			else
 				RuntimeError("/",false);
