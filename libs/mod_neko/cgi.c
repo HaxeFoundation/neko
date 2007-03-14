@@ -22,7 +22,7 @@
 #	define ap_table_set		apr_table_set
 #	define ap_table_add		apr_table_add
 #	define ap_table_do		apr_table_do
-#	define REDIRECT			HTTP_TEMPORARY_REDIRECT
+#	define REDIRECT			HTTP_MOVED_TEMPORARILY
 #endif
 
 #define PARSE_HEADER(start,cursor) \
@@ -210,7 +210,7 @@ static value get_client_headers() {
 	get_params_string : void -> string
 	<doc>Return the whole parameters string</doc>
 **/
-static value get_params_string() {	
+static value get_params_string() {
 	return alloc_string(CONTEXT()->r->args);
 }
 
@@ -267,7 +267,7 @@ static value discard_body( mcontext *c ) {
 **/
 static value parse_multipart_data( value onpart, value ondata ) {
 	value buf;
-	int len = 0;	
+	int len = 0;
 	mcontext *c = CONTEXT();
 	const char *ctype = ap_table_get(c->r->headers_in,"Content-Type");
 	value boundstr;
@@ -280,7 +280,7 @@ static value parse_multipart_data( value onpart, value ondata ) {
 	{
 		const char *boundary, *bend;
 		if( (boundary = strstr(ctype,"boundary=")) == NULL )
-			neko_error();	
+			neko_error();
 		boundary += 9;
 		PARSE_HEADER(boundary,bend);
 		len = (int)(bend - boundary);
@@ -293,7 +293,7 @@ static value parse_multipart_data( value onpart, value ondata ) {
 	}
 	len = 0;
     if( !ap_should_client_block(c->r) )
-		neko_error();	
+		neko_error();
 	while( true ) {
 		char *name, *end_name, *filename, *end_file_name, *data;
 		int pos;
@@ -321,7 +321,7 @@ static value parse_multipart_data( value onpart, value ondata ) {
 		}
 		data += 4;
 		pos = (int)(data - val_string(buf));
-		// send part name		
+		// send part name
 		val_call2(onpart,copy_string(name,(int)(end_name - name)),filename?copy_string(filename,(int)(end_file_name - filename)):val_null);
 		// read data
 		while( true ) {
@@ -329,7 +329,7 @@ static value parse_multipart_data( value onpart, value ondata ) {
 			// recall buffer
 			memcpy(val_string(buf),val_string(buf)+pos,len - pos);
 			len -= pos;
-			pos = 0;			
+			pos = 0;
 			fill_buffer(c,buf,&len);
 			// lookup bounds
 			boundary = memfind(val_string(buf),len,val_string(boundstr));
@@ -441,7 +441,7 @@ static value get_params() {
 	// PARSE "GET" PARAMS
 	if( args != NULL )
 		parse_get(&p,args);
-	 
+
 	// PARSE "POST" PARAMS
 	if( c->post_data != NULL )
 		parse_get(&p,val_string(c->post_data));
