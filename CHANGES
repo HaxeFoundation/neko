@@ -8,6 +8,7 @@
 	mod_neko2 set MOD_NEKO=2 env var (for version detection)
 	mod_neko2 : remove Apache 2.0 error message, use 302 http code for redirect
 	fixed fallback of interp operator overloading
+	fix for 64-bit CPU
 	TODO : FIX OO for JIT AS WELL
 
 2007-01-28 : 1.5.3
