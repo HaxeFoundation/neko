@@ -1452,7 +1452,7 @@ static void jit_add( jit_ctx *ctx, int _ ) {
 static void jit_array_access( jit_ctx *ctx, int n ) {
 	INIT_BUFFER;
 	int *jerr1, *jerr2;
-	char *jend1, *jend2, *jend3;
+	char *jend1, *jend2 = NULL, *jend3;
 	int *jnot_array, *jbounds;
 
 	is_int(ACC,true,jerr1);
@@ -1462,15 +1462,19 @@ static void jit_array_access( jit_ctx *ctx, int n ) {
 	XCmp_rb(TMP2,VAL_ARRAY);
 
 	XJump(JNeq,jnot_array);
-	XShr_rc(TMP,3);
-	XCmp_rc(TMP,n);
-	XJump(JLte,jbounds);
+	if( n > 0 ) {
+		XShr_rc(TMP,3);
+		XCmp_rc(TMP,n);
+		XJump(JLte,jbounds);
+	}
 	XMov_rp(ACC,ACC,FIELD(n + 1));
 	XJump_near(jend1);
 
-	PATCH_JUMP(jbounds);
-	XMov_rc(ACC,CONST(val_null));
-	XJump_near(jend2);
+	if( n > 0 ) {
+		PATCH_JUMP(jbounds);
+		XMov_rc(ACC,CONST(val_null));
+		XJump_near(jend2);
+	}
 
 	PATCH_JUMP(jnot_array);
 	XCmp_rb(TMP2,VAL_OBJECT);

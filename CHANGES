@@ -1,6 +1,6 @@
 2007-??-?? : 1.5.4
 	display error message when uncaught exception in neko thread
-	fix big in long run JIT programs : no C functions callable anymore
+	fix bug in long run JIT programs : no C functions callable anymore
 	use a smarter way to prevent C stack overflow
 	nekoc : stack align error message
 	set max-stack-per-function to 128 and default-stack-size to 256
@@ -9,6 +9,7 @@
 	mod_neko2 : remove Apache 2.0 error message, use 302 http code for redirect
 	fixed fallback of interp operator overloading
 	fix for 64-bit CPU
+	minor optimization for [0] jit array access
 	TODO : FIX OO for JIT AS WELL
 
 2007-01-28 : 1.5.3

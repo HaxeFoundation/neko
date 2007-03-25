@@ -59,11 +59,10 @@ _context *neko_vm_context = NULL;
 static val_type t_null = VAL_NULL;
 static val_type t_true = VAL_BOOL;
 static val_type t_false = VAL_BOOL;
-static val_type t_array = VAL_ARRAY;
 EXTERN value val_null = (value)&t_null;
 EXTERN value val_true = (value)&t_true;
 EXTERN value val_false = (value)&t_false;
-static value empty_array = (value)&t_array;
+static varray empty_array = { VAL_ARRAY, NULL };
 static vstring empty_string = { VAL_STRING, 0 };
 static kind_list **kind_names = NULL;
 field id_compare;
@@ -217,7 +216,7 @@ EXTERN value alloc_float( tfloat f ) {
 EXTERN value alloc_array( unsigned int n ) {
 	value v;
 	if( n == 0 )
-		return empty_array;
+		return (value)&empty_array;
 	if( n > max_array_size )
 		failure("max_array_size reached");
 	v = (value)GC_MALLOC(sizeof(varray)+(n - 1)*sizeof(value));
@@ -382,6 +381,7 @@ extern void neko_free_jit();
 #define INIT_ID(x)	id_##x = val_id("__" #x)
 
 EXTERN void neko_global_init( void *s ) {
+	empty_array.ptr = val_null;
 	neko_gc_init(s);
 	neko_vm_context = context_new();
 	neko_fields_lock = context_lock_new();
