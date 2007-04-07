@@ -45,7 +45,7 @@
 #	define INVALID_SOCKET (-1)
 #endif
 
-#ifndef NEKO_LINUX
+#if defined(NEKO_WINDOWS) || defined(NEKO_MAC)
 #	define MSG_NOSIGNAL 0
 #endif
 
@@ -397,7 +397,7 @@ static value socket_select( value rs, value ws, value es, value timeout ) {
 			tt = &tval;
 		}
 		if( select((int)(n+1),ra,wa,ea,tt) == SOCKET_ERROR ) {
-#			if defined(NEKO_LINUX) || defined(NEKO_MAC)
+#			if defined(NEKO_POSIX)
 			if( errno == EINTR )
 				continue;
 #			endif

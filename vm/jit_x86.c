@@ -21,7 +21,7 @@
 #include <math.h>
 #include <stdio.h>
 
-#ifdef NEKO_LINUX
+#ifdef NEKO_POSIX
 #	include <sys/types.h>
 #	include <sys/mman.h>
 #	define USE_MMAP

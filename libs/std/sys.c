@@ -161,6 +161,8 @@ static value set_cwd( value d ) {
 static value sys_string() {
 #if defined(NEKO_WINDOWS)
 	return alloc_string("Windows");
+#elif defined(NEKO_GNUKBSD)
+	return alloc_string("GNU/kFreeBSD");
 #elif defined(NEKO_LINUX)
 	return alloc_string("Linux");
 #elif defined(NEKO_BSD)
@@ -194,7 +196,7 @@ static value sys_exit( value ecode ) {
 }
 
 /**
-	sys_exists : string -> bool	
+	sys_exists : string -> bool
 	<doc>Returns true if the file or directory exists.</doc>
 **/
 static value sys_exists( value path ) {
@@ -545,7 +547,7 @@ static value sys_env() {
 	sys_getch : bool -> int
 	<doc>Read a character from stdin with or without echo</doc>
 **/
-static value sys_getch( value b ) {	
+static value sys_getch( value b ) {
 #	ifdef NEKO_WINDOWS
 	val_check(b,bool);
 	return alloc_int( val_bool(b)?getche():getch() );
@@ -556,7 +558,7 @@ static value sys_getch( value b ) {
 	int c;
 	struct termios term, old;
 	val_check(b,bool);
-	tcgetattr(fileno(stdin), &old); 
+	tcgetattr(fileno(stdin), &old);
 	term = old;
 	cfmakeraw(&term);
 	tcsetattr(fileno(stdin), 0, &term);

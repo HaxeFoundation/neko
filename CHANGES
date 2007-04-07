@@ -10,6 +10,7 @@
 	fixed fallback of interp operator overloading
 	fix for 64-bit CPU
 	minor optimization for [0] jit array access
+	gnuk/freebsd support
 	TODO : FIX OO for JIT AS WELL
 	TODO : process output capture
 

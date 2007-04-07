@@ -27,7 +27,7 @@
 #	include <sys/param.h>
 #	include <mach-o/dyld.h>
 #endif
-#ifdef NEKO_LINUX
+#ifdef NEKO_POSIX
 #	include <signal.h>
 #endif
 
@@ -181,7 +181,7 @@ static int execute_file( neko_vm *vm, char *file, value mload ) {
 #	define _CrtSetDbgFlag(x)
 #endif
 
-#ifdef NEKO_LINUX
+#ifdef NEKO_POSIX
 static void handle_signal( int signal ) {
 	val_throw(alloc_string("Segmentation fault"));
 }
@@ -195,7 +195,7 @@ int main( int argc, char *argv[] ) {
 	neko_global_init(&vm);
 	vm = neko_vm_alloc(NULL);
 	neko_vm_select(vm);
-#	ifdef NEKO_LINUX
+#	ifdef NEKO_POSIX
 	struct sigaction act;
 	act.sa_sigaction = NULL;
 	act.sa_handler = handle_signal;

@@ -30,12 +30,16 @@
 #	define NEKO_LINUX
 #endif
 
+#if defined(__FreeBSD_kernel__)
+#	define NEKO_GNUKBSD
+#endif
+
 #if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
 #	define NEKO_BSD
 #endif
 
 // COMPILER/PROCESSOR FLAGS
-#if defined(__GNUC__) 
+#if defined(__GNUC__)
 #	define NEKO_GCC
 #endif
 
@@ -57,6 +61,10 @@
 
 #if defined(_64BITS)
 #	define NEKO_64BITS
+#endif
+
+#if defined(NEKO_LINUX) || defined(NEKO_MAC) || defined(NEKO_BSD) || defined(NEKO_GNUKBSD)
+#	define NEKO_POSIX
 #endif
 
 #include <stddef.h>
