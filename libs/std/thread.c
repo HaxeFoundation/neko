@@ -18,26 +18,34 @@
 #include <neko_vm.h>
 #include <string.h>
 #include <stdio.h>
-#ifdef NEKO_WINDOWS
-#	include <windows.h>
-#	define WM_TMSG			(WM_USER + 1)
-
-typedef HANDLE vlock;
-
-#else
-#	include <pthread.h>
-#	include <sys/time.h>
 
 typedef struct _tqueue {
 	value msg;
 	struct _tqueue *next;
 } tqueue;
 
+#ifdef NEKO_WINDOWS
+#	include <windows.h>
+
+typedef HANDLE vlock;
+
+#define LOCK(l)		EnterCriticalSection(&(l))
+#define UNLOCK(l)	LeaveCriticalSection(&(l))
+#define SIGNAL(l)	ReleaseSemaphore(l,1,NULL)
+
+#else
+#	include <pthread.h>
+#	include <sys/time.h>
+
 typedef struct _vlock {
 	pthread_mutex_t lock;
 	pthread_cond_t cond;
 	int counter;
 } *vlock;
+
+#define LOCK(l)		pthread_mutex_lock(&(l))
+#define UNLOCK(l)	pthread_mutex_unlock(&(l))
+#define SIGNAL(l)	pthread_cond_signal(&(l))
 
 #endif
 
@@ -59,66 +67,68 @@ DEFINE_KIND(k_lock);
 typedef struct {
 #	ifdef NEKO_WINDOWS
 	DWORD tid;
+	CRITICAL_SECTION lock;
+	HANDLE wait;
 #	else
 	pthread_t phandle;
+	pthread_mutex_t lock;
+	pthread_cond_t wait;
+#	endif
 	tqueue *first;
 	tqueue *last;
-	pthread_mutex_t lock;
-	pthread_cond_t cond;
-#	endif
-	value callb;
-	value callparam;
+	value v;
 } vthread;
 
-#ifndef NEKO_WINDOWS
-
-static pthread_key_t local_thread = (pthread_key_t)-1;
-
-static void free_key( void *r ) {
-	free_root((value*)r);
-}
-
-static vthread *get_local_thread() {
-	value *r;
-	if( local_thread == (pthread_key_t)-1 )
-		pthread_key_create(&local_thread,free_key);
-	r = (value*)pthread_getspecific(local_thread);
-	return (vthread*)(r?*r:NULL);
-}
-
-static void set_local_thread( vthread *t ) {
-	value *r = (value*)pthread_getspecific(local_thread);
-	if( r == NULL ) {
-		r = alloc_root(1);
-		pthread_setspecific(local_thread,r);
-	}
-	*r = (value)t;
-}
-
-static void init_thread_queue( vthread *t ) {
-	pthread_mutex_init(&t->lock,NULL);
-	pthread_cond_init(&t->cond,NULL);
-}
+typedef struct {
+	value callb;
+	value callparam;
+	vthread *t;
+	void *handle;
+} tparams;
 
 static void free_thread( value v ) {
 	vthread *t = val_thread(v);
+#ifdef NEKO_WINDOWS
+	DeleteCriticalSection(&t->lock);
+	CloseHandle(t->wait);
+#else
 	pthread_mutex_destroy(&t->lock);
-	pthread_cond_destroy(&t->cond);
+	pthread_cond_destroy(&t->wait);
+#endif
 }
 
+static vthread *alloc_thread() {
+	vthread *t = (vthread*)alloc(sizeof(vthread));
+	memset(t,0,sizeof(vthread));
+#ifdef NEKO_WINDOWS
+	t->tid = GetCurrentThreadId();
+	t->wait = CreateSemaphore(NULL,0,1,NULL);	
+	InitializeCriticalSection(&t->lock);
+#else
+	t->phandle = pthread_self();
+	pthread_mutex_init(&t->lock,NULL);
+	pthread_cond_init(&t->wait,NULL);
 #endif
+	t->v = alloc_abstract(k_thread,t);
+	val_gc(t->v,free_thread);
+	return t;
+}
 
-static int thread_loop( void *_t ) {
-	vthread *t = (vthread*)_t;
-	value exc = NULL;
-	neko_vm *vm;
-#	ifndef NEKO_WINDOWS
-	set_local_thread(t);
-#	endif
-	// init and run the VM
+static int thread_init( void *_p ) {
+	tparams *p = (tparams*)_p;	
+	neko_vm *vm;	
+	p->t = alloc_thread();
+	// init the VM and set current thread
 	vm = neko_vm_alloc(NULL);
 	neko_vm_select(vm);
-	val_callEx(val_null,t->callb,&t->callparam,1,&exc);
+	alloc_field(neko_vm_vars(vm),val_id("__thread"),p->t->v);
+	return 0;
+}
+
+static int thread_loop( void *_p ) {
+	tparams *p = (tparams*)_p;
+	value exc = NULL;
+	val_callEx(val_null,p->callb,&p->callparam,1,&exc);
 	// display exception
 	if( exc != NULL ) {
 		buffer b = alloc_buffer(NULL);
@@ -127,7 +137,7 @@ static int thread_loop( void *_t ) {
 		fprintf(stderr,"%s\n",val_string(buffer_to_string(b)));
 	}
 	// cleanup
-	vm = NULL;
+	neko_vm_select(NULL);
 	return 0;
 }
 
@@ -136,28 +146,14 @@ static int thread_loop( void *_t ) {
 	<doc>Creates a thread that will be running the function [f(p)]</doc>
 **/
 static value thread_create( value f, value param ) {
-	value vt;
-	vthread *t;
+	tparams *p;
 	val_check_function(f,1);
-	t = (vthread*)alloc(sizeof(vthread));
-	memset(t,0,sizeof(vthread));
-	t->callb = f;
-	t->callparam = param;
-#	ifdef NEKO_WINDOWS
-	if( !neko_thread_create(thread_loop,t,&t->tid) )
+	p = (tparams*)alloc(sizeof(tparams));
+	p->callb = f;
+	p->callparam = param;
+	if( !neko_thread_create(thread_init,thread_loop,p,&p->handle) )
 		neko_error();
-	vt = alloc_abstract(k_thread,t);
-#	else
-	get_local_thread(); // ensure that the key is initialized
-	init_thread_queue(t);
-	vt = alloc_abstract(k_thread,t);
-	if( !neko_thread_create(thread_loop,t,&t->phandle) ) {
-		free_thread(vt);
-		neko_error();
-	}
-	val_gc(vt,free_thread);
-#	endif
-	return vt;
+	return p->t->v;
 }
 
 /**
@@ -165,20 +161,16 @@ static value thread_create( value f, value param ) {
 	<doc>Returns the current thread</doc>
 **/
 static value thread_current() {
-#	ifdef NEKO_WINDOWS
-	vthread *t = (vthread*)alloc(sizeof(vthread));
-	memset(t,0,sizeof(vthread));
-	t->tid = GetCurrentThreadId();
-#	else
-	vthread *t = get_local_thread();
-	if( t == NULL ) {
-		t = (vthread*)alloc(sizeof(vthread));
-		init_thread_queue(t);
-		set_local_thread(t);
-		t->phandle = pthread_self();
+	value vars = neko_vm_vars(neko_vm_current());
+	value v = val_field(vars,val_id("__thread"));
+	// should only occur for main thread !
+	if( val_is_null(v) ) {
+		vthread *t = alloc_thread();
+        v = t->v;
+		alloc_field(vars,val_id("__thread"),v);
 	}
-#	endif
-	return alloc_abstract(k_thread,t);
+	val_check_kind(v,k_thread);
+	return v;
 }
 
 /**
@@ -187,30 +179,20 @@ static value thread_current() {
 **/
 static value thread_send( value vt, value msg ) {
 	vthread *t;
+	tqueue *q;
 	val_check_kind(vt,k_thread);
 	t = val_thread(vt);
-#	ifdef NEKO_WINDOWS
-	{
-		value *r = alloc_root(1);
-		*r = msg;
-		if( !PostThreadMessage(t->tid,WM_TMSG,0,(LPARAM)r) )
-			neko_error();
-	}
-#	else
-	{
-		tqueue *q = (tqueue*)alloc(sizeof(tqueue));
-		q->msg = msg;
-		q->next = NULL;
-		pthread_mutex_lock(&t->lock);
-		if( t->last == NULL )
-			t->first = q;
-		else
-			t->last->next = q;
-		t->last = q;
-		pthread_cond_signal(&t->cond);
-		pthread_mutex_unlock(&t->lock);
-	}
-#	endif
+	q = (tqueue*)alloc(sizeof(tqueue));
+	q->msg = msg;
+	q->next = NULL;
+	LOCK(t->lock);
+	if( t->last == NULL )
+		t->first = q;
+	else
+		t->last->next = q;
+	t->last = q;
+	SIGNAL(t->wait);
+	UNLOCK(t->lock);
 	return val_null;
 }
 
@@ -224,36 +206,25 @@ static value thread_send( value vt, value msg ) {
 	</doc>
 **/
 static value thread_read_message( value block ) {
-#	ifdef NEKO_WINDOWS
-	value *r, v = val_null;
-	MSG msg;
-	val_check(block,bool);
-	if( !val_bool(block) ) {
-		if( !PeekMessage(&msg,NULL,0,0,PM_REMOVE) )
-			return val_null;
-	} else if( !GetMessage(&msg,NULL,0,0) )
-		neko_error();
-	switch( msg.message ) {
-	case WM_TMSG:
-		r = (value*)msg.lParam;
-		v = *r;
-		free_root(r);
-		break;
-	default:
-		neko_error();
-		break;
-	}
-	return v;
-#	else
-	vthread *t = val_thread(thread_current());
+	value v = thread_current();
+	vthread *t;
 	value msg;
+	if( v == NULL )
+		neko_error();
+	t = val_thread(v);
 	val_check(block,bool);
-	pthread_mutex_lock(&t->lock);
+	LOCK(t->lock);
 	while( t->first == NULL )
-		if( val_bool(block) )
+		if( val_bool(block) ) {
+#			ifdef NEKO_WINDOWS
+			UNLOCK(t->lock);
+			WaitForSingleObject(t->wait,INFINITE);
+			LOCK(t->lock);
+#			else
 			pthread_cond_wait(&t->cond,&t->lock);
-		else {
-			pthread_mutex_unlock(&t->lock);
+#			endif
+		} else {
+			UNLOCK(t->lock);
 			return val_null;
 		}
 	msg = t->first->msg;
@@ -261,10 +232,9 @@ static value thread_read_message( value block ) {
 	if( t->first == NULL )
 		t->last = NULL;
 	else
-		pthread_cond_signal(&t->cond);
-	pthread_mutex_unlock(&t->lock);
+		SIGNAL(t->wait);
+	UNLOCK(t->lock);
 	return msg;
-#	endif
 }
 
 static void free_lock( value l ) {
@@ -284,7 +254,7 @@ static value lock_create() {
 	value vl;
 	vlock l;
 #	ifdef NEKO_WINDOWS
-	l = CreateSemaphore(NULL,0,(1 << 10),NULL);
+	l = CreateSemaphore(NULL,0,(1 << 30),NULL);
 	if( l == NULL )
 		neko_error();
 #	else

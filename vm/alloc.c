@@ -117,6 +117,7 @@ EXTERN void neko_gc_stats( int *heap, int *free ) {
 }
 
 typedef struct {
+	thread_main_func init;
 	thread_main_func main;
 	void *param;
 #	ifdef NEKO_WINDOWS
@@ -129,9 +130,7 @@ typedef struct {
 #ifdef NEKO_WINDOWS
 static DWORD WINAPI ThreadMain( void *_p ) {
 	tparams p = *(tparams*)_p;
-	// this will create the thread message queue
-	PeekMessage(NULL,NULL,0,0,0);
-	// now we can give back control to the main thread
+	p.init(p.param);
 	ReleaseSemaphore(p.lock,1,NULL);
 	return p.main(p.param);
 }
@@ -139,6 +138,7 @@ static DWORD WINAPI ThreadMain( void *_p ) {
 static void *ThreadMain( void *_p ) {
 	tparams *lp = (tparams*)_p;
 	tparams p = *lp;
+	p.init(p.param);
 	// we have the 'param' value on this thread C stack
 	// so it's safe to give back control to main thread
 	pthread_mutex_unlock(&lp->lock);
@@ -146,8 +146,9 @@ static void *ThreadMain( void *_p ) {
 }
 #endif
 
-EXTERN int neko_thread_create( thread_main_func main, void *param, void *handle ) {
+EXTERN int neko_thread_create( thread_main_func init, thread_main_func main, void *param, void *handle ) {
 	tparams p;
+	p.init = init;
 	p.main = main;
 	p.param = param;
 #	ifdef NEKO_WINDOWS

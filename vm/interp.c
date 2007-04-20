@@ -106,7 +106,7 @@ EXTERN neko_vm *neko_vm_alloc( void *custom ) {
 	vm->spmin = (int_val*)alloc(INIT_STACK_SIZE*sizeof(int_val));
 	vm->print = default_printer;
 	vm->print_param = stdout;
-	vm->custom = custom;
+	vm->variables = alloc_object(NULL);
 	// the maximum stack position for a C call is estimated
 	//  - stack grows bottom
 	//  - neko_vm_alloc should be near the beginning of the stack
@@ -140,8 +140,8 @@ EXTERN neko_vm *neko_vm_current() {
 	return (neko_vm*)context_get(neko_vm_context);
 }
 
-EXTERN void *neko_vm_custom( neko_vm *vm ) {
-	return vm->custom;
+EXTERN value neko_vm_vars( neko_vm *vm ) {
+	return vm->variables;
 }
 
 typedef struct {
