@@ -433,22 +433,20 @@ EXTERN void neko_set_stack_base( void *s ) {
 	neko_gc_set_stack_base(s);
 }
 
-EXTERN void kind_export( vkind k, const char *name ) {
-	kind_list *l = (kind_list*)alloc(sizeof(kind_list));
-	l->k = k;
+EXTERN void kind_share( vkind *k, const char *name ) {
+	kind_list *l = *kind_names;
+	while( l != NULL ) {
+		if( strcmp(l->name,name) == 0 ) {
+			*k = l->k;
+			return;
+		}
+		l = l->next;
+	}
+	l = (kind_list*)alloc(sizeof(kind_list));
+	l->k = *k;
 	l->name = name;
 	l->next = *kind_names;
 	*kind_names = l;
-}
-
-EXTERN vkind kind_import( const char *name ) {
-	kind_list *l = *kind_names;
-	while( l != NULL ) {
-		if( strcmp(l->name,name) == 0 )
-			return l->k;
-		l = l->next;
-	}
-	return NULL;
 }
 
 #endif

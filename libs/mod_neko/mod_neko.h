@@ -36,7 +36,9 @@ typedef struct {
 	bool headers_sent;
 } mcontext;
 
-#define CONTEXT()	((mcontext*)neko_vm_custom(neko_vm_current()))
+#define CONTEXT()	((mcontext*)neko_vm_custom(neko_vm_current(),k_mod_neko))
+
+DECLARE_KIND(k_mod_neko)
 
 #ifdef STANDARD20_MODULE_STUFF
 #	define APACHE_2_X

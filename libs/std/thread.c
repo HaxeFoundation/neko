@@ -121,7 +121,7 @@ static int thread_init( void *_p ) {
 	// init the VM and set current thread
 	vm = neko_vm_alloc(NULL);
 	neko_vm_select(vm);
-	alloc_field(neko_vm_vars(vm),val_id("__thread"),p->t->v);
+	neko_vm_set_custom(vm,k_thread,p->t);
 	return 0;
 }
 
@@ -161,16 +161,14 @@ static value thread_create( value f, value param ) {
 	<doc>Returns the current thread</doc>
 **/
 static value thread_current() {
-	value vars = neko_vm_vars(neko_vm_current());
-	value v = val_field(vars,val_id("__thread"));
+	neko_vm *vm = neko_vm_current();
+	vthread *t = (vthread*)neko_vm_custom(vm,k_thread);
 	// should only occur for main thread !
-	if( val_is_null(v) ) {
-		vthread *t = alloc_thread();
-        v = t->v;
-		alloc_field(vars,val_id("__thread"),v);
+	if( t == NULL ) {
+		t = alloc_thread();
+		neko_vm_set_custom(vm,k_thread,t);
 	}
-	val_check_kind(v,k_thread);
-	return v;
+	return t->v;
 }
 
 /**

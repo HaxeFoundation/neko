@@ -106,7 +106,7 @@ EXTERN neko_vm *neko_vm_alloc( void *custom ) {
 	vm->spmin = (int_val*)alloc(INIT_STACK_SIZE*sizeof(int_val));
 	vm->print = default_printer;
 	vm->print_param = stdout;
-	vm->variables = alloc_object(NULL);
+	vm->clist = NULL;
 	// the maximum stack position for a C call is estimated
 	//  - stack grows bottom
 	//  - neko_vm_alloc should be near the beginning of the stack
@@ -140,8 +140,38 @@ EXTERN neko_vm *neko_vm_current() {
 	return (neko_vm*)context_get(neko_vm_context);
 }
 
-EXTERN value neko_vm_vars( neko_vm *vm ) {
-	return vm->variables;
+EXTERN void *neko_vm_custom( neko_vm *vm, vkind k ) {
+	custom_list *c = vm->clist;
+	while( c != NULL ) {
+		if( c->tag == k )
+			return c->custom;
+		c = c->next;
+	}
+	return NULL;
+}
+
+EXTERN void neko_vm_set_custom( neko_vm *vm, vkind k, void *v ) {
+	custom_list *c = vm->clist, *prev = NULL;
+	while( c != NULL ) {
+		if( c->tag == k ) {
+			if( v ) {
+				c->custom = v;
+				return;
+			}
+			if( prev == NULL )
+				vm->clist = c->next;
+			else
+				prev->next = c->next;
+			return;
+		}
+		prev = c;
+		c = c->next;
+	}
+	c = (custom_list*)alloc(sizeof(custom_list));
+	c->tag = k;
+	c->custom = v;
+	c->next = vm->clist;
+	vm->clist = c;	
 }
 
 typedef struct {

@@ -26,6 +26,12 @@
 #define PROF_SIZE		(1 << 20)
 #define CALL_MAX_ARGS	5
 
+typedef struct _custom_list {
+	vkind tag;
+	void *custom;
+	struct _custom_list *next;
+} custom_list;
+
 struct _neko_vm {
 	int_val *sp;
 	int_val *csp;
@@ -41,7 +47,7 @@ struct _neko_vm {
 	value exc_stack;
 	neko_printer print;
 	void *print_param;
-	value variables;
+	custom_list *clist;
 	value resolver;
 	char tmp[100];
 };

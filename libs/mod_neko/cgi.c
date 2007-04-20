@@ -17,6 +17,8 @@
 #include <neko.h>
 #include "mod_neko.h"
 
+DEFINE_KIND(k_mod_neko);
+
 #ifdef APACHE_2_X
 #	define ap_table_get		apr_table_get
 #	define ap_table_set		apr_table_set

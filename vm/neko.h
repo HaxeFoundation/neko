@@ -307,8 +307,7 @@ typedef struct {
 #define val_hash			neko_val_hash
 #define k_int32				neko_k_int32
 #define k_hash				neko_k_hash
-#define kind_import			neko_kind_import
-#define kind_export			neko_kind_export
+#define kind_share			neko_kind_share
 
 C_FUNCTION_BEGIN
 
@@ -367,8 +366,7 @@ C_FUNCTION_BEGIN
 	EXTERN void val_rethrow( value v );
 	EXTERN int val_hash( value v );
 
-	EXTERN void kind_export( vkind k, const char *name );
-	EXTERN vkind kind_import( const char *name );
+	EXTERN void kind_share( vkind *k, const char *name );	
 	EXTERN void _neko_failure( value msg, const char *file, int line );
 
 C_FUNCTION_END

@@ -37,6 +37,7 @@ DEFINE_ENTRY_POINT(std_main);
 extern vkind k_file;
 extern vkind k_socket;
 extern vkind k_buffer;
+extern vkind k_thread;
 
 void std_main() {
 	id_h = val_id("h");
@@ -54,10 +55,11 @@ void std_main() {
 	id_cdata = val_id("cdata");
 	id_doctype = val_id("doctype");
 	id_serialize = val_id("__serialize");
-	id_unserialize = val_id("__unserialize");
-	kind_export(k_file,"file");
-	kind_export(k_socket,"socket");
-	kind_export(k_buffer,"buffer");
+	id_unserialize = val_id("__unserialize");	
+	kind_share(&k_file,"file");
+	kind_share(&k_socket,"socket");
+	kind_share(&k_buffer,"buffer");
+	kind_share(&k_thread,"thread");
 }
 
 /* ************************************************************************ */

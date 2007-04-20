@@ -163,7 +163,8 @@ static int neko_handler_rec( request_rec *r ) {
 		ctx.post_data = buffer_to_string(b);
 	}
 
-	vm = neko_vm_alloc(&ctx);
+	vm = neko_vm_alloc(NULL);
+	neko_vm_set_custom(vm,k_mod_neko,&ctx);
 	if( use_jit && !neko_vm_jit(vm,1) ) {
 		send_headers(&ctx);
 		ap_rprintf(r,"<b>Error</b> : JIT required by env. var but not enabled in NekoVM");
