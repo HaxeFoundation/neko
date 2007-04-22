@@ -558,12 +558,13 @@ static int_val interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_v
 	Instr(AccField)
 		if( val_is_object(acc) ) {
 			value *f;
-			value old = (value)acc;
+			value old = (value)acc, tacc = (value)acc;
 			do {
 				f = otable_find(((vobject*)acc)->table,(field)*pc);
 				if( f )
 					break;
-				acc = (int_val)((vobject*)acc)->proto;
+				acc = (int_val)((vobject*)tacc)->proto;
+				tacc = (value)acc;
 			} while( acc );
 			if( f )
 				acc = (int_val)*f;
