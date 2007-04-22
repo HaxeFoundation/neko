@@ -219,7 +219,7 @@ static value thread_read_message( value block ) {
 			WaitForSingleObject(t->wait,INFINITE);
 			LOCK(t->lock);
 #			else
-			pthread_cond_wait(&t->cond,&t->lock);
+			pthread_cond_wait(&t->wait,&t->lock);
 #			endif
 		} else {
 			UNLOCK(t->lock);
