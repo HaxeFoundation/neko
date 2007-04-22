@@ -26,6 +26,9 @@
 DEFINE_KIND(neko_kind_module);
 
 /* Endianness macros. */
+#ifdef NEKO_BSD
+#	include <sys/endian.h>
+#endif
 #ifndef LITTLE_ENDIAN
 #	define LITTLE_ENDIAN 1
 #endif
