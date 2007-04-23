@@ -1,6 +1,6 @@
 ## CONFIG
 
-INSTALL_PREFIX = /usr
+INSTALL_PREFIX = /usr/local
 
 CFLAGS = -Wall -O3 -fPIC -fomit-frame-pointer -I vm -DCOMPACT_TABLE
 EXTFLAGS = -pthread
@@ -42,7 +42,7 @@ CFLAGS = -g -Wall -O3 -momit-leaf-frame-pointer -I vm -I /usr/local/include -DCO
 EXTFLAGS =
 MAKESO = $(CC) -O -shared
 LIBNEKO_NAME = neko.dll
-LIBNEKO_LIBS = -Lbin -lgc 
+LIBNEKO_LIBS = -Lbin -lgc
 STD_NDLL_FLAGS = ${NEKOVM_FLAGS} -lws2_32
 endif
 
@@ -66,7 +66,7 @@ CFLAGS += -arch ppc -arch i386 -L/usr/local/lib
 UNIV = libs/include/osx_universal
 #linking to shared lib (.a) explicitly:
 LIBNEKO_DEPS = ${UNIV}/libgc.a  -lSystemStubs
-LIBNEKO_LIBS = ${LIBNEKO_DEPS} -dynamiclib -single_module ${LIBNEKO_INSTALL} ${CFLAGS} 
+LIBNEKO_LIBS = ${LIBNEKO_DEPS} -dynamiclib -single_module ${LIBNEKO_INSTALL} ${CFLAGS}
 NEKOVM_FLAGS = -L${PWD}/bin -lneko
 STD_NDLL_FLAGS = -bundle ${NEKOVM_FLAGS} ${CFLAGS}
 INSTALL_FLAGS = -osx-universal
@@ -123,16 +123,18 @@ bin/std.ndll: ${STD_OBJECTS}
 
 clean:
 	rm -rf bin/${LIBNEKO_NAME} ${LIBNEKO_OBJECTS} ${VM_OBJECTS}
-	rm -rf bin/neko bin/nekoc bin/nekoml bin/nekotools 
+	rm -rf bin/neko bin/nekoc bin/nekoml bin/nekotools
 	rm -rf bin/std bin/*.ndll bin/*.n libs/*/*.o
 	rm -rf src/*.n src/neko/*.n src/nekoml/*.n src/tools/*.n
 	rm -rf bin/mtypes bin/tools
 
-install:	
+install:
 	cp bin/${LIBNEKO_NAME} ${INSTALL_PREFIX}/lib
 	cp bin/neko bin/nekoc bin/nekotools ${INSTALL_PREFIX}/bin
-	mkdir ${INSTALL_PREFIX}/lib/neko
+	-mkdir ${INSTALL_PREFIX}/lib/neko
 	cp bin/*.ndll ${INSTALL_PREFIX}/lib/neko
+	-mkdir ${INSTALL_PREFIX}/include
+	cp vm/neko*.h ${INSTALL_PREFIX}/include
 
 uninstall:
 	rm -rf ${INSTALL_PREFIX}/lib/${LIBNEKO_NAME}
