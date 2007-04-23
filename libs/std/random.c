@@ -88,15 +88,17 @@ static rnd *rnd_init( void *data ) {
 
 static unsigned int rnd_int( rnd *r ) {
 	unsigned int y;
-    if( r->cur == NSEEDS ) {
+	int pos = r->cur++;
+    if( pos >= NSEEDS ) {
 		int kk;
 		for(kk=0;kk<NSEEDS-MAX;kk++)
 			r->seeds[kk] = r->seeds[kk+MAX] ^ (r->seeds[kk] >> 1) ^ mag01[r->seeds[kk] % 2];		
 		for(;kk<NSEEDS;kk++)
 			r->seeds[kk] = r->seeds[kk+(MAX-NSEEDS)] ^ (r->seeds[kk] >> 1) ^ mag01[r->seeds[kk] % 2];      
 		r->cur = 0;
+		pos = 0;
 	}
-    y = r->seeds[r->cur++];
+    y = r->seeds[pos];
     y ^= (y << 7) & 0x2b5b2500;
     y ^= (y << 15) & 0xdb8b0000;
     y ^= (y >> 16);
