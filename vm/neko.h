@@ -261,12 +261,13 @@ typedef struct {
 #endif
 
 #ifdef HEADER_IMPORTS
-#	define DECLARE_PRIM(func,nargs) C_FUNCTION_BEGIN IMPORT void *func##__##nargs(); C_FUNCTION_END
-#	define DECLARE_KIND(name) C_FUNCTION_BEGIN IMPORT extern vkind name; C_FUNCTION_END
+#	define H_EXTERN IMPORT
 #else
-#	define DECLARE_PRIM(func,nargs) C_FUNCTION_BEGIN EXPORT void *func##__##nargs(); C_FUNCTION_END
-#	define DECLARE_KIND(name) C_FUNCTION_BEGIN EXPORT extern vkind name; C_FUNCTION_END
+#	define H_EXTERN EXPORT
 #endif
+
+#define DECLARE_PRIM(func,nargs) C_FUNCTION_BEGIN H_EXTERN void *func##__##nargs(); C_FUNCTION_END
+#define DECLARE_KIND(name) C_FUNCTION_BEGIN H_EXTERN extern vkind name; C_FUNCTION_END
 
 #define alloc_float			neko_alloc_float
 #define alloc_string		neko_alloc_string

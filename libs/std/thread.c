@@ -14,39 +14,22 @@
 /* Lesser General Public License or the LICENSE file for more details.		*/
 /*																			*/
 /* ************************************************************************ */
-#include <neko.h>
 #include <neko_vm.h>
 #include <string.h>
 #include <stdio.h>
+#include "thread.h"
 
-typedef struct _tqueue {
-	value msg;
-	struct _tqueue *next;
-} tqueue;
+init_func neko_thread_init_hook = NULL;
+cleanup_func neko_thread_cleanup_hook = NULL;
 
 #ifdef NEKO_WINDOWS
-#	include <windows.h>
-
-typedef HANDLE vlock;
-
-#define LOCK(l)		EnterCriticalSection(&(l))
-#define UNLOCK(l)	LeaveCriticalSection(&(l))
-#define SIGNAL(l)	ReleaseSemaphore(l,1,NULL)
-
+#	define LOCK(l)		EnterCriticalSection(&(l))
+#	define UNLOCK(l)	LeaveCriticalSection(&(l))
+#	define SIGNAL(l)	ReleaseSemaphore(l,1,NULL)
 #else
-#	include <pthread.h>
-#	include <sys/time.h>
-
-typedef struct _vlock {
-	pthread_mutex_t lock;
-	pthread_cond_t cond;
-	int counter;
-} *vlock;
-
-#define LOCK(l)		pthread_mutex_lock(&(l))
-#define UNLOCK(l)	pthread_mutex_unlock(&(l))
-#define SIGNAL(l)	pthread_cond_signal(&(l))
-
+#	define LOCK(l)		pthread_mutex_lock(&(l))
+#	define UNLOCK(l)	pthread_mutex_unlock(&(l))
+#	define SIGNAL(l)	pthread_cond_signal(&(l))
 #endif
 
 /**
@@ -58,26 +41,10 @@ typedef struct _vlock {
 	</doc>
 **/
 
-#define val_thread(t)	((vthread*)val_data(t))
 #define val_lock(l)		((vlock)val_data(l))
 
 DEFINE_KIND(k_thread);
 DEFINE_KIND(k_lock);
-
-typedef struct {
-#	ifdef NEKO_WINDOWS
-	DWORD tid;
-	CRITICAL_SECTION lock;
-	HANDLE wait;
-#	else
-	pthread_t phandle;
-	pthread_mutex_t lock;
-	pthread_cond_t wait;
-#	endif
-	tqueue *first;
-	tqueue *last;
-	value v;
-} vthread;
 
 typedef struct {
 	value callb;
@@ -85,6 +52,10 @@ typedef struct {
 	vthread *t;
 	void *handle;
 } tparams;
+
+vthread *neko_thread_current() {
+	return (vthread*)neko_vm_custom(neko_vm_current(),k_thread);
+}
 
 static void free_thread( value v ) {
 	vthread *t = val_thread(v);
@@ -95,6 +66,7 @@ static void free_thread( value v ) {
 	pthread_mutex_destroy(&t->lock);
 	pthread_cond_destroy(&t->wait);
 #endif
+	if( neko_thread_cleanup_hook ) neko_thread_cleanup_hook(t);
 }
 
 static vthread *alloc_thread() {
@@ -108,8 +80,9 @@ static vthread *alloc_thread() {
 	t->phandle = pthread_self();
 	pthread_mutex_init(&t->lock,NULL);
 	pthread_cond_init(&t->wait,NULL);
-#endif
+#endif	
 	t->v = alloc_abstract(k_thread,t);
+	if( neko_thread_init_hook ) neko_thread_init_hook(t);
 	val_gc(t->v,free_thread);
 	return t;
 }
@@ -160,13 +133,12 @@ static value thread_create( value f, value param ) {
 	thread_current : void -> 'thread
 	<doc>Returns the current thread</doc>
 **/
-static value thread_current() {
-	neko_vm *vm = neko_vm_current();
-	vthread *t = (vthread*)neko_vm_custom(vm,k_thread);
+static value thread_current() {	
+	vthread *t = neko_thread_current();
 	// should only occur for main thread !
 	if( t == NULL ) {
 		t = alloc_thread();
-		neko_vm_set_custom(vm,k_thread,t);
+		neko_vm_set_custom(neko_vm_current(),k_thread,t);
 	}
 	return t->v;
 }
