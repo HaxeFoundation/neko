@@ -95,7 +95,7 @@ static unsigned int rnd_int( rnd *r ) {
 			r->seeds[kk] = r->seeds[kk+MAX] ^ (r->seeds[kk] >> 1) ^ mag01[r->seeds[kk] % 2];		
 		for(;kk<NSEEDS;kk++)
 			r->seeds[kk] = r->seeds[kk+(MAX-NSEEDS)] ^ (r->seeds[kk] >> 1) ^ mag01[r->seeds[kk] % 2];      
-		r->cur = 0;
+		r->cur = 1;
 		pos = 0;
 	}
     y = r->seeds[pos];
