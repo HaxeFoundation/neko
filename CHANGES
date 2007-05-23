@@ -15,7 +15,6 @@
 	thread_current returns unique value
 	remove kind_import, kind_export, added kind_share
 	added os library
-	fixed && operation (use new JumpIfFalse opcode)
 	TODO : FIX OO for JIT AS WELL
 	TODO : process output capture
 

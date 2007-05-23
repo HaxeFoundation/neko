@@ -406,17 +406,8 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 	for(i=0;i<m->codesize;i++) {
 		int c = (int)m->code[i];
 		itmp = (unsigned int)m->code[i+1];
-		if( c >= Last || tmp[i+1] == parameter_table[c] ) {
-			// extended opcode, with parameters
-			switch( c ) {
-			case EndTrap:
-				c = JumpIfFalse;
-				break;
-			default:
-				ERROR();
-			}
-			m->code[i] = c;
-		}
+		if( c >= Last || tmp[i+1] == parameter_table[c] )
+			ERROR();
 		// Additional checks and optimizations
 		switch( m->code[i] ) {
 		case AccGlobal:
@@ -428,7 +419,6 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 		case Jump:
 		case JumpIf:
 		case JumpIfNot:
-		case JumpIfFalse:
 		case Trap:
 			itmp += i;
 			if( itmp > m->codesize || !tmp[itmp] )

@@ -81,7 +81,6 @@ function stack_delta(o) {
 	| AccIndex _
 	| JumpIf _
 	| JumpIfNot _
-	| JumpIfFalse _
 	| Jump _
 	| JumpTable _
 	| Ret _
@@ -491,10 +490,9 @@ function rec compile_binop(ctx,tail,op,e1,e2,p) {
 		compile_access_set ctx a
 	| "&&" ->
 		compile ctx false e1;
-		var p = pos ctx;
-		write ctx (JumpIfFalse 0);
+		var jnext = cjmp false ctx;
 		compile ctx tail e2;
-		Array.set ctx.ops p JumpIfFalse(pos ctx - p)
+		jnext()
 	| "||" ->
 		compile ctx false e1;
 		var jnext = cjmp true ctx;

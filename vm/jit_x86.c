@@ -1966,10 +1966,6 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		XCmp_rc(ACC,CONST(val_true));
 		jump(JNeq,p);
 		break;
-	case JumpIfFalse:
-		XCmp_rc(ACC,CONST(val_false));
-		jump(JEq,p);
-		break;
 	case Neq: {
 		int *jnot1, *jnot2;
 		char *jend;

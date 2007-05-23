@@ -82,8 +82,7 @@ type opcode {
 	AccIndex0;
 	AccIndex1;
 	PhysCompare;
-	TailCall : (int, int);
-	JumpIfFalse : int;
+	TailCall : (int, int);	
 };
 
 type global {
@@ -121,7 +120,6 @@ function op_param(x) {
 	| Jump _
 	| JumpIf _
 	| JumpIfNot _
-	| JumpIfFalse _
 	| JumpTable _
 	| Trap _
 	| MakeEnv _
@@ -361,7 +359,6 @@ function write(ch,(globals,ops)) {
 			| AccIndex1 -> 61
 			| PhysCompare -> 62
 			| TailCall (args,st) -> pop := (args or (st << 3)); 63
-			| JumpIfFalse n -> pop := (pos.[i+n] - pos.[i]); 27 // same id as EndTrap
 		});
 		var n = *pop;
 		if n == inull then
@@ -535,7 +532,7 @@ function read(ch) {
 				| 24 -> jumps := (*cpos , Array.length ops) :: *jumps; JumpIf p
 				| 25 -> jumps := (*cpos , Array.length ops) :: *jumps; JumpIfNot p
 				| 26 -> jumps := (*cpos , Array.length ops) :: *jumps; Trap p
-				| 27 -> if p == inull then EndTrap else { jumps := (*cpos , Array.length ops) :: *jumps; JumpIfFalse p }
+				| 27 -> EndTrap
 				| 28 -> Ret p
 				| 29 -> MakeEnv p
 				| 30 -> MakeArray p
@@ -590,7 +587,6 @@ function read(ch) {
 			| Jump p -> Jump (pos_index i (a+p))
 			| JumpIf p -> JumpIf (pos_index i (a+p))
 			| JumpIfNot p -> JumpIfNot (pos_index i (a+p))
-			| JumpIfFalse p -> JumpIfFalse (pos_index i (a+p))
 			| Trap p -> Trap (pos_index i (a+p))
 			| _ -> assert()
 			});
@@ -658,7 +654,6 @@ function dump(ch,(globals,ops)) {
 			| Jump i -> str "Jump" (pos + i)
 			| JumpIf i -> str "JumpIf" (pos + i)
 			| JumpIfNot i -> str "JumpIfNot" (pos + i)
-			| JumpIfFalse i -> str "JumpIfFalse" (pos + i)
 			| Trap i -> str "Trap" (pos + i)
 			| Ret i -> str "Ret" i
 			| MakeEnv i -> str "MakeEnv" i
