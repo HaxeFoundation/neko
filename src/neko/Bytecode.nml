@@ -83,6 +83,7 @@ type opcode {
 	AccIndex1;
 	PhysCompare;
 	TailCall : (int, int);
+	JumpIfFalse : int;
 };
 
 type global {
@@ -96,6 +97,7 @@ type global {
 exception Invalid_file;
 
 var trap_stack_delta = 6
+var inull : int = neko("null")
 
 function hash_field(s : string) : int {
 	neko("$hash(s)")
@@ -119,6 +121,7 @@ function op_param(x) {
 	| Jump _
 	| JumpIf _
 	| JumpIfNot _
+	| JumpIfFalse _
 	| JumpTable _
 	| Trap _
 	| MakeEnv _
@@ -292,39 +295,39 @@ function write(ch,(globals,ops)) {
 		IO.write_char ch '\000';
 	}) ids;
 	Array.iteri (function(i,op) {
-		var pop = &None;
+		var pop = &inull;
 		var opid = (match op {
 			| AccNull -> 0
 			| AccTrue -> 1
 			| AccFalse -> 2
 			| AccThis -> 3
-			| AccInt n -> pop := Some n; 4
-			| AccStack n -> pop := Some (n - 2); 5
-			| AccGlobal n -> pop := Some n; 6
-			| AccEnv n -> pop := Some n; 7
-			| AccField s -> pop := Some (hash_field s); 8
+			| AccInt n -> pop := n; 4
+			| AccStack n -> pop := (n - 2); 5
+			| AccGlobal n -> pop := n; 6
+			| AccEnv n -> pop := n; 7
+			| AccField s -> pop := (hash_field s); 8
 			| AccArray -> 9
-			| AccIndex n -> pop := Some (n - 2); 10
-			| AccBuiltin s -> pop := Some (hash_field s); 11
-			| SetStack n -> pop := Some n; 12
-			| SetGlobal n -> pop := Some n; 13
-			| SetEnv n -> pop := Some n; 14
-			| SetField s -> pop := Some (hash_field s); 15
+			| AccIndex n -> pop := (n - 2); 10
+			| AccBuiltin s -> pop := (hash_field s); 11
+			| SetStack n -> pop := n; 12
+			| SetGlobal n -> pop := n; 13
+			| SetEnv n -> pop := n; 14
+			| SetField s -> pop := (hash_field s); 15
 			| SetArray -> 16
-			| SetIndex n -> pop := Some n; 17
+			| SetIndex n -> pop := n; 17
 			| SetThis -> 18
 			| Push -> 19
-			| Pop n -> pop := Some n; 20
-			| Call n -> pop := Some n; 21
-			| ObjCall n -> pop := Some n; 22
-			| Jump n -> pop := Some (pos.[i+n] - pos.[i]); 23
-			| JumpIf n -> pop := Some (pos.[i+n] - pos.[i]); 24
-			| JumpIfNot n -> pop := Some (pos.[i+n] - pos.[i]); 25
-			| Trap n -> pop := Some (pos.[i+n] - pos.[i]); 26
+			| Pop n -> pop := n; 20
+			| Call n -> pop := n; 21
+			| ObjCall n -> pop := n; 22
+			| Jump n -> pop := (pos.[i+n] - pos.[i]); 23
+			| JumpIf n -> pop := (pos.[i+n] - pos.[i]); 24
+			| JumpIfNot n -> pop := (pos.[i+n] - pos.[i]); 25
+			| Trap n -> pop := (pos.[i+n] - pos.[i]); 26
 			| EndTrap -> 27
-			| Ret n -> pop := Some n; 28
-			| MakeEnv n -> pop := Some n; 29
-			| MakeArray n -> pop := Some n; 30
+			| Ret n -> pop := n; 28
+			| MakeEnv n -> pop := n; 29
+			| MakeArray n -> pop := n; 30
 			| Bool -> 31
 			| IsNull -> 32
 			| IsNotNull -> 33
@@ -350,20 +353,27 @@ function write(ch,(globals,ops)) {
 			| Compare -> 53
 			| Hash -> 54
 			| New -> 55
-			| JumpTable n -> pop := Some n; 56
-			| Apply n -> pop := Some n; 57
+			| JumpTable n -> pop := n; 56
+			| Apply n -> pop := n; 57
 			| AccStack0 -> 58
 			| AccStack1 -> 59
 			| AccIndex0 -> 60
 			| AccIndex1 -> 61
 			| PhysCompare -> 62
-			| TailCall (args,st) -> pop := Some (args or (st << 3)); 63
+			| TailCall (args,st) -> pop := (args or (st << 3)); 63
+			| JumpIfFalse n -> pop := (pos.[i+n] - pos.[i]); 27 // same id as EndTrap
 		});
-		match *pop {
-		| None -> IO.write_byte ch (opid << 2)
-		| Some n when opid < 32 && (n == 0 || n == 1) -> IO.write_byte ch ((opid << 3) or (n << 2) or 1)
-		| Some n when n >= 0 && n <= 0xFF -> IO.write_byte ch ((opid << 2) or 2); IO.write_byte ch n
-		| Some n -> IO.write_byte ch ((opid << 2) or 3); IO.write_i32 ch n
+		var n = *pop;
+		if n == inull then
+			IO.write_byte ch (opid << 2)
+		else if opid < 32 && (n == 0 || n == 1) then
+			IO.write_byte ch ((opid << 3) or (n << 2) or 1)
+		else if n >= 0 && n <= 0xFF then {
+			IO.write_byte ch ((opid << 2) or 2);
+			IO.write_byte ch n;
+		} else {
+			IO.write_byte ch ((opid << 2) or 3);
+			IO.write_i32 ch n;
 		}
 	}) ops
 }
@@ -491,7 +501,7 @@ function read(ch) {
 		while *cpos < csize {
 			var code = IO.read_byte ch;
 			var op , p = match code and 3 {
-				| 0 -> (code >> 2 , 0)
+				| 0 -> (code >> 2 , inull)
 				| 1 -> (code >> 3 , ((code >> 2) and 1))
 				| 2 -> (code >> 2 , IO.read_byte ch)
 				| 3 -> (code >> 2 , IO.read_i32 ch)
@@ -525,7 +535,7 @@ function read(ch) {
 				| 24 -> jumps := (*cpos , Array.length ops) :: *jumps; JumpIf p
 				| 25 -> jumps := (*cpos , Array.length ops) :: *jumps; JumpIfNot p
 				| 26 -> jumps := (*cpos , Array.length ops) :: *jumps; Trap p
-				| 27 -> EndTrap
+				| 27 -> if p == inull then EndTrap else { jumps := (*cpos , Array.length ops) :: *jumps; JumpIfFalse p }
 				| 28 -> Ret p
 				| 29 -> MakeEnv p
 				| 30 -> MakeArray p
@@ -580,6 +590,7 @@ function read(ch) {
 			| Jump p -> Jump (pos_index i (a+p))
 			| JumpIf p -> JumpIf (pos_index i (a+p))
 			| JumpIfNot p -> JumpIfNot (pos_index i (a+p))
+			| JumpIfFalse p -> JumpIfFalse (pos_index i (a+p))
 			| Trap p -> Trap (pos_index i (a+p))
 			| _ -> assert()
 			});
@@ -647,6 +658,7 @@ function dump(ch,(globals,ops)) {
 			| Jump i -> str "Jump" (pos + i)
 			| JumpIf i -> str "JumpIf" (pos + i)
 			| JumpIfNot i -> str "JumpIfNot" (pos + i)
+			| JumpIfFalse i -> str "JumpIfFalse" (pos + i)
 			| Trap i -> str "Trap" (pos + i)
 			| Ret i -> str "Ret" i
 			| MakeEnv i -> str "MakeEnv" i

@@ -773,6 +773,12 @@ static int_val interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_v
 		else
 			pc++;
 		Next;
+	Instr(JumpIfFalse)
+		if( acc == (int_val)val_false )
+			pc = (int_val*)*pc;
+		else
+			pc++;
+		Next;
 	Instr(Trap)
 		sp -= 6;
 		if( sp <= csp ) {
