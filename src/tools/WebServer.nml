@@ -233,7 +233,7 @@ function init_client(s) {
 
 function rec find_url_file(url,recursive) {
 	var len = String.length url;
-	if String.get url (len - 1) == '/' then {
+	if len > 0 && String.get url (len - 1) == '/' then {
 		function rec loop(l) {
 			match l {
 			| [] ->
