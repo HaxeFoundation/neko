@@ -15,13 +15,34 @@
 /*																			*/
 /* ************************************************************************ */
 #define HEADER_IMPORTS
-#include <neko.h>
-#include "../std/thread.h"
+#include <neko_vm.h>
+#include <stdio.h>
 
-#ifdef NEKO_WINDOWS
+#if defined(NEKO_WINDOWS)
 #	include <windows.h>
 #	define CLASS_NAME "Neko_OS_wnd_class"
 #	define WM_SYNC_CALL	(WM_USER + 101)
+#elif defined(NEKO_MAC)
+#	include <Carbon/Carbon.h>
+#	define OsEvent		0xFEFEAA00
+#	define eCall		0x0
+enum { pFunc = 'func', os };
+#endif
+
+typedef struct {
+	int init_done;
+#if defined(NEKO_WINDOWS)
+	DWORD tid;
+	HWND wnd;
+#else
+	pthread_t tid;
+#endif
+} os_data;
+
+static os_data data = { 0 };
+
+#if defined(NEKO_WINDOWS)
+
 static LRESULT CALLBACK WindowProc( HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam ) {
 	switch( msg ) {
 	case WM_SYNC_CALL: {
@@ -33,14 +54,8 @@ static LRESULT CALLBACK WindowProc( HWND hwnd, UINT msg, WPARAM wparam, LPARAM l
 	}}
 	return DefWindowProc(hwnd,msg,wparam,lparam);
 }
-#else NEKO_MAC
-#	include <Carbon/Carbon.h>
-#	define xCrossEvent	0xFFFFAA00
-#	define eCall		0x0
 
-enum {
-	pFunc = 'func',
-};
+#elif defined(NEKO_MAC)
 
 static OSStatus handleEvents( EventHandlerCallRef ref, EventRef e, void *data ) {
 	switch( GetEventKind(e) ) {
@@ -52,104 +67,131 @@ static OSStatus handleEvents( EventHandlerCallRef ref, EventRef e, void *data ) 
 		free_root(r);
 		val_call0(f);
 		break;
-	}}	
+	}}
 	return 0;
 }
+
+#elif defined(NEKO_LINUX)
+
+static gint nothing( gpointer data ) {
+	return TRUE;
+}
+
+static gint onSyncCall( gpointer data ) {
+	value *r = (value*)data;
+	value f = *r;
+	free_root(r);
+	val_call0(f);
+	return 0;
+}
+
 #endif
-
-static void os_thread_init( vthread *t ) {
-#	ifdef NEKO_WINDOWS
-	t->os_wnd = CreateWindow(CLASS_NAME,"",0,0,0,0,0,NULL,NULL,NULL,NULL);
-#	else NEKO_MAC
-	EventTypeSpec ets[] = { { xCrossEvent, eCall } };
-	t->os_queue = GetCurrentQueue();
-	t->os_loop = GetCurrentEventLoop();
-	InstallEventHandler(GetEventDispatcherTarget(),NewEventHandlerUPP(handleEvents),sizeof(ets) / sizeof(EventTypeSpec),ets,0,0);
-#	else
-#	endif	
-}
-
-static void os_thread_cleanup( vthread *t ) {	
-#	ifdef NEKO_WINDOWS
-	DestroyWindow(t->os_wnd);
-	t->os_wnd = NULL;
-#	endif
-}
 
 DEFINE_ENTRY_POINT(os_main);
 
 void os_main() {
+	if( data.init_done )
+		return;
+	data.init_done = 1;
 #	ifdef NEKO_WINDOWS
-	WNDCLASSEX wcl;
-	HINSTANCE hinst = GetModuleHandle(NULL);
-	memset(&wcl,0,sizeof(wcl));
-	wcl.cbSize			= sizeof(WNDCLASSEX);
-	wcl.style			= CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
-	wcl.lpfnWndProc		= WindowProc;
-	wcl.cbClsExtra		= 0;
-	wcl.cbWndExtra		= 0;
-	wcl.hInstance		= hinst;
-	wcl.hIcon			= NULL;
-	wcl.hCursor			= LoadCursor(NULL, IDC_ARROW);
-	wcl.hbrBackground	= (HBRUSH)(COLOR_BTNFACE+1);
-	wcl.lpszMenuName	= "";
-	wcl.lpszClassName	= CLASS_NAME;
-	wcl.hIconSm			= 0;
-	RegisterClassEx(&wcl);
-#	endif
-	neko_thread_init_hook = os_thread_init;
-	neko_thread_cleanup_hook = os_thread_cleanup;
-}
-
-static void os_loop() {
-#	ifdef NEKO_WINDOWS
-	MSG msg;
-	while( GetMessage(&msg,NULL,0,0) ) {
-		TranslateMessage(&msg);
-		DispatchMessage(&msg);
-		if( msg.message == WM_QUIT )
-			break;
+	{
+		WNDCLASSEX wcl;
+		HINSTANCE hinst = GetModuleHandle(NULL);
+		memset(&wcl,0,sizeof(wcl));
+		wcl.cbSize			= sizeof(WNDCLASSEX);
+		wcl.style			= CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
+		wcl.lpfnWndProc		= WindowProc;
+		wcl.cbClsExtra		= 0;
+		wcl.cbWndExtra		= 0;
+		wcl.hInstance		= hinst;
+		wcl.hIcon			= NULL;
+		wcl.hCursor			= LoadCursor(NULL, IDC_ARROW);
+		wcl.hbrBackground	= (HBRUSH)(COLOR_BTNFACE+1);
+		wcl.lpszMenuName	= "";
+		wcl.lpszClassName	= CLASS_NAME;
+		wcl.hIconSm			= 0;
+		RegisterClassEx(&wcl);
 	}
-#	else NEKO_MAC
-	RunCurrentEventLoop(kEventDurationForever);
+	data.tid = GetCurrentThreadId();
+	data.wnd = CreateWindow(CLASS_NAME,"",0,0,0,0,0,NULL,NULL,NULL,NULL);
+#	elif defined(NEKO_MAC)
+	EventTypeSpec ets[] = { { OsEvent, eCall } };
+	InstallEventHandler(GetApplicationEventTarget(),NewEventHandlerUPP(handleEvents),sizeof(ets) / sizeof(EventTypeSpec),ets,0,0);
+#	elif defined(NEKO_LINUX)
+	XInitThreads();
+	gtk_init(NULL,NULL);
+	gtk_timeout_add( 100, nothing, NULL ); 	// keep the loop alive
+	setlocale(LC_NUMERIC,"POSIX"); // prevent broking atof()
+#	endif
+#	ifndef NEKO_WINDOWS
+	data.tid = pthread_self();
 #	endif
 }
 
-static value os_loop_stop( value t ) {
-	val_check_kind(t,k_thread);
+static value os_is_main() {
 #	ifdef NEKO_WINDOWS
-	if( !PostThreadMessage(val_thread(t)->tid,WM_QUIT,0,0) )
+	return alloc_bool(data.tid == GetCurrentThreadId());
+#	else
+	return alloc_bool(pthread_equal(data.thread,pthread_self()));
+#	endif
+}
+
+static value os_loop() {
+	if( !val_bool(os_is_main()) )
 		neko_error();
-#	else NEKO_MAC
-	if( QuitEventLoop((EventLoopRef)t->os_loop) != noErr )
-		neko_error();
+#	if defined(NEKO_WINDOWS)
+	{
+		MSG msg;
+		while( GetMessage(&msg,NULL,0,0) ) {
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+			if( msg.message == WM_QUIT )
+				break;
+		}
+	}
+#	elif defined(NEKO_MAC)
+	RunApplicationEventLoop();
+#	else
+	gtk_main();
 #	endif
 	return val_null;
 }
 
-static value os_sync( value t, value f ) {
+static value os_stop_loop() {
+#	if defined(NEKO_WINDOWS)
+	while( !PostThreadMessage(data.tid,WM_QUIT,0,0) )
+		Sleep(100);
+#	elif defined(NEKO_MAC)
+	QuitApplicationEventLoop();
+#	else
+	gtk_main_quit();
+#	endif
+	return val_null;
+}
+
+static value os_sync( value f ) {
 	value *r;
-	val_check_kind(t,k_thread);
 	val_check_function(f,0);
 	r = alloc_root(1);
 	*r = f;
-#	ifdef NEKO_WINDOWS
-	if( !PostMessage(val_thread(t)->os_wnd,WM_SYNC_CALL,0,(LPARAM)r) ) {
-		free_root(r);
-		neko_error();
-	}
-#	else NEKO_MAC
+#	if defined(NEKO_WINDOWS)
+	while( !PostMessage(data.wnd,WM_SYNC_CALL,0,(LPARAM)r) )
+		Sleep(100);
+#	elif defined(NEKO_MAC)
 	EventRef e;
-	CreateEvent(NULL,xCrossEvent,eCall,GetCurrentEventTime(),kEventAttributeUserEvent,&e);
+	CreateEvent(NULL,OsEvent,eCall,GetCurrentEventTime(),kEventAttributeUserEvent,&e);
 	SetEventParameter(e,pFunc,typeVoidPtr,sizeof(void*),&r);
-	PostEventToQueue((EventQueueRef)val_thread(t)->os_queue,e,kEventPriorityStandard);
+	PostEventToQueue(GetMainEventQueue(),e,kEventPriorityStandard);
 	ReleaseEvent(e);
+#	elif defined(NEKO_LINUX)
+	gtk_idle_add( onSyncCall, (gpointer)r );
 #	endif
 	return val_null;
 }
 
 DEFINE_PRIM(os_loop,0);
-DEFINE_PRIM(os_loop_stop,1);
-DEFINE_PRIM(os_sync,2);
+DEFINE_PRIM(os_stop_loop,0);
+DEFINE_PRIM(os_is_main,0);
+DEFINE_PRIM(os_sync,1);
 
 /* ************************************************************************ */

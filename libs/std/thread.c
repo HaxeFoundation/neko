@@ -17,10 +17,43 @@
 #include <neko_vm.h>
 #include <string.h>
 #include <stdio.h>
-#include "thread.h"
 
-init_func neko_thread_init_hook = NULL;
-cleanup_func neko_thread_cleanup_hook = NULL;
+#ifdef NEKO_WINDOWS
+#	include <windows.h>
+	typedef HANDLE vlock;
+#else
+#	include <pthread.h>
+#	include <sys/time.h>
+	typedef struct _vlock {
+		pthread_mutex_t lock;
+		pthread_cond_t cond;
+		int counter;
+	} *vlock;
+#endif
+
+typedef struct _tqueue {
+	value msg;
+	struct _tqueue *next;
+} tqueue;
+
+typedef struct {
+#	ifdef NEKO_WINDOWS
+	DWORD tid;
+	CRITICAL_SECTION lock;
+	HANDLE wait;
+#	else
+	pthread_t phandle;
+	pthread_mutex_t lock;
+	pthread_cond_t wait;
+#	endif
+	tqueue *first;
+	tqueue *last;
+	value v;	
+} vthread;
+
+DECLARE_KIND(k_thread);
+
+#define val_thread(t)	((vthread*)val_data(t))
 
 #ifdef NEKO_WINDOWS
 #	define LOCK(l)		EnterCriticalSection(&(l))
@@ -53,7 +86,7 @@ typedef struct {
 	void *handle;
 } tparams;
 
-vthread *neko_thread_current() {
+static vthread *neko_thread_current() {
 	return (vthread*)neko_vm_custom(neko_vm_current(),k_thread);
 }
 
@@ -66,7 +99,6 @@ static void free_thread( value v ) {
 	pthread_mutex_destroy(&t->lock);
 	pthread_cond_destroy(&t->wait);
 #endif
-	if( neko_thread_cleanup_hook ) neko_thread_cleanup_hook(t);
 }
 
 static vthread *alloc_thread() {
@@ -82,7 +114,6 @@ static vthread *alloc_thread() {
 	pthread_cond_init(&t->wait,NULL);
 #endif	
 	t->v = alloc_abstract(k_thread,t);
-	if( neko_thread_init_hook ) neko_thread_init_hook(t);
 	val_gc(t->v,free_thread);
 	return t;
 }
