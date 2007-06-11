@@ -47,7 +47,8 @@ libs = {
 	mod_neko2 => {
 		src => $array("mod_neko","cgi"),
 		inc => $array("httpd.h","apr.h"),
-		incname => "Apache 2.2.x"
+		incname => "Apache 2.2.x",
+		cflags => "-D_LARGEFILE64_SOURCE",
 	},
 	mysql => {
 		src => $array("mysql"),
@@ -115,11 +116,14 @@ search_includes = function(ism2) {
 		"/usr/include/mysql",
 		"/usr/local/include",
 		"/usr/include/apr-1",
+		"/usr/include/apr-1.0",
 		"/usr/include/apr-0",
 		"/usr/local/include/apr-1",
+		"/usr/local/include/apr-1.0",
 		"/usr/local/include/apr-0",
 		"/opt/local/include",
 		"/opt/local/include/apr-1",
+		"/opt/local/include/apr-1.0",
 		"/opt/local/include/apr-0",
 		"/opt/local/include/mysql",
 	);
@@ -228,8 +232,8 @@ copy = function(file,path) {
 	};
 }
 
-compile = function(file,incl) {
-	exec(cc+" "+cflags+" -c "+make("-I",includes)+make("-I",incl)+file+".c");
+compile = function(file,eflags,incl) {
+	exec(cc+" "+cflags+" "+eflags+" -c "+make("-I",includes)+make("-I",incl)+file+".c");
 }
 
 nekoboot = function(file) {
@@ -295,7 +299,7 @@ compile_lib = function(lib) {
 	}
 	var i = 0;
 	while( i < $asize(data.src) ) {
-		compile(data.src[i],dirs);
+		compile(data.src[i],if( data.cflags != null ) data.cflags else "", dirs);
 		i = i + 1;
 	}
 	link(data.src,lib,if( data.lparams != null ) { data.lparams+" " } else ""," "+linklib);
