@@ -75,8 +75,8 @@ libs = {
 		incname => "Sqlite 3",
 		lparams => "-lsqlite3",
 	},
-	os => {
-		src => $array("os"),
+	ui => {
+		src => $array("ui"),
 		inc => switch system { "Mac" => "Carbon.h" default => "gtk/gtk.h" },
 		incname => switch system { "Mac" => "Carbon" default => "GTK+2.0" },
 		cflags => switch system { "Mac" => "" default => "`pkg-config --cflags gtk+-2.0`" },

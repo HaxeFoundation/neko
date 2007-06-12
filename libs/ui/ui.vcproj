@@ -2,7 +2,7 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="7.10"
-	Name="os"
+	Name="ui"
 	ProjectGUID="{9A36DC8A-8070-4F5D-A401-6889DD652288}"
 	Keyword="Win32Proj">
 	<Platforms>
@@ -20,7 +20,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="../../vm"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;OS_EXPORTS"
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;UI_EXPORTS"
 				MinimalRebuild="TRUE"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
@@ -33,12 +33,12 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="../../bin/neko.lib ../std/Debug/std.lib"
-				OutputFile="../../bin/os.ndll"
+				OutputFile="../../bin/ui.ndll"
 				LinkIncremental="2"
 				GenerateDebugInformation="TRUE"
-				ProgramDatabaseFile="$(OutDir)/os.pdb"
+				ProgramDatabaseFile="$(OutDir)/ui.pdb"
 				SubSystem="2"
-				ImportLibrary="$(OutDir)/os.lib"
+				ImportLibrary="$(OutDir)/ui.lib"
 				TargetMachine="1"/>
 			<Tool
 				Name="VCMIDLTool"/>
@@ -70,7 +70,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories="../../vm"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;OS_EXPORTS"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;UI_EXPORTS"
 				RuntimeLibrary="2"
 				BufferSecurityCheck="FALSE"
 				UsePrecompiledHeader="0"
@@ -82,7 +82,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="msvcrt60.lib ../../bin/neko.lib ../std/Release/std.lib"
-				OutputFile="../../bin/os.ndll"
+				OutputFile="../../bin/ui.ndll"
 				LinkIncremental="1"
 				IgnoreAllDefaultLibraries="FALSE"
 				IgnoreDefaultLibraryNames="MSVCRT"
@@ -90,7 +90,7 @@
 				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
-				ImportLibrary="$(OutDir)/os.lib"
+				ImportLibrary="$(OutDir)/ui.lib"
 				TargetMachine="1"/>
 			<Tool
 				Name="VCMIDLTool"/>
@@ -121,7 +121,7 @@
 	</References>
 	<Files>
 		<File
-			RelativePath=".\os.c">
+			RelativePath=".\ui.c">
 		</File>
 	</Files>
 	<Globals>

@@ -1,6 +1,6 @@
 /* ************************************************************************ */
 /*																			*/
-/*  Neko Standard Library													*/
+/*  Neko UI Core Library													*/
 /*  Copyright (c)2005 Motion-Twin											*/
 /*																			*/
 /* This library is free software; you can redistribute it and/or			*/
@@ -20,12 +20,12 @@
 
 #if defined(NEKO_WINDOWS)
 #	include <windows.h>
-#	define CLASS_NAME "Neko_OS_wnd_class"
+#	define CLASS_NAME "Neko_UI_wnd_class"
 #	define WM_SYNC_CALL	(WM_USER + 101)
 #elif defined(NEKO_MAC)
 #	include <Carbon/Carbon.h>
 #	include <pthread.h>
-#	define OsEvent		0xFFFFAA00
+#	define UIEvent		0xFFFFAA00
 #	define eCall		0x0
 enum { pFunc = 'func' };
 #elif defined(NEKO_LINUX)
@@ -47,9 +47,9 @@ typedef struct {
 	pthread_mutex_t lock;
 #endif
 
-} os_data;
+} ui_data;
 
-static os_data data = { 0 };
+static ui_data data = { 0 };
 
 #if defined(NEKO_WINDOWS)
 
@@ -97,9 +97,9 @@ static gint onSyncCall( gpointer data ) {
 
 #endif
 
-DEFINE_ENTRY_POINT(os_main);
+DEFINE_ENTRY_POINT(ui_main);
 
-void os_main() {
+void ui_main() {
 	if( data.init_done )
 		return;
 	data.init_done = 1;
@@ -125,7 +125,7 @@ void os_main() {
 	data.tid = GetCurrentThreadId();
 	data.wnd = CreateWindow(CLASS_NAME,"",0,0,0,0,0,NULL,NULL,NULL,NULL);
 #	elif defined(NEKO_MAC)
-	EventTypeSpec ets = { OsEvent, eCall };
+	EventTypeSpec ets = { UIEvent, eCall };
 	InstallEventHandler(GetApplicationEventTarget(),NewEventHandlerUPP(handleEvents),1,&ets,0,0);
 	data.tid = pthread_self();
 #	elif defined(NEKO_LINUX)
@@ -139,7 +139,7 @@ void os_main() {
 #	endif
 }
 
-static value os_is_main() {
+static value ui_is_main() {
 #	ifdef NEKO_WINDOWS
 	return alloc_bool(data.tid == GetCurrentThreadId());
 #	else
@@ -147,8 +147,8 @@ static value os_is_main() {
 #	endif
 }
 
-static value os_loop() {
-	if( !val_bool(os_is_main()) )
+static value ui_loop() {
+	if( !val_bool(ui_is_main()) )
 		neko_error();
 #	if defined(NEKO_WINDOWS)
 	{
@@ -168,7 +168,7 @@ static value os_loop() {
 	return val_null;
 }
 
-static value os_stop_loop() {
+static value ui_stop_loop() {
 #	if defined(NEKO_WINDOWS)
 	while( !PostThreadMessage(data.tid,WM_QUIT,0,0) )
 		Sleep(100);
@@ -180,7 +180,7 @@ static value os_stop_loop() {
 	return val_null;
 }
 
-static value os_sync( value f ) {
+static value ui_sync( value f ) {
 	value *r;
 	val_check_function(f,0);
 	r = alloc_root(1);
@@ -190,7 +190,7 @@ static value os_sync( value f ) {
 		Sleep(100);
 #	elif defined(NEKO_MAC)
 	EventRef e;
-	CreateEvent(NULL,OsEvent,eCall,GetCurrentEventTime(),kEventAttributeUserEvent,&e);
+	CreateEvent(NULL,UIEvent,eCall,GetCurrentEventTime(),kEventAttributeUserEvent,&e);
 	SetEventParameter(e,pFunc,typeVoidPtr,sizeof(void*),&r);
 	PostEventToQueue(GetMainEventQueue(),e,kEventPriorityStandard);
 	ReleaseEvent(e);
@@ -205,9 +205,9 @@ static value os_sync( value f ) {
 	return val_null;
 }
 
-DEFINE_PRIM(os_loop,0);
-DEFINE_PRIM(os_stop_loop,0);
-DEFINE_PRIM(os_is_main,0);
-DEFINE_PRIM(os_sync,1);
+DEFINE_PRIM(ui_loop,0);
+DEFINE_PRIM(ui_stop_loop,0);
+DEFINE_PRIM(ui_is_main,0);
+DEFINE_PRIM(ui_sync,1);
 
 /* ************************************************************************ */

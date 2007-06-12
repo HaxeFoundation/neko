@@ -31,7 +31,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mysql5", "mysql\mysql5.vcpr
 	ProjectSection(ProjectDependencies) = postProject
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "os", "os\os.vcproj", "{9A36DC8A-8070-4F5D-A401-6889DD652288}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "os", "ui\ui.vcproj", "{9A36DC8A-8070-4F5D-A401-6889DD652288}"
 	ProjectSection(ProjectDependencies) = postProject
 	EndProjectSection
 EndProject
