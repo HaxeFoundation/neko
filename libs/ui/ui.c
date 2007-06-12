@@ -70,6 +70,10 @@ static LRESULT CALLBACK WindowProc( HWND hwnd, UINT msg, WPARAM wparam, LPARAM l
 
 #elif defined(NEKO_MAC)
 
+static OSStatus nothing() {
+	return 0;
+}
+
 static OSStatus handleEvents( EventHandlerCallRef ref, EventRef e, void *data ) {
 	switch( GetEventKind(e) ) {
 	case eCall: {
@@ -128,9 +132,10 @@ void ui_main() {
 	data.tid = GetCurrentThreadId();
 	data.wnd = CreateWindow(CLASS_NAME,"",0,0,0,0,0,NULL,NULL,NULL,NULL);
 #	elif defined(NEKO_MAC)
+	MPCreateTask(nothing,NULL,0,0,0,0,0,NULL); // creates a MPTask that will enable Carbon MT
+	data.tid = pthread_self();
 	EventTypeSpec ets = { UIEvent, eCall };
 	InstallEventHandler(GetApplicationEventTarget(),NewEventHandlerUPP(handleEvents),1,&ets,0,0);
-	data.tid = pthread_self();
 #	elif defined(NEKO_LINUX)
 	g_thread_init(NULL);
 	gdk_threads_init();

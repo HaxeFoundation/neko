@@ -47,6 +47,11 @@ endif
 
 ### OSX SPECIFIC
 
+ifeq (${UNIVERSAL},1)
+MACOSX=1
+OSX_UNIVERSAL=1
+endif
+
 ifeq (${MACOSX}, 1)
 export MACOSX_DEPLOYMENT_TARGET=10.3
 EXTFLAGS =
