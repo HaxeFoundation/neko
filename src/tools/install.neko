@@ -75,6 +75,13 @@ libs = {
 		incname => "Sqlite 3",
 		lparams => "-lsqlite3",
 	},
+	os => {
+		src => $array("os"),
+		inc => switch system { "Mac" => "Carbon.h" default => "gtk.h" },
+		incname => switch system { "Mac" => "Carbon" default => "GTK+2.0" },
+		cflags => switch system { "Mac" => "" default => "`pkg-config --cflags gtk+-2.0`" },
+		lparams => switch system { "Mac" => "-framework Carbon" default => "`pkg-config --libs gtk+-2.0`" },
+	}
 }
 
 // PLATFORM
@@ -85,7 +92,6 @@ if( cc == null ) cc = "gcc";
 linkcmd = switch system { "BSD" => "ld" default => cc };
 linkoptions = switch system { "Mac" => "-bundle -undefined dynamic_lookup -L../../bin -lneko" default => "-shared -L../../bin -lneko" };
 nekovm = switch system { "Windows" => "..\\bin\\neko" default => "../bin/neko" };
-ranlib = function(l) { }
 
 if( osx_universal ) {
 	cflags += " -arch ppc -arch i386";
@@ -96,7 +102,6 @@ if( osx_universal ) {
 	libs.zlib.lib = "osx_universal/libz.a";
 	libs.mysql.lparams = null;
 	libs.mysql.lib = "osx_universal/libmysqlclient.a";
-	ranlib = function(l) { exec("ranlib "+l); }
 }
 
 // COMMANDS
@@ -126,6 +131,7 @@ search_includes = function(ism2) {
 		"/opt/local/include/apr-1.0",
 		"/opt/local/include/apr-0",
 		"/opt/local/include/mysql",
+		"/Developer/Headers/FlatCarbon",
 	);
 }
 
@@ -295,7 +301,6 @@ compile_lib = function(lib) {
 				return;
 		}
 		linklib = dir + "/" + linklib;
-		ranlib(linklib);
 	}
 	var i = 0;
 	while( i < $asize(data.src) ) {

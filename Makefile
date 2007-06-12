@@ -10,7 +10,6 @@ LIBNEKO_LIBS = -ldl -lgc -lm
 NEKOVM_FLAGS = -Lbin -lneko
 STD_NDLL_FLAGS = ${NEKOVM_FLAGS}
 INSTALL_FLAGS =
-RANLIB =
 
 NEKO_EXEC = LD_LIBRARY_PATH=../bin:${LD_LIBRARY_PATH} NEKOPATH=../boot:../bin ../bin/neko
 
@@ -70,7 +69,6 @@ LIBNEKO_LIBS = ${LIBNEKO_DEPS} -dynamiclib -single_module ${LIBNEKO_INSTALL} ${C
 NEKOVM_FLAGS = -L${PWD}/bin -lneko
 STD_NDLL_FLAGS = -bundle ${NEKOVM_FLAGS} ${CFLAGS}
 INSTALL_FLAGS = -osx-universal
-RANLIB = ranlib libs/include/osx_universal/libgc.a
 
 endif
 
@@ -83,6 +81,9 @@ STD_OBJECTS = libs/std/buffer.o libs/std/date.o libs/std/file.o libs/std/init.o 
 LIBNEKO_OBJECTS = vm/alloc.o vm/builtins.o vm/callback.o vm/context.o vm/interp.o vm/load.o vm/objtable.o vm/others.o vm/hash.o vm/module.o vm/jit_x86.o
 
 all: createbin libneko neko std compiler libs
+
+universal:
+	make MACOSX=1 OSX_UNIVERSAL=1
 
 createbin:
 	-mkdir bin 2>/dev/null
@@ -111,7 +112,6 @@ compiler:
 	(cd src; ${NEKO_EXEC} nekoc -link ../boot/nekoml.n nekoml/Main)
 
 bin/${LIBNEKO_NAME}: ${LIBNEKO_OBJECTS}
-	${RANLIB}
 	${MAKESO} ${EXTFLAGS} -o $@ ${LIBNEKO_OBJECTS} ${LIBNEKO_LIBS}
 
 bin/neko: $(VM_OBJECTS)

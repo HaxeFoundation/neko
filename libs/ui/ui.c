@@ -24,14 +24,14 @@
 #	define WM_SYNC_CALL	(WM_USER + 101)
 #elif defined(NEKO_MAC)
 #	include <Carbon/Carbon.h>
-#	define OsEvent		0xFEFEAA00
+#	define OsEvent		0xFFFFAA00
 #	define eCall		0x0
-enum { pFunc = 'func', os };
+enum { pFunc = 'func' };
 #endif
 
 typedef struct {
 	int init_done;
-#if defined(NEKO_WINDOWS)
+#ifdef NEKO_WINDOWS
 	DWORD tid;
 	HWND wnd;
 #else
@@ -58,6 +58,7 @@ static LRESULT CALLBACK WindowProc( HWND hwnd, UINT msg, WPARAM wparam, LPARAM l
 #elif defined(NEKO_MAC)
 
 static OSStatus handleEvents( EventHandlerCallRef ref, EventRef e, void *data ) {
+	printf("EVENT\n");
 	switch( GetEventKind(e) ) {
 	case eCall: {
 		value *r;
@@ -93,7 +94,7 @@ void os_main() {
 	if( data.init_done )
 		return;
 	data.init_done = 1;
-#	ifdef NEKO_WINDOWS
+#	if defined(NEKO_WINDOWS)
 	{
 		WNDCLASSEX wcl;
 		HINSTANCE hinst = GetModuleHandle(NULL);
@@ -115,8 +116,8 @@ void os_main() {
 	data.tid = GetCurrentThreadId();
 	data.wnd = CreateWindow(CLASS_NAME,"",0,0,0,0,0,NULL,NULL,NULL,NULL);
 #	elif defined(NEKO_MAC)
-	EventTypeSpec ets[] = { { OsEvent, eCall } };
-	InstallEventHandler(GetApplicationEventTarget(),NewEventHandlerUPP(handleEvents),sizeof(ets) / sizeof(EventTypeSpec),ets,0,0);
+	EventTypeSpec ets = { OsEvent, eCall };
+	InstallEventHandler(GetApplicationEventTarget(),NewEventHandlerUPP(handleEvents),1,&ets,0,0);
 #	elif defined(NEKO_LINUX)
 	XInitThreads();
 	gtk_init(NULL,NULL);
@@ -132,7 +133,7 @@ static value os_is_main() {
 #	ifdef NEKO_WINDOWS
 	return alloc_bool(data.tid == GetCurrentThreadId());
 #	else
-	return alloc_bool(pthread_equal(data.thread,pthread_self()));
+	return alloc_bool(pthread_equal(data.tid,pthread_self()));
 #	endif
 }
 
