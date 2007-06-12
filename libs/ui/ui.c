@@ -24,19 +24,29 @@
 #	define WM_SYNC_CALL	(WM_USER + 101)
 #elif defined(NEKO_MAC)
 #	include <Carbon/Carbon.h>
+#	include <pthread.h>
 #	define OsEvent		0xFFFFAA00
 #	define eCall		0x0
 enum { pFunc = 'func' };
+#elif defined(NEKO_LINUX)
+#	include <gtk/gtk.h>
+#	include <glib.h>
+#	include <pthread.h>
+#	include <locale.h>
 #endif
 
 typedef struct {
 	int init_done;
-#ifdef NEKO_WINDOWS
+#if defined(NEKO_WINDOWS)
 	DWORD tid;
 	HWND wnd;
-#else
+#elif defined(NEKO_MAC)
 	pthread_t tid;
+#elif defined(NEKO_LINUX)
+	pthread_t tid;
+	pthread_mutex_t lock;
 #endif
+
 } os_data;
 
 static os_data data = { 0 };
@@ -58,7 +68,6 @@ static LRESULT CALLBACK WindowProc( HWND hwnd, UINT msg, WPARAM wparam, LPARAM l
 #elif defined(NEKO_MAC)
 
 static OSStatus handleEvents( EventHandlerCallRef ref, EventRef e, void *data ) {
-	printf("EVENT\n");
 	switch( GetEventKind(e) ) {
 	case eCall: {
 		value *r;
@@ -118,14 +127,15 @@ void os_main() {
 #	elif defined(NEKO_MAC)
 	EventTypeSpec ets = { OsEvent, eCall };
 	InstallEventHandler(GetApplicationEventTarget(),NewEventHandlerUPP(handleEvents),1,&ets,0,0);
+	data.tid = pthread_self();
 #	elif defined(NEKO_LINUX)
-	XInitThreads();
+	g_thread_init(NULL);
+	gdk_threads_init();
 	gtk_init(NULL,NULL);
 	gtk_timeout_add( 100, nothing, NULL ); 	// keep the loop alive
 	setlocale(LC_NUMERIC,"POSIX"); // prevent broking atof()
-#	endif
-#	ifndef NEKO_WINDOWS
 	data.tid = pthread_self();
+	pthread_mutex_init(&data.lock,NULL);
 #	endif
 }
 
@@ -185,7 +195,12 @@ static value os_sync( value f ) {
 	PostEventToQueue(GetMainEventQueue(),e,kEventPriorityStandard);
 	ReleaseEvent(e);
 #	elif defined(NEKO_LINUX)
+	// the lock should not be needed because GTK is MT-safe
+	// however the GTK lock mechanism is a LOT slower than
+	// using a pthread_mutex
+	pthread_mutex_lock(&data.lock);
 	gtk_idle_add( onSyncCall, (gpointer)r );
+	pthread_mutex_unlock(&data.lock);
 #	endif
 	return val_null;
 }

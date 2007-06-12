@@ -77,10 +77,10 @@ libs = {
 	},
 	os => {
 		src => $array("os"),
-		inc => switch system { "Mac" => "Carbon.h" default => "gtk.h" },
+		inc => switch system { "Mac" => "Carbon.h" default => "gtk/gtk.h" },
 		incname => switch system { "Mac" => "Carbon" default => "GTK+2.0" },
 		cflags => switch system { "Mac" => "" default => "`pkg-config --cflags gtk+-2.0`" },
-		lparams => switch system { "Mac" => "-framework Carbon" default => "`pkg-config --libs gtk+-2.0`" },
+		lparams => switch system { "Mac" => "-framework Carbon" default => "`pkg-config --libs gtk+-2.0` -lgthread-2.0" },
 	}
 }
 
@@ -123,6 +123,7 @@ search_includes = function(ism2) {
 		"/usr/include/apr-1",
 		"/usr/include/apr-1.0",
 		"/usr/include/apr-0",
+		"/usr/include/gtk-2.0",
 		"/usr/local/include/apr-1",
 		"/usr/local/include/apr-1.0",
 		"/usr/local/include/apr-0",
