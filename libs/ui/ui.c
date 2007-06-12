@@ -59,6 +59,9 @@ static LRESULT CALLBACK WindowProc( HWND hwnd, UINT msg, WPARAM wparam, LPARAM l
 		value *r = (value*)lparam;
 		value f = *r;
 		free_root(r);
+		// There are some GC issues here when having a lot of threads
+		// It seems that somehow the function is not called, it might
+		// also trigger some crashes.
 		val_call0(f);
 		return 0;
 	}}
@@ -170,7 +173,7 @@ static value ui_loop() {
 
 static value ui_stop_loop() {
 #	if defined(NEKO_WINDOWS)
-	while( !PostThreadMessage(data.tid,WM_QUIT,0,0) )
+	while( !PostMessage(data.wnd,WM_QUIT,0,0) )
 		Sleep(100);
 #	elif defined(NEKO_MAC)
 	QuitApplicationEventLoop();
