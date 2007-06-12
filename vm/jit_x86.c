@@ -1453,7 +1453,7 @@ static void jit_array_access( jit_ctx *ctx, int n ) {
 	INIT_BUFFER;
 	int *jerr1, *jerr2;
 	char *jend1, *jend2 = NULL, *jend3;
-	int *jnot_array, *jbounds;
+	int *jnot_array, *jbounds = NULL;
 
 	is_int(ACC,true,jerr1);
 	XMov_rp(TMP,ACC,0);
