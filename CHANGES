@@ -15,6 +15,7 @@
 	thread_current returns unique value
 	remove kind_import, kind_export, added kind_share
 	added ui library
+	added libs/std/process api functions
 	TODO : FIX OO for JIT AS WELL
 	TODO : process output capture
 

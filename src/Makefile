@@ -16,7 +16,7 @@
 NEKOVM = neko
 NEKOVM1 = NEKOPATH='../boot' c:/neko/neko1
 NEKOVM2 = NEKOPATH='' c:/neko/neko1
-TIME = @c:/progra~1/cygwin/bin/times -f %e make 
+TIME = @c:/progra~1/cygwin/bin/times -f %e make
 
 all: clean pass1 pass2 pass3
 
@@ -38,27 +38,27 @@ tools:
 
 pass1:
 	${TIME} tpass1
-	
+
 spass1:
 	${NEKOVM1} nekoml -v -n neko/Main.nml nekoml/Main.nml
 	${NEKOVM1} nekoc -v *.neko neko/*.neko nekoml/*.neko
 
 tpass1:
 	${NEKOVM1} nekoml neko/Main.nml nekoml/Main.nml
-	
+
 pass2:
 	${TIME} tpass2
 
 spass2:
 	${NEKOVM2} nekoml/Main -v -n neko/Main.nml nekoml/Main.nml
 	${NEKOVM2} neko/Main -v *.neko neko/*.neko nekoml/*.neko
-	
+
 tpass2:
 	${NEKOVM2} nekoml/Main neko/Main.nml nekoml/Main.nml
-	
+
 pass3:
 	${TIME} tpass3
-	
+
 spass3:
 	${NEKOVM} nekoml/Main -v -n neko/Main.nml nekoml/Main.nml
 	${NEKOVM} neko/Main -v *.neko neko/*.neko nekoml/*.neko
@@ -90,5 +90,5 @@ cleanall: clean
 	rm -rf *.neko
 	rm -rf neko/*.neko
 	rm -rf nekoml/*.neko
-	
+
 .PHONY: all pass1 tpass1 pass2 tpass2 pass3 tpass3 neko nekoml install clean link tools
