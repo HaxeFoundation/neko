@@ -525,7 +525,7 @@ static value builtin_apply( value *args, int nargs ) {
 		val_array_ptr(env)[i+1] = args[i];
 	while( i++ < fargs )
 		val_array_ptr(env)[i] = val_null;
-	return alloc_apply(fargs-nargs,env);
+	return neko_alloc_apply(fargs-nargs,env);
 }
 
 static value varargs_callback( value *args, int nargs ) {

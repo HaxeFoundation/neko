@@ -89,7 +89,7 @@ static void read_short( reader r, readp p, unsigned short *i ) {
 extern field id_loader;
 extern field id_exports;
 extern value *neko_builtins;
-extern value alloc_module_function( void *m, int_val pos, int nargs );
+extern value neko_alloc_module_function( void *m, int_val pos, int nargs );
 extern void neko_module_jit( neko_module *m );
 
 EXTERN int neko_is_big_endian() {
@@ -343,7 +343,7 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 			READ_LONG(itmp);
 			if( (itmp & 0xFFFFFF) >= m->codesize )
 				ERROR();
-			m->globals[i] = alloc_module_function(m,(itmp&0xFFFFFF),(itmp >> 24));
+			m->globals[i] = neko_alloc_module_function(m,(itmp&0xFFFFFF),(itmp >> 24));
 			break;
 		case 3:
 			READ_SHORT(stmp);

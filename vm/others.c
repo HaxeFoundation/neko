@@ -299,7 +299,7 @@ EXTERN void val_buffer( buffer b, value v ) {
 // them to be inlined in interp.c by GCC since this will break
 // register allocation
 
-value append_int( neko_vm *vm, value str, int x, bool way ) {
+value neko_append_int( neko_vm *vm, value str, int x, bool way ) {
 	int len, len2;
 	value v;
 	len = val_strlen(str);
@@ -315,7 +315,7 @@ value append_int( neko_vm *vm, value str, int x, bool way ) {
 	return v;
 }
 
-value append_strings( value s1, value s2 ) {
+value neko_append_strings( value s1, value s2 ) {
 	int len1 = val_strlen(s1);
 	int len2 = val_strlen(s2);
 	value v = alloc_empty_string(len1+len2);

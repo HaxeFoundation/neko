@@ -61,7 +61,7 @@
 
 extern field id_add, id_radd, id_sub, id_rsub, id_mult, id_rmult, id_div, id_rdiv, id_mod, id_rmod;
 extern field id_get, id_set;
-extern value alloc_module_function( void *m, int_val pos, int nargs );
+extern value neko_alloc_module_function( void *m, int_val pos, int nargs );
 extern char *jit_boot_seq;
 extern char *jit_handle_trap;
 typedef void (*jit_handle)( neko_vm * );
@@ -431,8 +431,8 @@ static int_val jit_run( neko_vm *vm, vfunction *acc ) {
 		Next;
 
 extern int neko_stack_expand( int_val *sp, int_val *csp, neko_vm *vm );
-extern value append_int( neko_vm *vm, value str, int x, bool way );
-extern value append_strings( value s1, value s2 );
+extern value neko_append_int( neko_vm *vm, value str, int x, bool way );
+extern value neko_append_strings( value s1, value s2 );
 
 #define STACK_EXPAND { \
 		ACC_BACKUP; \
@@ -721,7 +721,7 @@ static int_val interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_v
 					val_array_ptr(env)[i--] = (value)*sp;
 					*sp++ = ERASE;
 				}
-				acc = (int_val)alloc_apply((int)(fargs - *pc++),env);
+				acc = (int_val)neko_alloc_apply((int)(fargs - *pc++),env);
 			}
 		}
 		Next;
@@ -810,7 +810,7 @@ static int_val interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_v
 			}
 			if( val_is_int(acc) || val_tag(acc) != VAL_FUNCTION )
 				RuntimeError("Invalid environment",false);
-			acc = (int_val)alloc_module_function(((vfunction*)acc)->module,(int_val)((vfunction*)acc)->addr,((vfunction*)acc)->nargs);
+			acc = (int_val)neko_alloc_module_function(((vfunction*)acc)->module,(int_val)((vfunction*)acc)->addr,((vfunction*)acc)->nargs);
 			((vfunction*)acc)->env = (value)tmp;
 		}
 		Next;
@@ -848,7 +848,7 @@ static int_val interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_v
 			if( val_tag(*sp) == VAL_FLOAT )
 				acc = (int_val)alloc_float(val_float(*sp) + val_int(acc));
 			else if( (val_tag(*sp)&7) == VAL_STRING  )
-				acc = (int_val)append_int(vm,(value)*sp,val_int(acc),true);
+				acc = (int_val)neko_append_int(vm,(value)*sp,val_int(acc),true);
 			else if( val_tag(*sp) == VAL_OBJECT )
 				ObjectOp(*sp,acc,id_add)
 			else
@@ -857,7 +857,7 @@ static int_val interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_v
 			if( val_tag(acc) == VAL_FLOAT )
 				acc = (int_val)alloc_float(val_int(*sp) + val_float(acc));
 			else if( (val_tag(acc)&7) == VAL_STRING )
-				acc = (int_val)append_int(vm,(value)acc,val_int(*sp),false);
+				acc = (int_val)neko_append_int(vm,(value)acc,val_int(*sp),false);
 			else if( val_tag(acc) == VAL_OBJECT )
 				ObjectOp(acc,*sp,id_radd)
 			else
@@ -865,7 +865,7 @@ static int_val interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_v
 		} else if( val_tag(acc) == VAL_FLOAT && val_tag(*sp) == VAL_FLOAT )
 			acc = (int_val)alloc_float(val_float(*sp) + val_float(acc));
 		else if( (val_tag(acc)&7) == VAL_STRING && (val_tag(*sp)&7) == VAL_STRING )
-			acc = (int_val)append_strings((value)*sp,(value)acc);
+			acc = (int_val)neko_append_strings((value)*sp,(value)acc);
 		else if( val_tag(*sp) == VAL_OBJECT )
 			ObjectOpGen(*sp,acc,id_add,goto add_2)
 		else {

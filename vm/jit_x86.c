@@ -54,9 +54,9 @@ extern field id_add, id_radd, id_sub, id_rsub, id_mult, id_rmult, id_div, id_rdi
 extern field id_get, id_set;
 
 extern int neko_stack_expand( int_val *sp, int_val *csp, neko_vm *vm );
-extern value append_int( neko_vm *vm, value str, int x, bool way );
-extern value append_strings( value s1, value s2 );
-extern value alloc_module_function( void *m, int_val pos, int nargs );
+extern value neko_append_int( neko_vm *vm, value str, int x, bool way );
+extern value neko_append_strings( value s1, value s2 );
+extern value neko_alloc_module_function( void *m, int_val pos, int nargs );
 extern void neko_process_trap( neko_vm *vm );
 extern void neko_setup_trap( neko_vm *vm );
 extern value NEKO_TYPEOF[];
@@ -1352,7 +1352,7 @@ static void jit_add( jit_ctx *ctx, int _ ) {
 	XPush_r(VM);
 	// call append_int
 	PATCH_JUMP(jappint1);
-	XCall_m(append_int);
+	XCall_m(neko_append_int);
 	stack_pop_pad(4,3);
 	END();
 
@@ -1365,7 +1365,7 @@ static void jit_add( jit_ctx *ctx, int _ ) {
 	stack_pad(1);
 	XPush_r(ACC);
 	XPush_r(TMP);
-	XCall_m(append_strings);
+	XCall_m(neko_append_strings);
 	stack_pop_pad(2,1);
 	END();
 
@@ -1560,7 +1560,7 @@ static void jit_make_env( jit_ctx *ctx, int esize ) {
 
 	// call alloc_module_function
 	XMov_pr(Esp,FIELD(3),ACC); // save acc
-	XCall_m(alloc_module_function);
+	XCall_m(neko_alloc_module_function);
 	XMov_rp(TMP,Esp,FIELD(3)); // restore acc
 	XMov_rp(TMP2,Esp,FIELD(4)); // restore type
 	stack_pop_pad(5,2);
@@ -2274,7 +2274,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 
 		// call alloc_apply
 		PATCH_JUMP(jdone);
-		XCall_m(alloc_apply);
+		XCall_m(neko_alloc_apply);
 		stack_pop(Esp,2);
 		XJump_near(jend);
 

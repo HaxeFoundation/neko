@@ -282,9 +282,11 @@ typedef struct {
 #define val_call0			neko_val_call0
 #define val_call1			neko_val_call1
 #define val_call2			neko_val_call2
+#define val_call3			neko_val_call3
 #define val_callN			neko_val_callN
 #define val_ocall0			neko_val_ocall0
 #define val_ocall1			neko_val_ocall1
+#define val_ocall2			neko_val_ocall2
 #define val_ocallN			neko_val_ocallN
 #define val_callEx			neko_val_callEx
 #define	alloc_root			neko_alloc_root

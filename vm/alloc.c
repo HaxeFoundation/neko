@@ -246,7 +246,7 @@ EXTERN value alloc_function( void *c_prim, unsigned int nargs, const char *name 
 	return (value)v;
 }
 
-value alloc_module_function( void *m, int_val pos, int nargs ) {
+value neko_alloc_module_function( void *m, int_val pos, int nargs ) {
 	vfunction *v;
 	if( nargs < 0 && nargs != VAR_ARGS )
 		failure("alloc_module_function");
@@ -309,7 +309,7 @@ static value apply5( value p1, value p2, value p3, value p4, value p5 ) {
 	return val_callN(a[-1],a,n);
 }
 
-value alloc_apply( int nargs, value env ) {
+value neko_alloc_apply( int nargs, value env ) {
 	vfunction *v = (vfunction*)GC_MALLOC(sizeof(vfunction));
 	v->t = VAL_PRIMITIVE;
 	switch( nargs ) {
