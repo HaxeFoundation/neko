@@ -70,6 +70,8 @@ static value process_run( value cmd, value vargs ) {
 	{		 
 		SECURITY_ATTRIBUTES sattr;		
 		STARTUPINFO sinf;
+		HANDLE proc = GetCurrentProcess();
+		HANDLE oread,eread,iwrite;
 		// creates commandline
 		buffer b = alloc_buffer(NULL);
 		value sargs;
@@ -93,12 +95,15 @@ static value process_run( value cmd, value vargs ) {
 		sinf.cb = sizeof(sinf);
 		sinf.dwFlags = STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
 		sinf.wShowWindow = SW_HIDE;
-		CreatePipe(&p->oread,&sinf.hStdOutput,&sattr,0);
-		CreatePipe(&p->eread,&sinf.hStdError,&sattr,0);
-		CreatePipe(&sinf.hStdInput,&p->iwrite,&sattr,0);
-		SetHandleInformation(&p->oread,HANDLE_FLAG_INHERIT,0);
-		SetHandleInformation(&p->eread,HANDLE_FLAG_INHERIT,0);
-		SetHandleInformation(&p->iwrite,HANDLE_FLAG_INHERIT,0);
+		CreatePipe(&oread,&sinf.hStdOutput,&sattr,0);
+		CreatePipe(&eread,&sinf.hStdError,&sattr,0);
+		CreatePipe(&sinf.hStdInput,&iwrite,&sattr,0);
+		DuplicateHandle(proc,oread,proc,&p->oread,0,FALSE,DUPLICATE_SAME_ACCESS);
+		DuplicateHandle(proc,eread,proc,&p->eread,0,FALSE,DUPLICATE_SAME_ACCESS);
+		DuplicateHandle(proc,iwrite,proc,&p->iwrite,0,FALSE,DUPLICATE_SAME_ACCESS);
+		CloseHandle(oread);
+		CloseHandle(eread);
+		CloseHandle(iwrite);
 		if( !CreateProcess(NULL,val_string(sargs),NULL,NULL,TRUE,0,NULL,NULL,&sinf,&p->pinf) )			
 			neko_error();
 		// close unused pipes
