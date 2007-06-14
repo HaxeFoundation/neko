@@ -21,6 +21,8 @@
 #else
 #	include <sys/types.h>
 #	include <unistd.h>
+#	include <errno.h>
+#	include <wait.h>
 #endif
 
 #include <stdio.h>
@@ -53,6 +55,9 @@ static void free_process( value vp ) {
 	CloseHandle(p->pinf.hProcess);
 	CloseHandle(p->pinf.hThread);
 #	else
+	close(p->eread);
+	close(p->oread);
+	close(p->iwrite);
 #	endif
 }
 
@@ -102,15 +107,18 @@ static value process_run( value cmd, value vargs ) {
 		CloseHandle(sinf.hStdInput);
 	}
 #	else
-	char **argv = (char**)alloc_private(sizeof(char*)*val_array_size(vargs));
+	char **argv = (char**)alloc_private(sizeof(char*)*(val_array_size(vargs)+2));
+	argv[0] = val_string(cmd);
 	for(i=0;i<val_array_size(vargs);i++) {
 		value v = val_array_ptr(vargs)[i];
 		val_check(v,string);
-		argv[i] = val_string(v);
+		argv[i+1] = val_string(v);
 	}
+	argv[i+1] = NULL;
 	int input[2], output[2], error[2];
 	if( pipe(input) || pipe(output) || pipe(error) )
 		neko_error();
+	p = (vprocess*)alloc_private(sizeof(vprocess));
 	p->pid = fork();
 	if( p->pid == -1 )
 		neko_error();
@@ -121,9 +129,9 @@ static value process_run( value cmd, value vargs ) {
 		close(error[0]);
 		dup2(input[0],0);
 		dup2(output[1],1);
-		dup2(error[1],1);
-		execv(val_string(cmd),argv);
-		fprintf(stderr,"Command not found : %s\n",cmd);
+		dup2(error[1],2);
+		execvp(val_string(cmd),argv);
+		fprintf(stderr,"Command not found : %s\n",val_string(cmd));
 		exit(1);
 	}
 	// parent
@@ -131,8 +139,8 @@ static value process_run( value cmd, value vargs ) {
 	close(output[1]);
 	close(error[1]);
 	p->iwrite = input[1];
-	p->oread = output[1];
-	p->eread = error[1];
+	p->oread = output[0];
+	p->eread = error[0];
 #	endif
 	{
 		value vp = alloc_abstract(k_process,p);
@@ -162,8 +170,8 @@ static value process_stdout_read( value vp, value str, value pos, value len ) {
 		return alloc_int(nbytes);
 	}
 #	else
-	int nbytes = fread(val_string(str)+val_int(pos),1,val_int(len),p->oread);
-	if( nbytes == -1 )
+	int nbytes = read(p->oread,val_string(str)+val_int(pos),val_int(len));
+	if( nbytes <= 0 )
 		neko_error();
 	return alloc_int(nbytes);
 #	endif
@@ -179,8 +187,8 @@ static value process_stderr_read( value vp, value str, value pos, value len ) {
 		return alloc_int(nbytes);
 	}
 #	else
-	int nbytes = fread(val_string(str)+val_int(pos),1,val_int(len),p->eread);
-	if( nbytes == -1 )
+	int nbytes = read(p->eread,val_string(str)+val_int(pos),val_int(len));
+	if( nbytes <= 0 )
 		neko_error();
 	return alloc_int(nbytes);
 #	endif
@@ -196,7 +204,7 @@ static value process_stdin_write( value vp, value str, value pos, value len ) {
 		return alloc_int(nbytes);
 	}
 #	else
-	int nbytes = fwrite(val_string(str)+val_int(pos),1,val_int(len),p->iwrite);
+	int nbytes = write(p->iwrite,val_string(str)+val_int(pos),val_int(len));
 	if( nbytes == -1 )
 		neko_error();
 	return alloc_int(nbytes);
@@ -236,7 +244,9 @@ static value process_exit( value vp ) {
 			continue;
 		neko_error();
 	}
-	return alloc_int(rval);
+	if( !WIFEXITED(rval) )
+		neko_error();
+	return alloc_int(WEXITSTATUS(rval));
 #	endif
 }
 
