@@ -35,6 +35,16 @@ enum { pFunc = 'func' };
 #	include <locale.h>
 #endif
 
+/**
+	<doc>
+	<h1>UI</h1>
+	<p>
+	Core native User Interface support. This API uses native WIN32 API on Windows,
+	Carbon API on OSX, and GTK2 on Linux.
+	</p>
+	</doc>
+**/
+
 typedef struct {
 	int init_done;
 #if defined(NEKO_WINDOWS)
@@ -147,6 +157,13 @@ void ui_main() {
 #	endif
 }
 
+/**
+	ui_is_main : void -> bool
+	<doc>
+	Tells if the current thread is the main loop thread or not. The main loop thread is the one
+	in which the first "ui" library primitive has been loaded.
+	</doc>
+**/
 static value ui_is_main() {
 #	ifdef NEKO_WINDOWS
 	return alloc_bool(data.tid == GetCurrentThreadId());
@@ -155,6 +172,12 @@ static value ui_is_main() {
 #	endif
 }
 
+/**
+	ui_loop : void -> void
+	<doc>
+	Starts the native UI event loop. This method can only be called from the main thread.
+	</doc>
+**/
 static value ui_loop() {
 	if( !val_bool(ui_is_main()) )
 		neko_error();
@@ -176,7 +199,15 @@ static value ui_loop() {
 	return val_null;
 }
 
+/**
+	ui_loop : void -> void
+	<doc>
+	Stop the native UI event loop. This method can only be called from the main thread.
+	</doc>
+**/
 static value ui_stop_loop() {
+	if( !val_bool(ui_is_main()) )
+		neko_error();
 #	if defined(NEKO_WINDOWS)
 	while( !PostMessage(data.wnd,WM_QUIT,0,0) )
 		Sleep(100);
@@ -188,6 +219,14 @@ static value ui_stop_loop() {
 	return val_null;
 }
 
+/**
+	ui_sync : callb:(void -> void) -> void
+	<doc>
+	Queue a method call [callb] to be executed by the main thread while running the UI event
+	loop. This can be used to perform UI updates in the UI thread using results processed by
+	another thread.
+	</doc>
+**/
 static value ui_sync( value f ) {
 	value *r;
 	val_check_function(f,0);
