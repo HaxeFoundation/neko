@@ -17,7 +17,6 @@
 	added ui library
 	added libs/std/process api functions
 	TODO : FIX OO for JIT AS WELL
-	TODO : process output capture
 
 2007-01-28 : 1.5.3
 	minor fixes in mod_neko multipart and POST data handling
