@@ -46,6 +46,15 @@ DEFINE_KIND(k_process);
 
 #define val_process(v)	((vprocess*)val_data(v))
 
+/**
+	<doc>
+	<h1>Process</h1>
+	<p>
+	An API for starting and communication with sub processes.
+	</p>
+	</doc>
+**/
+
 static void free_process( value vp ) {
 	vprocess *p = val_process(vp);
 #	ifdef NEKO_WINDOWS
@@ -61,6 +70,12 @@ static void free_process( value vp ) {
 #	endif
 }
 
+/**
+	process_run : cmd:string -> args:string array -> 'process
+	<doc>
+	Start a process using a command and the specified arguments.
+	</doc>
+**/
 static value process_run( value cmd, value vargs ) {
 	int i;
 	vprocess *p;
@@ -165,6 +180,14 @@ static value process_run( value cmd, value vargs ) {
 	p = val_process(vp); \
 
 
+/**
+	process_stdout_read : 'process -> buf:string -> pos:int -> len:int -> int
+	<doc>
+	Read up to [len] bytes in [buf] starting at [pos] from the process stdout.
+	Returns the number of bytes readed this way. Raise an exception if this
+	process stdout is closed and no more data is available for reading.
+	</doc>
+**/
 static value process_stdout_read( value vp, value str, value pos, value len ) {
 	CHECK_ARGS();
 #	ifdef NEKO_WINDOWS
@@ -182,6 +205,14 @@ static value process_stdout_read( value vp, value str, value pos, value len ) {
 #	endif
 }
 
+/**
+	process_stderr_read : 'process -> buf:string -> pos:int -> len:int -> int
+	<doc>
+	Read up to [len] bytes in [buf] starting at [pos] from the process stderr.
+	Returns the number of bytes readed this way. Raise an exception if this
+	process stderr is closed and no more data is available for reading.
+	</doc>
+**/
 static value process_stderr_read( value vp, value str, value pos, value len ) {
 	CHECK_ARGS();
 #	ifdef NEKO_WINDOWS
@@ -199,6 +230,14 @@ static value process_stderr_read( value vp, value str, value pos, value len ) {
 #	endif
 }
 
+/**
+	process_stdin_write : 'process -> buf:string -> pos:int -> len:int -> int
+	<doc>
+	Write up to [len] bytes from [buf] starting at [pos] to the process stdin.
+	Returns the number of bytes writen this way. Raise an exception if this
+	process stdin is closed.
+	</doc>
+**/
 static value process_stdin_write( value vp, value str, value pos, value len ) {
 	CHECK_ARGS();
 #	ifdef NEKO_WINDOWS
@@ -216,6 +255,12 @@ static value process_stdin_write( value vp, value str, value pos, value len ) {
 #	endif
 }
 
+/**
+	process_stdin_close : 'process -> void
+	<doc>
+	Close the process standard input.
+	</doc>
+**/
 static value process_stdin_close( value vp ) {
 	vprocess *p;
 	val_check_kind(vp,k_process);
@@ -230,6 +275,12 @@ static value process_stdin_close( value vp ) {
 	return val_null;
 }
 
+/**
+	process_exit : 'process -> int
+	<doc>
+	Wait until the process terminate, then returns its exit code.
+	</doc>
+**/
 static value process_exit( value vp ) {
 	vprocess *p;
 	val_check_kind(vp,k_process);
@@ -255,11 +306,29 @@ static value process_exit( value vp ) {
 #	endif
 }
 
+/**
+	process_pid : 'process -> int
+	<doc>
+	Returns the process id.
+	</doc>
+**/
+static value process_pid( value vp ) {
+	vprocess *p;
+	val_check_kind(vp,k_process);
+	p = val_process(vp);
+#	ifdef NEKO_WINDOWS
+	return alloc_int(GetProcessId(p->pinf.hProcess));
+#	else
+	return alloc_int(p->pid);
+#	endif
+}
+
 DEFINE_PRIM(process_run,2);
 DEFINE_PRIM(process_stdout_read,4);
 DEFINE_PRIM(process_stderr_read,4);
 DEFINE_PRIM(process_stdin_close,1);
 DEFINE_PRIM(process_stdin_write,4);
 DEFINE_PRIM(process_exit,1);
+DEFINE_PRIM(process_pid,1);
 
 /* ************************************************************************ */
