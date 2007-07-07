@@ -317,7 +317,7 @@ static value process_pid( value vp ) {
 	val_check_kind(vp,k_process);
 	p = val_process(vp);
 #	ifdef NEKO_WINDOWS
-	return alloc_int(GetProcessId(p->pinf.hProcess));
+	return alloc_int(p->pinf.dwProcessId);
 #	else
 	return alloc_int(p->pid);
 #	endif
