@@ -250,6 +250,13 @@ function read_ui16(i) {
 	ch1 or (ch2 << 8)
 }
 
+function read_ui24(i) {
+	var ch1 = read_byte i;
+	var ch2 = read_byte i;
+	var ch3 = read_byte i;
+	ch1 or (ch2 << 8) or (ch3 << 16)
+}
+
 function read_i16(i) {
 	var ch1 = read_byte i;
 	var ch2 = read_byte i;
@@ -338,6 +345,13 @@ function write_i16(o : output, x : int) : void {
 		write_ui16 o (65536 + x)
 	else
 		write_ui16 o x
+}
+
+function write_ui24(o : output, x : int) : void {
+	if x < 0 || x > 0xFFFFFF then invalid_arg();
+	write_byte o x;
+	write_byte o (x >> 8);
+	write_byte o (x >> 16);
 }
 
 function flush(o) {

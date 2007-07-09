@@ -16,6 +16,7 @@
 	remove kind_import, kind_export, added kind_share
 	added ui library
 	added libs/std/process api functions
+	new binary ast format (faster than nxml)
 	TODO : FIX OO for JIT AS WELL
 
 2007-01-28 : 1.5.3

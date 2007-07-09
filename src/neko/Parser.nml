@@ -264,4 +264,6 @@ function parse_string(str,p) {
 	parse lex
 }
 
-Neko.Xml.parse_string := parse_string
+Neko.Xml.parse_string := parse_string;
+Neko.Binast.parse_from_string := parse_string;
+

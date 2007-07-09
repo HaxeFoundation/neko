@@ -98,6 +98,9 @@
 				RelativePath=".\neko\Ast.nml">
 			</File>
 			<File
+				RelativePath=".\neko\Binast.nml">
+			</File>
+			<File
 				RelativePath=".\neko\Bytecode.nml">
 			</File>
 			<File
