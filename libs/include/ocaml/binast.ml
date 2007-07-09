@@ -73,7 +73,7 @@ let write_constant ctx = function
 		b ctx 9;
 		write_string ctx s
 
-let write_op ctx op = 
+let write_op ctx op =
 	b ctx (match op with
 	| "+" -> 0
 	| "-" -> 1
@@ -84,7 +84,7 @@ let write_op ctx op =
 	| ">>" -> 6
 	| ">>>" -> 7
 	| "|" -> 8
-	| "&" -> 8
+	| "&" -> 9
 	| "^" -> 10
 	| "==" -> 11
 	| "!=" -> 12
@@ -174,7 +174,7 @@ and write_expr ctx (e,p) =
 		b ctx 11;
 		write_expr ctx e1;
 		write_expr ctx e2;
-	| EIf (e1,e2,eo) ->	
+	| EIf (e1,e2,eo) ->
 		b ctx 12;
 		write_expr ctx e1;
 		write_expr ctx e2;
@@ -254,6 +254,6 @@ let write ch e =
 		scount = 0;
 		strings = Hashtbl.create 0;
 	} in
-	IO.nwrite ctx.ch "NBA\001";	
+	IO.nwrite ctx.ch "NBA\001";
 	write_expr ctx e
 
