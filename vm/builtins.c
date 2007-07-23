@@ -667,7 +667,7 @@ static value builtin_int( value f ) {
 static value builtin_float( value f ) {
 	if( val_is_string(f) )
 		return alloc_float( atof(val_string(f)) );
-	if( val_is_float(f) )
+	if( val_is_number(f) )
 		return alloc_float( val_number(f) );
 	return val_null;
 }
