@@ -1,4 +1,9 @@
-2007-??-?? : 1.5.4
+TODO :
+	FIX OO dispatch order for JIT (done for interp in 1.5.4)
+	Reduce DebugInfos memory size at least by 1/4
+	OSX/Intel JIT
+
+2007-07-25 : 1.6.0
 	display error message when uncaught exception in neko thread
 	fix bug in long run JIT programs : no C functions callable anymore
 	use a smarter way to prevent C stack overflow
@@ -17,7 +22,6 @@
 	added ui library
 	added libs/std/process api functions
 	new binary ast format (faster than nxml)
-	TODO : FIX OO for JIT AS WELL
 
 2007-01-28 : 1.5.3
 	minor fixes in mod_neko multipart and POST data handling
