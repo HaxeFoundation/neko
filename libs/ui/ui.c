@@ -200,7 +200,7 @@ static value ui_loop() {
 }
 
 /**
-	ui_loop : void -> void
+	ui_stop_loop : void -> void
 	<doc>
 	Stop the native UI event loop. This method can only be called from the main thread.
 	</doc>
