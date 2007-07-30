@@ -22,7 +22,9 @@
 #	include <sys/types.h>
 #	include <unistd.h>
 #	include <errno.h>
-#	include <wait.h>
+#	ifndef NEKO_MAC
+#		include <wait.h>
+#	endif
 #endif
 
 #include <stdio.h>
