@@ -198,7 +198,7 @@ typedef struct {
 #undef EXTERN
 #undef EXPORT
 #undef IMPORT
-#ifdef NEKO_VCC
+#if defined(NEKO_VCC) || defined(NEKO_MINGW)
 #	define INLINE __inline
 #	define EXPORT __declspec( dllexport )
 #	define IMPORT __declspec( dllimport )
