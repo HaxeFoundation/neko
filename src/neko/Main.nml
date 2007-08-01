@@ -24,21 +24,24 @@ function out(file,ext) {
 	}
 }
 
-function compile(file) {
-	if *verbose then printf "Compiling %s\n" file;
+function parse_multiformat(file) {
 	var str = IO.file_contents file;
 	var len = String.length str;
-	var ast =
-		if len > 10 && String.sub str 0 6 == "<nxml>" && String.sub str (len - 7) 7 == "</nxml>" then {
-			Neko.Xml.parse (String.sub str 6 (len - 13)) Lexer.null_pos
-		} else if len > 4 && String.sub str 0 4 == Neko.Binast.header then
-			Neko.Binast.parse (IO.read_string str) Lexer.null_pos
-		else {
-			var i = IO.read_string str;
-			var lex = Lexer.create Buffer.create();
-			Lexer.input lex file i 1 0;
-			Neko.Parser.parse lex;
-		};
+	if len > 10 && String.sub str 0 6 == "<nxml>" && String.sub str (len - 7) 7 == "</nxml>" then
+		Neko.Xml.parse (String.sub str 6 (len - 13)) Lexer.null_pos
+	else if len > 4 && String.sub str 0 4 == Neko.Binast.header then
+		Neko.Binast.parse (IO.read_string str) Lexer.null_pos
+	else {
+		var i = IO.read_string str;
+		var lex = Lexer.create Buffer.create();
+		Lexer.input lex file i 1 0;
+		Neko.Parser.parse lex;
+	}
+}
+
+function compile(file) {
+	if *verbose then printf "Compiling %s\n" file;
+	var ast = parse_multiformat file;
 	var code = Neko.Compile.compile ast;
 	var o = IO.write_file out(file,".n") true;
 	Neko.Bytecode.write o code;
@@ -57,11 +60,7 @@ function dump(file) {
 
 function print_ast(file) {
 	if *verbose then printf "Printing %s\n" file;
-	var i = IO.read_file file false;
-	var lex = Lexer.create Buffer.create();
-	Lexer.input lex file i 1 0;
-	var ast = Neko.Parser.parse lex;
-	IO.close_in i;
+	var ast = parse_multiformat file;
 	var o = IO.write_file out(file,"2.neko") false;
 	Neko.Printer.print Neko.Printer.create(o) ast;
 	IO.close_out o

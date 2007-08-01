@@ -135,25 +135,6 @@ expr := Lexer.build [
 		var n = (if String.get s (len - 1) == '\r' then 3 else 2);
 		mk l CommentLine(String.sub s 0 (len - n))
 	});
-	("<nxml>",function(l) {
-		var p1 = Lexer.curpos l;
-		var buf = Lexer.data l;
-		Buffer.reset buf;
-		try
-			while true {
-				try
-					nxml l
-				catch {
-					| Continue true -> ()
-					| Exit -> throw Error(Unclosed_nxml,p1)
-				}
-			}
-		catch {
-			Continue false -> ()
-		}
-		var p2 = Lexer.curpos l;
-		(NXml(Buffer.string buf) , Lexer.punion p1 p2)
-	});
 	(binop + binop + "?",function(l) { mk l (Binop (Lexer.current l)) });
 	(binop + binop + "=",function(l) { mk l (Binop (Lexer.current l)) });
 	(">>>",function(l) { mk l (Binop ">>>") });

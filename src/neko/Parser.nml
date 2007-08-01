@@ -128,9 +128,6 @@ function rec expr(s) {
 		expr_next (EContinue,p1) s
 	| [< (Keyword Try,p1); e = expr s; (Keyword Catch,_); (Const (Ident name),_); e2 = expr s >] ->
 		expr_next (ETry e name e2,punion p1 (pos e2)) s
-	| [< (NXml x,p) >] ->
-		var e = try Neko.Xml.parse x p catch { e -> error (Invalid_nxml e) p };
-		expr_next e s
 	| [< (Binop "-",p1); e2 = expr s >] ->
 		make_binop "-" (EConst (Int 0),p1) e2
 	}
