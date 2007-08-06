@@ -28,11 +28,13 @@
 **/
 
 /**
-	int32_new : #int32 -> 'int32
-	<doc>Allocate an int32 from any integer</doc>
+	int32_new : (#int32 | float) -> 'int32
+	<doc>Allocate an int32 from any integer or a float</doc>
 **/
-static value int32_new( value v ) {	
-	val_check(v,int32);	
+static value int32_new( value v ) {
+	if( val_is_number(v) )
+		return alloc_int32((int)val_number(v));
+	val_check_kind(v,k_int32);
 	return alloc_int32(val_int32(v));
 }
 

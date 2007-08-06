@@ -6,6 +6,7 @@ TODO :
 
 2007-??-?? : 1.6.1
 	nekoc : allow binary ast format with -p, don't allow inline nxml
+	std : allow int32_new float parameter
 
 2007-07-25 : 1.6.0
 	display error message when uncaught exception in neko thread
