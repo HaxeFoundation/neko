@@ -230,6 +230,7 @@ static void append_array( value *arr, int pos, value v ) {
 	if( (i & 31) == 0 ) { \
 		bits++; \
 		bits->base = pos_index; \
+		bits->bits = 0; \
 	} else \
 		bits->bits |= b << (31 - (i & 31)); \
 	i++; \
