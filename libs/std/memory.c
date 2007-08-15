@@ -175,7 +175,9 @@ static int mem_module( neko_module *m, vtree **l ) {
 		t += mem_size_rec(m->fields[i],l);
 	t += mem_size_rec(m->loader,l);
 	t += mem_size_rec(m->exports,l);
-	t += mem_size_rec(m->debuginf,l);
+	t += mem_size_rec(m->dbgtbl,l);
+	if( m->dbgidxs )
+		t += sizeof(neko_debug) * (m->codesize >> 5);
 	t += mem_size_rec(m->name,l);
 	return t;
 }

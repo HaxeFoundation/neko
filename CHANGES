@@ -1,12 +1,12 @@
 TODO :
 	FIX OO dispatch order for JIT (done for interp in 1.5.4)
-	Reduce DebugInfos memory size at least by 1/4
 	OSX/Intel JIT
 	MAX_STACK_PER_FUNCTION prevent >128 static array declarations
 
 2007-??-?? : 1.6.1
 	nekoc : allow binary ast format with -p, don't allow inline nxml
 	std : allow int32_new float parameter
+	vm : reduce debug infos memory size by 16
 
 2007-07-25 : 1.6.0
 	display error message when uncaught exception in neko thread

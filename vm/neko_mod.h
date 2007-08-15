@@ -18,6 +18,11 @@
 #define _NEKO_MOD_H
 #include "neko.h"
 
+typedef struct _neko_debug {
+	int base;
+	unsigned int bits;
+} neko_debug;
+
 typedef struct _neko_module {
 	void *jit;
 	unsigned int nglobals;
@@ -28,7 +33,8 @@ typedef struct _neko_module {
 	value *fields;
 	value loader;
 	value exports;
-	value debuginf;
+	value dbgtbl;
+	neko_debug *dbgidxs;
 	int_val *code;
 	value jit_gc;
 } neko_module;

@@ -440,6 +440,16 @@ extern value neko_append_strings( value s1, value s2 );
 		ACC_RESTORE; \
 }
 
+// optimized for sparse bits
+static int bitcount( unsigned int k ) {
+	int b = 0;
+	while( k ) {
+		b++;
+		k &= (k - 1);
+	}
+	return b;
+}
+
 static value neko_flush_stack( int_val *cspup, int_val *csp, value old ) {
 	int ncalls = (int)((cspup - csp) / 4);
 	value stack_trace = alloc_array(ncalls + ((old == NULL)?0:val_array_size(old)));
@@ -448,9 +458,10 @@ static value neko_flush_stack( int_val *cspup, int_val *csp, value old ) {
 	while( csp != cspup ) {
 		m = (neko_module*)csp[4];
 		if( m ) {
-			if( !val_is_null(m->debuginf) ) {
+			if( m->dbgidxs ) {
 				int ppc = (int)((((int_val**)csp)[1]-2) - m->code);
-				*st = val_array_ptr(m->debuginf)[ppc];
+				int idx = m->dbgidxs[ppc>>5].base + bitcount(m->dbgidxs[ppc>>5].bits >> (31 - (ppc & 31)));
+				*st = val_array_ptr(m->dbgtbl)[idx];
 			} else
 				*st = m->name;
 		} else
