@@ -635,7 +635,15 @@ static value builtin_isinfinite( value f ) {
 	<doc>Convert the value to the corresponding integer or return [null]</doc>
 **/
 static value builtin_int( value f ) {
-	if( val_is_string(f) ) {
+	switch( val_type(f) ) {
+	case VAL_FLOAT:
+#ifdef	NEKO_WINDOWS
+		return alloc_int((int)val_float(f));
+#else
+		// in case of overflow, the result is unspecified by ISO
+		return alloc_int((int)fmod(val_float(f),1 << 32));
+#endif
+	case VAL_STRING: {
 		char *c = val_string(f);
 		if( val_strlen(f) >= 2 && c[0] == '0' && c[1] == 'x' ) {
 			int h = 0;
@@ -654,6 +662,9 @@ static value builtin_int( value f ) {
 			return alloc_int(h);
 		}
 		return alloc_int( atoi(val_string(f)) );
+		}
+	case VAL_INT:
+		return f;
 	}
 	if( val_is_number(f) )
 		return alloc_int( (int)val_number(f) );
