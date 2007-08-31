@@ -641,7 +641,8 @@ static value builtin_int( value f ) {
 		return alloc_int((int)val_float(f));
 #else
 		// in case of overflow, the result is unspecified by ISO
-		return alloc_int((int)fmod(val_float(f),1 << 32));
+		// so we have to make a module 2^32 before casting to int
+		return alloc_int((unsigned int)fmod(val_float(f),4294967296.0));
 #endif
 	case VAL_STRING: {
 		char *c = val_string(f);
