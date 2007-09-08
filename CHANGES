@@ -2,6 +2,9 @@ TODO :
 	FIX OO dispatch order for JIT (done for interp in 1.5.4)
 	OSX/Intel JIT
 	MAX_STACK_PER_FUNCTION prevent >128 static array declarations
+	use pcre with UTF8 support on OSX ?
+	support the ~ operation
+	add deflate_stream and inflate_stream in zlib.ndll
 
 2007-??-?? : 1.6.1
 	nekoc : allow binary ast format with -p, don't allow inline nxml
