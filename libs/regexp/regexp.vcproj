@@ -121,31 +121,82 @@
 			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx"
 			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}">
 			<File
-				RelativePath="..\include\pcre\chartables.c">
-			</File>
-			<File
 				RelativePath="..\include\pcre\config.h">
-			</File>
-			<File
-				RelativePath="..\include\pcre\get.c">
-			</File>
-			<File
-				RelativePath="..\include\pcre\internal.h">
-			</File>
-			<File
-				RelativePath="..\include\pcre\maketables.c">
-			</File>
-			<File
-				RelativePath="..\include\pcre\pcre.c">
 			</File>
 			<File
 				RelativePath="..\include\pcre\pcre.h">
 			</File>
 			<File
-				RelativePath="..\include\pcre\pcreposix.h">
+				RelativePath="..\include\pcre\pcre_chartables.c">
 			</File>
 			<File
-				RelativePath="..\include\pcre\study.c">
+				RelativePath="..\include\pcre\pcre_compile.c">
+			</File>
+			<File
+				RelativePath="..\include\pcre\pcre_config.c">
+			</File>
+			<File
+				RelativePath="..\include\pcre\pcre_dfa_exec.c">
+			</File>
+			<File
+				RelativePath="..\include\pcre\pcre_exec.c">
+			</File>
+			<File
+				RelativePath="..\include\pcre\pcre_fullinfo.c">
+			</File>
+			<File
+				RelativePath="..\include\pcre\pcre_get.c">
+			</File>
+			<File
+				RelativePath="..\include\pcre\pcre_globals.c">
+			</File>
+			<File
+				RelativePath="..\include\pcre\pcre_info.c">
+			</File>
+			<File
+				RelativePath="..\include\pcre\pcre_internal.h">
+			</File>
+			<File
+				RelativePath="..\include\pcre\pcre_maketables.c">
+			</File>
+			<File
+				RelativePath="..\include\pcre\pcre_newline.c">
+			</File>
+			<File
+				RelativePath="..\include\pcre\pcre_ord2utf8.c">
+			</File>
+			<File
+				RelativePath="..\include\pcre\pcre_refcount.c">
+			</File>
+			<File
+				RelativePath="..\include\pcre\pcre_study.c">
+			</File>
+			<File
+				RelativePath="..\include\pcre\pcre_tables.c">
+			</File>
+			<File
+				RelativePath="..\include\pcre\pcre_try_flipped.c">
+			</File>
+			<File
+				RelativePath="..\include\pcre\pcre_ucp_searchfuncs.c">
+			</File>
+			<File
+				RelativePath="..\include\pcre\pcre_valid_utf8.c">
+			</File>
+			<File
+				RelativePath="..\include\pcre\pcre_version.c">
+			</File>
+			<File
+				RelativePath="..\include\pcre\pcre_xclass.c">
+			</File>
+			<File
+				RelativePath="..\include\pcre\ucp.h">
+			</File>
+			<File
+				RelativePath="..\include\pcre\ucpinternal.h">
+			</File>
+			<File
+				RelativePath="..\include\pcre\ucptable.h">
 			</File>
 		</Filter>
 		<File

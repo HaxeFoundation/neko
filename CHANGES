@@ -8,6 +8,7 @@ TODO :
 	std : allow int32_new float parameter
 	vm : reduce debug infos memory size by 16
 	vm : fixed $int in case of overflow
+	regexp : upgraded windows ndll to use pcre 7.3 with utf8 support
 
 2007-07-25 : 1.6.0
 	display error message when uncaught exception in neko thread
