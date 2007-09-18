@@ -451,7 +451,10 @@ function init_mod_neko() {
 		args => $array(),
 		path => $loader.path,
 		cache => $loader.cache,
-		loadmodule => function(name,l) { $loader.loadmodule(name,l) },
+		loadmodule => function(name,l) { 
+			$loader.cache = this.cache;
+			$loader.loadmodule(name,l);
+		},
 		loadprim => function(prim,nargs) {
 			var l = $ssize(prim);
 			if l > 9 && $ssub(prim,0,9) == 'mod_neko@' {
