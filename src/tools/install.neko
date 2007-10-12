@@ -55,7 +55,7 @@ libs = {
 		inc => "mysql.h",
 		incname => "MySQL 4.+"
 		lib => "libmysqlclient.a",
-		lparams => "-lz"
+		lparams => "-lz -lssl"
 	},
 	regexp => {
 		src => $array("regexp"),
