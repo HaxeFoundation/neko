@@ -124,7 +124,7 @@ static value math_round( value n ) {
 				if( fval < ival-0.5 )
 					return alloc_int(ival-1);
 			} else {
-				if( fval > ival+0.5 )
+				if( fval >= ival+0.5 )
 					return alloc_int(ival+1);
 			}
 			return alloc_int(ival);
