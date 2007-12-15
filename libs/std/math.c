@@ -117,19 +117,7 @@ static value math_round( value n ) {
 	case VAL_INT:
 		return n;
 	case VAL_FLOAT:
-		{
-			tfloat fval = val_float(n);
-			int ival = (int)fval;
-			if( fval < 0 ) {
-				if( fval < ival-0.5 )
-					return alloc_int(ival-1);
-			} else {
-				if( fval >= ival+0.5 )
-					return alloc_int(ival+1);
-			}
-			return alloc_int(ival);
-		}
-		break;
+		return alloc_int( (int)floor(val_float(n) + 0.5) );
 	default:
 		neko_error();
 	}
