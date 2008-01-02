@@ -128,10 +128,14 @@ static value date_set_hour( value o, value h, value m, value s ) {
 	val_check(s,int);
 	d = val_int32(o);
 	t = localtime(&d);
+	if( t == NULL )
+		neko_error();
 	t->tm_hour = val_int(h);
 	t->tm_min = val_int(m);
 	t->tm_sec = val_int(s);
 	d = mktime(t);
+	if( d == -1 )
+		neko_error();
 	return alloc_int32(d);
 }
 
@@ -148,10 +152,14 @@ static value date_set_day( value o, value y, value m, value d ) {
 	val_check(d,int);
 	date = val_int32(o);
 	t = localtime(&date);
+	if( t == NULL )
+		neko_error();
 	t->tm_year = val_int(y) - 1900;
 	t->tm_mon = val_int(m) - 1;
 	t->tm_mday = val_int(d);
 	date = mktime(t);
+	if( date == -1 )
+		neko_error();
 	return alloc_int32(date);
 }
 
