@@ -18,6 +18,7 @@
 #include <neko.h>
 #ifdef NEKO_WINDOWS
 #	include <winsock2.h>
+#	define FDSIZE(n)	(sizeof(u_int) + (n) * sizeof(SOCKET))
 #	define SHUT_WR		SD_SEND
 #	define SHUT_RD		SD_RECEIVE
 #	define SHUT_RDWR	SD_BOTH
@@ -36,10 +37,6 @@
 #	include <stdio.h>
 #	include <poll.h>
 	typedef int SOCKET;
-	typedef struct {
-		int count;
-		struct pollfd *fds;
-	} polldata;
 #	define closesocket close
 #	define SOCKET_ERROR (-1)
 #	define INVALID_SOCKET (-1)
@@ -49,10 +46,27 @@
 #	define MSG_NOSIGNAL 0
 #endif
 
+typedef struct {
+	int max;
+#	ifdef NEKO_WINDOWS
+	struct fd_set *fdr;
+	struct fd_set *fdw;
+	struct fd_set *outr;
+	struct fd_set *outw;
+#	else
+	struct pollfd *fds;
+	int rcount;
+	int wcount;
+#	endif
+	value ridx;
+	value widx;
+} polldata;
+
 DEFINE_KIND(k_socket);
-DEFINE_KIND(k_polldata);
+DEFINE_KIND(k_poll);
 
 #define val_sock(o)		((SOCKET)(int_val)val_data(o))
+#define val_poll(o)		((polldata*)val_data(o))
 
 /**
 	<doc>
@@ -369,6 +383,11 @@ static value make_array_result( value a, fd_set *tmp ) {
 	return r;
 }
 
+static void init_timeval( tfloat f, struct timeval *t ) {
+	t->tv_usec = ((int)(f*1000000)) % 1000000;
+	t->tv_sec = (int)f;	
+}
+
 /**
 	socket_select : read : 'socket array -> write : 'socket array -> others : 'socket array -> timeout:number? -> 'socket array array
 	<doc>Perform the [select] operation. Timeout is in seconds or [null] if infinite</doc>
@@ -377,7 +396,6 @@ static value socket_select( value rs, value ws, value es, value timeout ) {
 	struct timeval tval;
 	struct timeval *tt;
 	SOCKET n = 0;
-	tfloat f;
 	fd_set rx, wx, ex;
 	fd_set *ra, *wa, *ea;
 	value r;
@@ -391,10 +409,8 @@ static value socket_select( value rs, value ws, value es, value timeout ) {
 			tt = NULL;
 		else {
 			val_check(timeout,number);
-			f = val_number(timeout);
-			tval.tv_usec = ((int)(f*1000000)) % 1000000;
-			tval.tv_sec = (int)f;
 			tt = &tval;
+			init_timeval(val_number(timeout),tt);
 		}
 		if( select((int)(n+1),ra,wa,ea,tt) == SOCKET_ERROR ) {
 #			if defined(NEKO_POSIX)
@@ -499,16 +515,13 @@ static value socket_set_timeout( value o, value t ) {
 	}
 #else
 	struct timeval time;
-	tfloat f;
 	val_check_kind(o,k_socket);
 	if( val_is_null(t) ) {
 		time.tv_usec = 0;
 		time.tv_sec = 0;
 	} else {
 		val_check(t,number);
-		f = val_number(t);
-		time.tv_usec = ((int)(f*1000000)) % 1000000;
-		time.tv_sec = (int)f;
+		init_timeval(val_number(t),&time);
 	}
 #endif
 	if( setsockopt(val_sock(o),SOL_SOCKET,SO_SNDTIMEO,(char*)&time,sizeof(time)) != 0 )
@@ -567,78 +580,172 @@ static value socket_set_blocking( value o, value b ) {
 	<doc>Allocate memory to perform polling on a given number of sockets</doc>
 **/
 static value socket_poll_alloc( value nsocks ) {
+	polldata *p;
+	int i;
 	val_check(nsocks,int);
-	if( val_int(nsocks) < 0 || val_int(nsocks) > 1000000 )
+	p = (polldata*)alloc(sizeof(polldata));
+	p->max = val_int(nsocks);
+	if( p->max < 0 || p->max > 1000000 )
 		neko_error();
 #	ifdef NEKO_WINDOWS
-	return alloc_abstract(k_polldata, nsocks);
-#	else
 	{
-		polldata *p = (polldata*)alloc(sizeof(polldata));
-		p->count = val_int(nsocks);
-		p->fds = (struct pollfd*)alloc_private(sizeof(struct pollfd) * p->count);
-		return alloc_abstract(k_polldata, p);
+		p->fdr = (fd_set*)alloc_private(FDSIZE(p->max));
+		p->fdw = (fd_set*)alloc_private(FDSIZE(p->max));
+		p->outr = (fd_set*)alloc_private(FDSIZE(p->max));
+		p->outw = (fd_set*)alloc_private(FDSIZE(p->max));
+		p->fdr->fd_count = 0;
+		p->fdw->fd_count = 0;
 	}
+#	else	
+	p->fds = (struct pollfd*)alloc_private(sizeof(struct pollfd) * p->max);
+	p->rcount = 0;
+	p->wcount = 0;
 #	endif
+	p->ridx = alloc_array(p->max+1);
+	p->widx = alloc_array(p->max+1);
+	for(i=0;i<=p->max;i++) {
+		val_array_ptr(p->ridx)[i] = alloc_int(-1);
+		val_array_ptr(p->widx)[i] = alloc_int(-1);
+	}
+	return alloc_abstract(k_poll, p);
 }
 
 /**
-	socket_poll : 'socket array -> 'pool -> timeout:float -> 'socket array
+	socket_poll_prepare : 'poll -> read:'socket array -> write:'socket array -> int array array
 	<doc>
-	Perform a polling for data available over a given set of sockets. This is similar to [socket_select]
-	except that [socket_select] is limited to a given number of simultaneous sockets to check.
+	Prepare a poll for scanning events on sets of sockets.
 	</doc>
 **/
-static value socket_poll( value socks, value pdata, value timeout ) {
+static value socket_poll_prepare( value pdata, value rsocks, value wsocks ) {
+	polldata *p;
+	int i,len;
+	val_check(rsocks,array);
+	val_check(wsocks,array);
+	val_check_kind(pdata,k_poll);
+	p = val_poll(pdata);
+	len = val_array_size(rsocks);
+	if( len + val_array_size(wsocks) > p->max )
+		val_throw(alloc_string("Too many sockets in poll"));
 #	ifdef NEKO_WINDOWS
-	value r;
-	val_check(socks,array);
-	val_check_kind(pdata,k_polldata);
-	if( val_array_size(socks) > val_int(val_data(pdata)) )
-		val_throw(alloc_string("Too many sockets in poll"));
-	r = socket_select(socks,val_null,val_null,timeout);
-	if( r == NULL )
-		neko_error();
-	return val_array_ptr(r)[0];
-#else
-	int i,len,rlen;
-	polldata *d;
-	val_check(socks,array);
-	val_check_kind(pdata,k_polldata);
+	for(i=0;i<len;i++) {
+		value s = val_array_ptr(rsocks)[i];
+		val_check_kind(s,k_socket);
+		p->fdr->fd_array[i] = val_sock(s);
+	}
+	p->fdr->fd_count = len;
+	len = val_array_size(wsocks);
+	for(i=0;i<len;i++) {
+		value s = val_array_ptr(wsocks)[i];
+		val_check_kind(s,k_socket);
+		p->fdw->fd_array[i] = val_sock(s);
+	}
+	p->fdw->fd_count = len;
+#	else
+	for(i=0;i<len;i++) {
+		value s = val_array_ptr(rsocks)[i];
+		val_check_kind(s,k_socket);
+		d->fds[i].fd = val_sock(s);
+		d->fds[i].events = POLLIN;
+		d->fds[i].revents = 0;
+	}
+	d->rcount = len;
+	len = val_array_size(wsocks);	
+	for(i=0;i<len;i++) {
+		int k = i + d->rcount;
+		value s = val_array_ptr(wsocks)[i];
+		val_check_kind(s,k_socket);
+		d->fds[k].fd = val_sock(s);
+		d->fds[k].events = POLLOUT;
+		d->fds[k].revents = 0;
+	}
+	d->wcount = len;
+#	endif
+	{
+		value a = alloc_array(2);
+		val_array_ptr(a)[0] = p->ridx;
+		val_array_ptr(a)[1] = p->widx;		
+		return a;
+	}
+}
+
+/**
+	socket_poll_events : 'poll -> timeout:float -> void
+	<doc>
+	Update the read/write flags arrays that were created with [socket_poll_prepare].
+	</doc>
+**/
+static value socket_poll_events( value pdata, value timeout ) {
+	polldata *p;
+#	ifdef NEKO_WINDOWS
+	unsigned int i;
+	int k = 0;
+	struct timeval t;
+	val_check_kind(pdata,k_poll);
+	p = val_poll(pdata);
+	memcpy(p->outr,p->fdr,FDSIZE(p->fdr->fd_count));
+	memcpy(p->outw,p->fdw,FDSIZE(p->fdw->fd_count));
 	val_check(timeout,number);
-	len = val_array_size(socks);
-	d = (polldata*)val_data(pdata);
-	if( len > d->count )
-		val_throw(alloc_string("Too many sockets in poll"));
+	init_timeval(val_number(timeout),&t);
+	if( p->fdr->fd_count + p->fdw->fd_count != 0 && select(0,p->outr,p->outw,NULL,&t) == SOCKET_ERROR )
+		neko_error();
+	k = 0;	
+	for(i=0;i<p->fdr->fd_count;i++)
+		if( FD_ISSET(p->fdr->fd_array[i],p->outr) )
+			val_array_ptr(p->ridx)[k++] = alloc_int(i);
+	val_array_ptr(p->ridx)[k] = alloc_int(-1);
+	k = 0;
+	for(i=0;i<p->fdw->fd_count;i++)
+		if( FD_ISSET(p->fdw->fd_array[i],p->outw) )
+			val_array_ptr(p->widx)[k++] = alloc_int(i);
+	val_array_ptr(p->widx)[k] = alloc_int(-1);
+#else
+	int i,k;
+	int tot = d->rcount + d->wcount;
 	while( true ) {
-		for(i=0;i<len;i++) {
-			value s = val_array_ptr(socks)[i];
-			val_check_kind(s,k_socket);
-			d->fds[i].fd = val_sock(s);
-			d->fds[i].events = POLLIN | POLLHUP;
-			d->fds[i].revents = 0;
-		}
-		if( (rlen = poll(d->fds,len,(int)(val_number(timeout) * 1000))) < 0 ) {
+		if( poll(d->fds,tot,(int)(val_number(timeout) * 1000)) < 0 ) {
 			if( errno == EINTR )
 				continue;
 			neko_error();
 		}
 		break;
 	}
-	if( rlen == 0 )
-		return alloc_array(0);
-	{
-		value r = alloc_array(rlen);
-		int pos = 0;
-		for(i=0;i<len;i++)
-			if( d->fds[i].revents & POLLIN ) {
-				val_array_ptr(r)[pos++] = val_array_ptr(socks)[i];
-				if( pos == rlen )
-					return r;
-			}
-		neko_error();
-	}
+	k = 0;
+	for(i=0;i<d->rcount;i++)
+		if( d->fds[i].revents & (POLLIN|POLL_HUP) )
+			val_array_ptr(d->ridx)[k++] = alloc_int(i);
+	val_array_ptr(d->ridx)[k] = alloc_int(-1);
+	k = 0;
+	for(;i<tot;i++)
+		if( d->fds[i].revents & (POLLOUT|POLL_HUP) )
+			val_array_ptr(d->widx)[k++] = alloc_int(i - d->rcount);
+	val_array_ptr(d->ridx)[k] = alloc_int(-1);
 #endif
+	return val_null;
+}
+
+
+/**
+	socket_poll : 'socket array -> 'poll -> timeout:float -> 'socket array
+	<doc>
+	Perform a polling for data available over a given set of sockets. This is similar to [socket_select]
+	except that [socket_select] is limited to a given number of simultaneous sockets to check.
+	</doc>
+**/
+static value socket_poll( value socks, value pdata, value timeout ) {
+	polldata *p;
+	value a;
+	int i, rcount = 0;
+	if( socket_poll_prepare(pdata,socks,alloc_array(0)) == NULL )
+		neko_error();
+	if( socket_poll_events(pdata,timeout) == NULL )
+		neko_error();
+	p = val_poll(pdata);
+	while( val_array_ptr(p->ridx)[rcount] != alloc_int(-1) )
+		rcount++;	
+	a = alloc_array(rcount);
+	for(i=0;i<rcount;i++)
+		val_array_ptr(a)[i] = val_array_ptr(socks)[val_int(val_array_ptr(p->ridx)[i])];
+	return a;
 }
 
 DEFINE_PRIM(socket_init,0);
@@ -663,6 +770,8 @@ DEFINE_PRIM(socket_set_blocking,2);
 
 DEFINE_PRIM(socket_poll_alloc,1);
 DEFINE_PRIM(socket_poll,3);
+DEFINE_PRIM(socket_poll_prepare,3);
+DEFINE_PRIM(socket_poll_events,2);
 
 DEFINE_PRIM(host_local,0);
 DEFINE_PRIM(host_resolve,1);

@@ -15,6 +15,8 @@ TODO :
 	fixed : math_round(0.5) is now 1
 	fixed : date_set_hour and date_set_day crash with invalid dates
 	fixed : bug in vm/callback.c when stack address is >2GB
+	sockets : added support for socket_poll for Windows
+	sockets : added socket_poll_prepare and socket_poll_events
 
 2007-07-25 : 1.6.0
 	display error message when uncaught exception in neko thread
