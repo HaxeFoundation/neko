@@ -14,6 +14,7 @@ TODO :
 	regexp : upgraded windows ndll to use pcre 7.3 with utf8 support
 	fixed : math_round(0.5) is now 1
 	fixed : date_set_hour and date_set_day crash with invalid dates
+	fixed : bug in vm/callback.c when stack address is >2GB
 
 2007-07-25 : 1.6.0
 	display error message when uncaught exception in neko thread

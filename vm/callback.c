@@ -42,8 +42,6 @@ EXTERN value val_callEx( value vthis, value f, value *args, int nargs, value *ex
 	value old_env = vm->env;
 	value ret = val_null;
 	jmp_buf oldjmp;
-	if( ((int_val)&vm) < (int_val)vm->c_stack_max )
-		val_throw(alloc_string("C Stack Overflow"));
 	if( vthis != NULL )
 		vm->vthis = vthis;
 	if( exc ) {
@@ -58,6 +56,8 @@ EXTERN value val_callEx( value vthis, value f, value *args, int nargs, value *ex
 		}
 		neko_setup_trap(vm);
 	}
+	if( (unsigned)((int_val)&vm) < (unsigned)(int_val)vm->c_stack_max )
+		val_throw(alloc_string("C Stack Overflow"));
 	if( val_is_int(f) )
 		val_throw(alloc_string("Invalid call"));
 	if( val_tag(f) == VAL_PRIMITIVE ) {
