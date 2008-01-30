@@ -644,21 +644,21 @@ static value socket_poll_prepare( value pdata, value rsocks, value wsocks ) {
 	for(i=0;i<len;i++) {
 		value s = val_array_ptr(rsocks)[i];
 		val_check_kind(s,k_socket);
-		d->fds[i].fd = val_sock(s);
-		d->fds[i].events = POLLIN;
-		d->fds[i].revents = 0;
+		p->fds[i].fd = val_sock(s);
+		p->fds[i].events = POLLIN;
+		p->fds[i].revents = 0;
 	}
-	d->rcount = len;
+	p->rcount = len;
 	len = val_array_size(wsocks);	
 	for(i=0;i<len;i++) {
-		int k = i + d->rcount;
+		int k = i + p->rcount;
 		value s = val_array_ptr(wsocks)[i];
 		val_check_kind(s,k_socket);
-		d->fds[k].fd = val_sock(s);
-		d->fds[k].events = POLLOUT;
-		d->fds[k].revents = 0;
+		p->fds[k].fd = val_sock(s);
+		p->fds[k].events = POLLOUT;
+		p->fds[k].revents = 0;
 	}
-	d->wcount = len;
+	p->wcount = len;
 #	endif
 	{
 		value a = alloc_array(2);
@@ -700,9 +700,13 @@ static value socket_poll_events( value pdata, value timeout ) {
 	val_array_ptr(p->widx)[k] = alloc_int(-1);
 #else
 	int i,k;
-	int tot = d->rcount + d->wcount;
+	int tot;
+	val_check_kind(pdata,k_poll);
+	val_check(timeout,number);
+	p = val_poll(pdata);
+	tot = p->rcount + p->wcount;
 	while( true ) {
-		if( poll(d->fds,tot,(int)(val_number(timeout) * 1000)) < 0 ) {
+		if( poll(p->fds,tot,(int)(val_number(timeout) * 1000)) < 0 ) {
 			if( errno == EINTR )
 				continue;
 			neko_error();
@@ -710,15 +714,15 @@ static value socket_poll_events( value pdata, value timeout ) {
 		break;
 	}
 	k = 0;
-	for(i=0;i<d->rcount;i++)
-		if( d->fds[i].revents & (POLLIN|POLL_HUP) )
-			val_array_ptr(d->ridx)[k++] = alloc_int(i);
-	val_array_ptr(d->ridx)[k] = alloc_int(-1);
+	for(i=0;i<p->rcount;i++)
+		if( p->fds[i].revents & (POLLIN|POLLHUP) )
+			val_array_ptr(p->ridx)[k++] = alloc_int(i);
+	val_array_ptr(p->ridx)[k] = alloc_int(-1);
 	k = 0;
 	for(;i<tot;i++)
-		if( d->fds[i].revents & (POLLOUT|POLL_HUP) )
-			val_array_ptr(d->widx)[k++] = alloc_int(i - d->rcount);
-	val_array_ptr(d->ridx)[k] = alloc_int(-1);
+		if( p->fds[i].revents & (POLLOUT|POLLHUP) )
+			val_array_ptr(p->widx)[k++] = alloc_int(i - p->rcount);
+	val_array_ptr(p->widx)[k] = alloc_int(-1);
 #endif
 	return val_null;
 }
