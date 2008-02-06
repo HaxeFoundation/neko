@@ -48,7 +48,7 @@ typedef struct {
 #	endif
 	tqueue *first;
 	tqueue *last;
-	value v;	
+	value v;
 } vthread;
 
 DECLARE_KIND(k_thread);
@@ -75,9 +75,19 @@ DECLARE_KIND(k_thread);
 **/
 
 #define val_lock(l)		((vlock)val_data(l))
+#define val_tls(l)		((vtls*)val_data(l))
+
+typedef struct {
+#	ifdef NEKO_WINDOWS
+	DWORD tls;
+#	else
+	pthread_key_t key;
+#	endif
+} vtls;
 
 DEFINE_KIND(k_thread);
 DEFINE_KIND(k_lock);
+DEFINE_KIND(k_tls);
 
 typedef struct {
 	value callb;
@@ -106,21 +116,21 @@ static vthread *alloc_thread() {
 	memset(t,0,sizeof(vthread));
 #ifdef NEKO_WINDOWS
 	t->tid = GetCurrentThreadId();
-	t->wait = CreateSemaphore(NULL,0,1,NULL);	
+	t->wait = CreateSemaphore(NULL,0,1,NULL);
 	InitializeCriticalSection(&t->lock);
 #else
 	t->phandle = pthread_self();
 	pthread_mutex_init(&t->lock,NULL);
 	pthread_cond_init(&t->wait,NULL);
-#endif	
+#endif
 	t->v = alloc_abstract(k_thread,t);
 	val_gc(t->v,free_thread);
 	return t;
 }
 
 static int thread_init( void *_p ) {
-	tparams *p = (tparams*)_p;	
-	neko_vm *vm;	
+	tparams *p = (tparams*)_p;
+	neko_vm *vm;
 	p->t = alloc_thread();
 	// init the VM and set current thread
 	vm = neko_vm_alloc(NULL);
@@ -164,7 +174,7 @@ static value thread_create( value f, value param ) {
 	thread_current : void -> 'thread
 	<doc>Returns the current thread</doc>
 **/
-static value thread_current() {	
+static value thread_current() {
 	vthread *t = neko_thread_current();
 	// should only occur for main thread !
 	if( t == NULL ) {
@@ -350,6 +360,96 @@ static value lock_wait( value lock, value timeout ) {
 #	endif
 }
 
+static void free_tls( value v ) {
+	vtls *t = val_tls(v);
+#	ifdef NEKO_WINDOWS
+	TlsFree(t->tls);
+#	else
+	pthread_key_delete(&t->key);
+#	endif
+	free(t);
+}
+
+/**
+	tls_create : void -> 'tls
+	<doc>
+	Creates thread local storage. This is placeholder that can store a value that will
+	be different depending on the local thread. You must set the tls value to [null]
+	before exiting the thread or the memory will never be collected.
+	</doc>
+**/
+static value tls_create() {
+	value v;
+	vtls *t = (vtls*)malloc(sizeof(vtls));
+#	ifdef NEKO_WINDOWS
+	t->tls = TlsAlloc();
+	TlsSetValue(t->tls,NULL);
+#	else
+	pthread_key_create(&t->key,NULL);
+#	endif
+	v = alloc_abstract(k_tls,t);
+	val_gc(v,free_tls);
+	return v;
+}
+
+/**
+	tls_get : 'tls -> any
+	<doc>
+	Returns the value set by [tls_set] for the local thread.
+	</doc>
+**/
+static value tls_get( value v ) {
+	vtls *t;
+	value *r;
+	val_check_kind(v,k_tls);
+	t = val_tls(v);
+#	ifdef NEKO_WINDOWS
+	r = (value*)TlsGetValue(t->tls);
+#	else
+	r = (value*)pthread_getspecific(t->key);
+#	endif
+	if( r == NULL ) return val_null;
+	return *r;
+}
+
+/**
+	tls_set : 'tls -> any -> void
+	<doc>
+	Set the value of the TLS for the local thread.
+	</doc>
+**/
+static value tls_set( value v, value content ) {
+	vtls *t;
+	value *r;
+	val_check_kind(v,k_tls);
+	t = val_tls(v);
+#	ifdef NEKO_WINDOWS
+	r = (value*)TlsGetValue(t->tls);
+#	else
+	r = (value*)pthread_getspecific(t->key);
+#	endif
+	if( r == NULL ) {
+		if( val_is_null(content) )
+			return val_null;
+		r = alloc_root(1);
+#		ifdef NEKO_WINDOWS
+		TlsSetValue(t->tls,r);
+#		else
+		pthread_setspecific(t->key,r);
+#		endif
+	} else if( val_is_null(content) ) {
+		free_root(r);
+#		ifdef NEKO_WINDOWS
+		TlsSetValue(t->tls,NULL);
+#		else
+		pthread_setspecific(t->key,NULL);
+#		endif
+		return val_null;
+	}
+	*r = content;
+	return val_null;
+}
+
 DEFINE_PRIM(thread_create,2);
 DEFINE_PRIM(thread_current,0);
 DEFINE_PRIM(thread_send,2);
@@ -358,3 +458,8 @@ DEFINE_PRIM(thread_read_message,1);
 DEFINE_PRIM(lock_create,0);
 DEFINE_PRIM(lock_wait,2);
 DEFINE_PRIM(lock_release,1);
+
+DEFINE_PRIM(tls_create,0);
+DEFINE_PRIM(tls_set,2);
+DEFINE_PRIM(tls_get,1);
+
