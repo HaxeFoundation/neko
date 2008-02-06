@@ -385,7 +385,7 @@ static value make_array_result( value a, fd_set *tmp ) {
 
 static void init_timeval( tfloat f, struct timeval *t ) {
 	t->tv_usec = ((int)(f*1000000)) % 1000000;
-	t->tv_sec = (int)f;	
+	t->tv_sec = (int)f;
 }
 
 /**
@@ -596,7 +596,7 @@ static value socket_poll_alloc( value nsocks ) {
 		p->fdr->fd_count = 0;
 		p->fdw->fd_count = 0;
 	}
-#	else	
+#	else
 	p->fds = (struct pollfd*)alloc_private(sizeof(struct pollfd) * p->max);
 	p->rcount = 0;
 	p->wcount = 0;
@@ -649,7 +649,7 @@ static value socket_poll_prepare( value pdata, value rsocks, value wsocks ) {
 		p->fds[i].revents = 0;
 	}
 	p->rcount = len;
-	len = val_array_size(wsocks);	
+	len = val_array_size(wsocks);
 	for(i=0;i<len;i++) {
 		int k = i + p->rcount;
 		value s = val_array_ptr(wsocks)[i];
@@ -663,7 +663,7 @@ static value socket_poll_prepare( value pdata, value rsocks, value wsocks ) {
 	{
 		value a = alloc_array(2);
 		val_array_ptr(a)[0] = p->ridx;
-		val_array_ptr(a)[1] = p->widx;		
+		val_array_ptr(a)[1] = p->widx;
 		return a;
 	}
 }
@@ -688,7 +688,7 @@ static value socket_poll_events( value pdata, value timeout ) {
 	init_timeval(val_number(timeout),&t);
 	if( p->fdr->fd_count + p->fdw->fd_count != 0 && select(0,p->outr,p->outw,NULL,&t) == SOCKET_ERROR )
 		neko_error();
-	k = 0;	
+	k = 0;
 	for(i=0;i<p->fdr->fd_count;i++)
 		if( FD_ISSET(p->fdr->fd_array[i],p->outr) )
 			val_array_ptr(p->ridx)[k++] = alloc_int(i);
@@ -745,7 +745,7 @@ static value socket_poll( value socks, value pdata, value timeout ) {
 		neko_error();
 	p = val_poll(pdata);
 	while( val_array_ptr(p->ridx)[rcount] != alloc_int(-1) )
-		rcount++;	
+		rcount++;
 	a = alloc_array(rcount);
 	for(i=0;i<rcount;i++)
 		val_array_ptr(a)[i] = val_array_ptr(socks)[val_int(val_array_ptr(p->ridx)[i])];
