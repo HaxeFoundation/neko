@@ -543,6 +543,16 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 	// jit ?
 	if( NEKO_VM()->run_jit )
 		neko_module_jit(m);
+#	ifdef NEKO_THREADED
+	{
+		int_val *jtbl = neko_get_ttable();
+		for(i=0;i<=m->codesize;i++) {
+			int_val c = m->code[i];
+			m->code[i] = jtbl[c];
+			i += parameter_table[c];
+		}
+	}
+#	endif
 	return m;
 }
 

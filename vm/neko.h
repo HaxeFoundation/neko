@@ -67,12 +67,16 @@
 #	define NEKO_POSIX
 #endif
 
+#if defined(NEKO_GCC)
+#	define NEKO_THREADED
+#endif
+
 #include <stddef.h>
 #ifndef NEKO_VCC
 #	include <stdint.h>
 #endif
 
-#define NEKO_VERSION	160
+#define NEKO_VERSION	161
 
 typedef intptr_t int_val;
 

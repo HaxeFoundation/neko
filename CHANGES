@@ -18,6 +18,7 @@ TODO :
 	sockets : added support for socket_poll for Windows
 	sockets : added socket_poll_prepare and socket_poll_events
 	thread : added tls_create, tls_set, tls_get
+	vm : threaded interpreter (gcc only)	
 
 2007-07-25 : 1.6.0
 	display error message when uncaught exception in neko thread

@@ -112,7 +112,7 @@ EXTERN value val_callEx( value vthis, value f, value *args, int nargs, value *ex
 					ret = neko_interp(vm,((vfunction*)f)->module,(int_val)val_null,(int_val*)((vfunction*)f)->addr);
 				} else {
 					neko_module *m = (neko_module*)((vfunction*)f)->module;
-					ret = ((jit_prim)jit_boot_seq)(vm,((vfunction*)f)->addr,val_null,m);					
+					ret = ((jit_prim)jit_boot_seq)(vm,((vfunction*)f)->addr,val_null,m);			
 				}
 			}
 		}

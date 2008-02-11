@@ -382,6 +382,9 @@ extern void neko_free_jit();
 #define INIT_ID(x)	id_##x = val_id("__" #x)
 
 EXTERN void neko_global_init( void *s ) {
+#	ifdef NEKO_THREADED
+	op_last = neko_get_ttable()[Last];
+#	endif
 	empty_array.ptr = val_null;
 	neko_gc_init(s);
 	neko_vm_context = context_new();

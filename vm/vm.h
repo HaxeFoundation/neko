@@ -59,6 +59,7 @@ extern _context *neko_vm_context;
 
 extern value neko_alloc_apply( int nargs, value env );
 extern value neko_interp( neko_vm *vm, void *m, int_val acc, int_val *pc );
+extern int_val *neko_get_ttable();
 
 #endif
 /* ************************************************************************ */

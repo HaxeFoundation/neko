@@ -258,8 +258,13 @@ static int_val jit_run( neko_vm *vm, vfunction *acc ) {
 					val_throw(buffer_to_string(b)); \
 				}
 
-#define Instr(x)	case x:
-#define Next		break;
+#ifdef NEKO_THREADED
+#	define Instr(x)	Label##x:
+#	define Next		goto **pc++;
+#else
+#	define Instr(x)	case x:
+#	define Next		break;
+#endif
 
 #define PopMacro(n) { \
 		int tmp = (int)n; \
@@ -528,13 +533,32 @@ static int_val interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_v
 #	ifdef VM_REG
 	register neko_vm *vm VM_REG = VM_ARG;
 #	endif
+#	ifdef NEKO_THREADED
+	if( m == NULL ) {
+		static void *instructions[] = {
+#			undef _NEKO_OPCODES_H
+#			undef OPBEGIN
+#			undef OPEND
+#			undef OP
+#			define OPBEGIN
+#			define OPEND
+#			define OP(x)	&&Label##x
+#			include "opcodes.h"
+		};
+		return (int_val)instructions;
+	}
+#	endif
 	register int_val *sp SP_REG = vm->sp;
 	register int_val *csp CSP_REG = vm->csp;
+#ifdef NEKO_THREADED
+	Next; {{
+#else
 	while( true ) {
-#ifdef NEKO_PROF
+#		ifdef NEKO_PROF
 		if( *pc != Last ) pc[PROF_SIZE]++;
-#endif
+#		endif
 		switch( *pc++ ) {
+#endif
 	Instr(AccNull)
 		acc = (int_val)val_null;
 		Next;
@@ -996,6 +1020,14 @@ end:
 	vm->sp = sp;
 	vm->csp = csp;
 	return acc;
+}
+
+int_val *neko_get_ttable() {
+#	ifdef NEKO_THREADED
+	return (int_val*)interp_loop(NULL,NULL,0,NULL);
+#	else
+	return NULL;
+#	endif
 }
 
 value neko_interp( neko_vm *vm, void *_m, int_val acc, int_val *pc ) {
