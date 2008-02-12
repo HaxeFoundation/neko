@@ -18,31 +18,6 @@
 #define __OBJTABLE_H
 #include "neko.h"
 
-#ifndef COMPACT_TABLE
-
-struct _objtable {
-	field id;
-	value data;
-	struct _objtable *left;
-	struct _objtable *right;
-	int skew;
-};
-
-value *otable_find(objtable t,field id);
-
-#define otable_empty()	NULL
-#define otable_replace(t,id,data) _otable_replace(&(t),id,data)
-#define otable_remove(t,id) (_otable_remove(&(t),id) != (unsigned int)-1)
-#define otable_optimize(t) _otable_optimize(&(t))
-
-int otable_count(objtable t);
-unsigned int _otable_replace(objtable *t, field id, value data);
-unsigned int _otable_remove(objtable *t, field id);
-void _otable_optimize(objtable *t);
-
-
-#else
-
 typedef struct {
 	field id;
 	value v;
@@ -81,8 +56,6 @@ void otable_replace(objtable t, field id, value data);
 int otable_remove(objtable t, field id);
 void otable_optimize(objtable t);
 #define otable_count(t)	(t)->count
-
-#endif
 
 objtable otable_copy(objtable t);
 void otable_iter(objtable t, void f( value data, field id, void *), void *p );
