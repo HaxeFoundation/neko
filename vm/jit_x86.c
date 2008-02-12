@@ -1842,15 +1842,9 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		stack_pad(2);
 		XPush_r(ACC);
 		XPush_c(p);
-#		ifdef COMPACT_TABLE
 		XMov_rp(TMP,TMP,FIELD(1));
 		XPush_r(TMP);
 		XCall_m(otable_replace);
-#		else
-		XAdd_rc(TMP,4);	// pass the address as parameter
-		XPush_r(TMP);
-		XCall_m(_otable_replace);
-#		endif
 		stack_pop(Esp,3);
 		XMov_rp(ACC,Esp,FIELD(-1));
 		stack_pad(-2);
