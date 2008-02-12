@@ -522,11 +522,11 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 			i++;
 	}
 	// Check stack preservation
-	if( !vm->trusted_code ) {
+	{
 		unsigned char *stmp = (unsigned char*)alloc_private(m->codesize+1);
 		unsigned int prev = 0;
 		memset(stmp,UNKNOWN,m->codesize+1);
-		if( !neko_check_stack(m,stmp,0,0,0) )
+		if( !vm->trusted_code && !neko_check_stack(m,stmp,0,0,0) )
 			ERROR();
 		for(i=0;i<m->nglobals;i++) {
 			vfunction *f = (vfunction*)m->globals[i];
@@ -534,7 +534,7 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 				itmp = (unsigned int)(int_val)f->addr;
 				if( itmp >= m->codesize || !tmp[itmp] || itmp < prev )
 					ERROR();
-				if( !neko_check_stack(m,stmp,itmp,f->nargs,f->nargs) )
+				if( !vm->trusted_code && !neko_check_stack(m,stmp,itmp,f->nargs,f->nargs) )
 					ERROR();
 				f->addr = m->code + itmp;
 				prev = itmp;

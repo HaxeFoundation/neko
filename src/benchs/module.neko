@@ -1,0 +1,8 @@
+var arg = $int($loader.args[0]);
+if( arg == null ) arg = 100;
+$loader.args = $array();
+while( arg > 0 ) {
+	$loader.cache = $new(null);
+	$loader.loadmodule("boot/nekoc.n",$loader);
+	arg -= 1;
+}
