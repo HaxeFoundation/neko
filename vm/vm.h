@@ -50,6 +50,7 @@ struct _neko_vm {
 	custom_list *clist;
 	value resolver;
 	char tmp[100];
+	int trusted_code;
 };
 
 extern int_val *callback_return;

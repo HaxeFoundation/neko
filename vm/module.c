@@ -333,13 +333,14 @@ static void *read_debug_infos( reader r, readp p, char *tmp, neko_module *m  ) {
 }
 
 neko_module *neko_read_module( reader r, readp p, value loader ) {
-	unsigned int i;
+	register unsigned int i;
 	unsigned int itmp;
 	unsigned char t;
 	unsigned short stmp;
-	char *tmp = NULL;
+	register char *tmp = NULL;
 	int entry;
-	neko_module *m = (neko_module*)alloc(sizeof(neko_module));
+	register neko_module *m = (neko_module*)alloc(sizeof(neko_module));
+	neko_vm *vm = NEKO_VM();
 	READ_LONG(itmp);
 	if( itmp != 0x4F4B454E )
 		ERROR();
@@ -439,7 +440,7 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 	entry = (int)m->code[1];
 	// Check bytecode
 	for(i=0;i<m->codesize;i++) {
-		int c = (int)m->code[i];
+		register int c = (int)m->code[i];
 		itmp = (unsigned int)m->code[i+1];
 		if( c >= Last || tmp[i+1] == parameter_table[c] )
 			ERROR();
@@ -521,7 +522,7 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 			i++;
 	}
 	// Check stack preservation
-	{
+	if( !vm->trusted_code ) {
 		unsigned char *stmp = (unsigned char*)alloc_private(m->codesize+1);
 		unsigned int prev = 0;
 		memset(stmp,UNKNOWN,m->codesize+1);
@@ -541,9 +542,9 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 		}
 	}
 	// jit ?
-	if( NEKO_VM()->run_jit )
+	if( vm->run_jit )
 		neko_module_jit(m);
-#	ifdef NEKO_THREADED
+#	ifdef NEKO_DIRECT_DIRECT_THREADED
 	{
 		int_val *jtbl = neko_get_ttable();
 		for(i=0;i<=m->codesize;i++) {

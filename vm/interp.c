@@ -121,6 +121,7 @@ EXTERN neko_vm *neko_vm_alloc( void *custom ) {
 	vm->jit_val = NULL;
 	vm->run_jit = 0;
 	vm->resolver = NULL;
+	vm->trusted_code = 0;
 	return vm;
 }
 
@@ -260,7 +261,7 @@ static int_val jit_run( neko_vm *vm, vfunction *acc ) {
 
 #ifdef NEKO_THREADED
 #	define Instr(x)	Label##x:
-#	define Next		goto **pc++;
+#	define Next		goto **(jtbl + *pc++);
 #else
 #	define Instr(x)	case x:
 #	define Next		break;
@@ -534,7 +535,8 @@ static int_val interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_v
 	register neko_vm *vm VM_REG = VM_ARG;
 #	endif
 #	ifdef NEKO_THREADED
-	if( m == NULL ) {
+	register int_val **jtbl;
+	{
 		static void *instructions[] = {
 #			undef _NEKO_OPCODES_H
 #			undef OPBEGIN
@@ -545,7 +547,8 @@ static int_val interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_v
 #			define OP(x)	&&Label##x
 #			include "opcodes.h"
 		};
-		return (int_val)instructions;
+		if( m == NULL ) return (int_val)instructions;
+		jtbl = (int_val**)instructions;
 	}
 #	endif
 	register int_val *sp SP_REG = vm->sp;
