@@ -27,7 +27,7 @@
 #	include <sys/resource.h>
 #endif
 
-#if defined(NEKO_GCC) && defined(NEKO_X86)
+#if defined(NEKO_GCC) && defined(NEKO_X86) && (__GNUC__ == 3)
 #	define ACC_BACKUP	int_val __acc = acc;
 #	define ACC_RESTORE	acc = __acc;
 #	define ACC_REG asm("%eax")
@@ -35,7 +35,7 @@
 #	define SP_REG asm("%edi")
 #	define CSP_REG
 #	define VM_ARG vm
-#elif defined(__GNUC__) && defined(__ppc__)
+#elif defined(NEKO_GCC) && defined(NEKO_PPC)
 #	define ACC_BACKUP
 #	define ACC_RESTORE
 #	define ACC_REG asm("26")
@@ -261,7 +261,11 @@ static int_val jit_run( neko_vm *vm, vfunction *acc ) {
 
 #ifdef NEKO_THREADED
 #	define Instr(x)	Label##x:
-#	define Next		goto **(jtbl + *pc++);
+#	ifdef NEKO_DIRECT_THREADED
+#		define Next		goto **pc++;
+#	else
+#		define Next		goto **(instructions + *pc++);
+#	endif
 #else
 #	define Instr(x)	case x:
 #	define Next		break;
@@ -537,21 +541,17 @@ int_val neko_interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_val
 	register neko_vm *vm VM_REG = VM_ARG;
 #	endif
 #	ifdef NEKO_THREADED
-	register int_val **jtbl;
-	{
-		static void *instructions[] = {
-#			undef _NEKO_OPCODES_H
-#			undef OPBEGIN
-#			undef OPEND
-#			undef OP
-#			define OPBEGIN
-#			define OPEND
-#			define OP(x)	&&Label##x
-#			include "opcodes.h"
-		};
-		if( m == NULL ) return (int_val)instructions;
-		jtbl = (int_val**)instructions;
-	}
+	static void *instructions[] = {
+#		undef _NEKO_OPCODES_H
+#		undef OPBEGIN
+#		undef OPEND
+#		undef OP
+#		define OPBEGIN
+#		define OPEND
+#		define OP(x)	&&Label##x
+#		include "opcodes.h"
+	};
+	if( m == NULL ) return (int_val)instructions;
 #	endif
 	register int_val *sp SP_REG = vm->sp;
 	register int_val *csp CSP_REG = vm->csp;

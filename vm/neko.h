@@ -69,6 +69,7 @@
 
 #if defined(NEKO_GCC)
 #	define NEKO_THREADED
+#	define NEKO_DIRECT_THREADED
 #endif
 
 #include <stddef.h>

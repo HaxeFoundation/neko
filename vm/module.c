@@ -544,7 +544,7 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 	// jit ?
 	if( vm->run_jit )
 		neko_module_jit(m);
-#	ifdef NEKO_DIRECT_DIRECT_THREADED
+#	ifdef NEKO_DIRECT_THREADED
 	{
 		int_val *jtbl = neko_get_ttable();
 		for(i=0;i<=m->codesize;i++) {
