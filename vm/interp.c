@@ -282,11 +282,7 @@ static int_val jit_run( neko_vm *vm, vfunction *acc ) {
 		csp = vm->csp
 
 #define PushInfos() \
-		if( csp + 4 >= sp ) { \
-			STACK_EXPAND; \
-			sp = vm->sp; \
-			csp = vm->csp; \
-		} \
+		if( csp + 4 >= sp ) STACK_EXPAND; \
 		*++csp = (int_val)pc; \
 		*++csp = (int_val)vm->env; \
 		*++csp = (int_val)vm->vthis; \
@@ -391,10 +387,12 @@ static int_val jit_run( neko_vm *vm, vfunction *acc ) {
 #define DIV(x,y) ((x) / (y))
 
 #define ObjectOpGen(obj,param,id,err) { \
+		ACC_BACKUP \
 		value _o = (value)obj; \
 		value _arg = (value)param; \
 		value _f = val_field(_o,id); \
 		if( _f == val_null ) { \
+			ACC_RESTORE \
 			err; \
 		} else { \
 			BeginCall(); \
@@ -442,7 +440,11 @@ extern value neko_append_strings( value s1, value s2 );
 
 #define STACK_EXPAND { \
 		ACC_BACKUP; \
-		if( !neko_stack_expand(sp,csp,vm) ) val_throw(alloc_string("Stack Overflow")); \
+		if( neko_stack_expand(sp,csp,vm) ) { \
+			sp = vm->sp; \
+			csp = vm->csp; \
+		} else \
+			val_throw(alloc_string("Stack Overflow")); \
 		ACC_RESTORE; \
 }
 
@@ -528,7 +530,7 @@ void neko_process_trap( neko_vm *vm ) {
 		*vm->sp++ = ERASE;
 }
 
-static int_val interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_val *_pc ) {
+int_val neko_interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_val *_pc ) {
 	register int_val acc ACC_REG = _acc;
 	register int_val *pc PC_REG = _pc;
 #	ifdef VM_REG
@@ -728,11 +730,7 @@ static int_val interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_v
 		Next;
 	Instr(Push)
 		--sp;
-		if( sp <= csp ) {
-			STACK_EXPAND;
-			sp = vm->sp;
-			csp = vm->csp;
-		}
+		if( sp <= csp ) STACK_EXPAND;
 		*sp = acc;
 		Next;
 	Instr(Pop)
@@ -813,11 +811,7 @@ static int_val interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_v
 		Next;
 	Instr(Trap)
 		sp -= 6;
-		if( sp <= csp ) {
-			STACK_EXPAND;
-			sp = vm->sp;
-			csp = vm->csp;
-		}
+		if( sp <= csp ) STACK_EXPAND;
 		sp[0] = (int_val)alloc_int((int_val)(csp - vm->spmin));
 		sp[1] = (int_val)vm->vthis;
 		sp[2] = (int_val)vm->env;
@@ -1004,6 +998,7 @@ static int_val interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_v
 			RuntimeError("$hash",false);
 		Next;
 	Instr(New)
+		BeginCall();
 		acc = (int_val)alloc_object((value)acc);
 		Next;
 	Instr(JumpTable)
@@ -1027,7 +1022,7 @@ end:
 
 int_val *neko_get_ttable() {
 #	ifdef NEKO_THREADED
-	return (int_val*)interp_loop(NULL,NULL,0,NULL);
+	return (int_val*)neko_interp_loop(NULL,NULL,0,NULL);
 #	else
 	return NULL;
 #	endif
@@ -1087,7 +1082,7 @@ value neko_interp( neko_vm *vm, void *_m, int_val acc, int_val *pc ) {
 	if( m->jit != NULL && m->code == pc )
 		acc = ((jit_prim)jit_boot_seq)(vm,m->jit,(value)acc,m);
 	else
-		acc = interp_loop(vm,m,acc,pc);
+		acc = neko_interp_loop(vm,m,acc,pc);
 	memcpy(&vm->start,&old,sizeof(jmp_buf));
 	return (value)acc;
 }
