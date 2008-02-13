@@ -50,14 +50,12 @@ static mconfig config;
 static _context *cache_root = NULL;
 
 extern void neko_stats_measure( neko_vm *vm, const char *kind, int start );
-extern void neko_stats_dump( neko_vm *vm );
+extern value neko_stats_build( neko_vm *vm );
 
 value cgi_command( value v ) {
 	val_check(v,string);
-	if( strcmp(val_string(v),"stats") == 0 ) {
-		neko_stats_dump(neko_vm_current());
-		return val_null;
-	}
+	if( strcmp(val_string(v),"stats") == 0 )
+		return neko_stats_build(neko_vm_current());
 	if( strcmp(val_string(v),"cache") == 0 ) {
 		cache *c = (cache*)context_get(cache_root);
 		value l = val_null;
@@ -203,7 +201,7 @@ static int neko_handler_rec( request_rec *r ) {
 	}
 
 	vm = neko_vm_alloc(NULL);
-	if( config.use_stats ) neko_vm_set_stats(vm,neko_stats_measure);
+	if( config.use_stats ) neko_vm_set_stats(vm,neko_stats_measure,config.use_prim_stats?neko_stats_measure:NULL);
 
 	neko_vm_set_custom(vm,k_mod_neko,&ctx);
 	if( config.use_jit && !neko_vm_jit(vm,1) ) {
@@ -215,9 +213,11 @@ static int neko_handler_rec( request_rec *r ) {
 	neko_vm_redirect(vm,request_print,&ctx);
 	neko_vm_select(vm);
 
-	if( ctx.main != NULL )
+	if( ctx.main != NULL ) {
+		if( config.use_stats ) neko_stats_measure(vm,r->filename,1);
 		val_callEx(val_null,ctx.main,NULL,0,&exc);
-	else {
+		if( config.use_stats ) neko_stats_measure(vm,r->filename,0);
+	} else {
 		char *base_uri = request_base_uri(r);
 		value mload = neko_default_loader(&base_uri,1);
 		value args[] = { alloc_string(r->filename), mload };

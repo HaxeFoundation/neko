@@ -506,6 +506,7 @@ static value cgi_get_config() {
 	FSET(hits,int);
 	FSET(use_jit,bool);
 	FSET(use_stats,bool);
+	FSET(use_prim_stats,bool);
 	FSET(use_cache,bool);
 	FSET(exceptions,int);
 	FSET(run_gc,bool);
@@ -525,6 +526,7 @@ static value cgi_set_config( value v ) {
 	FGET(hits,int);
 	FGET(use_jit,bool);
 	FGET(use_stats,bool);
+	FGET(use_prim_stats,bool);
 	FGET(use_cache,bool);
 	FGET(exceptions,int);
 	FGET(run_gc,bool);
@@ -537,7 +539,7 @@ static value cgi_set_config( value v ) {
 	cgi_command : any -> any
 	<doc>Perform a configuration-specific command :
 		<ul>
-		<li>stats : display the statistics</li>
+		<li>stats : returns the statistics</li>
 		<li>cache : returns the current cache</li>
 		</ul>
 	</doc>

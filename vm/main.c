@@ -43,7 +43,7 @@ extern value neko_installer_loader( char *argv[], int argc );
 static FILE *self;
 
 extern void neko_stats_measure( neko_vm *vm, const char *kind, int start );
-extern void neko_stats_dump( neko_vm *vm );
+extern value neko_stats_build( neko_vm *vm );
 
 
 static char *executable_path() {
@@ -224,7 +224,7 @@ int main( int argc, char *argv[] ) {
 				argc--;
 				argv++;
 				stats = 1;
-				neko_vm_set_stats(vm,neko_stats_measure);
+				neko_vm_set_stats(vm,neko_stats_measure,neko_stats_measure);
 				neko_stats_measure(vm,"total",1);
 				continue;
 			}
@@ -244,8 +244,25 @@ int main( int argc, char *argv[] ) {
 			r = execute_file(vm,argv[1],mload);
 		}
 		if( stats ) {
+			value v;
 			neko_stats_measure(vm,"total",0);
-			neko_stats_dump(vm);
+			v = neko_stats_build(vm);
+			val_print(alloc_string("TOT\tTIME\tCOUNT\tNAME\n"));
+			while( v != val_null ) {
+				char buf[256];
+				value *s = val_array_ptr(v);
+				int errors = val_int(s[4]);
+				sprintf(buf,"%d\t%d\t%d\t%s%c",
+					val_int(s[1]),
+					val_int(s[2]),
+					val_int(s[3]),
+					val_string(s[0]),
+					errors?' ':'\n');
+				if( errors )
+					sprintf(buf+strlen(buf),"ERRORS=%d\n",errors);
+				val_print(alloc_string(buf));
+				v = s[5];
+			}
 		}
 	} else {
 		mload = default_loader(argv+1,argc-1);

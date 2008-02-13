@@ -159,7 +159,8 @@ static statinfos *sort( statinfos *list ) {
 	return NULL;
 }
 
-void neko_stats_dump( neko_vm *vm ) {
+value neko_stats_build( neko_vm *vm ) {
+	value v = val_null;
 	statinfos *s = list;
 	// merge duplicates
 	while( s ) {
@@ -182,14 +183,16 @@ void neko_stats_dump( neko_vm *vm ) {
 	}
 	list = sort(list);
 	s = list;
-	val_print(alloc_string("TOT\tTIME\tCOUNT\tNAME\n"));
 	while( s ) {
-		char buf[256];
-		sprintf(buf,"%d\t%d\t%d\t%s%c",s->totaltime,s->totaltime - s->subtime,s->ncalls,s->kind,s->nerrors?' ':'\n');
-		if( s->nerrors )
-			sprintf(buf+strlen(buf),"ERRORS=%d\n",s->nerrors);
-		val_print(alloc_string(buf));
+		value tmp = alloc_array(6);
+		val_array_ptr(tmp)[0] = alloc_string(s->kind);
+		val_array_ptr(tmp)[1] = alloc_int(s->totaltime);
+		val_array_ptr(tmp)[2] = alloc_int(s->totaltime - s->subtime);
+		val_array_ptr(tmp)[3] = alloc_int(s->ncalls);
+		val_array_ptr(tmp)[4] = alloc_int(s->nerrors);
+		val_array_ptr(tmp)[5] = v;
+		v = tmp;
 		s = s->next;
 	}
+	return v;
 }
-

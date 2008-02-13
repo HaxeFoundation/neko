@@ -46,7 +46,7 @@ EXTERN void neko_vm_select( neko_vm *vm );
 EXTERN int neko_vm_jit( neko_vm *vm, int enable_jit );
 EXTERN value neko_default_loader( char **argv, int argc );
 EXTERN void neko_vm_redirect( neko_vm *vm, neko_printer print, void *param );
-EXTERN void neko_vm_set_stats( neko_vm *vm, neko_stat_func fstats );
+EXTERN void neko_vm_set_stats( neko_vm *vm, neko_stat_func fstats, neko_stat_func pstats );
 
 EXTERN int neko_is_big_endian();
 

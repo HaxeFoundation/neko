@@ -40,6 +40,7 @@ typedef struct {
 	int hits;
 	int use_jit;
 	int use_stats;
+	int use_prim_stats;
 	int use_cache;
 	int exceptions;
 	int run_gc;

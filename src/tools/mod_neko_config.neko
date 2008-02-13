@@ -36,16 +36,16 @@ message = function(msg) {
 	$print(end);
 }
 
-displayConfig = function(cfg) {
-	var fl = $objfields(cfg);
+
+displayObject = function(obj,edit) {
+	var fl = $objfields(obj);
 	var i = 0;
-	$print("<form action='?command=setconfig' method='POST'>");
 	$print("<ul>");
 	while( i < $asize(fl) ) {
 		var name = $field(fl[i]);
-		var data = $objget(cfg,fl[i]);
+		var data = $objget(obj,fl[i]);
 		$print("<li><b>",name,"</b> ");
-		if( $typeof(data) == $tbool )
+		if( edit && $typeof(data) == $tbool )
 			$print("<input type='checkbox' name='",name,"'",if( data ) "checked='1'" else "","/>");
 		else
 			$print(": ",data);
@@ -53,6 +53,23 @@ displayConfig = function(cfg) {
 		i += 1;
 	}
 	$print("</ul>");
+}
+
+displayVars = function() {
+	var gc = $loader.loadprim("std@gc_stats",0)();
+	var now = $loader.loadprim("std@date_now",0)();
+	displayObject({
+			date => $loader.loadprim("std@date_format",2)(now,null),
+			pid => $loader.loadprim("std@sys_get_pid",0)(),
+			gc_heap => gc.heap,
+			gc_free => gc.free,
+			gc_free_size => $int(gc.free * 100.0 / gc.heap) + "%",
+	},false);
+}
+
+displayConfig = function(cfg) {
+	$print("<form action='?command=setconfig' method='POST'>");
+	displayObject(cfg,true);
 	$print("<input type='submit' value='Update Config'/>");
 	$print("</form>");
 }
@@ -69,7 +86,8 @@ displayCache = function(cache) {
 
 displayMenu = function() {
 	$print(begin);
-	$print("<p>","Process ",$loader.loadprim("std@sys_get_pid",0)(),"</p>");
+	$print("<h2>Vars</h2>");
+	displayVars();
 	$print("<h2>Config</h2>");
 	displayConfig(get_config());
 	$print("<h2>Cache</h2>");
@@ -78,6 +96,19 @@ displayMenu = function() {
 	$print("<ul>");
 	$print("<li><a href='?command=stats'>Statistics</a></li>");
 	$print("</ul>");
+	$print(end);
+}
+
+displayStatistics = function(stats) {
+	$print(begin);
+	$print("<h2>Statistics</h2>");
+	$print("<table>");
+	$print("<tr><th>Name</th><th>Total Time</th><th>Inner Time</th><th>Hits</th><th>Errors</th></tr>");
+	while( stats != null ) {
+		$print("<tr><td>",stats[0],"</td><td>",stats[1],"</td><td>",stats[2],"</td><td>",stats[3],"</td><td>",stats[4],"</td></tr>");
+		stats = stats[5];
+	}
+	$print("</table>");
 	$print(end);
 }
 
@@ -99,10 +130,7 @@ setConfig = function() {
 
 var cmd = getParam("command");
 switch( cmd ) {
-"stats" => {
-	setHeader("Content-Type","text/plain");
-	execCommand("stats");
-}
+"stats" => displayStatistics(execCommand("stats"))
 "setconfig" => setConfig()
 default => {
 		if( cmd != null && cmd != "" ) error("Unknown command "+cmd);
