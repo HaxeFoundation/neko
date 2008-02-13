@@ -17,6 +17,7 @@
 #include <neko_vm.h>
 #include <string.h>
 #include <stdio.h>
+#include <malloc.h>
 
 #ifdef NEKO_WINDOWS
 #	include <windows.h>
@@ -365,7 +366,7 @@ static void free_tls( value v ) {
 #	ifdef NEKO_WINDOWS
 	TlsFree(t->tls);
 #	else
-	pthread_key_delete(&t->key);
+	pthread_key_delete(t->key);
 #	endif
 	free(t);
 }

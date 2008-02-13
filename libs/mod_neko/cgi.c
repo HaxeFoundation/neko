@@ -499,7 +499,7 @@ extern value cgi_get_cache();
 	cgi_get_config : void -> object
 	<doc>Return the current configuration</doc>
 **/
-#define FSET(name,t)	alloc_field(v,val_id(#name),alloc_##t(c->##name))
+#define FSET(name,t)	alloc_field(v,val_id(#name),alloc_##t(c-> name))
 static value cgi_get_config() {
 	value v = alloc_object(NULL);
 	mconfig *c = mod_neko_get_config();
@@ -518,7 +518,7 @@ static value cgi_get_config() {
 	cgi_set_config : object -> void
 	<doc>Set the current configuration</doc>
 **/
-#define FGET(name,t)	f = val_field(v,val_id(#name)); val_check(f,t); c.##name = val_##t(f)
+#define FGET(name,t)	f = val_field(v,val_id(#name)); val_check(f,t); c. name = val_##t(f)
 static value cgi_set_config( value v ) {
 	mconfig c;
 	value f;
