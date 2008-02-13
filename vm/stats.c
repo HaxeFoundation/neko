@@ -58,6 +58,7 @@ void neko_stats_measure( neko_vm *vm, const char *kind, int start ) {
 	int ksize = strlen(kind);
 	statinfos *s;
 	if( start ) {
+		int time = precise_timer();
 		// lookup in list
 		s = list;
 		while( s ) {
@@ -81,9 +82,8 @@ void neko_stats_measure( neko_vm *vm, const char *kind, int start ) {
 		s->ncalls++;
 		s->stack = stack;
 		stack = s;		
-		s->starttime = precise_timer();
+		s->starttime = time;
 	} else {
-		int time = precise_timer();
 		// lookup on stack
 		s = stack;
 		while( s ) {
@@ -97,7 +97,7 @@ void neko_stats_measure( neko_vm *vm, const char *kind, int start ) {
 		}
 		// pop from stack
 		if( s ) {
-			int delta = time - s->starttime;
+			int delta = precise_timer() - s->starttime;
 			s->totaltime += delta;
 			stack = s->stack;
 			if( stack ) stack->subtime += delta;

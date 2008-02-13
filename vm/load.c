@@ -310,7 +310,7 @@ static value stats_proxy( value p1, value p2, value p3, value p4, value p5, valu
 	value env = vm->env;
 	value ret;
 	if( vm->fstats ) vm->fstats(vm,val_string(val_array_ptr(env)[0]),1);
-	ret = ((stats_callback)val_array_ptr(vm->env)[1])(p1,p2,p3,p4,p5,p6);
+	ret = ((stats_callback)((int_val)val_array_ptr(vm->env)[1]&~1))(p1,p2,p3,p4,p5,p6);
 	if( vm->fstats ) vm->fstats(vm,val_string(val_array_ptr(env)[0]),0);
 	return ret;
 }
@@ -341,7 +341,7 @@ static value loader_loadprim( value prim, value nargs ) {
 		if( vm->fstats && val_int(nargs) <= 6 ) {
 			value env = alloc_array(2);
 			val_array_ptr(env)[0] = f->module;
-			val_array_ptr(env)[1] = f->addr;
+			val_array_ptr(env)[1] = (value)(((int_val)f->addr) | 1);
 			f->addr = stats_proxy;
 			f->env = env;
 		}
