@@ -23,6 +23,8 @@ typedef int (*thread_main_func)( void *param );
 
 typedef struct _neko_vm neko_vm;
 
+typedef void (*neko_stat_func)( neko_vm *vm, const char *kind, int start );
+
 C_FUNCTION_BEGIN
 
 EXTERN void neko_global_init( void *s );
@@ -44,6 +46,7 @@ EXTERN void neko_vm_select( neko_vm *vm );
 EXTERN int neko_vm_jit( neko_vm *vm, int enable_jit );
 EXTERN value neko_default_loader( char **argv, int argc );
 EXTERN void neko_vm_redirect( neko_vm *vm, neko_printer print, void *param );
+EXTERN void neko_vm_set_stats( neko_vm *vm, neko_stat_func fstats );
 
 EXTERN int neko_is_big_endian();
 

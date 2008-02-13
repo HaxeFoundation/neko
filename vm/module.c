@@ -328,7 +328,7 @@ static void *read_debug_infos( reader r, readp p, char *tmp, neko_module *m  ) {
 	// table copy
 	pos_index++;
 	m->dbgtbl = alloc_array(pos_index);
-	memcpy(val_array_ptr(m->dbgtbl),val_array_ptr(positions),pos_index * sizeof(value));	
+	memcpy(val_array_ptr(m->dbgtbl),val_array_ptr(positions),pos_index * sizeof(value));
 	return m;
 }
 
@@ -358,6 +358,7 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 	m->fields = (value*)alloc(sizeof(value*)*m->nfields);
 	m->loader = loader;
 	m->exports = alloc_object(NULL);
+	if( vm->fstats ) vm->fstats(vm,"neko_read_module_data",1);
 	alloc_field(m->exports,neko_id_module,alloc_abstract(neko_kind_module,m));
 	// Init global table
 	for(i=0;i<m->nglobals;i++) {
@@ -399,6 +400,10 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 			ERROR();
 		m->fields[i] = alloc_string(tmp);
 	}
+	if( vm->fstats ) {
+		vm->fstats(vm,"neko_read_module_data",0);
+		vm->fstats(vm,"neko_read_module_code",1);
+	}
 	#ifdef NEKO_PROF
 		if( m->codesize >= PROF_SIZE )
 			ERROR();
@@ -438,6 +443,10 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 	tmp[i] = 1;
 	m->code[i] = Last;
 	entry = (int)m->code[1];
+	if( vm->fstats ) {
+		vm->fstats(vm,"neko_read_module_code",0);
+		vm->fstats(vm,"neko_read_module_check",1);
+	}
 	// Check bytecode
 	for(i=0;i<m->codesize;i++) {
 		register int c = (int)m->code[i];
@@ -541,17 +550,23 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 			}
 		}
 	}
+	if( vm->fstats ) vm->fstats(vm,"neko_read_module_check",0);
 	// jit ?
-	if( vm->run_jit )
+	if( vm->run_jit ) {
+		if( vm->fstats ) vm->fstats(vm,"neko_read_module_jit",1);
 		neko_module_jit(m);
+		if( vm->fstats ) vm->fstats(vm,"neko_read_module_jit",0);
+	}
 #	ifdef NEKO_DIRECT_THREADED
 	{
 		int_val *jtbl = neko_get_ttable();
+		if( vm->fstats ) vm->fstats(vm,"neko_read_module_thread",1);
 		for(i=0;i<=m->codesize;i++) {
 			int_val c = m->code[i];
 			m->code[i] = jtbl[c];
 			i += parameter_table[c];
 		}
+		if( vm->fstats ) vm->fstats(vm,"neko_read_module_thread",0);
 	}
 #	endif
 	return m;

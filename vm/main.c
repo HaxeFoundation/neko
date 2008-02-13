@@ -42,6 +42,10 @@ extern value neko_installer_loader( char *argv[], int argc );
 
 static FILE *self;
 
+extern void neko_stats_measure( neko_vm *vm, const char *kind, int start );
+extern void neko_stats_dump( neko_vm *vm );
+
+
 static char *executable_path() {
 #if defined(NEKO_WINDOWS)
 	static char path[MAX_PATH];
@@ -206,14 +210,27 @@ int main( int argc, char *argv[] ) {
 #	ifdef NEKO_INSTALLER
 	neko_installer_init();
 #	endif
-	if( argc > 1 && strcmp(argv[1],"-interp") == 0 ) {
-		argc--;
-		argv++;
-	} else {
-		neko_vm_jit(vm,1);
-		// ignore error
-	}
 	if( !neko_has_embedded_module() ) {
+		int jit = 1;
+		int stats = 0;
+		while( argc > 1 ) {
+			if( strcmp(argv[1],"-interp") == 0 ) {
+				argc--;
+				argv++;
+				jit = 0;
+				continue;
+			}
+			if( strcmp(argv[1],"-stats") == 0 ) {
+				argc--;
+				argv++;
+				stats = 1;
+				neko_vm_set_stats(vm,neko_stats_measure);
+				neko_stats_measure(vm,"total",1);
+				continue;
+			}
+			break;
+		}
+		neko_vm_jit(vm,jit);
 		if( argc == 1 ) {
 #			ifdef NEKO_INSTALLER
 			report(vm,alloc_string("No embedded module in this executable"),0);
@@ -225,6 +242,10 @@ int main( int argc, char *argv[] ) {
 		} else {
 			mload = default_loader(argv+2,argc-2);
 			r = execute_file(vm,argv[1],mload);
+		}
+		if( stats ) {
+			neko_stats_measure(vm,"total",0);
+			neko_stats_dump(vm);
 		}
 	} else {
 		mload = default_loader(argv+1,argc-1);

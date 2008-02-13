@@ -122,6 +122,7 @@ EXTERN neko_vm *neko_vm_alloc( void *custom ) {
 	vm->run_jit = 0;
 	vm->resolver = NULL;
 	vm->trusted_code = 0;
+	vm->fstats = NULL;
 	return vm;
 }
 
@@ -131,6 +132,10 @@ EXTERN int neko_vm_jit( neko_vm *vm, int enable_jit ) {
 	else
 		vm->run_jit = 0;
 	return vm->run_jit;
+}
+
+EXTERN void neko_vm_set_stats( neko_vm *vm, neko_stat_func fstats ) {
+	vm->fstats = fstats;
 }
 
 EXTERN void neko_vm_select( neko_vm *vm ) {

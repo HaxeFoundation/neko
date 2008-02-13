@@ -117,6 +117,9 @@
 		<File
 			RelativePath=".\main.c">
 		</File>
+		<File
+			RelativePath=".\stats.c">
+		</File>
 	</Files>
 	<Globals>
 	</Globals>

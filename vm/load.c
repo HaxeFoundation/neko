@@ -303,6 +303,18 @@ static value init_path( const char *path ) {
 	return l;
 }
 
+typedef value (*stats_callback)( value, value, value, value, value, value );
+
+static value stats_proxy( value p1, value p2, value p3, value p4, value p5, value p6 ) {
+	neko_vm *vm = NEKO_VM();
+	value env = vm->env;
+	value ret;
+	if( vm->fstats ) vm->fstats(vm,val_string(val_array_ptr(env)[0]),1);
+	ret = ((stats_callback)val_array_ptr(vm->env)[1])(p1,p2,p3,p4,p5,p6);
+	if( vm->fstats ) vm->fstats(vm,val_string(val_array_ptr(env)[0]),0);
+	return ret;
+}
+
 static value loader_loadprim( value prim, value nargs ) {
 	value o = val_this();
 	value libs;
@@ -314,7 +326,9 @@ static value loader_loadprim( value prim, value nargs ) {
 	if( val_int(nargs) >= 10 || val_int(nargs) < -1 )
 		neko_error();
 	{
+		neko_vm *vm = NEKO_VM();
 		void *ptr = load_primitive(val_string(prim),val_int(nargs),val_field(o,id_path),(liblist**)&val_data(libs));
+		vfunction *f;
 		if( ptr == NULL ) {
 			buffer b = alloc_buffer("Primitive not found : ");
 			val_buffer(b,prim);
@@ -323,7 +337,15 @@ static value loader_loadprim( value prim, value nargs ) {
 			buffer_append(b,")");
 			bfailure(b);
 		}
-		return alloc_function(ptr,val_int(nargs),val_string(copy_string(val_string(prim),val_strlen(prim))));
+		f = (vfunction*)alloc_function(ptr,val_int(nargs),val_string(copy_string(val_string(prim),val_strlen(prim))));
+		if( vm->fstats && val_int(nargs) <= 6 ) {
+			value env = alloc_array(2);
+			val_array_ptr(env)[0] = f->module;
+			val_array_ptr(env)[1] = f->addr;
+			f->addr = stats_proxy;
+			f->env = env;
+		}
+		return (value)f;
 	}
 }
 
@@ -339,6 +361,7 @@ static value loader_loadmodule( value mname, value vthis ) {
 		reader r;
 		readp p;
 		neko_module *m;
+		neko_vm *vm = NEKO_VM();
 		field mid = val_id(val_string(mname));
 		value mv = val_field(cache,mid);
 		if( val_is_kind(mv,neko_kind_module) ) {
@@ -346,7 +369,9 @@ static value loader_loadmodule( value mname, value vthis ) {
 			return m->exports;
 		}
 		open_module(val_field(o,id_path),val_string(mname),&r,&p);
+		if( vm->fstats ) vm->fstats(vm,"neko_read_module",1);
 		m = neko_read_module(r,p,vthis);
+		if( vm->fstats ) vm->fstats(vm,"neko_read_module",0);
 		close_module(p);
 		if( m == NULL ) {
 			buffer b = alloc_buffer("Invalid module : ");
@@ -356,7 +381,9 @@ static value loader_loadmodule( value mname, value vthis ) {
 		m->name = alloc_string(val_string(mname));
 		mv = alloc_abstract(neko_kind_module,m);
 		alloc_field(cache,mid,mv);
+		if( vm->fstats ) vm->fstats(vm,val_string(mname),1);
 		neko_vm_execute(neko_vm_current(),m);
+		if( vm->fstats ) vm->fstats(vm,val_string(mname),0);
 		return m->exports;
 	}
 }

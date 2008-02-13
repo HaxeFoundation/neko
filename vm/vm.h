@@ -51,6 +51,7 @@ struct _neko_vm {
 	value resolver;
 	char tmp[100];
 	int trusted_code;
+	neko_stat_func fstats;
 };
 
 extern int_val *callback_return;
