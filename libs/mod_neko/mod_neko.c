@@ -27,8 +27,14 @@
 #	define ap_kill_timeout(r)
 #	define ap_table_get		apr_table_get
 typedef apr_time_t aptime;
+#	define apache_error(level,request,message)	\
+		ap_rprintf(request,"<b>Error</b> : %s",message); \
+		ap_log_rerror(__FILE__, __LINE__, level, APR_SUCCESS, request, "[mod_neko error] %s", message)
 #else
 #	define FTIME(r)		r->finfo.st_mtime
+#	define apache_error(level,request,message)	\
+		ap_rprintf(request,"<b>Error</b> : %s",message); \
+		ap_log_rerror(__FILE__, __LINE__, level, request, "[mod_neko error] %s", message)
 typedef time_t aptime;
 #endif
 
@@ -139,7 +145,7 @@ static int neko_handler_rec( request_rec *r ) {
 
 	if( ap_setup_client_block(r,REQUEST_CHUNKED_ERROR) != 0 ) {
 		send_headers(&ctx);
-		ap_rprintf(r,"<b>Error</b> : ap_setup_client_block failed");
+		apache_error(APLOG_WARNING,r,"ap_setup_client_block failed");
 		return OK;
 	}
 
@@ -157,7 +163,7 @@ static int neko_handler_rec( request_rec *r ) {
 		}
 		if( tlen >= MOD_NEKO_POST_SIZE ) {
 			send_headers(&ctx);
-			ap_rprintf(r,"<b>Error</b> : Maximum POST data exceeded. Try using multipart encoding");
+			apache_error(APLOG_WARNING,r,"Maximum POST data exceeded. Try using multipart encoding");
 			return OK;
 		}
 		ctx.post_data = buffer_to_string(b);
@@ -167,7 +173,7 @@ static int neko_handler_rec( request_rec *r ) {
 	neko_vm_set_custom(vm,k_mod_neko,&ctx);
 	if( use_jit && !neko_vm_jit(vm,1) ) {
 		send_headers(&ctx);
-		ap_rprintf(r,"<b>Error</b> : JIT required by env. var but not enabled in NekoVM");
+		apache_error(APLOG_WARNING,r,"JIT required by env. var but not enabled in NekoVM");
 		return OK;
 	}
 

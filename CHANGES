@@ -20,6 +20,7 @@ TODO :
 	thread : added tls_create, tls_set, tls_get
 	vm : threaded interpreter (gcc only)
 	vm : always use COMPACT_TABLE for objects
+	mod_neko : log some errors into apache log
 
 2007-07-25 : 1.6.0
 	display error message when uncaught exception in neko thread
