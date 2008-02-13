@@ -45,7 +45,15 @@ static int precise_timer() {
 #	ifdef NEKO_WINDOWS
 	LARGE_INTEGER t;
 	static LARGE_INTEGER freq;
-	if( !init_done ) { 
+	if( !init_done ) {
+		DWORD procs, sm, procid = 1;
+		// ensure that we always use the same processor
+		// or else, performance counter might vary depending
+		// on the current CPU
+		GetProcessAffinityMask(GetCurrentProcess(),&procs,&sm);
+		while( !(procs & procid) )
+			procid <<= 1;
+		SetProcessAffinityMask(GetCurrentProcess(),procid);
 		init_done = 1;
 		QueryPerformanceFrequency(&freq);
 	}
