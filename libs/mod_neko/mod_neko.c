@@ -41,25 +41,53 @@ typedef time_t aptime;
 typedef struct cache {
 	value file;
 	value main;
+	int hits;
 	aptime time;
 	struct cache *next;
 } cache;
 
-static int use_jit = 0;
+static mconfig config;
 static _context *cache_root = NULL;
 
-value cgi_get_cache() {
-	cache *c = (cache*)context_get(cache_root);
-	value l = val_null;
-	while( c != NULL ) {
-		value a = alloc_array(3);
-		val_array_ptr(a)[0] = c->file;
-		val_array_ptr(a)[1] = c->main;
-		val_array_ptr(a)[2] = l;
-		l = a;
-		c = c->next;
+extern void neko_stats_measure( neko_vm *vm, const char *kind, int start );
+extern void neko_stats_dump( neko_vm *vm );
+
+value cgi_command( value v ) {
+	val_check(v,string);
+	if( strcmp(val_string(v),"stats") == 0 ) {
+		neko_stats_dump(neko_vm_current());
+		return val_null;
 	}
-	return l;
+	if( strcmp(val_string(v),"cache") == 0 ) {
+		cache *c = (cache*)context_get(cache_root);
+		value l = val_null;
+		while( c != NULL ) {
+			value a = alloc_array(4);
+			val_array_ptr(a)[0] = c->file;
+			val_array_ptr(a)[1] = c->main;
+			val_array_ptr(a)[2] = alloc_int(c->hits);
+			val_array_ptr(a)[3] = l;
+			l = a;
+			c = c->next;
+		}
+		return l;
+	}
+	neko_error();
+}
+
+mconfig *mod_neko_get_config() {
+	return &config;
+}
+
+void mod_neko_set_config( mconfig *c ) {
+	config = *c;
+}
+
+static void gc_major() {
+	if( !config.run_gc ) return;
+	if( config.use_stats ) neko_stats_measure(NULL,"gc",1);
+	neko_gc_major();
+	if( config.use_stats ) neko_stats_measure(NULL,"gc",0);
 }
 
 static void send_headers( mcontext *c ) {
@@ -85,8 +113,10 @@ static value cache_find( request_rec *r ) {
 	value fname = alloc_string(r->filename);
 	while( c != NULL ) {
 		if( val_compare(fname,c->file) == 0 ) {
-			if( FTIME(r) == c->time )
+			if( config.use_cache && FTIME(r) == c->time ) {
+				c->hits++;
 				return c->main;
+			}
 			if( prev == NULL )
 				context_set(cache_root,c->next);
 			else
@@ -95,7 +125,7 @@ static value cache_find( request_rec *r ) {
 			// try to lower memory partitioning
 			// when a module is updated
 			c = NULL;
-			neko_gc_major();
+			gc_major();
 			break;
 		}
 		prev = c;
@@ -125,6 +155,7 @@ static void cache_module( request_rec *r, value main ) {
 	c->file = fname;
 	c->main = main;
 	c->time = FTIME(r);
+	c->hits = 0;
 	c->next = (cache*)context_get(cache_root);
 	context_set(cache_root,c);
 }
@@ -134,6 +165,8 @@ static int neko_handler_rec( request_rec *r ) {
 	neko_vm *vm;
 	const char *ctype;
 	value exc = NULL;
+
+	config.hits++;
 
 	neko_set_stack_base(&ctx);
 	ctx.r = r;
@@ -157,11 +190,11 @@ static int neko_handler_rec( request_rec *r ) {
 		int tlen = 0;
 		buffer b = alloc_buffer(NULL);
 		while( (len = ap_get_client_block(r,buf,MAXLEN)) > 0 ) {
-			if( tlen < MOD_NEKO_POST_SIZE )
+			if( tlen < config.max_post_size )
 				buffer_append_sub(b,buf,len);
 			tlen += len;
 		}
-		if( tlen >= MOD_NEKO_POST_SIZE ) {
+		if( tlen >= config.max_post_size ) {
 			send_headers(&ctx);
 			apache_error(APLOG_WARNING,r,"Maximum POST data exceeded. Try using multipart encoding");
 			return OK;
@@ -170,8 +203,10 @@ static int neko_handler_rec( request_rec *r ) {
 	}
 
 	vm = neko_vm_alloc(NULL);
+	if( config.use_stats ) neko_vm_set_stats(vm,neko_stats_measure);
+
 	neko_vm_set_custom(vm,k_mod_neko,&ctx);
-	if( use_jit && !neko_vm_jit(vm,1) ) {
+	if( config.use_jit && !neko_vm_jit(vm,1) ) {
 		send_headers(&ctx);
 		apache_error(APLOG_WARNING,r,"JIT required by env. var but not enabled in NekoVM");
 		return OK;
@@ -190,7 +225,7 @@ static int neko_handler_rec( request_rec *r ) {
 		if( p != NULL )
 			*p = 0;
 		val_callEx(mload,val_field(mload,val_id("loadmodule")),args,2,&exc);
-		if( ctx.main != NULL )
+		if( ctx.main != NULL && config.use_cache )
 			cache_module(r,ctx.main);
 	}
 
@@ -201,6 +236,7 @@ static int neko_handler_rec( request_rec *r ) {
 		const char *p, *start;
 		value st = neko_exc_stack(vm);
 		val_buffer(b,exc);
+		config.exceptions++;
 		ap_soft_timeout("Client Timeout",r);
 		send_headers(&ctx);
 		v = buffer_to_string(b);
@@ -243,21 +279,33 @@ static int neko_handler( request_rec *r ) {
 	int ret;
 	if( strcmp(r->handler,"neko-handler") != 0)
 		return DECLINED;
+	if( config.use_stats ) neko_stats_measure(NULL,r->hostname,1);
 	ret = neko_handler_rec(r);
 	neko_vm_select(NULL);
-	neko_gc_major();
+	if( config.use_stats ) neko_stats_measure(NULL,r->hostname,0);
+	gc_major();
 	return ret;
 }
 
-#ifdef APACHE_2_X
-
+#	ifdef APACHE_2_X
 static int neko_init( apr_pool_t *p, apr_pool_t *plog, apr_pool_t *ptemp, server_rec *s ) {
-	cache_root = context_new();
-	use_jit = getenv("MOD_NEKO_JIT") != NULL;
 	putenv(strdup("MOD_NEKO=2"));
+#	else
+static void neko_init(server_rec *s, pool *p) {
+	putenv(strdup("MOD_NEKO=1"));
+#	endif
+	cache_root = context_new();
+	memset(&config,0,sizeof(config));
+	config.use_cache = 1;
+	config.run_gc = 1;
+	config.max_post_size = MOD_NEKO_POST_SIZE;
 	neko_global_init(&s);
+#	ifdef APACHE_2_X
 	return OK;
+#	endif
 }
+
+#ifdef APACHE_2_X
 
 static void neko_register_hooks( apr_pool_t *p ) {
 	ap_hook_post_config( neko_init, NULL, NULL, APR_HOOK_MIDDLE );
@@ -275,13 +323,6 @@ module AP_MODULE_DECLARE_DATA neko_module = {
 };
 
 #else /* APACHE 1.3 */
-
-static void neko_init(server_rec *s, pool *p) {
-	cache_root = context_new();
-	use_jit = getenv("MOD_NEKO_JIT") != NULL;
-	putenv(strdup("MOD_NEKO=1"));
-	neko_global_init(&s);
-}
 
 static const handler_rec neko_handlers[] = {
     {"neko-handler", neko_handler},

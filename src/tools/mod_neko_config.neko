@@ -1,0 +1,111 @@
+begin = "<html>
+<head><title>Mod_Neko Configuration</title></head>
+<h1>Mod_neko Configuration</h1>
+";
+end = "
+<p>
+	<a href='?'>Home</a>
+</p>
+</body>
+</html>
+";
+
+var params = $loader.loadprim("mod_neko@get_params",0)();
+var get_config = $loader.loadprim("mod_neko@cgi_get_config",0);
+var memory = $loader.loadprim("std@mem_size",1);
+var execCommand = $loader.loadprim("mod_neko@cgi_command",1);
+var setHeader = $loader.loadprim("mod_neko@set_header",2);
+
+getParam = function(name) {
+	var p = params;
+	while( p != null ) {
+		if( p[0] == name )
+			return p[1];
+		p = p[2];
+	}
+	return null;
+}
+
+error = function(e) {
+	$throw(e);
+}
+
+message = function(msg) {
+	$print(begin);
+	$print("<p>",msg,"</p>");
+	$print(end);
+}
+
+displayConfig = function(cfg) {
+	var fl = $objfields(cfg);
+	var i = 0;
+	$print("<form action='?command=setconfig' method='POST'>");
+	$print("<ul>");
+	while( i < $asize(fl) ) {
+		var name = $field(fl[i]);
+		var data = $objget(cfg,fl[i]);
+		$print("<li><b>",name,"</b> ");
+		if( $typeof(data) == $tbool )
+			$print("<input type='checkbox' name='",name,"'",if( data ) "checked='1'" else "","/>");
+		else
+			$print(": ",data);
+		$print("</li>");
+		i += 1;
+	}
+	$print("</ul>");
+	$print("<input type='submit' value='Update Config'/>");
+	$print("</form>");
+}
+
+displayCache = function(cache) {
+	$print("<table>");
+	$print("<tr><th>File</th><th>Mem</th><th>Hits</th></tr>");
+	while( cache != null ) {
+		$print("<tr><td>",cache[0],"</td><td>",memory(cache[1]),"</td><td>",cache[2],"</td></tr>");
+		cache = cache[3];
+	}
+	$print("</table>");
+}
+
+displayMenu = function() {
+	$print(begin);
+	$print("<p>","Process ",$loader.loadprim("std@sys_get_pid",0)(),"</p>");
+	$print("<h2>Config</h2>");
+	displayConfig(get_config());
+	$print("<h2>Cache</h2>");
+	displayCache(execCommand("cache"));
+	$print("<h2>Command</h2>");
+	$print("<ul>");
+	$print("<li><a href='?command=stats'>Statistics</a></li>");
+	$print("</ul>");
+	$print(end);
+}
+
+setConfig = function() {
+	var cfg = get_config();
+	var fl = $objfields(cfg);
+	var i = 0;
+	while( i < $asize(fl) ) {
+		var name = $field(fl[i]);
+		var data = $objget(cfg,fl[i]);
+		var value = getParam(name);
+		if( $typeof(data) == $tbool )
+			$objset(cfg,fl[i],value != null);
+		i += 1;
+	}
+	$loader.loadprim("mod_neko@cgi_set_config",1)(cfg);
+	message("Configuration Updated");
+}
+
+var cmd = getParam("command");
+switch( cmd ) {
+"stats" => {
+	setHeader("Content-Type","text/plain");
+	execCommand("stats");
+}
+"setconfig" => setConfig()
+default => {
+		if( cmd != null && cmd != "" ) error("Unknown command "+cmd);
+		displayMenu()
+	}
+}

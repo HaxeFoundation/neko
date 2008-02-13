@@ -22,6 +22,7 @@ TODO :
 	vm : always use COMPACT_TABLE for objects
 	mod_neko : log some errors into apache log
 	neko+vm : added perf statistics hooks (-stats)
+	mod_neko : scriptable configuration and statistics
 
 2007-07-25 : 1.6.0
 	display error message when uncaught exception in neko thread

@@ -495,6 +495,55 @@ static value cgi_flush() {
 **/
 extern value cgi_get_cache();
 
+/**
+	cgi_get_config : void -> object
+	<doc>Return the current configuration</doc>
+**/
+#define FSET(name,t)	alloc_field(v,val_id(#name),alloc_##t(c->##name))
+static value cgi_get_config() {
+	value v = alloc_object(NULL);
+	mconfig *c = mod_neko_get_config();
+	FSET(hits,int);
+	FSET(use_jit,bool);
+	FSET(use_stats,bool);
+	FSET(use_cache,bool);
+	FSET(exceptions,int);
+	FSET(run_gc,bool);
+	FSET(max_post_size,int);
+	return v;
+}
+
+/**
+	cgi_set_config : object -> void
+	<doc>Set the current configuration</doc>
+**/
+#define FGET(name,t)	f = val_field(v,val_id(#name)); val_check(f,t); c.##name = val_##t(f)
+static value cgi_set_config( value v ) {
+	mconfig c;
+	value f;
+	val_check(v,object);
+	FGET(hits,int);
+	FGET(use_jit,bool);
+	FGET(use_stats,bool);
+	FGET(use_cache,bool);
+	FGET(exceptions,int);
+	FGET(run_gc,bool);
+	FGET(max_post_size,int);
+	mod_neko_set_config(&c);
+	return val_null;
+}
+
+/**
+	cgi_command : any -> any
+	<doc>Perform a configuration-specific command :
+		<ul>
+		<li>stats : display the statistics</li>
+		<li>cache : returns the current cache</li>
+		</ul>
+	</doc>
+**/
+extern value cgi_command( value v );
+
 DEFINE_PRIM(cgi_get_cwd,0);
 DEFINE_PRIM(cgi_set_main,1);
 DEFINE_PRIM(get_cookies,0);
@@ -510,8 +559,10 @@ DEFINE_PRIM(set_header,2);
 DEFINE_PRIM(set_return_code,1);
 DEFINE_PRIM(get_client_header,1);
 DEFINE_PRIM(get_client_headers,0);
-DEFINE_PRIM(cgi_get_cache,0);
 DEFINE_PRIM(parse_multipart_data,2);
 DEFINE_PRIM(cgi_flush,0);
+DEFINE_PRIM(cgi_get_config,0);
+DEFINE_PRIM(cgi_set_config,1);
+DEFINE_PRIM(cgi_command,1);
 
 /* ************************************************************************ */

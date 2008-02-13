@@ -36,6 +36,16 @@ typedef struct {
 	bool headers_sent;
 } mcontext;
 
+typedef struct {
+	int hits;
+	int use_jit;
+	int use_stats;
+	int use_cache;
+	int exceptions;
+	int run_gc;
+	int max_post_size;
+} mconfig;
+
 #define CONTEXT()	((mcontext*)neko_vm_custom(neko_vm_current(),k_mod_neko))
 
 DECLARE_KIND(k_mod_neko)
@@ -43,6 +53,9 @@ DECLARE_KIND(k_mod_neko)
 #ifdef STANDARD20_MODULE_STUFF
 #	define APACHE_2_X
 #endif
+
+extern mconfig *mod_neko_get_config();
+extern void mod_neko_set_config( mconfig *cfg );
 
 #endif
 
