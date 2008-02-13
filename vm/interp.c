@@ -362,7 +362,7 @@ static int_val jit_run( neko_vm *vm, vfunction *acc ) {
 				sp += pc_args; \
 				for(tmp=0;tmp<pc_args;tmp++) \
 					args[tmp] = *--sp; \
-				acc = ((c_primN)((vfunction*)acc)->addr)((value*)args,(int)pc_args); \
+				acc = ((c_primN)((vfunction*)acc)->addr)((value*)(void*)args,(int)pc_args); \
 				RestoreAfterCall(); \
 			} else \
 				CallFailure(); \

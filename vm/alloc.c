@@ -217,7 +217,7 @@ EXTERN value alloc_float( tfloat f ) {
 EXTERN value alloc_array( unsigned int n ) {
 	value v;
 	if( n == 0 )
-		return (value)&empty_array;
+		return (value)(void*)&empty_array;
 	if( n > max_array_size )
 		failure("max_array_size reached");
 	v = (value)GC_MALLOC(sizeof(varray)+(n - 1)*sizeof(value));

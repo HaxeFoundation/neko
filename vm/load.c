@@ -327,7 +327,7 @@ static value loader_loadprim( value prim, value nargs ) {
 		neko_error();
 	{
 		neko_vm *vm = NEKO_VM();
-		void *ptr = load_primitive(val_string(prim),val_int(nargs),val_field(o,id_path),(liblist**)&val_data(libs));
+		void *ptr = load_primitive(val_string(prim),val_int(nargs),val_field(o,id_path),(liblist**)(void*)&val_data(libs));
 		vfunction *f;
 		if( ptr == NULL ) {
 			buffer b = alloc_buffer("Primitive not found : ");
