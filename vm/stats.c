@@ -21,6 +21,8 @@
 #include "neko_vm.h"
 #ifdef NEKO_WINDOWS
 #	include <windows.h>
+#else
+#	include <sys/time.h>
 #endif
 
 typedef struct _statinfos {
@@ -50,7 +52,14 @@ static int precise_timer() {
 	QueryPerformanceCounter(&t);
 	return (int)( t.QuadPart * 1000000 / freq.QuadPart );
 #	else
-	return clock();
+	static int base_sec;
+	struct timeval tv;
+	gettimeofday(&tv,NULL);
+	if( !init_done ) {
+		init_done = 1;
+		base_sec = tv.tv_sec;
+	}
+	return (tv.tv_sec - base_sec) * 1000000 + tv.tv_usec;
 #	endif
 }
 
