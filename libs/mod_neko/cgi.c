@@ -509,7 +509,7 @@ static value cgi_get_config() {
 	FSET(use_prim_stats,bool);
 	FSET(use_cache,bool);
 	FSET(exceptions,int);
-	FSET(run_gc,bool);
+	FSET(gc_period,int);
 	FSET(max_post_size,int);
 	return v;
 }
@@ -529,7 +529,7 @@ static value cgi_set_config( value v ) {
 	FGET(use_prim_stats,bool);
 	FGET(use_cache,bool);
 	FGET(exceptions,int);
-	FGET(run_gc,bool);
+	FGET(gc_period,int);
 	FGET(max_post_size,int);
 	mod_neko_set_config(&c);
 	return val_null;

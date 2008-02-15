@@ -72,7 +72,7 @@ static int precise_timer() {
 }
 
 void neko_stats_measure( neko_vm *vm, const char *kind, int start ) {
-	int ksize = strlen(kind);
+	int ksize = (int)strlen(kind);
 	statinfos *s;
 	if( start ) {
 		int time = precise_timer();

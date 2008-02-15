@@ -40,12 +40,12 @@ buffer_string = $loader.loadprim("std@buffer_string",1);
 
 libs = {
 	mod_neko => {
-		src => $array("mod_neko","cgi"),
+		src => $array("mod_neko","cgi","../../vm/context","../../vm/stats"),
 		inc => "httpd.h",
 		incname => "Apache 1.3.x"
 	},
 	mod_neko2 => {
-		src => $array("mod_neko","cgi"),
+		src => $array("mod_neko","cgi","../../vm/context","../../vm/stats"),
 		inc => $array("httpd.h","apr.h"),
 		incname => "Apache 2.2.x",
 		cflags => "-D_LARGEFILE64_SOURCE",

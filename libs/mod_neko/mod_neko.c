@@ -26,17 +26,17 @@
 #	define ap_soft_timeout(msg,r)
 #	define ap_kill_timeout(r)
 #	define ap_table_get		apr_table_get
+#	define LOG_SUCCESS		APR_SUCCESS,
 typedef apr_time_t aptime;
-#	define apache_error(level,request,message)	\
-		ap_rprintf(request,"<b>Error</b> : %s",message); \
-		ap_log_rerror(__FILE__, __LINE__, level, APR_SUCCESS, request, "[mod_neko error] %s", message)
 #else
 #	define FTIME(r)		r->finfo.st_mtime
-#	define apache_error(level,request,message)	\
-		ap_rprintf(request,"<b>Error</b> : %s",message); \
-		ap_log_rerror(__FILE__, __LINE__, level, request, "[mod_neko error] %s", message)
+#	define LOG_SUCCESS
 typedef time_t aptime;
 #endif
+
+#define apache_error(level,request,message)	\
+	ap_rprintf(request,"<b>Error</b> : %s",message); \
+	ap_log_rerror(__FILE__, __LINE__, level, LOG_SUCCESS request, "[mod_neko error] %s", message)
 
 typedef struct cache {
 	value file;
@@ -47,6 +47,7 @@ typedef struct cache {
 } cache;
 
 static mconfig config;
+static int init_done = 0;
 static _context *cache_root = NULL;
 
 extern void neko_stats_measure( neko_vm *vm, const char *kind, int start );
@@ -82,7 +83,7 @@ void mod_neko_set_config( mconfig *c ) {
 }
 
 static void gc_major() {
-	if( !config.run_gc ) return;
+	if( config.gc_period <= 0 || config.hits % config.gc_period != 0 ) return;
 	if( config.use_stats ) neko_stats_measure(NULL,"gc",1);
 	neko_gc_major();
 	if( config.use_stats ) neko_stats_measure(NULL,"gc",0);
@@ -287,23 +288,73 @@ static int neko_handler( request_rec *r ) {
 	return ret;
 }
 
-#	ifdef APACHE_2_X
-static int neko_init( apr_pool_t *p, apr_pool_t *plog, apr_pool_t *ptemp, server_rec *s ) {
-	putenv(strdup("MOD_NEKO=2"));
-#	else
-static void neko_init(server_rec *s, pool *p) {
-	putenv(strdup("MOD_NEKO=1"));
-#	endif
-	cache_root = context_new();
+static void mod_neko_do_init() {
+	int tmp = 0;
+	if( init_done ) return;
+	init_done = 1;
 	memset(&config,0,sizeof(config));
 	config.use_cache = 1;
-	config.run_gc = 1;
+	config.gc_period = 1;
 	config.max_post_size = MOD_NEKO_POST_SIZE;
-	neko_global_init(&s);
 #	ifdef APACHE_2_X
-	return OK;
+	putenv(strdup("MOD_NEKO=2"));
+#	else
+	putenv(strdup("MOD_NEKO=1"));
 #	endif
+	cache_root = context_new();	
+	neko_global_init(&tmp);
 }
+
+static const char *mod_neko_config( cmd_parms *cmd, char *_, const char *args ) {
+	int code = 0;
+	int value;
+	int count = 0;
+	while( true ) {
+		char c = *args;
+		if( c == 0 || c == ' ' || c == '\t' ) break;
+		if( count < 4 )	code = (code << 8) | c;
+		args++;
+		count++;
+	}
+	while( *args == ' ' || *args == '\t' )
+		args++;
+	value = atoi(args);
+	mod_neko_do_init();
+	switch( code ) {
+	case 'JIT': config.use_jit = value; break;
+	case 'CACH': config.use_cache = value; break;
+	case 'GC_P': config.gc_period = value; break;
+	case 'POST': config.max_post_size = value; break;
+	case 'STAT': config.use_stats = value; break;
+	case 'PRIM': config.use_prim_stats = value; break;
+	case 'PREL': break;
+	default:
+		ap_log_error(__FILE__,__LINE__,APLOG_WARNING,LOG_SUCCESS cmd->server,"Unknown ModNeko configuration command %X %X '%s'",code,'JIT',args);
+		break;
+	}
+	return NULL;
+}
+
+
+#ifdef APACHE_2_X
+static int neko_init( apr_pool_t *p, apr_pool_t *plog, apr_pool_t *ptemp, server_rec *s ) {
+	mod_neko_do_init();
+	return OK;
+}
+#else
+static void neko_init(server_rec *s, pool *p) {
+	mod_neko_do_init();
+}
+#endif
+
+static command_rec neko_module_cmds[] = {
+#	ifdef APACHE_2_X
+	AP_INIT_RAW_ARGS( "ModNeko", mod_neko_config , NULL, RSRC_CONF, NULL ),
+#	else
+	{ "ModNeko", mod_neko_config, NULL, RSRC_CONF, RAW_ARGS, NULL },
+#	endif
+	{ NULL }
+};
 
 #ifdef APACHE_2_X
 
@@ -318,7 +369,7 @@ module AP_MODULE_DECLARE_DATA neko_module = {
 	NULL,
 	NULL,
 	NULL,
-	NULL, /*neko_module_cmds, */
+	neko_module_cmds,
 	neko_register_hooks
 };
 
@@ -336,7 +387,7 @@ module MODULE_VAR_EXPORT neko_module = {
     NULL,
     NULL,
     NULL,
-    NULL,
+    neko_module_cmds,
     neko_handlers,
     NULL,
     NULL,

@@ -43,7 +43,7 @@ typedef struct {
 	int use_prim_stats;
 	int use_cache;
 	int exceptions;
-	int run_gc;
+	int gc_period;
 	int max_post_size;
 } mconfig;
 
