@@ -394,7 +394,7 @@ static const char *mod_neko_config( cmd_parms *cmd, char *_, const char *args ) 
 	else if( strcmp(code,"STATS") == 0 ) config.use_stats = value;
 	else if( strcmp(code,"PRIM_STATS") == 0 ) config.use_prim_stats = value;
 	else if( strcmp(code,"PRELOAD") == 0 ) preload_module(args,cmd->server);
-	else ap_log_error(__FILE__,__LINE__,APLOG_WARNING,LOG_SUCCESS cmd->server,"Unknown ModNeko configuration command %X %X '%s'",code,'JIT',args);
+	else ap_log_error(__FILE__,__LINE__,APLOG_WARNING,LOG_SUCCESS cmd->server,"Unknown ModNeko configuration command '%s'",code);
 	return NULL;
 }
 
