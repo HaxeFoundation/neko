@@ -17,6 +17,8 @@
 #include "context.h"
 #include "neko.h"
 
+#ifndef NEKO_NO_THREADS
+
 #ifdef NEKO_WINDOWS
 #include <windows.h>
 // disable warnings for type conversions
@@ -113,4 +115,7 @@ void context_lock_delete( _clock *l ) {
 }
 
 #endif
+
+#endif // NEKO_NO_THREADS
+
 /* ************************************************************************ */
