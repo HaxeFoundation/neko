@@ -375,8 +375,14 @@ static void preload_module( const char *name, server_rec *serv ) {
 	neko_vm_select(NULL);
 }
 
-static const char *mod_neko_config( cmd_parms *cmd, char *_, const char *args ) {
-	const char *code = args;
+#ifdef APACHE_2_X
+#	define MCONFIG void*
+#else
+#	define MCONFIG char*
+#endif
+static const char *mod_neko_config( cmd_parms *cmd, MCONFIG mconfig, const char *fargs ) {
+	char *code = strdup(fargs);
+	char *args = code;
 	int value;
 	while( true ) {
 		char c = *args;
@@ -384,7 +390,7 @@ static const char *mod_neko_config( cmd_parms *cmd, char *_, const char *args ) 
 		args++;
 	}
 	while( *args == ' ' || *args == '\t' )
-		args++;
+		*args++ = 0;
 	value = atoi(args);
 	mod_neko_do_init();
 	if( strcmp(code,"JIT") == 0 ) config.use_jit = value;
@@ -395,6 +401,7 @@ static const char *mod_neko_config( cmd_parms *cmd, char *_, const char *args ) 
 	else if( strcmp(code,"PRIM_STATS") == 0 ) config.use_prim_stats = value;
 	else if( strcmp(code,"PRELOAD") == 0 ) preload_module(args,cmd->server);
 	else ap_log_error(__FILE__,__LINE__,APLOG_WARNING,LOG_SUCCESS cmd->server,"Unknown ModNeko configuration command '%s'",code);
+	free(code);
 	return NULL;
 }
 
