@@ -16,6 +16,8 @@
 /* ************************************************************************ */
 #include "mod_neko.h"
 #include <vm.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #ifndef MOD_NEKO_POST_SIZE
 #	define MOD_NEKO_POST_SIZE (1 << 18) // 256 K
@@ -335,6 +337,7 @@ static void preload_module( const char *name, server_rec *serv ) {
 	value m, read_path, exec;
 	time_t time = 0;
 	neko_vm_select(vm);
+	if( config.use_jit ) neko_vm_jit(vm,1);
 	if( !exc ) {
 		value args[] = { alloc_string("std@module_read_path"), alloc_int(3) };
 		read_path = val_callEx(mload,val_field(mload,val_id("loadprim")),args,2,&exc);
@@ -373,32 +376,25 @@ static void preload_module( const char *name, server_rec *serv ) {
 }
 
 static const char *mod_neko_config( cmd_parms *cmd, char *_, const char *args ) {
-	int code = 0;
+	const char *code = args;
 	int value;
-	int count = 0;
 	while( true ) {
 		char c = *args;
 		if( c == 0 || c == ' ' || c == '\t' ) break;
-		if( count < 4 )	code = (code << 8) | c;
 		args++;
-		count++;
 	}
 	while( *args == ' ' || *args == '\t' )
 		args++;
 	value = atoi(args);
 	mod_neko_do_init();
-	switch( code ) {
-	case 'JIT': config.use_jit = value; break;
-	case 'CACH': config.use_cache = value; break;
-	case 'GC_P': config.gc_period = value; break;
-	case 'POST': config.max_post_size = value; break;
-	case 'STAT': config.use_stats = value; break;
-	case 'PRIM': config.use_prim_stats = value; break;
-	case 'PREL': preload_module(args,cmd->server); break;
-	default:
-		ap_log_error(__FILE__,__LINE__,APLOG_WARNING,LOG_SUCCESS cmd->server,"Unknown ModNeko configuration command %X %X '%s'",code,'JIT',args);
-		break;
-	}
+	if( strcmp(code,"JIT") == 0 ) config.use_jit = value;
+	else if( strcmp(code,"CACHE") == 0 ) config.use_cache = value;
+	else if( strcmp(code,"GC_PERIOD") == 0 ) config.gc_period = value;
+	else if( strcmp(code,"POST_SIZE") == 0 ) config.max_post_size = value;
+	else if( strcmp(code,"STATS") == 0 ) config.use_stats = value;
+	else if( strcmp(code,"PRIM_STATS") == 0 ) config.use_prim_stats = value;
+	else if( strcmp(code,"PRELOAD") == 0 ) preload_module(args,cmd->server);
+	else ap_log_error(__FILE__,__LINE__,APLOG_WARNING,LOG_SUCCESS cmd->server,"Unknown ModNeko configuration command %X %X '%s'",code,'JIT',args);
 	return NULL;
 }
 
