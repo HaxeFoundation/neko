@@ -15,6 +15,7 @@
 /*																			*/
 /* ************************************************************************ */
 #include "mod_neko.h"
+#include <vm.h>
 
 #ifndef MOD_NEKO_POST_SIZE
 #	define MOD_NEKO_POST_SIZE (1 << 18) // 256 K
@@ -106,6 +107,9 @@ static void request_print( const char *data, int size, void *_c ) {
 	ap_kill_timeout(c->r);
 }
 
+static void null_print( const char *data, int size, void *_c ) {
+}
+
 static value cache_find( request_rec *r ) {
 	cache *c = (cache*)context_get(cache_root);
 	cache *prev = NULL;
@@ -139,21 +143,30 @@ static char *request_base_uri( request_rec *r ) {
 	return r->unparsed_uri;
 }
 
-static void cache_module( request_rec *r, value main ) {
-	cache *c = (cache*)context_get(cache_root);
-	value fname = alloc_string(r->filename);
+static void cache_module( const char *filename, aptime time, value main ) {
+	cache *c = (cache*)context_get(cache_root), *prev = NULL;
+	value fname = alloc_string(filename);
 	while( c != NULL ) {
 		if( val_compare(fname,c->file) == 0 ) {
-			c->main = main;
-			c->time = FTIME(r);
+			if( main == NULL ) {
+				if( prev == NULL )
+					context_set(cache_root,c->next);
+				else
+					prev->next = c->next;
+				free_root((value*)c);
+			} else {
+				c->main = main;
+				c->time = time;
+			}
 			return;
 		}
+		prev = c;
 		c = c->next;
 	}
 	c = (cache*)alloc_root(sizeof(struct cache) / sizeof(value));
 	c->file = fname;
 	c->main = main;
-	c->time = FTIME(r);
+	c->time = time;
 	c->hits = 0;
 	c->next = (cache*)context_get(cache_root);
 	context_set(cache_root,c);
@@ -227,7 +240,7 @@ static int neko_handler_rec( request_rec *r ) {
 			*p = 0;
 		val_callEx(mload,val_field(mload,val_id("loadmodule")),args,2,&exc);
 		if( ctx.main != NULL && config.use_cache )
-			cache_module(r,ctx.main);
+			cache_module(r->filename,FTIME(r),ctx.main);
 	}
 
 	if( exc != NULL ) {
@@ -301,8 +314,62 @@ static void mod_neko_do_init() {
 #	else
 	putenv(strdup("MOD_NEKO=1"));
 #	endif
-	cache_root = context_new();	
+	cache_root = context_new();
 	neko_global_init(&tmp);
+}
+
+static value init_module() {
+	neko_vm *vm = neko_vm_current();
+	mcontext *ctx = CONTEXT();
+	value env = vm->env;
+	ctx->main = NULL;
+	val_call1(val_array_ptr(env)[0],val_array_ptr(env)[1]);
+	cache_module(ctx->r->filename,FTIME(ctx->r),ctx->main);
+	return val_null;
+}
+
+static void preload_module( const char *name, server_rec *serv ) {
+	value exc = NULL;
+	neko_vm *vm = neko_vm_alloc(NULL);
+	value mload = neko_default_loader(NULL,0);
+	value m, read_path, exec;
+	time_t time = 0;
+	neko_vm_select(vm);
+	if( !exc ) {
+		value args[] = { alloc_string("std@module_read_path"), alloc_int(3) };
+		read_path = val_callEx(mload,val_field(mload,val_id("loadprim")),args,2,&exc);
+	}
+	if( !exc ) {
+		value args[] = { alloc_string("std@module_exec"), alloc_int(1) };
+		exec = val_callEx(mload,val_field(mload,val_id("loadprim")),args,2,&exc);
+	}
+	if( !exc ) {
+		value args[] = { val_null, alloc_string(name), mload };
+		char *p = strrchr(val_string(args[1]),'.');
+		if( p != NULL ) *p = 0;
+		m = val_callEx(mload,read_path,args,3,&exc);
+	}
+	if( !exc ) {
+		struct stat t;
+		if( stat(name,&t) )
+			exc = alloc_string("failed to stat()");
+		else
+			time = t.st_mtime;
+	}
+	if( !exc ) {
+		value f = alloc_function(init_module,0,"init_module");
+		value env = alloc_array(2);
+		val_array_ptr(env)[0] = exec;
+		val_array_ptr(env)[1] = m;
+		((vfunction*)f)->env = env;
+		cache_module(name,time,f);
+	}
+	if( exc ) {
+		buffer b = alloc_buffer(NULL);
+		val_buffer(b,exc);
+		ap_log_error(__FILE__,__LINE__,APLOG_WARNING,LOG_SUCCESS serv,"Failed to preload module '%s' : %s",name,val_string(buffer_to_string(b)));
+	}
+	neko_vm_select(NULL);
 }
 
 static const char *mod_neko_config( cmd_parms *cmd, char *_, const char *args ) {
@@ -327,7 +394,7 @@ static const char *mod_neko_config( cmd_parms *cmd, char *_, const char *args ) 
 	case 'POST': config.max_post_size = value; break;
 	case 'STAT': config.use_stats = value; break;
 	case 'PRIM': config.use_prim_stats = value; break;
-	case 'PREL': break;
+	case 'PREL': preload_module(args,cmd->server); break;
 	default:
 		ap_log_error(__FILE__,__LINE__,APLOG_WARNING,LOG_SUCCESS cmd->server,"Unknown ModNeko configuration command %X %X '%s'",code,'JIT',args);
 		break;
