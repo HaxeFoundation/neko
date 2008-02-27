@@ -20,13 +20,12 @@
 #include <pcre.h>
 
 #define PCRE(o)		((pcredata*)val_data(o))
-#define NMATCHS		(10 * 3)
 
 typedef struct {
 	value str;
 	pcre *r;
 	int nmatchs;
-	int matchs[NMATCHS];
+	int *matchs;
 } pcredata;
 
 DEFINE_KIND(k_regexp);
@@ -106,6 +105,8 @@ static value regexp_new_options( value s, value opt ) {
 		pdata->str = val_null;
 		pdata->nmatchs = 0;
 		pcre_fullinfo(p,NULL,PCRE_INFO_CAPTURECOUNT,&pdata->nmatchs);
+		pdata->nmatchs++;
+		pdata->matchs = (int*)alloc_private(sizeof(int) * 3 * pdata->nmatchs);
 		val_gc(v,free_regexp);
 		return v;
 	}	
@@ -136,10 +137,10 @@ static value regexp_match( value o, value s, value p, value len ) {
 	if( pp < 0 || ll < 0 || pp > val_strlen(s) || pp + ll > val_strlen(s) )
 		neko_error();
 	d = PCRE(o);
-	if( pcre_exec(d->r,NULL,val_string(s)+pp,ll,0,0,d->matchs,NMATCHS) >= 0 ) {
+	if( pcre_exec(d->r,NULL,val_string(s)+pp,ll,0,0,d->matchs,d->nmatchs * 3) >= 0 ) {
 		if( pp > 0 ) {
 			int i;
-			for(i=0;i<NMATCHS;i++)
+			for(i=0;i<d->nmatchs * 3;i++)
 				d->matchs[i] += pp;
 		}
 		d->str = s;
@@ -162,7 +163,7 @@ static value do_replace( value o, value s, value s2, bool all ) {
 		const char *str = val_string(s);
 		const char *str2 = val_string(s2);
 		int len2 = val_strlen(s2);
-		while( pcre_exec(d->r,NULL,str,len,pos,0,d->matchs,NMATCHS) >= 0 ) {
+		while( pcre_exec(d->r,NULL,str,len,pos,0,d->matchs,d->nmatchs * 3) >= 0 ) {
 			buffer_append_sub(b,str+pos,d->matchs[0] - pos);
 			buffer_append_sub(b,str2,len2);
 			pos = d->matchs[1];
@@ -206,7 +207,7 @@ static value regexp_replace_fun( value o, value s, value f ) {
 		int len = val_strlen(s);
 		const char *str = val_string(s);
 		d->str = s;
-		while( pcre_exec(d->r,NULL,str,len,pos,0,d->matchs,NMATCHS) >= 0 ) {
+		while( pcre_exec(d->r,NULL,str,len,pos,0,d->matchs,d->nmatchs * 3) >= 0 ) {
 			buffer_append_sub(b,str+pos,d->matchs[0] - pos);
 			val_buffer(b,val_call1(f,o));
 			pos = d->matchs[1];
@@ -229,7 +230,7 @@ static value regexp_matched( value o, value n ) {
 	d = PCRE(o);
 	val_check(n,int);
 	m = val_int(n);
-	if( m < 0 || m > d->nmatchs || val_is_null(d->str) )
+	if( m < 0 || m >= d->nmatchs || val_is_null(d->str) )
 		neko_error();
 	{
 		int start = d->matchs[m*2];
@@ -252,7 +253,7 @@ static value regexp_matched_pos( value o, value n ) {
 	d = PCRE(o);
 	val_check(n,int);
 	m = val_int(n);
-	if( m < 0 || m > d->nmatchs || val_is_null(d->str) )
+	if( m < 0 || m >= d->nmatchs || val_is_null(d->str) )
 		neko_error();
 	{
 		int start = d->matchs[m*2];
