@@ -325,6 +325,20 @@ static value process_pid( value vp ) {
 #	endif
 }
 
+/**
+	process_close : 'process -> void
+	<doc>
+	Close the process I/O.
+	</doc>
+**/
+static value process_close( value vp ) {	
+	val_check_kind(vp,k_process);
+	free_process(vp);
+	val_kind(vp) = NULL;
+	val_gc(vp,NULL);
+	return val_null;
+}
+
 DEFINE_PRIM(process_run,2);
 DEFINE_PRIM(process_stdout_read,4);
 DEFINE_PRIM(process_stderr_read,4);
@@ -332,5 +346,6 @@ DEFINE_PRIM(process_stdin_close,1);
 DEFINE_PRIM(process_stdin_write,4);
 DEFINE_PRIM(process_exit,1);
 DEFINE_PRIM(process_pid,1);
+DEFINE_PRIM(process_close,1);
 
 /* ************************************************************************ */

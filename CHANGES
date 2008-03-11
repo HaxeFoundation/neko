@@ -24,6 +24,7 @@ TODO :
 	neko+vm : added perf statistics hooks (-stats)
 	mod_neko : scriptable configuration and statistics
 	regexp : allow more than 10 matches
+	std : added process_close
 
 2007-07-25 : 1.6.0
 	display error message when uncaught exception in neko thread
