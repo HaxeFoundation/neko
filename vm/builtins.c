@@ -667,8 +667,6 @@ static value builtin_int( value f ) {
 	case VAL_INT:
 		return f;
 	}
-	if( val_is_number(f) )
-		return alloc_int( (int)val_number(f) );
 	return val_null;
 }
 
