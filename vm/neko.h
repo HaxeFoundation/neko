@@ -77,7 +77,7 @@
 #	include <stdint.h>
 #endif
 
-#define NEKO_VERSION	161
+#define NEKO_VERSION	170
 
 typedef intptr_t int_val;
 
@@ -375,7 +375,7 @@ C_FUNCTION_BEGIN
 	EXTERN void val_rethrow( value v );
 	EXTERN int val_hash( value v );
 
-	EXTERN void kind_share( vkind *k, const char *name );	
+	EXTERN void kind_share( vkind *k, const char *name );
 	EXTERN void _neko_failure( value msg, const char *file, int line );
 
 C_FUNCTION_END
