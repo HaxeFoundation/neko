@@ -61,3 +61,17 @@
 <doc_blk>
   <doc_type>#list</doc_type> <doc_name>cgi_get_cache</doc_name><doc_type>()</doc_type> <doc_doc>Return the list of modules cached by mod_neko</doc_doc>
 </doc_blk>
+<doc_blk>
+  <doc_type>object</doc_type> <doc_name>cgi_get_config</doc_name><doc_type>()</doc_type> <doc_doc>Return the current configuration</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>void</doc_type> <doc_name>cgi_set_config</doc_name><doc_type>(object)</doc_type> <doc_doc>Set the current configuration</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>any</doc_type> <doc_name>cgi_command</doc_name><doc_type>(any)</doc_type> <doc_doc>Perform a configuration-specific command :
+		<ul>
+		<li>stats : returns the statistics</li>
+		<li>cache : returns the current cache</li>
+		</ul>
+	</doc_doc>
+</doc_blk>

@@ -38,3 +38,20 @@
 	the returned value is false
 	</doc_doc>
 </doc_blk>
+<doc_blk>
+  <doc_type>'tls</doc_type> <doc_name>tls_create</doc_name><doc_type>()</doc_type> <doc_doc>
+	Creates thread local storage. This is placeholder that can store a value that will
+	be different depending on the local thread. You must set the tls value to <doc_code>null</doc_code>
+	before exiting the thread or the memory will never be collected.
+	</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>any</doc_type> <doc_name>tls_get</doc_name><doc_type>('tls)</doc_type> <doc_doc>
+	Returns the value set by <doc_code>tls_set</doc_code> for the local thread.
+	</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>void</doc_type> <doc_name>tls_set</doc_name><doc_type>('tls, any)</doc_type> <doc_doc>
+	Set the value of the TLS for the local thread.
+	</doc_doc>
+</doc_blk>

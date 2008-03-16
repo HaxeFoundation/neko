@@ -84,7 +84,17 @@
   <doc_type>'poll</doc_type> <doc_name>socket_poll_alloc</doc_name><doc_type>(int)</doc_type> <doc_doc>Allocate memory to perform polling on a given number of sockets</doc_doc>
 </doc_blk>
 <doc_blk>
-  <doc_type>'socket array</doc_type> <doc_name>socket_poll</doc_name><doc_type>('socket array, 'pool, timeout : float)</doc_type> <doc_doc>
+  <doc_type>int array array</doc_type> <doc_name>socket_poll_prepare</doc_name><doc_type>('poll, read : 'socket array, write : 'socket array)</doc_type> <doc_doc>
+	Prepare a poll for scanning events on sets of sockets.
+	</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>void</doc_type> <doc_name>socket_poll_events</doc_name><doc_type>('poll, timeout : float)</doc_type> <doc_doc>
+	Update the read/write flags arrays that were created with <doc_code>socket_poll_prepare</doc_code>.
+	</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>'socket array</doc_type> <doc_name>socket_poll</doc_name><doc_type>('socket array, 'poll, timeout : float)</doc_type> <doc_doc>
 	Perform a polling for data available over a given set of sockets. This is similar to <doc_code>socket_select</doc_code>
 	except that <doc_code>socket_select</doc_code> is limited to a given number of simultaneous sockets to check.
 	</doc_doc>
