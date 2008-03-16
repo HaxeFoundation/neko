@@ -217,6 +217,10 @@ function check_breaks(ctx) {
 	List.iter (function((_,p)) { error "Continue outside a loop" p }) ctx.continues
 }
 
+function make_array(p,el) {
+	(ECall (EConst (Builtin "array"),p) el , p)
+}
+
 function get_cases_ints(cases) {
 	var max = &(-1);	
 	var l = List.map (function((e,e2)) {
@@ -678,12 +682,31 @@ function rec compile_builtin(ctx,tail,b,el,p) {
 	| ("goto" , _) ->
 		error "Invalid $goto statement" p
 	| ("array",e :: el) ->
-		List.iter (function(e) {
+		var count = List.length el;
+		// a single function can't have >128 stack		
+		if count > 120 - ctx.stack then {
+			// split in 8 and recurse
+			var part = count >> 3;
+			function rec loop(el,acc,count) {
+				match el {
+				| [] -> [List.rev acc]
+				| e :: l ->
+					if count == part then
+						List.rev(acc) :: loop el [] 0
+					else
+						loop l (e :: acc) (count + 1)
+				}
+			}
+			var arr = make_array p (List.map make_array(p) (loop el [] 0));
+			compile_builtin ctx tail "aconcat" [arr] p;
+		} else {
+			List.iter (function(e) {
+				compile ctx false e;
+				write ctx Push;
+			}) el;
 			compile ctx false e;
-			write ctx Push;
-		}) el;
-		compile ctx false e;
-		write ctx (MakeArray (List.length el))
+			write ctx (MakeArray count);
+		}
 	| ("apply",e :: el) ->
 		List.iter (function(e) {
 			compile ctx false e;

@@ -1,7 +1,6 @@
 TODO :
 	FIX OO dispatch order for JIT (done for interp in 1.5.4)
 	OSX/Intel JIT
-	MAX_STACK_PER_FUNCTION prevent >128 static array declarations
 	use pcre with UTF8 support on OSX ?
 	support the ~ operation
 	add deflate_stream and inflate_stream in zlib.ndll
@@ -25,6 +24,8 @@ TODO :
 	mod_neko : scriptable configuration and statistics
 	regexp : allow more than 10 matches
 	std : added process_close
+	vm : added $aconcat
+	nekoc : fixed big arrays declarations
 
 2007-07-25 : 1.6.0
 	display error message when uncaught exception in neko thread
