@@ -25,6 +25,7 @@ TODO :
 	std : added process_close
 	vm : added $aconcat
 	nekoc : fixed big arrays declarations
+	std : added sys_is64
 
 2007-07-25 : 1.6.0
 	display error message when uncaught exception in neko thread

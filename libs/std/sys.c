@@ -175,6 +175,20 @@ static value sys_string() {
 }
 
 /**
+	sys_is64 : void -> bool
+	<doc>
+	Returns true if we are on a 64-bit system
+	</doc>
+**/
+static value sys_is64() {
+#ifdef NEKO_64BITS
+	return val_true;
+#else
+	return val_false;
+#endif
+}
+
+/**
 	sys_command : string -> int
 	<doc>Run the shell command and return exit code</doc>
 **/
@@ -590,6 +604,7 @@ DEFINE_PRIM(sys_sleep,1);
 DEFINE_PRIM(sys_command,1);
 DEFINE_PRIM(sys_exit,1);
 DEFINE_PRIM(sys_string,0);
+DEFINE_PRIM(sys_is64,0);
 DEFINE_PRIM(sys_stat,1);
 DEFINE_PRIM(sys_time,0);
 DEFINE_PRIM(sys_cpu_time,0);
