@@ -17,7 +17,7 @@
 #include <neko_vm.h>
 #include <string.h>
 #include <stdio.h>
-#include <malloc.h>
+#include <stdlib.h>
 
 #ifdef NEKO_WINDOWS
 #	include <windows.h>
