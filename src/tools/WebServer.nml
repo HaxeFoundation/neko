@@ -400,7 +400,7 @@ function init_mod_neko() {
 	def "set_return_code" (function(i) {
 		var c = client();
 		headers_not_sent c "Return code";
-		c.return_code := i;
+		c.return_code := (i, "OK");
 	});
 	def "set_header" (function(name,val) {
 		var c = client();
