@@ -490,12 +490,6 @@ static value cgi_flush() {
 }
 
 /**
-	cgi_get_cache : void -> #list
-	<doc>Return the list of modules cached by mod_neko</doc>
-**/
-extern value cgi_get_cache();
-
-/**
 	cgi_get_config : void -> object
 	<doc>Return the current configuration</doc>
 **/
