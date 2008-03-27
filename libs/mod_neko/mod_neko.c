@@ -230,9 +230,11 @@ static int neko_handler_rec( request_rec *r ) {
 	neko_vm_select(vm);
 
 	if( ctx.main != NULL ) {
+		value old = ctx.main;
 		if( config.use_stats ) neko_stats_measure(vm,r->filename,1);
-		val_callEx(val_null,ctx.main,NULL,0,&exc);
+		val_callEx(val_null,old,NULL,0,&exc);
 		if( config.use_stats ) neko_stats_measure(vm,r->filename,0);
+		if( old != ctx.main ) cache_module(r->filename,FTIME(r),ctx.main);
 	} else {
 		char *base_uri = request_base_uri(r);
 		value mload = neko_default_loader(&base_uri,1);

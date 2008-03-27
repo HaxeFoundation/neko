@@ -15,9 +15,14 @@
 /*																			*/
 /* ************************************************************************ */
 #include <neko.h>
+#include <string.h>
 #include "mod_neko.h"
 
 DEFINE_KIND(k_mod_neko);
+
+#ifndef NEKO_WINDOWS
+#	define strcmpi	strcasecmp
+#endif
 
 #ifdef APACHE_2_X
 #	define ap_table_get		apr_table_get
@@ -167,7 +172,7 @@ static value set_header( value s, value k ) {
 	val_check(s,string);
 	val_check(k,string);
 	HEADERS_NOT_SENT("Header");
-	if( strcmp(val_string(s),"Content-Type") == 0 ) {
+	if( strcmpi(val_string(s),"Content-Type") == 0 ) {
 		c->content_type = alloc_string(val_string(k));
 		c->r->content_type = val_string(c->content_type);
 	} else
@@ -471,10 +476,14 @@ static value cgi_get_cwd() {
 }
 
 /**
-	cgi_set_main : function:0 -> void
-	<doc>Set the main entry point function</doc>
+	cgi_set_main : ?function:0 -> void
+	<doc>Set or disable the main entry point function</doc>
 **/
 static value cgi_set_main( value f ) {
+	if( val_is_null(f) ) {
+		CONTEXT()->main = NULL;
+		return val_true;
+	}
 	val_check_function(f,0);
 	CONTEXT()->main = f;
 	return val_true;

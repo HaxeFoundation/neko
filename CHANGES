@@ -7,6 +7,8 @@ TODO :
 2008-??-?? : 1.7.1
 	nekotools : fixed set_return_code in web server
 	std : display windowed application in process_run
+	mod_neko : allowed to uncache module with set_main(null)
+	mod_neko : use strmcpi for set_header("Content-Type")
 
 2008-03-16 : 1.7.0
 	nekoc : allow binary ast format with -p, don't allow inline nxml
