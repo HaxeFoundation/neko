@@ -697,7 +697,7 @@ function rec compile_builtin(ctx,tail,b,el,p) {
 						loop l (e :: acc) (count + 1)
 				}
 			}
-			var arr = make_array p (List.map make_array(p) (loop el [] 0));
+			var arr = make_array p (List.map make_array(p) (loop (e :: el) [] 0));
 			compile_builtin ctx tail "aconcat" [arr] p;
 		} else {
 			List.iter (function(e) {

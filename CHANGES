@@ -9,6 +9,7 @@ TODO :
 	std : display windowed application in process_run
 	mod_neko : allowed to uncache module with set_main(null)
 	mod_neko : use strmcpi for set_header("Content-Type")
+	nekoc : one last fix for big arrays (first element was not compiled)
 
 2008-03-16 : 1.7.0
 	nekoc : allow binary ast format with -p, don't allow inline nxml
