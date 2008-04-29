@@ -89,6 +89,7 @@ function page_config() {
 type http_method {
 	MethodGet;
 	MethodPost;
+	MethodCustom : string;
 }
 
 type http_request {
@@ -123,6 +124,9 @@ function parse_get_params(str) {
 var http_request_method = Lexer.build [
   	("GET", function(l) { MethodGet });
 	("POST", function(l) { MethodPost });
+	("PUT", function(l) { MethodCustom "PUT" });
+	("HEAD", function(l) { MethodCustom "HEAD" });
+	("DELETE", function(l) { MethodCustom "DELETE" });
 ] invalid_char;
 
 var http_request_url = Lexer.build [
@@ -432,13 +436,20 @@ function init_mod_neko() {
 		*cur_path
 	});
 	def "cgi_set_main" (function(f) {
-		client().main := Some f;
+		client().main := (if f == neko "null" then None else Some f);
 	});
 	no_param "cgi_flush" (function() {
 		IO.flush client().out;
 	});
 	def "parse_multipart_data" (function(part,data) {
 		if request().ctype == Some "multipart/form-data" then (neko "$throw")("parse_multipart_data not implemented");
+	});
+	no_param "get_http_method" (function() {
+		match request().method {
+		| MethodGet -> "GET"
+		| MethodPost -> "POST"
+		| MethodCustom r -> r
+		}
 	});
 	function resolve_method(f:string) {
 		try {

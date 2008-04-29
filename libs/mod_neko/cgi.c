@@ -549,6 +549,14 @@ static value cgi_set_config( value v ) {
 **/
 extern value cgi_command( value v );
 
+/**
+	get_http_method : void -> string
+	<doc>Returns the http method (GET,POST...) used by the client</doc>
+**/
+static value get_http_method() {
+	return alloc_string(CONTEXT()->r->method);
+}
+
 DEFINE_PRIM(cgi_get_cwd,0);
 DEFINE_PRIM(cgi_set_main,1);
 DEFINE_PRIM(get_cookies,0);
@@ -569,5 +577,6 @@ DEFINE_PRIM(cgi_flush,0);
 DEFINE_PRIM(cgi_get_config,0);
 DEFINE_PRIM(cgi_set_config,1);
 DEFINE_PRIM(cgi_command,1);
+DEFINE_PRIM(get_http_method,0);
 
 /* ************************************************************************ */
