@@ -190,3 +190,16 @@ function uppercase(s) {
 	}
 	s2
 }
+
+neko("
+	@serialize = $loader.loadprim('std@serialize',1);
+	@unserialize = $loader.loadprim('std@unserialize',2);
+");
+
+function serialize( x : 'a ) : string {
+	neko "@serialize(x)";
+}
+
+function unserialize( x : string ) : 'a {
+	neko "@unserialize(x,$loader)";
+}
