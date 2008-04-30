@@ -98,12 +98,11 @@ function input(l,source,input,line,pos) {
 
 
 function curpos(l) {
-	var p = l.bpos + l.pos;
 	{
 		psource = l.source;
 		pline = l.line;
-		pmin = p - max 1 (String.length l.current);
-		pmax = p - 1;
+		pmin = l.pos - String.length l.current;
+		pmax = l.pos;
 	}
 }
 
@@ -178,11 +177,15 @@ function token(l,t) : 'a {
 		if res == -1 then throw Exit;
 		neko("loop[0](n+1,res)");
 	};
-	function process() {
+	function process(eof) {
 		var n = last.cur_n;
 		var k = last.cur_res;
 		if k == -1 then {
 			l.current := "";
+			if !eof then {
+				l.bpos := l.bpos - (cur.cur_n + 1);
+				l.bin := l.bin + (cur.cur_n + 1);
+			}
 			-1;
 		} else {
 			l.cin := l.cin - n;
@@ -190,6 +193,7 @@ function token(l,t) : 'a {
 			l.current := String.sub l.buffer l.cpos n;
 			l.cpos := l.cpos + n;
 			l.bpos := l.cpos;
+			l.pos := l.pos + n;
 			var i = &0;
 			while *i < n {
 				inc_line l (String.get l.current (*i));
@@ -207,8 +211,9 @@ function token(l,t) : 'a {
 				last.cur_n := cur.cur_n + 1;
 				last.cur_res := exits.[cur.cur_res];
 			}
-			process();
-		| Exit -> process()
+			process true;
+		| Exit ->
+			process false
 	}
 	if k == -1 then
 		t.def(l)
