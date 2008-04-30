@@ -17,6 +17,7 @@ neko("
 	@sys_exit = $loader.loadprim('std@sys_exit',1);
 	@get_env = $loader.loadprim('std@get_env',1);
 	@get_cwd = $loader.loadprim('std@get_cwd',0);
+	@exe_path = $loader.loadprim('std@sys_exe_path',0);
 ");
 
 type version {
@@ -67,7 +68,7 @@ var exists : string -> bool = neko "$loader.loadprim('std@sys_exists',1)"
 var version = {
 	var v : int = neko "$version()";
 	{
-		maj = v / 100; 
+		maj = v / 100;
 		min = (v / 10) % 10;
 		build = v % 10;
 	}
@@ -86,3 +87,6 @@ function get_cwd() : string {
 
 var set_cwd : string -> void = neko "$loader.loadprim('std@set_cwd',1)"
 
+function executable_path() : string {
+	neko "@exe_path()"
+}
