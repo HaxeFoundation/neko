@@ -64,7 +64,7 @@ spass3:
 	${NEKOVM} neko/Main -v *.neko neko/*.neko nekoml/*.neko
 
 tpass3:
-	${NEKOVM} nekoml/Main neko/Main.nml nekoml/Main.nml
+	${NEKOVM} nekoml/Main neko/Main.nml nekoml/Main.nml core/*.nml -pack ../bin/nekoml.std
 
 neko: clean
 	${NEKOVM1} nekoml neko/Main.nml

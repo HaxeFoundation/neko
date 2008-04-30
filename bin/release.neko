@@ -29,13 +29,13 @@ mkdir(dir);
 
 switch( sys ) {
 "win" =>
-	cmd("cp neko.exe nekoc.exe nekotools.exe neko.lib neko.dll gc.dll "+dir)
+	cmd("cp neko.exe nekoc.exe nekotools.exe neko.lib neko.dll gc.dll nekoml.exe nekoml.std "+dir)
 "osx" =>
-	cmd("cp neko nekoc nekotools libneko.dylib "+dir)
+	cmd("cp neko nekoc nekotools libneko.dylib nekoml nekoml.std "+dir)
 "bsd" =>
-	cmd("cp neko nekoc nekotools libneko.so "+dir)
+	cmd("cp neko nekoc nekotools libneko.so nekoml nekoml.std "+dir)
 "linux" =>
-	cmd("cp neko nekoc nekotools libneko.so "+dir)
+	cmd("cp neko nekoc nekotools libneko.so nekoml nekoml.std "+dir)
 }
 
 cmd("cp *.ndll ../CHANGES ../LICENSE test.n "+dir);

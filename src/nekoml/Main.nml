@@ -53,24 +53,65 @@ function compile(ctx,m,e) {
 	IO.close_out ch
 }
 
+function capitalize(p) {
+	var c = String.get p 0;
+	if c < 'a' || c > 'z' then
+		p
+	else {
+		var p = String.sub p 0 (String.length p);
+		String.set p 0 chr(ord c - ord 'a' + ord 'A');
+		p
+	}
+}
+
+
 try {
 	var v = Sys.version;
 	var head = "NekoML Compiler v" + v.maj + "." + v.min + "." + v.build + " - (c)2005-2007 Motion-Twin\n Usage : nekoml [options] files...";
 	var path = &["";"core/"];
 	var files = &[];
 	var neko = &false;
+	var pack = &None;
+	var packs = Hashtbl.create();
+	function use_pack(file) {
+		var data = IO.file_contents file;
+		var h = String.unserialize (Zip.uncompress data);
+		Hashtbl.iter (function(key,m) {
+			if *verbose then printf "Cached %s [%d bytes]\n" (key,String.length m);
+			Hashtbl.add packs key m
+		}) h;
+	}
 	var decl = [
 		("-p", Args.String (function(p) { path := complete p :: *path }) , "<path> : additional file search path");
 		("-v", Args.Void (function() { verbose := true }) , ": verbose mode");
 		("-n", Args.Void (function() { neko := true }) , ": generate intermediate .neko files");
+		("-pack", Args.String (function(p) { pack := Some p }),"<file> : build module packages");
+		("-use", Args.String use_pack,"<file> : use this module package");
 	];
+	var std = Sys.without_extension Sys.executable_path() + ".std";
+	try use_pack std catch { e -> };
 	Args.parse head decl (function(f) { files := f :: *files });
-	var ctx = context (*path) (function(ctx,m,e) { if *neko then gen_neko ctx m e else compile ctx m e });
+	var ctx = context (*path) packs (function(ctx,m,e) { if *neko then gen_neko ctx m e else compile ctx m e });
 	List.iter (function(file) {
 		if *verbose then printf "Compiling %s\n" file;
 		var modname = String.split (Sys.without_extension file) "/";
+		var modname = match List.map capitalize modname {
+			| "Core" :: m -> m
+			| m -> m
+		};
 		ignore(load_module ctx modname Lexer.null_pos);
 	}) (List.rev (*files));
+	match *pack {
+	| None -> ()
+	| Some file ->
+		var h = Hashtbl.create();
+		Hashtbl.iter (function(key,m) {
+			Hashtbl.add h (String.concat "/" key + ".nml") (IO.file_contents m.file)
+		}) ctx.modules;
+		var ch = IO.write_file file true;
+		IO.write ch (Zip.compress (String.serialize h) 9);
+		IO.close_out ch;
+	}
 } catch {
 	| Neko.Lexer.Error (msg,p) -> report Neko.Lexer.error_msg(msg) p
 	| Neko.Parser.Error (msg,p) -> report Neko.Parser.error_msg(msg) p

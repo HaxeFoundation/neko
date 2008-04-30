@@ -3,6 +3,7 @@ TODO :
 	OSX/Intel JIT
 	use pcre with UTF8 support on OSX ?
 	support the ~ operation
+	use a per-function max stack with a real entry point function
 
 2008-??-?? : 1.7.1
 	nekotools : fixed set_return_code in web server
@@ -11,6 +12,9 @@ TODO :
 	mod_neko : use strmcpi for set_header("Content-Type")
 	nekoc : one last fix for big arrays (first element was not compiled)
 	mod_neko : added get_http_method
+	nekoml : minor fixes in lexer
+	nekoml : added -pack and -use, auto build nekoml.std
+	include nekoml as part of standard distribution
 
 2008-03-16 : 1.7.0
 	nekoc : allow binary ast format with -p, don't allow inline nxml

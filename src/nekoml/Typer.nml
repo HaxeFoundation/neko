@@ -17,6 +17,7 @@ open Nekoml.Ast;
 open Nekoml.Type;
 
 type module_context {
+	mutable file : string;
 	path : string list;
 	types : (string,t) Hashtbl.t;
 	constrs : (string, (t, t)) Hashtbl.t;
@@ -32,6 +33,7 @@ type context {
 	mutable functions : (bool, string, texpr ref, t, (string, t) list, expr, t, pos) list;
 	mutable opens : module_context list;
 	mutable curfunction : string;
+	filecache : (string, string) Hashtbl.t;
 	tmptypes : (string, (t, t list, (string,t) Hashtbl.t)) Hashtbl.t;
 	current : module_context;
 	modules : (string list, module_context) Hashtbl.t;
@@ -1110,11 +1112,16 @@ function module_infos(m) {
 function open_file(ctx,file,p) {
 	function rec loop(l) {
 		match l {
-		| [] -> error Custom("File not found " + file) p
+		| [] ->
+			try {
+				(file, IO.read_string (Hashtbl.find ctx.filecache file))
+			} catch {
+				Not_found -> error Custom("File not found " + file) p
+			}
 		| pp :: l ->
 			try {
 				var f = pp + file;
-				(f , IO.read_file f false)
+				(f , IO.read_file f true)
 			} catch { _ -> loop l }
 		}
 	}
@@ -1130,6 +1137,7 @@ function load_module(ctx,m,p) {
 			var is_core , core = try
 				(false , Hashtbl.find ctx.modules ["Core"])
 			catch { Not_found ->
+				ctx.current.file := file;
 				(true , ctx.current)
 			}
 			var ctx = {
@@ -1138,12 +1146,14 @@ function load_module(ctx,m,p) {
 				modules = ctx.modules;
 				classpath = ctx.classpath;
 				callback = ctx.callback;
+				filecache = ctx.filecache;
 
 				curfunction = "anonymous";
 				tmptypes = Hashtbl.create();
 				functions = [];
 				opens = [core];
 				current = if is_core then ctx.current else {
+					file = file;
 					path = m;
 					constrs = Hashtbl.create();
 					records = Hashtbl.create();
@@ -1177,11 +1187,12 @@ function load_module(ctx,m,p) {
 	}
 }
 
-function context(cpath,callb) {
+function context(cpath,filecache,callb) {
 	var ctx = {
 		gen = generator();
 		tmptypes = Hashtbl.create();
 		modules = Hashtbl.create();
+		filecache = filecache;
 		functions = [];
 		opens = [];
 		mink = 0;
@@ -1189,6 +1200,7 @@ function context(cpath,callb) {
 		curfunction = "anonymous";
 		callback = callb;
 		current = {
+			file = "";
 			path = ["Core"];
 			done = false;
 			idents = Map.empty();

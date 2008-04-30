@@ -1,0 +1,95 @@
+/*
+ *  NekoML Standard Library
+ *  Copyright (c)2005-2008 Motion-Twin
+ *
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Lesser General Public
+ *  License as published by the Free Software Foundation; either
+ *  version 2.1 of the License, or (at your option) any later version.
+ *
+ *  This library is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Lesser General Public License or the LICENSE file for more details.
+ */
+
+type in;
+type out;
+
+type flush {
+	NO;
+	SYNC;
+	FULL;
+	FINISH;
+	BLOCK;
+}
+
+type result {
+	done : bool;
+	read : int;
+	write : int;
+}
+
+neko("
+	@set_flush_mode = $loader.loadprim('zlib@set_flush_mode',2);
+	@inflate_init = $loader.loadprim('zlib@inflate_init',1);
+	@deflate_buffer = $loader.loadprim('zlib@deflate_buffer',5);
+	@inflate_buffer = $loader.loadprim('zlib@inflate_buffer',5);
+");
+
+function __result(x) {
+	{ done = neko "x.done"; read = neko "x.read"; write = neko "x.write" }
+}
+
+
+var output : int -> out = neko "$loader.loadprim('zlib@deflate_init',1)";
+var output_bound : out -> int -> int = neko "$loader.loadprim('zlib@deflate_bound',2)";
+var output_end : out -> void = neko "$loader.loadprim('zlib@deflate_end',1)";
+
+function output_buffer(o:out,in:string,ipos:int,out:string,opos:int) {
+	__result(neko "@deflate_buffer(o,in,ipos,out,opos)");
+}
+
+function output_set_flush_mode(o:out,f:flush) {
+	neko("@set_flush_mode")(o,string f);
+}
+
+function input( n : int option ) {
+	neko("@inflate_init")(match n { None -> neko "null" | Some i -> i })
+}
+
+function input_buffer(i:in,in:string,ipos:int,out:string,opos:int) {
+	__result(neko "@inflate_buffer(i,in,ipos,out,opos)");
+}
+
+
+var input_end : in -> void = neko "$loader.loadprim('zlib@inflate_end',1)";
+
+function input_set_flush_mode(i:in,f:flush) {
+	neko("@set_flush_mode")(i,string f);
+}
+
+function compress(str,level) {
+	var c = output level;
+	output_set_flush_mode c FINISH;
+	var out = String.create (output_bound c (String.length str));
+	var r = output_buffer c str 0 out 0;
+	output_end c;
+	if !r.done || r.read != String.length str then throw Error("Compression failed");
+	String.sub out 0 r.write;
+}
+
+function uncompress(str) {
+	var u = input None;
+	var tmp = String.create (1 << 16); // 64K
+	var b = Buffer.create();
+	input_set_flush_mode u SYNC;
+	function rec loop(pos) {
+		var r = input_buffer u str pos tmp 0;
+		Buffer.add_sub b tmp 0 r.write;
+		if !r.done then loop(pos + r.read);
+	}
+	loop(0);
+	input_end u;
+	Buffer.string b;
+}
