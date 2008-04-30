@@ -226,6 +226,12 @@ function int(x:string) : int {
 	i
 }
 
+function float(x:string) : float {
+	var i = neko("$float(x)");
+	if i == neko("null") then invalid_arg();
+	i
+}
+
 function ord(x:char) : int {
 	neko("x");
 }
