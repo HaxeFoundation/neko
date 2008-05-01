@@ -322,6 +322,7 @@ try { mkdir(base,rights); } catch e { };
 
 copy("../boot/nekoc.n",base);
 copy("../boot/nekoml.n",base);
+copy("../boot/nekoml.std",base);
 
 // compile some neko sources
 

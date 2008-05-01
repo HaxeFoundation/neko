@@ -54,7 +54,6 @@ if( $loader.args[0] == "-src" ) {
 	dir = "neko-"+version;
 	cmd("rm -rf "+dir);
 	mkdir(dir);
-	mkdir(dir+"/bin");
 	cmd("cp -r ../boot ../libs ../src ../vm "+dir);
 	cmd("cp ../CHANGES ../LICENSE ../Makefile ../neko.sln "+dir);
 	chdir(dir);
