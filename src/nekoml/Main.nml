@@ -88,8 +88,20 @@ try {
 		("-pack", Args.String (function(p) { pack := Some p }),"<file> : build module packages");
 		("-use", Args.String use_pack,"<file> : use this module package");
 	];
-	var std = Sys.without_extension Sys.executable_path() + ".std";
-	try use_pack std catch { e -> };
+	var std = "nekoml.std";
+	var loader_path = Reflect.loader_path();
+	function rec loop(l) {
+		match l {
+		| [] -> if *verbose then printf "%s not found in %s" (std,String.concat ":" loader_path)
+		| path :: l ->
+			try
+				use_pack (path+std)
+			catch {
+				_ -> loop l
+			}
+		}
+	}
+	loop loader_path;
 	Args.parse head decl (function(f) { files := f :: *files });
 	var ctx = context (*path) packs (function(ctx,m,e) { if *neko then gen_neko ctx m e else compile ctx m e });
 	List.iter (function(file) {
