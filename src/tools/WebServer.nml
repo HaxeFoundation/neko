@@ -462,7 +462,7 @@ function init_mod_neko() {
 		args => $array(),
 		path => $loader.path,
 		cache => $loader.cache,
-		loadmodule => function(name,l) { 
+		loadmodule => function(name,l) {
 			$loader.cache = this.cache;
 			$loader.loadmodule(name,l);
 		},
@@ -580,7 +580,7 @@ function client_msg_safe(c) {
 		client_msg(c);
 	} catch {
 		| IO.Eof -> printf "Connection aborted\n" ();
-		| Neko_error e when Reflex.value e == Reflex.VString "std@socket_send" -> printf "Sending file aborted\n" ();
+		| Neko_error e when Reflect.value e == Reflect.VString "std@socket_send" -> printf "Sending file aborted\n" ();
 	}
 	neko "$loader.loadprim('std@run_gc',1)(true)";
 	false

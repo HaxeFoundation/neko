@@ -63,7 +63,7 @@ function run() {
 			(bytecode , str())
 		}
 		// read compiled module
-		var m = Reflex.read (IO.input (IO.read_string module));
+		var m = Reflect.module_read (IO.input (IO.read_string module));
 		// set module environement
 		var globals = fst bytecode;
 		Array.iteri (function(i,g) {
@@ -71,7 +71,7 @@ function run() {
 			| Neko.Bytecode.GlobalVar v ->
 				try {
 					var v = Hashtbl.find ctx v;
-					Reflex.set_global m i v
+					Reflect.module_set_global m i v
 				} catch {
 					Not_found -> ()
 				}
@@ -80,7 +80,7 @@ function run() {
 		}) globals;
 		// execute
 		try {
-			nprint Reflex.neko_value(Reflex.mexecute m);
+			nprint Reflect.neko_value(Reflect.module_execute m);
 			nprint "\n";
 		} catch {
 			e ->
@@ -97,7 +97,7 @@ function run() {
 		Array.iteri (function(i,g) {
 			match g {
 			| Neko.Bytecode.GlobalVar v ->
-				Hashtbl.replace ctx v (Reflex.get_global m i)
+				Hashtbl.replace ctx v (Reflect.module_get_global m i)
 			| _ ->
 				()
 			}
