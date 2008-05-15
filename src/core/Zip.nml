@@ -30,31 +30,40 @@ type result {
 	write : int;
 }
 
-neko("
-	@set_flush_mode = $loader.loadprim('zlib@set_flush_mode',2);
-	@inflate_init = $loader.loadprim('zlib@inflate_init',1);
-	@deflate_buffer = $loader.loadprim('zlib@deflate_buffer',5);
-	@inflate_buffer = $loader.loadprim('zlib@inflate_buffer',5);
-");
+function init() {
+	neko("
+		@set_flush_mode = $loader.loadprim('zlib@set_flush_mode',2);
+		@inflate_init = $loader.loadprim('zlib@inflate_init',1);
+		@deflate_buffer = $loader.loadprim('zlib@deflate_buffer',5);
+		@inflate_buffer = $loader.loadprim('zlib@inflate_buffer',5);
+		@deflate_init = $loader.loadprim('zlib@deflate_init',1);
+		@deflate_bound = $loader.loadprim('zlib@deflate_bound',2);
+		@deflate_end = $loader.loadprim('zlib@deflate_end',1);
+		@inflate_end = $loader.loadprim('zlib@inflate_end',1);
+	");
+}
 
 function __result(x) {
 	{ done = neko "x.done"; read = neko "x.read"; write = neko "x.write" }
 }
 
+function output(v:int) : out {
+	neko("@deflate_init")(v);
+}
 
-var output : int -> out = neko "$loader.loadprim('zlib@deflate_init',1)";
-var output_bound : out -> int -> int = neko "$loader.loadprim('zlib@deflate_bound',2)";
-var output_end : out -> void = neko "$loader.loadprim('zlib@deflate_end',1)";
+function output_bound(o:out,size:int) : int {
+	neko("@deflate_bound")(o,size);
+}
+
+function output_end(o:out) : void {
+	neko("@deflate_end")(o);
+}
 
 function output_buffer(o:out,in:string,ipos:int,out:string,opos:int) {
 	__result(neko "@deflate_buffer(o,in,ipos,out,opos)");
 }
 
-function output_set_flush_mode(o:out,f:flush) {
-	neko("@set_flush_mode")(o,string f);
-}
-
-function input( n : int option ) {
+function input( n : int option ) : in {
 	neko("@inflate_init")(match n { None -> neko "null" | Some i -> i })
 }
 
@@ -62,10 +71,15 @@ function input_buffer(i:in,in:string,ipos:int,out:string,opos:int) {
 	__result(neko "@inflate_buffer(i,in,ipos,out,opos)");
 }
 
+function input_end(i:in) : void {
+	neko("@inflate_end")();
+}
 
-var input_end : in -> void = neko "$loader.loadprim('zlib@inflate_end',1)";
+function output_set_flush_mode(o:out,f:flush) : void {
+	neko("@set_flush_mode")(o,string f);
+}
 
-function input_set_flush_mode(i:in,f:flush) {
+function input_set_flush_mode(i:in,f:flush) : void {
 	neko("@set_flush_mode")(i,string f);
 }
 

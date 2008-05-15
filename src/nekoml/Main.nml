@@ -120,6 +120,7 @@ try {
 		Hashtbl.iter (function(key,m) {
 			Hashtbl.add h (String.concat "/" key + ".nml") (IO.file_contents m.file)
 		}) ctx.modules;
+		Zip.init();
 		var ch = IO.write_file file true;
 		IO.write ch (Zip.compress (String.serialize h) 9);
 		IO.close_out ch;
