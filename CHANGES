@@ -15,6 +15,7 @@ TODO :
 	nekoml : minor fixes in lexer
 	nekoml : added -pack and -use, auto build nekoml.std
 	include nekoml as part of standard distribution
+	vm/security : $smake now fills the string with 0
 
 2008-03-16 : 1.7.0
 	nekoc : allow binary ast format with -p, don't allow inline nxml

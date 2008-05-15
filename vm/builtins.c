@@ -187,8 +187,11 @@ static value builtin_string( value v ) {
 	<doc>Return an uninitialized string of size [n]</doc>
 **/
 static value builtin_smake( value l ) {
+	value v;
 	val_check(l,int);
-	return alloc_empty_string( val_int(l) );
+	v = alloc_empty_string( val_int(l) );
+	memset(val_string(v),0,val_int(l));
+	return v;
 }
 
 /**
