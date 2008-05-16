@@ -281,10 +281,10 @@ enum IOperation {
 
 #define XShl_rr(r,src)			if( src != Ecx ) ERROR; shift_r(r,4)
 #define XShl_rc(r,n)			shift_c(r,n,4)
-#define XShr_rr(r,src)			if( src != Ecx ) ERROR; shift_r(r,5)
-#define XShr_rc(r,n)			shift_c(r,n,5)
-#define XSar_rr(r,src)			if( src != Ecx ) ERROR; shift_r(r,7)
-#define XSar_rc(r,n)			shift_c(r,n,7)
+#define XShr_rr(r,src)			if( src != Ecx ) ERROR; shift_r(r,7)
+#define XShr_rc(r,n)			shift_c(r,n,7)
+#define XUShr_rr(r,src)			if( src != Ecx ) ERROR; shift_r(r,5)
+#define XUShr_rc(r,n)			shift_c(r,n,5)
 
 #define XIMul_rr(dst,src)		B(0x0F); B(0xAF); MOD_RM(3,dst,src)
 #define XIDiv_r(r)				B(0xF7); MOD_RM(3,7,r)
@@ -1041,8 +1041,8 @@ static void jit_number_op( jit_ctx *ctx, enum Operation op ) {
 	is_int(ACC,false,jnot_int1);
 	is_int(TMP,false,jnot_int2);
 
-	XSar_rc(ACC,1);
-	XSar_rc(TMP,1);
+	XShr_rc(ACC,1);
+	XShr_rc(TMP,1);
 
 	if( op != OP_DIV ) {
 		switch( op ) {
@@ -1077,7 +1077,7 @@ static void jit_number_op( jit_ctx *ctx, enum Operation op ) {
 	XCmp_rb(TMP2,VAL_FLOAT);
 
 	XJump(JNeq,jerr1);
-	XSar_rc(ACC,1);
+	XShr_rc(ACC,1);
 	XPush_r(ACC);
 	XFILd_i(Esp);
 	XAdd_rc(TMP,4);
@@ -1106,7 +1106,7 @@ static void jit_number_op( jit_ctx *ctx, enum Operation op ) {
 	PATCH_JUMP(jint);
 	XAdd_rc(ACC,4);
 	XFLd_i(ACC);
-	XSar_rc(TMP,1);
+	XShr_rc(TMP,1);
 	XPush_r(TMP);
 	XFILd_i(Esp);
 	stack_pop(Esp,1);
@@ -1212,11 +1212,11 @@ static void jit_int_op( jit_ctx *ctx, enum IOperation op ) {
 
 	is_int(ACC,false,jerr1);
 	XMov_rr(TMP,ACC);
-	XSar_rc(TMP,1);
+	XShr_rc(TMP,1);
 	XMov_rp(ACC,SP,FIELD(0));
 
 	is_int(ACC,false,jerr2);
-	XSar_rc(ACC,1);
+	XShr_rc(ACC,1);
 
 	switch( op ) {
 	case IOP_SHL:
@@ -1226,7 +1226,7 @@ static void jit_int_op( jit_ctx *ctx, enum IOperation op ) {
 		XShr_rr(ACC,TMP);
 		break;
 	case IOP_USHR:
-		XSar_rr(ACC,TMP);
+		XUShr_rr(ACC,TMP);
 		break;
 	case IOP_AND:
 		XAnd_rr(ACC,TMP);
@@ -1277,7 +1277,7 @@ static void jit_add( jit_ctx *ctx, int _ ) {
 	XAdd_rc(TMP,4);
 	XFLd_i(TMP);
 	stack_push(Esp,1);
-	XSar_rc(ACC,1);
+	XShr_rc(ACC,1);
 	XPush_r(ACC);
 	XFILd_i(Esp);
 	XFAddp();
@@ -1291,7 +1291,7 @@ static void jit_add( jit_ctx *ctx, int _ ) {
 	XJump(JNeq,jsp_object1);
 	stack_pad(3);
 	XPush_c(1);
-	XSar_rc(ACC,1);
+	XShr_rc(ACC,1);
 	XPush_r(ACC);
 	XPush_r(TMP);;
 	XPush_r(VM);
@@ -1306,7 +1306,7 @@ static void jit_add( jit_ctx *ctx, int _ ) {
 	// is_float(acc) && is_int(sp) -> push(val_float(acc)+val_int(sp))
 	is_int(TMP,false,jnext);
 	stack_push(Esp,1);
-	XSar_rc(TMP,1);
+	XShr_rc(TMP,1);
 	XPush_r(TMP);
 	XFILd_i(Esp);
 	XAdd_rc(ACC,4);
@@ -1346,7 +1346,7 @@ static void jit_add( jit_ctx *ctx, int _ ) {
 	is_int(TMP,false,jnext);
 	stack_pad(3);
 	XPush_c(0);
-	XSar_rc(TMP,1);
+	XShr_rc(TMP,1);
 	XPush_r(TMP);
 	XPush_r(ACC);
 	XPush_r(VM);
@@ -1463,7 +1463,7 @@ static void jit_array_access( jit_ctx *ctx, int n ) {
 
 	XJump(JNeq,jnot_array);
 	if( n > 0 ) {
-		XShr_rc(TMP,3);
+		XUShr_rc(TMP,3);
 		XCmp_rc(TMP,n);
 		XJump(JLte,jbounds);
 	}
@@ -1711,9 +1711,9 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		is_int(ACC,false,jerr2);
 
 		// check bounds & access array
-		XSar_rc(ACC,1);
+		XShr_rc(ACC,1);
 		XMov_rp(TMP2,TMP,FIELD(0));
-		XShr_rc(TMP2,3);
+		XUShr_rc(TMP2,3);
 		XCmp_rr(ACC,TMP2);
 		XJump(JGte,jbounds);
 		XAdd_rc(ACC,1);			  // acc = val_array_ptr(tmp)[acc]
@@ -1871,8 +1871,8 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		is_int(TMP2,false,jerr2);
 
 		XMov_rp(TMP,TMP,FIELD(0)); // tmp = tmp->type
-		XSar_rc(TMP2,1);
-		XShr_rc(TMP,3);
+		XShr_rc(TMP2,1);
+		XUShr_rc(TMP,3);
 		XCmp_rr(TMP2,TMP);
 		XJump(JGte,jend1);
 
@@ -2339,7 +2339,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 
 		// trap = val_int(sp[5])
 		XMov_rp(TMP,SP,FIELD(5));
-		XSar_rc(TMP,1);
+		XShr_rc(TMP,1);
 		set_var_r(VTrap,TMP);
 		pop(6);
 		break;
@@ -2436,7 +2436,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		XJump_near(jnext2);
 		PATCH_JUMP(jok2);
 		XMov_rr(TMP2,ACC);
-		XSar_rc(TMP2,1);
+		XShr_rc(TMP2,1);
 		PATCH_JUMP(jnext1);
 		PATCH_JUMP(jnext2);
 		get_var_r(TMP,VModule);
@@ -2650,7 +2650,7 @@ void neko_module_jit( neko_module *m ) {
 			XMov_rp(TMP2,VM,VMFIELD(spmin));
 			XMov_rr(TMP,CSP);
 			XSub_rr(TMP,TMP2);
-			XSar_rc(TMP,1);
+			XShr_rc(TMP,1);
 			XOr_rc(TMP,1);
 			XPush_r(TMP);
 			XCall_m_real(val_print);
