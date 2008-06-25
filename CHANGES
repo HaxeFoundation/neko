@@ -18,6 +18,7 @@ TODO :
 	vm/security : $smake now fills the string with 0
 	std/int32 : fixed need_32_bits macro (negative values)
 	bugfix : >> and >>> were reversed in JIT
+	bugfix : date functions are now MT-safe
 
 2008-03-16 : 1.7.0
 	nekoc : allow binary ast format with -p, don't allow inline nxml
