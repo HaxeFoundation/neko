@@ -15,6 +15,9 @@
 /*																			*/
 /* ************************************************************************ */
 #include <neko_vm.h>
+#undef free_lock
+#undef lock_release
+
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -463,4 +466,3 @@ DEFINE_PRIM(lock_release,1);
 DEFINE_PRIM(tls_create,0);
 DEFINE_PRIM(tls_set,2);
 DEFINE_PRIM(tls_get,1);
-

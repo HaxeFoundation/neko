@@ -51,7 +51,7 @@ typedef struct cache {
 
 static mconfig config;
 static int init_done = 0;
-static _context *cache_root = NULL;
+static mt_local *cache_root = NULL;
 
 extern void neko_stats_measure( neko_vm *vm, const char *kind, int start );
 extern value neko_stats_build( neko_vm *vm );
@@ -61,7 +61,7 @@ value cgi_command( value v ) {
 	if( strcmp(val_string(v),"stats") == 0 )
 		return neko_stats_build(neko_vm_current());
 	if( strcmp(val_string(v),"cache") == 0 ) {
-		cache *c = (cache*)context_get(cache_root);
+		cache *c = (cache*)local_get(cache_root);
 		value l = val_null;
 		while( c != NULL ) {
 			value a = alloc_array(4);
@@ -113,7 +113,7 @@ static void null_print( const char *data, int size, void *_c ) {
 }
 
 static value cache_find( request_rec *r ) {
-	cache *c = (cache*)context_get(cache_root);
+	cache *c = (cache*)local_get(cache_root);
 	cache *prev = NULL;
 	value fname = alloc_string(r->filename);
 	while( c != NULL ) {
@@ -123,7 +123,7 @@ static value cache_find( request_rec *r ) {
 				return c->main;
 			}
 			if( prev == NULL )
-				context_set(cache_root,c->next);
+				local_set(cache_root,c->next);
 			else
 				prev->next = c->next;
 			free_root((value*)c);
@@ -146,13 +146,13 @@ static char *request_base_uri( request_rec *r ) {
 }
 
 static void cache_module( const char *filename, aptime time, value main ) {
-	cache *c = (cache*)context_get(cache_root), *prev = NULL;
+	cache *c = (cache*)local_get(cache_root), *prev = NULL;
 	value fname = alloc_string(filename);
 	while( c != NULL ) {
 		if( val_compare(fname,c->file) == 0 ) {
 			if( main == NULL ) {
 				if( prev == NULL )
-					context_set(cache_root,c->next);
+					local_set(cache_root,c->next);
 				else
 					prev->next = c->next;
 				free_root((value*)c);
@@ -170,8 +170,8 @@ static void cache_module( const char *filename, aptime time, value main ) {
 	c->main = main;
 	c->time = time;
 	c->hits = 0;
-	c->next = (cache*)context_get(cache_root);
-	context_set(cache_root,c);
+	c->next = (cache*)local_get(cache_root);
+	local_set(cache_root,c);
 }
 
 static int neko_handler_rec( request_rec *r ) {
@@ -318,7 +318,7 @@ static void mod_neko_do_init() {
 #	else
 	putenv(strdup("MOD_NEKO=1"));
 #	endif
-	cache_root = context_new();
+	cache_root = alloc_local();
 	neko_global_init(&tmp);
 }
 

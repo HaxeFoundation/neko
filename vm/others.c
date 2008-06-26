@@ -20,12 +20,39 @@
 #include "objtable.h"
 #include "vm.h"
 
+#if !defined(NEKO_THREADS)
+
+#include <stdlib.h>
+
+struct _mt_local {
+	void *value;
+};
+
+#elif defined(NEKO_WINDOWS)
+#	include <windows.h>
+	// disable warnings for type conversions
+#	pragma warning(disable : 4311)
+#	pragma warning(disable : 4312)
+#else
+#	include <stdlib.h>
+#	include <pthread.h>
+
+struct _mt_local {
+	pthread_key_t key;
+};
+
+struct _mt_lock {
+	pthread_mutex_t lock;
+};
+
+#endif
+
 #define C(x,y)	((x << 8) | y)
 
 DEFINE_KIND(k_int32);
 DEFINE_KIND(k_hash);
 
-extern _clock *neko_fields_lock;
+extern mt_lock *neko_fields_lock;
 extern objtable *neko_fields;
 extern field id_compare;
 extern field id_string;
@@ -361,7 +388,7 @@ EXTERN field val_id( const char *name ) {
 		name++;
 	}
 	f = val_int(acc);
-	context_lock(neko_fields_lock);
+	lock_acquire(neko_fields_lock);
 	fdata = otable_find(*neko_fields,f);
 	if( fdata != NULL ) {
 		if( scmp(val_string(*fdata),val_strlen(*fdata),oname,(int)(name - oname)) != 0 ) {
@@ -369,20 +396,20 @@ EXTERN field val_id( const char *name ) {
 			val_buffer(b,*fdata);
 			buffer_append(b," and ");
 			buffer_append(b,oname);
-			context_release(neko_fields_lock);
+			lock_release(neko_fields_lock);
 			bfailure(b);
 		}
 	} else
 		otable_replace(*neko_fields,f,copy_string(oname,name - oname));
-	context_release(neko_fields_lock);
+	lock_release(neko_fields_lock);
 	return f;
 }
 
 EXTERN value val_field_name( field id ) {
 	value *fdata;
-	context_lock(neko_fields_lock);
+	lock_acquire(neko_fields_lock);
 	fdata = otable_find(*neko_fields,id);
-	context_release(neko_fields_lock);
+	lock_release(neko_fields_lock);
 	if( fdata == NULL )
 		return val_null;
 	return *fdata;
@@ -457,6 +484,98 @@ EXTERN void _neko_failure( value msg, const char *file, int line ) {
 	alloc_field(o,val_id("line"),alloc_int(line));
 	alloc_field(o,id_string,alloc_function(failure_to_string,0,"failure_to_string"));
 	val_throw(o);
+}
+
+/* ------------------------------------------------------------------------ */
+// MULTITHREADING
+
+EXTERN mt_local *alloc_local() {
+#	if !defined(NEKO_THREADS)
+	mt_local *l = malloc(sizeof(mt_local));
+	l->value = NULL;
+	return l;
+#	elif defined(NEKO_WINDOWS)
+	DWORD t = TlsAlloc();
+	TlsSetValue(t,NULL);
+	return (mt_local*)t;
+#	else
+	mt_local *l = malloc(sizeof(mt_local));
+	pthread_key_create(&l->key,NULL);
+	return l;
+#	endif
+}
+
+EXTERN void free_local( mt_local *l ) {
+#	if !defined(NEKO_THREADS)
+	free(l);
+#	elif defined(NEKO_WINDOWS)
+	TlsFree((DWORD)l);
+#	else
+	pthread_key_delete(l->key);
+	free(l);
+#	endif
+}
+
+EXTERN void local_set( mt_local *l, void *v ) {
+#	if !defined(NEKO_THREADS)
+	l->value = v;
+#	elif defined(NEKO_WINDOWS)
+	TlsSetValue((DWORD)l,v);
+#	else
+	pthread_setspecific(l->key,v);
+#	endif
+}
+
+EXTERN void *local_get( mt_local *l ) {
+	if( l == NULL )
+		return NULL;
+#	if !defined(NEKO_THREADS)
+	return l->value;
+#	elif defined(NEKO_WINDOWS)
+	return (void*)TlsGetValue((DWORD)l);
+#	else
+	return pthread_getspecific(l->key);
+#	endif
+}
+
+EXTERN mt_lock *alloc_lock() {
+#	if !defined(NEKO_THREADS)
+	return (mt_lock*)1;
+#	elif defined(NEKO_WINDOWS)
+	return (mt_lock*)CreateMutex(NULL,FALSE,NULL);
+#	else
+	mt_lock *l = malloc(sizeof(mt_lock));
+	pthread_mutex_init(&l->lock,NULL);
+	pthread_mutex_unlock(&l->lock);
+	return l;
+#	endif
+}
+
+EXTERN void lock_acquire( mt_lock *l ) {
+#	if !defined(NEKO_THREADS)
+#	elif defined(NEKO_WINDOWS)
+	WaitForSingleObject((HANDLE)l,INFINITE);
+#	else
+	pthread_mutex_lock(&l->lock);
+#	endif
+}
+
+EXTERN void lock_release( mt_lock *l ) {
+#	if !defined(NEKO_THREADS)
+#	elif defined(NEKO_WINDOWS)
+	ReleaseMutex((HANDLE)l);
+#	else
+	pthread_mutex_unlock(&l->lock);
+#	endif
+}
+
+EXTERN void free_lock( mt_lock *l ) {
+#	if !defined(NEKO_THREADS)
+#	elif defined(NEKO_WINDOWS)
+	CloseHandle((HANDLE)l);
+#	else
+	pthread_mutex_destroy(&l->lock);
+#	endif
 }
 
 /* ************************************************************************ */

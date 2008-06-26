@@ -25,7 +25,6 @@
 #include <http_protocol.h>
 #undef NOERROR
 #undef INLINE
-#include <context.h>
 #include <neko_vm.h>
 
 typedef struct {

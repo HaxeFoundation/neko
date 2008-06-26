@@ -120,9 +120,6 @@
 			RelativePath=".\cgi.c">
 		</File>
 		<File
-			RelativePath="..\..\vm\context.c">
-		</File>
-		<File
 			RelativePath=".\mod_neko.c">
 		</File>
 		<File

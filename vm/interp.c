@@ -17,7 +17,6 @@
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
-#include "context.h"
 #include "opcodes.h"
 #include "vm.h"
 #include "neko_mod.h"
@@ -141,11 +140,11 @@ EXTERN void neko_vm_set_stats( neko_vm *vm, neko_stat_func fstats, neko_stat_fun
 }
 
 EXTERN void neko_vm_select( neko_vm *vm ) {
-	context_set(neko_vm_context,vm);
+	local_set(neko_vm_context,vm);
 }
 
 EXTERN neko_vm *neko_vm_current() {
-	return (neko_vm*)context_get(neko_vm_context);
+	return NEKO_VM();
 }
 
 EXTERN void *neko_vm_custom( neko_vm *vm, vkind k ) {

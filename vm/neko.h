@@ -72,6 +72,10 @@
 #	define NEKO_DIRECT_THREADED
 #endif
 
+#ifndef NEKO_NO_THREADS
+#	define NEKO_THREADS
+#endif
+
 #include <stddef.h>
 #ifndef NEKO_VCC
 #	include <stdint.h>
@@ -160,6 +164,11 @@ typedef struct {
 	int ncells;
 	int nitems;
 } vhash;
+
+struct _mt_local;
+struct _mt_lock;
+typedef struct _mt_local mt_local;
+typedef struct _mt_lock mt_lock;
 
 #define val_tag(v)			(*(val_type*)(v))
 #define val_is_null(v)		((v) == val_null)
@@ -319,6 +328,15 @@ typedef struct {
 #define k_hash				neko_k_hash
 #define kind_share			neko_kind_share
 
+#define alloc_local			neko_alloc_local
+#define local_get			neko_local_get
+#define local_set			neko_local_set
+#define free_local			neko_free_local
+#define alloc_lock			neko_alloc_lock
+#define lock_acquire		neko_lock_acquire
+#define lock_release		neko_lock_release
+#define free_lock			neko_free_lock
+
 C_FUNCTION_BEGIN
 
 	VEXTERN vkind k_int32;
@@ -378,6 +396,17 @@ C_FUNCTION_BEGIN
 
 	EXTERN void kind_share( vkind *k, const char *name );
 	EXTERN void _neko_failure( value msg, const char *file, int line );
+
+	// MULTITHREADING API
+	EXTERN mt_local *alloc_local();
+	EXTERN void *local_get( mt_local *l );
+	EXTERN void local_set( mt_local *l, void *v );
+	EXTERN void free_local( mt_local *l );
+
+	EXTERN mt_lock *alloc_lock();
+	EXTERN void lock_acquire( mt_lock *l );
+	EXTERN void lock_release( mt_lock *l );
+	EXTERN void free_lock( mt_lock *l );
 
 C_FUNCTION_END
 

@@ -130,9 +130,6 @@
 				RelativePath=".\callback.c">
 			</File>
 			<File
-				RelativePath=".\context.c">
-			</File>
-			<File
 				RelativePath=".\hash.c">
 			</File>
 			<File
@@ -158,9 +155,6 @@
 			Name="Header Files"
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}">
-			<File
-				RelativePath=".\context.h">
-			</File>
 			<File
 				RelativePath=".\gc.h">
 			</File>

@@ -39,7 +39,7 @@
 #	error Looks like libgc was not installed, please install it before compiling
 #else
 
-#ifndef NEKO_WINDOWS
+#if defined(NEKO_THREADS) && !defined(NEKO_WINDOWS)
 #	include <pthread.h>
 #endif
 
@@ -54,8 +54,8 @@ static value *apply_string = NULL;
 int_val *callback_return = &op_last;
 value *neko_builtins = NULL;
 objtable *neko_fields = NULL;
-_clock *neko_fields_lock = NULL;
-_context *neko_vm_context = NULL;
+mt_lock *neko_fields_lock = NULL;
+mt_local *neko_vm_context = NULL;
 static val_type t_null = VAL_NULL;
 static val_type t_true = VAL_BOOL;
 static val_type t_false = VAL_BOOL;
@@ -120,11 +120,13 @@ typedef struct {
 	thread_main_func init;
 	thread_main_func main;
 	void *param;
+#ifdef NEKO_THREADS
 #	ifdef NEKO_WINDOWS
 	HANDLE lock;
 #	else
 	pthread_mutex_t lock;
 #	endif
+#endif
 } tparams;
 
 #ifdef NEKO_WINDOWS
@@ -151,7 +153,9 @@ EXTERN int neko_thread_create( thread_main_func init, thread_main_func main, voi
 	p.init = init;
 	p.main = main;
 	p.param = param;
-#	ifdef NEKO_WINDOWS
+#	if !defined(NEKO_THREADS)
+	return 0;
+#	elif defined(NEKO_WINDOWS)
 	{
 		HANDLE h;
 		p.lock = CreateSemaphore(NULL,0,1,NULL);
@@ -387,8 +391,8 @@ EXTERN void neko_global_init( void *s ) {
 #	endif
 	empty_array.ptr = val_null;
 	neko_gc_init(s);
-	neko_vm_context = context_new();
-	neko_fields_lock = context_lock_new();
+	neko_vm_context = alloc_local();
+	neko_fields_lock = alloc_lock();
 	neko_fields = (objtable*)alloc_root(1);
 	*neko_fields = otable_empty();
 	neko_init_builtins();
@@ -426,8 +430,8 @@ EXTERN void neko_global_free() {
 	free_root(neko_builtins);
 	free_root((value*)neko_fields);
 	apply_string = NULL;
-	context_delete(neko_vm_context);
-	context_lock_delete(neko_fields_lock);
+	free_local(neko_vm_context);
+	free_lock(neko_fields_lock);
 	neko_gc_major();
 	neko_gc_close();
 }

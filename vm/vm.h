@@ -18,7 +18,6 @@
 #define _NEKO_VMCONTEXT_H
 #include <setjmp.h>
 #include "neko_vm.h"
-#include "context.h"
 
 #define INIT_STACK_SIZE (1 << 8)
 #define MAX_STACK_SIZE	(1 << 18)
@@ -56,9 +55,9 @@ struct _neko_vm {
 };
 
 extern int_val *callback_return;
-extern _context *neko_vm_context;
+extern mt_local *neko_vm_context;
 
-#define NEKO_VM()	((neko_vm*)context_get(neko_vm_context))
+#define NEKO_VM()	((neko_vm*)local_get(neko_vm_context))
 
 extern value neko_alloc_apply( int nargs, value env );
 extern value neko_interp( neko_vm *vm, void *m, int_val acc, int_val *pc );
