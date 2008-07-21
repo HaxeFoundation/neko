@@ -451,6 +451,9 @@ function init_mod_neko() {
 		| MethodCustom r -> r
 		}
 	});
+	def "log_message" (function (s) {
+		IO.printf IO.stderr "[log] %s\n" s;
+	});
 	function resolve_method(f:string) {
 		try {
 			Hashtbl.find hmethods f

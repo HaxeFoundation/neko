@@ -557,6 +557,21 @@ static value get_http_method() {
 	return alloc_string(CONTEXT()->r->method);
 }
 
+/**
+	log_message : string -> void
+	<doc>Write the message into the apache log</doc>
+**/
+static value log_message( value message ) {
+	mcontext *c = CONTEXT();
+	val_check(message, string);
+#ifdef APACHE_2_X
+	ap_log_rerror(__FILE__, __LINE__, APLOG_NOTICE, APR_SUCCESS, c->r, "[mod_neko] %s", val_string(message));
+#else
+	ap_log_rerror(__FILE__, __LINE__, APLOG_NOTICE, c->r, "[mod_neko] %s", val_string(message));
+#endif
+	return val_null;
+}
+
 DEFINE_PRIM(cgi_get_cwd,0);
 DEFINE_PRIM(cgi_set_main,1);
 DEFINE_PRIM(get_cookies,0);
@@ -578,5 +593,6 @@ DEFINE_PRIM(cgi_get_config,0);
 DEFINE_PRIM(cgi_set_config,1);
 DEFINE_PRIM(cgi_command,1);
 DEFINE_PRIM(get_http_method,0);
+DEFINE_PRIM(log_message,1);
 
 /* ************************************************************************ */

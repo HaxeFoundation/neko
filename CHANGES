@@ -22,6 +22,7 @@ TODO :
 	removed context.h and context.c
 	added lock and tls multithread API to neko.h
 	std : added date_get_tz()
+	mod_neko : added log_message
 
 2008-03-16 : 1.7.0
 	nekoc : allow binary ast format with -p, don't allow inline nxml
