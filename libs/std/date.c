@@ -37,12 +37,21 @@ extern field id_y;
 extern field id_d;
 
 #ifdef NEKO_WINDOWS
+
 static struct tm *localtime_r( time_t *t, struct tm *r ) {
 	struct tm *r2 = localtime(t);
 	if( r2 == NULL ) return NULL;
 	*r = *r2;
 	return r;
 }
+
+static struct tm *gmtime_r( time_t *t, struct tm *r ) {
+	struct tm *r2 = gmtime(t);
+	if( r2 == NULL ) return NULL;
+	*r = *r2;
+	return r;
+}
+
 #endif
 
 /**
@@ -207,6 +216,26 @@ static value date_get_hour( value o ) {
 	return r;
 }
 
+/**
+	date_get_tz : void -> int
+	<doc>Return the local Timezone (in seconds)</doc>
+**/
+static value date_get_tz() {
+	struct tm local;
+	struct tm gmt;
+	int diff;
+	time_t raw = time(NULL);
+	if( localtime_r(&raw, &local) == NULL || gmtime_r(&raw, &gmt) == NULL )
+		neko_error();
+	diff = (local.tm_hour - gmt.tm_hour) * 3600 + (local.tm_min - gmt.tm_min) * 60;
+	// adjust for different days/years
+	if( gmt.tm_year > local.tm_year || gmt.tm_yday > local.tm_yday )
+		diff -= 24 * 3600;
+	else if( gmt.tm_year < local.tm_year || gmt.tm_yday < local.tm_yday )
+		diff += 24 * 3600;
+	return alloc_int(diff);
+}
+
 DEFINE_PRIM(date_now,0);
 DEFINE_PRIM(date_new,1);
 DEFINE_PRIM(date_format,2);
@@ -214,5 +243,6 @@ DEFINE_PRIM(date_set_hour,4);
 DEFINE_PRIM(date_set_day,4);
 DEFINE_PRIM(date_get_hour,1);
 DEFINE_PRIM(date_get_day,1);
+DEFINE_PRIM(date_get_tz,0);
 
 /* ************************************************************************ */
