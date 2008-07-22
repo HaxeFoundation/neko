@@ -219,9 +219,9 @@ static value regexp_replace_fun( value o, value s, value f ) {
 }
 
 /**
-	regexp_matched : 'regexp -> n:int -> string
+	regexp_matched : 'regexp -> n:int -> string?
 	<doc>Return the [n]th matched block by the regexp. If [n] is 0 then return 
-	the whole matched substring</doc>
+	the whole matched substring. If the [n]th matched block was optional and not matched, returns null</doc>
 **/
 static value regexp_matched( value o, value n ) {
 	pcredata *d;
@@ -235,7 +235,10 @@ static value regexp_matched( value o, value n ) {
 	{
 		int start = d->matchs[m*2];
 		int len = d->matchs[m*2+1] - start;
-		value str = alloc_empty_string(len);
+		value str;
+		if( start == -1 )
+			return val_null;
+		str = alloc_empty_string(len);
 		memcpy((char*)val_string(str),val_string(d->str)+start,len);
 		return str;
 	}
