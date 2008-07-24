@@ -40,6 +40,8 @@ struct _mt_lock {
 
 #else
 #	include <stdlib.h>
+// might be useful for PTHREAD_MUTEX_RECURSIVE definition
+#	define _GNU_SOURCE 
 #	include <pthread.h>
 
 struct _mt_local {
@@ -552,8 +554,11 @@ EXTERN mt_lock *alloc_lock() {
 	return l;
 #	else
 	mt_lock *l = (mt_lock*)malloc(sizeof(mt_lock));
-	pthread_mutex_init(&l->lock,NULL);
-	pthread_mutex_unlock(&l->lock);
+	pthread_mutex_attr_t a;
+	pthread_mutexattr_init(&a);
+	pthread_mutexattr_settype(&a,PTHREAD_MUTEX_RECURSIVE);
+	pthread_mutex_init(&l->lock,&a);
+	pthread_mutexattr_destroy(&a);
 	return l;
 #	endif
 }
