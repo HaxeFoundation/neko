@@ -33,6 +33,11 @@ struct _mt_local {
 	// disable warnings for type conversions
 #	pragma warning(disable : 4311)
 #	pragma warning(disable : 4312)
+
+struct _mt_lock {
+	CRITICAL_SECTION cs;
+};
+
 #else
 #	include <stdlib.h>
 #	include <pthread.h>
@@ -542,9 +547,11 @@ EXTERN mt_lock *alloc_lock() {
 #	if !defined(NEKO_THREADS)
 	return (mt_lock*)1;
 #	elif defined(NEKO_WINDOWS)
-	return (mt_lock*)CreateMutex(NULL,FALSE,NULL);
+	mt_lock *l = (mt_lock*)malloc(sizeof(mt_lock));
+	InitializeCriticalSection(&l->cs);
+	return l;
 #	else
-	mt_lock *l = malloc(sizeof(mt_lock));
+	mt_lock *l = (mt_lock*)malloc(sizeof(mt_lock));
 	pthread_mutex_init(&l->lock,NULL);
 	pthread_mutex_unlock(&l->lock);
 	return l;
@@ -554,7 +561,7 @@ EXTERN mt_lock *alloc_lock() {
 EXTERN void lock_acquire( mt_lock *l ) {
 #	if !defined(NEKO_THREADS)
 #	elif defined(NEKO_WINDOWS)
-	WaitForSingleObject((HANDLE)l,INFINITE);
+	EnterCriticalSection(&l->cs);
 #	else
 	pthread_mutex_lock(&l->lock);
 #	endif
@@ -563,7 +570,7 @@ EXTERN void lock_acquire( mt_lock *l ) {
 EXTERN void lock_release( mt_lock *l ) {
 #	if !defined(NEKO_THREADS)
 #	elif defined(NEKO_WINDOWS)
-	ReleaseMutex((HANDLE)l);
+	LeaveCriticalSection(&l->cs);
 #	else
 	pthread_mutex_unlock(&l->lock);
 #	endif
@@ -572,9 +579,11 @@ EXTERN void lock_release( mt_lock *l ) {
 EXTERN void free_lock( mt_lock *l ) {
 #	if !defined(NEKO_THREADS)
 #	elif defined(NEKO_WINDOWS)
-	CloseHandle((HANDLE)l);
+	DeleteCriticalSection(&l->cs);
+	free(l);
 #	else
 	pthread_mutex_destroy(&l->lock);
+	free(l);
 #	endif
 }
 

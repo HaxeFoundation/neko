@@ -24,6 +24,7 @@ TODO :
 	std : added date_get_tz()
 	mod_neko : added log_message
 	regexp : fix for unmatched optional groups, return null instead of empty string
+	threads : for windows, use critical_section instead of mutex for locks
 
 2008-03-16 : 1.7.0
 	nekoc : allow binary ast format with -p, don't allow inline nxml
