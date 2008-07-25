@@ -334,6 +334,7 @@ typedef struct _mt_lock mt_lock;
 #define free_local			neko_free_local
 #define alloc_lock			neko_alloc_lock
 #define lock_acquire		neko_lock_acquire
+#define lock_try			neko_lock_try
 #define lock_release		neko_lock_release
 #define free_lock			neko_free_lock
 
@@ -405,7 +406,8 @@ C_FUNCTION_BEGIN
 
 	EXTERN mt_lock *alloc_lock();
 	EXTERN void lock_acquire( mt_lock *l );
-	EXTERN void lock_release( mt_lock *l );
+	EXTERN int lock_try( mt_lock *l );
+	EXTERN void lock_release( mt_lock *l );	
 	EXTERN void free_lock( mt_lock *l );
 
 C_FUNCTION_END

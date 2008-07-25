@@ -80,6 +80,7 @@ DECLARE_KIND(k_thread);
 
 #define val_lock(l)		((vlock)val_data(l))
 #define val_tls(l)		((vtls*)val_data(l))
+#define val_mutex(l)	((mt_lock*)val_data(l))
 
 typedef struct {
 #	ifdef NEKO_WINDOWS
@@ -92,6 +93,7 @@ typedef struct {
 DEFINE_KIND(k_thread);
 DEFINE_KIND(k_lock);
 DEFINE_KIND(k_tls);
+DEFINE_KIND(k_mutex);
 
 typedef struct {
 	value callb;
@@ -454,6 +456,62 @@ static value tls_set( value v, value content ) {
 	return val_null;
 }
 
+static void free_mutex( value v ) {
+	neko_free_lock( val_mutex(v) );
+}
+
+/**
+	mutex_create : void -> 'mutex
+	<doc>
+	Creates a mutex, which can be used to acquire a temporary lock to access some ressource.
+	The main difference with a lock is that a mutex must always be released by the owner thread.
+	</doc>
+**/
+static value mutex_create() {
+	mt_lock *m = neko_alloc_lock();
+	value v = alloc_abstract(k_mutex,m);
+	val_gc(v,free_mutex);
+	return v;
+}
+
+/**
+	mutex_acquire : 'mutex -> void
+	<doc>
+	The current thread acquire the mutex or wait if not available. The same thread can acquire
+	several times the same mutex but must release it as many times it has been acquired.
+	</doc>
+**/
+static value mutex_acquire( value m ) {
+	val_check_kind(m,k_mutex);
+	neko_lock_acquire( val_mutex(m) );
+	return val_null;
+}
+
+/**
+	mutex_try : 'mutex -> bool
+	<doc>
+	Try to acquire the mutex, returns true if acquire or false if it's already locked by another
+	thread.
+	</doc>
+**/
+static value mutex_try( value m ) {
+	val_check_kind(m,k_mutex);
+	return alloc_bool( neko_lock_try(val_mutex(m)) );	
+}
+
+/**
+	mutex_release : 'mutex -> void
+	<doc>
+	Release a mutex that has been acquired by the current thread. The behavior is undefined if the
+	current thread does not own the mutex.
+	</doc>
+**/
+static value mutex_release( value m ) {
+	val_check_kind(m,k_mutex);
+	neko_lock_release(val_mutex(m));
+	return val_null;
+}
+
 DEFINE_PRIM(thread_create,2);
 DEFINE_PRIM(thread_current,0);
 DEFINE_PRIM(thread_send,2);
@@ -466,3 +524,8 @@ DEFINE_PRIM(lock_release,1);
 DEFINE_PRIM(tls_create,0);
 DEFINE_PRIM(tls_set,2);
 DEFINE_PRIM(tls_get,1);
+
+DEFINE_PRIM(mutex_create,0);
+DEFINE_PRIM(mutex_acquire,1);
+DEFINE_PRIM(mutex_try,1);
+DEFINE_PRIM(mutex_release,1);

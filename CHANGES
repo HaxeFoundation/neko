@@ -26,6 +26,7 @@ TODO :
 	regexp : fix for unmatched optional groups, return null instead of empty string
 	threads : for windows, use critical_section instead of mutex for locks
 	threads : for posix, use a recursive mutex which match windows behavior
+	std : added mutex api
 
 2008-03-16 : 1.7.0
 	nekoc : allow binary ast format with -p, don't allow inline nxml

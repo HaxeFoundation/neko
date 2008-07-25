@@ -29,6 +29,10 @@ struct _mt_local {
 };
 
 #elif defined(NEKO_WINDOWS)
+
+// necessary for TryEnterCriticalSection
+// which is only available on 2000 PRO and XP
+#	define _WIN32_WINNT 0x0400 
 #	include <windows.h>
 	// disable warnings for type conversions
 #	pragma warning(disable : 4311)
@@ -569,6 +573,16 @@ EXTERN void lock_acquire( mt_lock *l ) {
 	EnterCriticalSection(&l->cs);
 #	else
 	pthread_mutex_lock(&l->lock);
+#	endif
+}
+
+EXTERN int lock_try( mt_lock *l ) {
+#if	!defined(NEKO_THREADS)
+	return 1;
+#	elif defined(NEKO_WINDOWS)
+	return TryEnterCriticalSection(&l->cs);
+#	else
+	return pthread_mutex_trylock(&l->lock) == 0;
 #	endif
 }
 
