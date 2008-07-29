@@ -115,8 +115,7 @@ static value set_cookie( value name, value v ) {
 **/
 static value get_host_name() {
 	mcontext *c = CONTEXT();
-	const char *h = c->r->connection->local_host;
-	return alloc_string( h?h:c->r->connection->local_ip );
+	return alloc_string( c->r->hostname );
 }
 
 /**

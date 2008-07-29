@@ -298,7 +298,7 @@ void protocol_send_request( mcontext *c ) {
 		tmp = tmp->prev;
 	psend(c,CODE_FILE,c->r->filename);
 	psend(c,CODE_URI,tmp->uri);
-	psend(c,CODE_HOST_NAME, c->r->connection->local_host ? c->r->connection->local_host : c->r->connection->local_ip );
+	psend(c,CODE_HOST_NAME, c->r->hostname );
 	psend(c,CODE_CLIENT_IP, c->r->connection->remote_ip );
 	ap_table_do(send_client_header,c,c->r->headers_in,NULL);
 	if( c->r->args != NULL ) {

@@ -5,6 +5,10 @@ TODO :
 	support the ~ operation
 	use a per-function max stack with a real entry point function
 
+2008-??-?? : 1.7.2
+	added mod_tora (neko application server)
+	changed mod_neko get_host_name : return the http host instead of the server IP
+
 2008-07-28 : 1.7.1
 	nekotools : fixed set_return_code in web server
 	std : display windowed application in process_run
