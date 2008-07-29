@@ -30,21 +30,26 @@ class Admin {
 		neko.Web.setHeader("Content-Type","text/plain");
 		var busy = 0;
 		for( t in infos.threads )
-			if( t.current != null )
+			if( t.file != null )
 				busy++;
 		w("--- Tora Admin ---");
+		w("Memory : "+Std.int(infos.memoryUsed/1024)+" / "+Std.int(infos.memoryTotal/1024)+" KB");
 		w("Total hits : "+infos.hits);
 		w("Queue size : "+infos.queue);
 		w("Threads : "+busy+" / "+infos.threads.length);
+		w("");
+		w("--- Cache ---");
+		for( c in infos.cache )
+			w(c.file+"\t\t"+c.hits+" hits\t"+c.count+" inst");
 		w("");
 		w("--- Threads ---");
 		var count = 1;
 		for( t in infos.threads ) {
 			neko.Lib.print((count++)+"\t"+t.hits+" hits"+"\t\t");
-			if( t.current == null )
+			if( t.file == null )
 				w("idle since "+f(t.time)+"s");
 			else
-				w("running "+t.current+" since "+f(t.time)+"s");
+				w("running "+t.url+" since "+f(t.time)+"s");
 		}
 	}
 

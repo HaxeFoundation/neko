@@ -22,7 +22,8 @@ class ModNekoApi {
 	public var client : Client;
 	public var main : Void -> Void;
 
-	public function new() {
+	public function new(client) {
+		this.client = client;
 	}
 
 	function cgi_set_main( f : Void -> Void ) {
@@ -173,14 +174,7 @@ class ModNekoApi {
 
 	public function print( value : Dynamic ) {
 		var str = NativeString.toString( untyped __dollar__string(value) );
-		if( client == null )
-			log(str);
-		else
-			client.sendMessage(CPrint,str);
-	}
-
-	public static function log( msg : String ) {
-		neko.io.File.stderr().writeString(msg+"\n");
+		client.sendMessage(CPrint,str);
 	}
 
 	static function makeTable( list : Array<{ k : String, v : String }> ) : Dynamic {

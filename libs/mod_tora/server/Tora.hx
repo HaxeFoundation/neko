@@ -25,16 +25,32 @@ typedef ThreadData = {
 	var hits : Int;
 }
 
+typedef CacheData = {
+	var file : String;
+	var filetime : Float;
+	var hits : Int;
+	var lock : neko.vm.Mutex;
+	var datas : haxe.FastList<ModNekoApi>;
+}
+
 class Tora {
 
 	var clientQueue : neko.vm.Deque<Client>;
 	var threads : Array<ThreadData>;
 	var totalHits : Int;
+	var moduleCache : Hash<CacheData>;
+	var cacheLock : neko.vm.Mutex;
+	var rootLoader : neko.vm.Loader;
+	var modulePath : Array<String>;
 
 	function new() {
 		totalHits = 0;
+		moduleCache = new Hash();
+		cacheLock = new neko.vm.Mutex();
 		clientQueue = new neko.vm.Deque();
 		threads = new Array();
+		rootLoader = neko.vm.Loader.local();
+		modulePath = rootLoader.getPath();
 	}
 
 	function init( nthreads : Int ) {
@@ -53,56 +69,97 @@ class Tora {
 	}
 
 	function initLoader( api : ModNekoApi ) {
-		var loader : Dynamic = neko.vm.Loader.local().l;
+		var me = this;
 		var mod_neko = neko.NativeString.ofString("mod_neko@");
-		var newloader = {
-			path : loader.path,
-			cache : {},
-			loadmodule : function(m,l) return loader.loadmodule(m,l),
-			loadprim : function(prim : neko.NativeString,nargs) {
-				if( untyped __dollar__sfind(prim,0,mod_neko) == 0 ) {
-					var p = Reflect.field(api,neko.NativeString.toString(prim).substr(9));
-					if( p == null || untyped __dollar__nargs(p) != nargs )
-						throw "Primitive not found "+prim+" "+nargs;
-					return untyped __dollar__varargs( function(args) return __dollar__call(p,api,args) );
-				}
-				return loader.loadprim(prim,nargs);
-			},
+		var cache = {};
+		var self = null;
+		var loadPrim = function(prim:String,nargs:Int) {
+			if( untyped __dollar__sfind(prim.__s,0,mod_neko) == 0 ) {
+				var p = Reflect.field(api,prim.substr(9));
+				if( p == null || untyped __dollar__nargs(p) != nargs )
+					throw "Primitive not found "+prim+" "+nargs;
+				return untyped __dollar__varargs( function(args) return __dollar__call(p,api,args) );
+			}
+			return me.rootLoader.loadPrimitive(prim,nargs);
 		};
-		return new neko.vm.Loader(cast newloader);
+		var loadModule = function(module,l) {
+			var mod = Reflect.field(cache,module);
+			if( mod == null ) {
+				mod = neko.vm.Module.readPath(module,me.modulePath,self);
+				Reflect.setField(cache,module,mod);
+				mod.execute();
+			}
+			return mod;
+		};
+		self = neko.vm.Loader.make(loadPrim,loadModule);
+		return self;
 	}
 
-	function resetLoaderCache() {
-		untyped __dollar__loader.cache = __dollar__new(null);
+	function getFileTime( file ) {
+		return neko.FileSystem.stat(file).mtime.getTime();
 	}
 
 	function threadLoop( t : ThreadData ) {
-		var api = new ModNekoApi();
-		var loader = initLoader(api);
-		var redirect = loader.loadPrimitive("std@print_redirect",1);
-		redirect(api.print);
+		var redirect = neko.vm.Loader.local().loadPrimitive("std@print_redirect",1);
 		while( true ) {
 			var client = clientQueue.pop(true);
+			t.hits++;
 			t.time = haxe.Timer.stamp();
 			t.client = client;
-			t.hits++;
 			try {
 				client.sock.setTimeout(3);
 				while( !client.processMessage() ) {
 				}
-				api.client = client;
-				api.main = null;
-				loader.loadModule(client.file);
-				api.client = null;
+				var cache = moduleCache.get(client.file);
+				var api = null;
+				if( cache != null ) {
+					cache.lock.acquire();
+					var time = getFileTime(client.file);
+					if( time != cache.filetime ) {
+						cache.filetime = time;
+						cache.datas = new haxe.FastList<ModNekoApi>();
+					} else
+						cache.hits++;
+					api = cache.datas.pop();
+					cache.lock.release();
+				}
+				if( api == null ) {
+					api = new ModNekoApi(client);
+					redirect(api.print);
+					initLoader(api).loadModule(client.file);
+				} else {
+					api.client = client;
+					redirect(api.print);
+					api.main();
+				}
+				redirect(null);
+				if( api.main != null ) {
+					if( cache == null ) {
+						cacheLock.acquire();
+						cache = moduleCache.get(client.file);
+						if( cache == null ) {
+							cache = {
+								file : client.file,
+								filetime : getFileTime(client.file),
+								hits : 0,
+								lock : new neko.vm.Mutex(),
+								datas : new haxe.FastList<ModNekoApi>(),
+							};
+							moduleCache.set(client.file,cache);
+						}
+						cacheLock.release();
+					}
+					api.client = null;
+					cache.lock.acquire();
+					cache.datas.add(api);
+					cache.lock.release();
+				}
 				client.sendMessage(CExecute,"");
 			} catch( e : Dynamic ) try {
-				api.client = null;
-				var error = Std.string(e) + haxe.Stack.toString(haxe.Stack.exceptionStack());
-				client.sendMessage(CError,error);
-			} catch( e : Dynamic ) {
-				trace(e);
+				redirect(null);
+				var error = try Std.string(e) + haxe.Stack.toString(haxe.Stack.exceptionStack()) catch( _ : Dynamic ) "??? TORA Error";
+				try client.sendMessage(CError,error) catch( e : Dynamic ) {}
 			}
-			resetLoaderCache();
 			client.sock.close();
 			t.client = null;
 		}
@@ -130,20 +187,40 @@ class Tora {
 			var cur = t.client;
 			var t : ThreadInfos = {
 				hits : t.hits,
-				current : (cur == null) ? null : cur.file,
+				file : (cur == null) ? null : cur.file,
+				url : (cur == null) ? null : cur.hostName+cur.uri,
 				time : (haxe.Timer.stamp() - t.time),
 			};
 			tot += t.hits;
 			tinf.push(t);
 		}
+		var cinf = new Array();
+		for( c in moduleCache ) {
+			var c : CacheInfos = {
+				file : c.file,
+				hits : c.hits,
+				count : Lambda.count(c.datas),
+			};
+			cinf.push(c);
+		}
+		var mem = neko.vm.Gc.stats();
 		return {
 			threads : tinf,
+			cache : cinf,
 			hits : totalHits,
 			queue : totalHits - tot,
+			memoryUsed : mem.heap - mem.free,
+			memoryTotal : mem.heap,
 		};
 	}
 
+	static function log( v : Dynamic ) {
+		var msg = try Std.string(v) catch( e : Dynamic ) "???";
+		neko.io.File.stderr().writeString(msg+"\n");
+	}
+
 	public static var inst : Tora;
+
 
 	static function main() {
 		var args = neko.Sys.args();
