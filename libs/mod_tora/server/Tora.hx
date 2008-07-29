@@ -66,6 +66,21 @@ class Tora {
 			inf.t = neko.vm.Thread.create(callback(threadLoop,inf));
 			threads.push(inf);
 		}
+		neko.vm.Thread.create(cleanupLoop);
+	}
+
+	function cleanupLoop() {
+		while( true ) {
+			neko.Sys.sleep(60);
+			cacheLock.acquire();
+			var caches = Lambda.array(moduleCache);
+			var cache = caches[Std.random(caches.length)];
+			cacheLock.release();
+			if( cache == null ) continue;
+			cache.lock.acquire();
+			cache.datas.pop();
+			cache.lock.release();
+		}
 	}
 
 	function initLoader( api : ModNekoApi ) {
@@ -181,6 +196,7 @@ class Tora {
 	}
 
 	public function infos() : Infos {
+		neko.vm.Gc.run(true);
 		var tinf = new Array();
 		var tot = 0;
 		for( t in threads ) {
