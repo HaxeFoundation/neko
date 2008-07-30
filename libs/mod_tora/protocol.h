@@ -37,6 +37,9 @@
 #	define LOG_SUCCESS
 #endif
 
+#undef INLINE
+#undef closesocket
+
 #include <neko.h>
 // neko is only used for some #ifdef, no primitive is linked here
 #ifdef NEKO_WINDOWS
