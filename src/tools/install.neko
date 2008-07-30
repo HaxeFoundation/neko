@@ -156,7 +156,7 @@ search_includes = function(isap2) {
 			"/opt/local/include/apache",
 			"/usr/local/apache/include"
 		);
-	return $aconcat(inc1,inc2);
+	return $aconcat($array(inc1,inc2));
 }
 
 libraries = $array(
