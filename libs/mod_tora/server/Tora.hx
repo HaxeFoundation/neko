@@ -86,8 +86,7 @@ class Tora {
 	function initLoader( api : ModNekoApi ) {
 		var me = this;
 		var mod_neko = neko.NativeString.ofString("mod_neko@");
-		var cache = {};
-		var self = null;
+		var self : neko.vm.Loader = null;
 		var loadPrim = function(prim:String,nargs:Int) {
 			if( untyped __dollar__sfind(prim.__s,0,mod_neko) == 0 ) {
 				var p = Reflect.field(api,prim.substr(9));
@@ -98,6 +97,7 @@ class Tora {
 			return me.rootLoader.loadPrimitive(prim,nargs);
 		};
 		var loadModule = function(module,l) {
+			var cache : Dynamic = untyped self.l.cache;
 			var mod = Reflect.field(cache,module);
 			if( mod == null ) {
 				mod = neko.vm.Module.readPath(module,me.modulePath,self);
