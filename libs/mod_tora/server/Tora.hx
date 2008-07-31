@@ -96,7 +96,10 @@ class Tora {
 			}
 			return me.rootLoader.loadPrimitive(prim,nargs);
 		};
-		var loadModule = function(module,l) {
+		var loadModule = function(module:String,l) {
+			var idx = module.lastIndexOf(".");
+			if( idx >= 0 )
+				module = module.substr(0,idx);
 			var cache : Dynamic = untyped self.l.cache;
 			var mod = Reflect.field(cache,module);
 			if( mod == null ) {
