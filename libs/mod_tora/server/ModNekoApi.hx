@@ -43,10 +43,12 @@ class ModNekoApi {
 	}
 
 	function redirect( url : NativeString ) {
+		headersNotSent("Redirection");
 		client.sendMessage(CRedirect,NativeString.toString(url));
 	}
 
 	function set_return_code( code : Int ) {
+		headersNotSent("Return code");
 		client.sendMessage(CReturnCode,Std.string(code));
 	}
 
@@ -87,6 +89,7 @@ class ModNekoApi {
 	}
 
 	function set_header( header : NativeString, value : NativeString ) {
+		headersNotSent(NativeString.toString(header));
 		client.sendMessage(CHeaderKey,NativeString.toString(header));
 		client.sendMessage(CHeaderValue,NativeString.toString(value));
 	}
@@ -174,7 +177,12 @@ class ModNekoApi {
 
 	public function print( value : Dynamic ) {
 		var str = NativeString.toString( untyped __dollar__string(value) );
+		client.headersSent = true;
 		client.sendMessage(CPrint,str);
+	}
+
+	inline function headersNotSent( msg : String ) {
+		if( client.headersSent ) throw NativeString.ofString("Cannot set "+msg+" : Headers already sent");
 	}
 
 	static function makeTable( list : Array<{ k : String, v : String }> ) : Dynamic {

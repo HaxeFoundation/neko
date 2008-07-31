@@ -230,7 +230,7 @@ class Tora {
 		};
 	}
 
-	static function log( v : Dynamic ) {
+	public static function log( v : Dynamic ) {
 		var msg = try Std.string(v) catch( e : Dynamic ) "???";
 		neko.io.File.stderr().writeString(msg+"\n");
 	}

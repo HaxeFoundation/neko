@@ -61,11 +61,13 @@ class Client {
 	public var params : Array<{ k : String, v : String }>;
 	public var hostName : String;
 	public var httpMethod : String;
+	public var headersSent : Bool;
 
 	var key : String;
 
 	public function new(s) {
 		sock = s;
+		headersSent = false;
 		headers = new Array();
 		params = new Array();
 	}
