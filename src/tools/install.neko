@@ -335,7 +335,7 @@ compile_lib = function(name,data) {
 		compile(data.src[i],if( data.cflags != null ) data.cflags else "", dirs);
 		i = i + 1;
 	}
-	link(data.src,lib,if( data.lparams != null ) { data.lparams+" " } else ""," "+linklib);
+	link(data.src,name,if( data.lparams != null ) { data.lparams+" " } else ""," "+linklib);
 	chdir("..");
 	data.built = true;
 }
