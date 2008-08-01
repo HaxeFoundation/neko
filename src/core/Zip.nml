@@ -72,7 +72,7 @@ function input_buffer(i:in,in:string,ipos:int,out:string,opos:int) {
 }
 
 function input_end(i:in) : void {
-	neko("@inflate_end")();
+	neko("@inflate_end")(i);
 }
 
 function output_set_flush_mode(o:out,f:flush) : void {

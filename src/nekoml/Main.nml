@@ -64,17 +64,20 @@ function capitalize(p) {
 	}
 }
 
+exception FileNotFound : string;
 
 try {
 	var v = Sys.version;
 	var head = "NekoML Compiler v" + v.maj + "." + v.min + "." + v.build + " - (c)2005-2007 Motion-Twin\n Usage : nekoml [options] files...";
-	var path = &["";"core/"];
+	var path = &[""];
 	var files = &[];
 	var neko = &false;
+	var std = &Some("nekoml.std");
 	var pack = &None;
 	var packs = Hashtbl.create();
 	function use_pack(file) {
-		var data = IO.file_contents file;
+		var data = try IO.file_contents file catch { _ -> throw FileNotFound(file) };
+		Zip.init();
 		var h = String.unserialize (Zip.uncompress data);
 		Hashtbl.iter (function(key,m) {
 			if *verbose then printf "Cached %s [%d bytes]\n" (key,String.length m);
@@ -87,22 +90,25 @@ try {
 		("-n", Args.Void (function() { neko := true }) , ": generate intermediate .neko files");
 		("-pack", Args.String (function(p) { pack := Some p }),"<file> : build module packages");
 		("-use", Args.String use_pack,"<file> : use this module package");
+		("-nostd", Args.Void (function() { path := List.append (*path) ["core/"]; std := None; }),": disable std lib");
 	];
-	var std = "nekoml.std";
-	var loader_path = Reflect.loader_path();
-	function rec loop(l) {
+	var std_path = List.append (*path) Reflect.loader_path();
+	function rec loop(std,l) {
 		match l {
-		| [] -> if *verbose then printf "%s not found in %s" (std,String.concat ":" loader_path)
+		| [] -> if *verbose then printf "%s not found in %s\n" (std,String.concat ":" std_path)
 		| path :: l ->
 			try
 				use_pack (path+std)
 			catch {
-				_ -> loop l
+				FileNotFound _ -> loop std l
 			}
 		}
 	}
-	loop loader_path;
 	Args.parse head decl (function(f) { files := f :: *files });
+	match *std {
+	| None -> ()
+	| Some std -> loop std std_path
+	}
 	var ctx = context (*path) packs (function(ctx,m,e) { if *neko then gen_neko ctx m e else compile ctx m e });
 	List.iter (function(file) {
 		if *verbose then printf "Compiling %s\n" file;

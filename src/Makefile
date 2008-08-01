@@ -33,47 +33,38 @@ link:
 tools:
 	${NEKOVM} neko/Main tools/test.neko
 	${NEKOVM} neko/Main tools/nekoboot.neko
-	${NEKOVM} nekoml/Main -p tools Tools.nml
+	${NEKOVM} nekoml/Main -nostd -p tools Tools.nml
 	${NEKOVM} neko/Main -link nekotools.n Tools
 
 pass1:
 	${TIME} tpass1
 
 spass1:
-	${NEKOVM1} nekoml -v -n neko/Main.nml nekoml/Main.nml
+	${NEKOVM1} nekoml -nostd -v -n neko/Main.nml nekoml/Main.nml
 	${NEKOVM1} nekoc -v *.neko neko/*.neko nekoml/*.neko
 
 tpass1:
-	${NEKOVM1} nekoml neko/Main.nml nekoml/Main.nml
+	${NEKOVM1} nekoml -nostd neko/Main.nml nekoml/Main.nml
 
 pass2:
 	${TIME} tpass2
 
 spass2:
-	${NEKOVM2} nekoml/Main -v -n neko/Main.nml nekoml/Main.nml
+	${NEKOVM2} nekoml/Main -nostd -v -n neko/Main.nml nekoml/Main.nml
 	${NEKOVM2} neko/Main -v *.neko neko/*.neko nekoml/*.neko
 
 tpass2:
-	${NEKOVM2} nekoml/Main neko/Main.nml nekoml/Main.nml
+	${NEKOVM2} nekoml/Main -nostd neko/Main.nml nekoml/Main.nml
 
 pass3:
 	${TIME} tpass3
 
 spass3:
-	${NEKOVM} nekoml/Main -v -n neko/Main.nml nekoml/Main.nml
+	${NEKOVM} nekoml/Main -nostd -v -n neko/Main.nml nekoml/Main.nml
 	${NEKOVM} neko/Main -v *.neko neko/*.neko nekoml/*.neko
 
 tpass3:
-	${NEKOVM} nekoml/Main neko/Main.nml nekoml/Main.nml core/*.nml -pack ../boot/nekoml.std
-
-neko: clean
-	${NEKOVM1} nekoml neko/Main.nml
-
-neko3:
-	${NEKOVM} nekoml/Main neko/Main.nml
-
-nekoml: clean
-	${NEKOVM1} nekoml nekoml/Main.nml
+	${NEKOVM} nekoml/Main -nostd neko/Main.nml nekoml/Main.nml core/*.nml -pack ../boot/nekoml.std
 
 install: tools link
 	-cp nekoc.n nekoml.n ../boot
@@ -84,6 +75,7 @@ clean:
 	rm -rf neko/*.n
 	rm -rf nekoml/*.n
 	rm -rf tools/*.n
+	rm -rf benchs/*.n
 	rm -rf nekoc.exe nekoml.exe nekotools.exe
 
 cleanall: clean
@@ -91,4 +83,4 @@ cleanall: clean
 	rm -rf neko/*.neko
 	rm -rf nekoml/*.neko
 
-.PHONY: all pass1 tpass1 pass2 tpass2 pass3 tpass3 neko nekoml install clean link tools
+.PHONY: all pass1 tpass1 pass2 tpass2 pass3 tpass3 install clean link tools
