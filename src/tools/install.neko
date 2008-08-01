@@ -344,7 +344,6 @@ try { mkdir(base,rights); } catch e { };
 
 copy("../boot/nekoc.n",base);
 copy("../boot/nekoml.n",base);
-copy("../boot/nekoml.std",base);
 
 // compile some neko sources
 
@@ -376,6 +375,11 @@ while( libs != null ) {
 next:
 	libs = libs[1];
 }
+
+// rebuild nekoml.std
+
+exec(nekovm+" nekoml -nostd neko/Main.nml nekoml/Main.nml core/*.nml -pack ../boot/nekoml.std");
+copy("../boot/nekoml.std",base);
 
 // END
 $print("Install done, all files are available in /bin directory\n");
