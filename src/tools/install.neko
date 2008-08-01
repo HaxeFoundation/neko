@@ -351,7 +351,7 @@ exec(nekovm+" nekoc tools/test.neko");
 copy("tools/test.n",base);
 
 exec(nekovm+" nekoc tools/nekoboot.neko");
-exec(nekovm+" nekoml -p tools Tools.nml");
+exec(nekovm+" nekoml -nostd -p tools Tools.nml");
 exec(nekovm+" nekoc -link tools/nekotools.n Tools");
 copy("tools/nekotools.n",base);
 
