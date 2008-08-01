@@ -24,7 +24,8 @@
 #include <http_main.h>
 #include <http_protocol.h>
 
-#ifdef APACHE_2_X
+#ifdef STANDARD20_MODULE_STUFF
+#	define APACHE_2_X
 #	define ap_send_http_header(x)
 #	define ap_soft_timeout(msg,r)
 #	define ap_kill_timeout(r)
@@ -33,6 +34,7 @@
 #	define ap_table_add		apr_table_add
 #	define ap_table_do		apr_table_do
 #	define LOG_SUCCESS		APR_SUCCESS,
+#	define REDIRECT			HTTP_MOVED_TEMPORARILY
 #else
 #	define LOG_SUCCESS
 #endif
@@ -45,6 +47,12 @@
 #ifdef NEKO_WINDOWS
 #	include <winsock2.h>
 #else
+#	include <sys/types.h>
+#	include <sys/socket.h>
+#	include <netinet/in.h>
+#	include <arpa/inet.h>
+#	include <unistd.h>
+#	include <netdb.h>
 	typedef int SOCKET;
 #	define closesocket close
 #	define SOCKET_ERROR (-1)

@@ -15,8 +15,6 @@
 /*																			*/
 /* ************************************************************************ */
 #include "protocol.h"
-#include <sys/types.h>
-#include <sys/stat.h>
 
 #define DEFAULT_HOST			"127.0.0.1"
 #define DEFAULT_PORT			666
@@ -98,7 +96,7 @@ static int tora_handler( request_rec *r ) {
 		unsigned int ip = inet_addr(config.host);
 		struct sockaddr_in addr;
 		if( ip == INADDR_NONE ) {
-			struct hostent *h = gethostbyname(config.host);
+			struct hostent *h = (struct hostent*)gethostbyname(config.host);
 			if( h == NULL )
 				return error(ctx,"Failed to resolve TORA host");
 			ip = *((unsigned int*)h->h_addr);
