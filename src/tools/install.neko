@@ -333,6 +333,7 @@ compile_lib = function(lib) {
 		i = i + 1;
 	}
 	link(data.src,lib,if( data.lparams != null ) { data.lparams+" " } else ""," "+linklib);
+	data.built = true;
 }
 
 // MAIN LOOP
@@ -376,9 +377,11 @@ next:
 	libs = libs[1];
 }
 
-// rebuild nekoml.std
+// rebuild nekoml.std (needs zlib)
 
-exec(nekovm+" nekoml -nostd neko/Main.nml nekoml/Main.nml core/*.nml -pack ../boot/nekoml.std");
+chdir("../src");
+if( libs.zlib.built )
+	exec(nekovm+" nekoml -nostd neko/Main.nml nekoml/Main.nml core/*.nml -pack ../boot/nekoml.std");
 copy("../boot/nekoml.std",base);
 
 // END
