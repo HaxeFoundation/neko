@@ -49,6 +49,8 @@ libs = {
 		inc => $array("httpd.h","apr.h"),
 		incname => "Apache 2.2.x",
 		cflags => "-D_LARGEFILE64_SOURCE",
+		realdir => "mod_neko",
+		apache2 => true,
 	},
 	mysql => {
 		src => $array("mysql"),
@@ -92,6 +94,8 @@ libs = {
 		inc => $array("httpd.h","apr.h"),
 		incname => "Apache 2.2.x",
 		cflags => "-D_LARGEFILE64_SOURCE",
+		realdir => "mod_tora",
+		apache2 => true,
 	},
 }
 
@@ -295,13 +299,9 @@ loop_include = function(data,i,incl) {
 }
 
 
-compile_lib = function(lib) {
-	$print("Compiling ",lib,"...\n");
-	var data = $objget(libs,$hash(lib));
-	if( data == null )
-		return $print("No data found for this library : Skipping\n");
-	var isap2 = lib == "mod_neko2" || lib == "mod_tora2";
-	var incl = search_includes(isap2);
+compile_lib = function(name,data) {
+	$print("Compiling ",name,"...\n");
+	var incl = search_includes(data.apache2);
 	var dirs = $array();
 	if( $typeof(data.inc) == $tstring )
 		data.inc = $array(data.inc);
@@ -328,11 +328,15 @@ compile_lib = function(lib) {
 		linklib = dir + "/" + linklib;
 	}
 	var i = 0;
+	var dir = data.realdir;
+	if( dir == null ) dir = name;
+	chdir(dir);
 	while( i < $asize(data.src) ) {
 		compile(data.src[i],if( data.cflags != null ) data.cflags else "", dirs);
 		i = i + 1;
 	}
 	link(data.src,lib,if( data.lparams != null ) { data.lparams+" " } else ""," "+linklib);
+	chdir("..");
 	data.built = true;
 }
 
@@ -363,18 +367,12 @@ nekoboot(base+"/nekotools.n");
 // compile libs
 
 chdir("../libs");
-var libs = readdir(".");
-while( libs != null ) {
-	var l = libs[0];
-	if( l == "include" || l == "std" || l == "CVS" || ftype(l) != "dir" )
-		$goto(next);
-	chdir(l);
-	compile_lib(l);
-	if( l == "mod_neko" )
-		compile_lib("mod_neko2");
-	chdir("..");
-next:
-	libs = libs[1];
+var liblist = $objfields(libs);
+var i = 0;
+while( i < $asize(liblist) ) {
+	var l = liblist[i];
+	compile_lib($field(l),$objget(libs,l));
+	i += 1;
 }
 
 // rebuild nekoml.std (needs zlib)
