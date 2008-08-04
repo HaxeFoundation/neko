@@ -26,18 +26,23 @@ class Admin {
 	}
 
 	static function main() {
+		var mem = neko.vm.Gc.stats();
 		var infos : Infos = neko.Lib.load("mod_neko","tora_infos",0)();
 		neko.Web.setHeader("Content-Type","text/plain");
 		var busy = 0;
+		var cacheHits = 0;
 		for( t in infos.threads )
 			if( t.file != null )
 				busy++;
+		for( c in infos.cache )
+			cacheHits += c.hits;
 		w("--- Tora Admin ---");
-		w("Memory : "+Std.int(infos.memoryUsed/1024)+" / "+Std.int(infos.memoryTotal/1024)+" KB");
-		w("Reachable Mem : "+Std.int(neko.Lib.load("std","mem_size",1)(neko.vm.Loader.local())/1024)+" KB");
-		w("Total hits : "+infos.hits);
+		w("Memory : "+Std.int((mem.heap - mem.free)/1024)+" / "+Std.int(mem.heap/1024)+" KB");
+		w("Total hits : "+infos.hits+" ("+f(infos.hits/infos.upTime)+"/sec)");
+		w("Cache hits : "+cacheHits+" ("+f(cacheHits*100/infos.hits)+"%)");
 		w("Queue size : "+infos.queue);
 		w("Threads : "+busy+" / "+infos.threads.length);
+		w("Uptime : "+f(infos.upTime)+"s");
 		w("");
 		w("--- Cache ---");
 		for( c in infos.cache )
@@ -46,7 +51,7 @@ class Admin {
 		w("--- Threads ---");
 		var count = 1;
 		for( t in infos.threads ) {
-			neko.Lib.print((count++)+"\t"+t.hits+" hits"+"\t\t");
+			neko.Lib.print((count++)+"\t"+StringTools.lpad(Std.string(t.hits)," ",6)+" hits"+"\t\t");
 			if( t.file == null )
 				w("idle since "+f(t.time)+"s");
 			else

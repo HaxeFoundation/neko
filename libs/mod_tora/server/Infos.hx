@@ -17,6 +17,5 @@ typedef Infos = {
 	var cache : Array<CacheInfos>;
 	var hits : Int;
 	var queue : Int;
-	var memoryUsed : Int;
-	var memoryTotal : Int;
+	var upTime : Float;
 }

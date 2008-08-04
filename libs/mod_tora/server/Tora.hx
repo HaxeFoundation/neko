@@ -37,6 +37,7 @@ class Tora {
 
 	var clientQueue : neko.vm.Deque<Client>;
 	var threads : Array<ThreadData>;
+	var startTime : Float;
 	var totalHits : Int;
 	var moduleCache : Hash<CacheData>;
 	var cacheLock : neko.vm.Mutex;
@@ -45,6 +46,7 @@ class Tora {
 
 	function new() {
 		totalHits = 0;
+		startTime = haxe.Timer.stamp();
 		moduleCache = new Hash();
 		cacheLock = new neko.vm.Mutex();
 		clientQueue = new neko.vm.Deque();
@@ -206,7 +208,6 @@ class Tora {
 	}
 
 	public function infos() : Infos {
-		neko.vm.Gc.run(true);
 		var tinf = new Array();
 		var tot = 0;
 		for( t in threads ) {
@@ -229,14 +230,12 @@ class Tora {
 			};
 			cinf.push(c);
 		}
-		var mem = neko.vm.Gc.stats();
 		return {
 			threads : tinf,
 			cache : cinf,
 			hits : totalHits,
 			queue : totalHits - tot,
-			memoryUsed : mem.heap - mem.free,
-			memoryTotal : mem.heap,
+			upTime : haxe.Timer.stamp() - startTime,
 		};
 	}
 
