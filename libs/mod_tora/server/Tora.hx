@@ -213,8 +213,8 @@ class Tora {
 			var cur = t.client;
 			var t : ThreadInfos = {
 				hits : t.hits,
-				file : (cur == null) ? null : cur.file,
-				url : (cur == null) ? null : cur.hostName+cur.uri,
+				file : (cur == null) ? null : (cur.file == null ? "???" : cur.file),
+				url : (cur == null) ? null : (cur.hostName == null ? "???" : cur.hostName + ((cur.uri == null) ? "???" : cur.uri)),
 				time : (haxe.Timer.stamp() - t.time),
 			};
 			tot += t.hits;
