@@ -34,6 +34,7 @@ class Admin {
 				busy++;
 		w("--- Tora Admin ---");
 		w("Memory : "+Std.int(infos.memoryUsed/1024)+" / "+Std.int(infos.memoryTotal/1024)+" KB");
+		w("Reachable Mem : "+Std.int(neko.Lib.load("std","mem_size",1)(neko.vm.Loader.local())/1024)+" KB");
 		w("Total hits : "+infos.hits);
 		w("Queue size : "+infos.queue);
 		w("Threads : "+busy+" / "+infos.threads.length);

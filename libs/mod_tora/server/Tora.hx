@@ -71,12 +71,19 @@ class Tora {
 
 	function cleanupLoop() {
 		while( true ) {
-			neko.Sys.sleep(60);
+			neko.Sys.sleep(5);
 			cacheLock.acquire();
 			var caches = Lambda.array(moduleCache);
-			var cache = caches[Std.random(caches.length)];
+			if( caches.length == 0 ) {
+				cacheLock.release();
+				continue;
+			}
+			var cache = null;
+			for( i in 0...10 ) {
+				cache = caches[Std.random(caches.length)];
+				if( cache.datas.head != null ) break;
+			}
 			cacheLock.release();
-			if( cache == null ) continue;
 			cache.lock.acquire();
 			cache.datas.pop();
 			cache.lock.release();
