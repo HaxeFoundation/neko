@@ -88,10 +88,7 @@ static int mem_size_rec( value v,  vtree **l ) {
 		{
 			vparams p;
 			p.t = l;
-			p.s = sizeof(vobject);
-#ifdef COMPACT_TABLE
-			p.s += sizeof(struct _objtable);
-#endif
+			p.s = sizeof(vobject) + sizeof(struct _objtable);			
 			val_iter_fields(v,mem_obj_field,&p);
 			if( ((vobject*)v)->proto != NULL )
 				p.s += mem_size_rec((value)((vobject*)v)->proto,l);
@@ -152,11 +149,7 @@ static int mem_size_rec( value v,  vtree **l ) {
 
 static void mem_obj_field( value v, field f, void *_p ) {
 	vparams *p = (vparams*)_p;
-#ifndef COMPACT_TABLE
-	p->s += sizeof(struct _objtable);
-#else
 	p->s += sizeof(cell);
-#endif
 	p->s += mem_size_rec(v,p->t);
 }
 
