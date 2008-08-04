@@ -24,11 +24,7 @@
 #	include "gc.h"
 #else
 #	ifdef NEKO_WINDOWS
-#		ifdef NEKO_INSTALLER
-#			define GC_NOT_DLL
-#		else
-#			define GC_DLL
-#		endif
+#		define GC_NOT_DLL
 #		define GC_WIN32_THREADS
 #	endif
 #	define GC_THREADS

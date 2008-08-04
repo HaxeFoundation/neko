@@ -10,6 +10,7 @@ TODO :
 	changed mod_neko get_host_name : return the http host instead of the server IP
 	bugfix in nekoml : fixed usage of nekoml.std + added -nostd
 	std : added EINTR handling in send/recv socket operations
+	gc : upgraded windows version to 7.1 static
 
 2008-07-28 : 1.7.1
 	nekotools : fixed set_return_code in web server
