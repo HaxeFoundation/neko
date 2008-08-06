@@ -222,14 +222,8 @@ typedef struct _mt_lock mt_lock;
 #	define IMPORT
 #endif
 
-#if defined(NEKO_SOURCES)
+#if defined(NEKO_SOURCES) || defined(NEKO_STANDALONE)
 #	define EXTERN EXPORT
-#elif defined(NEKO_INSTALLER)
-#	define EXTERN
-#	undef EXPORT
-#	undef IMPORT
-#	define EXPORT
-#	define IMPORT
 #else
 #	define EXTERN IMPORT
 #endif
@@ -269,7 +263,7 @@ typedef struct _mt_lock mt_lock;
 #define DEFINE_PRIM(func,nargs) C_FUNCTION_BEGIN EXPORT void *func##__##nargs() { return (void*)(&func); } C_FUNCTION_END
 #define DEFINE_KIND(name) int_val __kind_##name = 0; vkind name = (vkind)&__kind_##name;
 
-#ifdef NEKO_INSTALLER
+#ifdef NEKO_STANDALONE
 #	define DEFINE_ENTRY_POINT(name)
 #else
 #	define DEFINE_ENTRY_POINT(name) C_FUNCTION_BEGIN void name(); EXPORT void *__neko_entry_point() { return &name; } C_FUNCTION_END

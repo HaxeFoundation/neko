@@ -31,15 +31,14 @@
 #	include <signal.h>
 #endif
 
-#ifdef NEKO_INSTALLER
-extern void neko_installer_init();
-extern void neko_installer_error( const char *error );
-extern value neko_installer_loader( char *argv[], int argc );
-#	define default_loader neko_installer_loader
+#ifdef NEKO_STANDALONE
+	extern void neko_standalone_init();
+	extern void neko_standalone_error( const char *str );
+	extern value neko_standalone_loader( char **arv, int argc );
+#	define default_loader neko_standalone_loader
 #else
 #	define default_loader neko_default_loader
 #endif
-
 static FILE *self;
 
 extern void neko_stats_measure( neko_vm *vm, const char *kind, int start );
@@ -115,8 +114,8 @@ static void report( neko_vm *vm, value exc, int isexc ) {
 	if( isexc )
 		buffer_append(b,"Uncaught exception - ");
 	val_buffer(b,exc);
-#	ifdef NEKO_INSTALLER
-	neko_installer_error(val_string(buffer_to_string(b)));
+#	ifdef NEKO_STANDALONE
+	neko_standalone_error(val_string(buffer_to_string(b)));
 #	else
 	fprintf(stderr,"%s\n",val_string(buffer_to_string(b)));
 #	endif
@@ -207,8 +206,8 @@ int main( int argc, char *argv[] ) {
 	sigemptyset(&act.sa_mask);
 	sigaction(SIGSEGV,&act,NULL);
 #	endif
-#	ifdef NEKO_INSTALLER
-	neko_installer_init();
+#	ifdef NEKO_STANDALONE
+	neko_standalone_init();
 #	endif
 	if( !neko_has_embedded_module() ) {
 		int jit = 1;
@@ -232,7 +231,7 @@ int main( int argc, char *argv[] ) {
 		}
 		neko_vm_jit(vm,jit);
 		if( argc == 1 ) {
-#			ifdef NEKO_INSTALLER
+#			ifdef NEKO_STANDALONE
 			report(vm,alloc_string("No embedded module in this executable"),0);
 #			else
 			printf("NekoVM %d.%d.%d (c)2005-2007 Motion-Twin\n  Usage : neko <file>\n",NEKO_VERSION/100,(NEKO_VERSION/10)%10,NEKO_VERSION%10);

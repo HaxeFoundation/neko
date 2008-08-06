@@ -201,16 +201,25 @@ static void *load_primitive( const char *prim, int nargs, value path, liblist **
 	l = *libs;
 	*pos = 0;
 	len = (int)strlen(prim) + 1;
+#	ifndef NEKO_STANDALONE
 	while( l != NULL ) {
 		if( memcmp(l->name,prim,len) == 0 )
 			break;
 		l = l->next;
 	}
+#	endif
 	if( l == NULL ) {
 		void *h;
-		value pname;
-		pname = neko_select_file(path,prim,".ndll");
+		value pname = pname = neko_select_file(path,prim,".ndll");
+#ifdef NEKO_STANDALONE
+#	ifdef NEKO_WINDOWS
+		h = (void*)GetModuleHandle(NULL);
+#	else
+		h = dlopen(NULL,RTLD_LAZY);
+#	endif
+#else
 		h = dlopen(val_string(pname),RTLD_LAZY);
+#endif
 		if( h == NULL ) {
 			buffer b = alloc_buffer("Failed to load library : ");
 			val_buffer(b,pname);
@@ -255,7 +264,12 @@ static value init_path( const char *path ) {
 #ifdef NEKO_WINDOWS
 	char exe_path[MAX_PATH];
 	if( path == NULL ) {
-		if( GetModuleFileName(GetModuleHandle("neko.dll"),exe_path,MAX_PATH) == 0 )
+#		ifdef NEKO_STANDALONE
+#			define SELF_DLL NULL
+#		else
+#			define SELF_DLL "neko.dll"
+#		endif
+		if( GetModuleFileName(GetModuleHandle(SELF_DLL),exe_path,MAX_PATH) == 0 )
 			return val_null;
 		p = strrchr(exe_path,'\\');
 		if( p == NULL )
