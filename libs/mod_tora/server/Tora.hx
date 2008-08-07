@@ -73,7 +73,7 @@ class Tora {
 			threads.push(inf);
 			while( true ) {
 				neko.Sys.sleep(0.5);
-				if( totalHits > (i + 1) * 10 )
+				if( totalHits > i * 10 )
 					break;
 			}
 		}
