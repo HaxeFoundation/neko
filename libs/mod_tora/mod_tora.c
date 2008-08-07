@@ -17,7 +17,7 @@
 #include "protocol.h"
 
 #define DEFAULT_HOST			"127.0.0.1"
-#define DEFAULT_PORT			666
+#define DEFAULT_PORT			6666
 #define DEFAULT_MAX_POST_DATA	(1 << 18) // 256 K
 
 typedef struct {

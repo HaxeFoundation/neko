@@ -252,7 +252,7 @@ class Tora {
 		var host = args[0];
 		if( host == null ) host = "127.0.0.1";
 		var port = args[1];
-		if( port == null ) port = "666";
+		if( port == null ) port = "6666";
 		var nthreads = args[2];
 		if( nthreads == null ) nthreads = "32";
 		var port = Std.parseInt(port);
