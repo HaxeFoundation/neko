@@ -41,13 +41,22 @@ extern HANDLE WINAPI GC_CreateThread(
 
 #else
 
+#include <stdlib.h>
 #include <pthread.h>
+#include <gc/gc_version.h>
+
 struct _mt_local {
 	pthread_key_t key;
 };
 struct _mt_lock {
 	pthread_mutex_t lock;
 };
+
+extern int GC_pthread_create(
+	pthread_t *new_thread,
+	const pthread_attr_t *attr,
+	void *(*start_routine)(void *), void *arg
+);
 
 #endif
 
