@@ -25,15 +25,19 @@ struct _mt_local {
 
 #else
 
+#ifdef NEKO_WINDOWS
+// necessary for TryEnterCriticalSection
+// which is only available on 2000 PRO and XP
+#	define _WIN32_WINNT 0x0400 
+#	define GC_NOT_DLL
+#	define GC_WIN32_THREADS
+#endif
+
 #define GC_THREADS
 #include <gc/gc.h>
 
 #ifdef NEKO_WINDOWS
 
-// necessary for TryEnterCriticalSection
-// which is only available on 2000 PRO and XP
-#define _WIN32_WINNT 0x0400 
-#include <windows.h>
 struct _mt_lock {
 	CRITICAL_SECTION cs;
 };
@@ -51,6 +55,7 @@ struct _mt_lock {
 };
 
 #endif
+
 #endif
 
 typedef struct {
