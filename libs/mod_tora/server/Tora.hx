@@ -57,6 +57,10 @@ class Tora {
 
 	function init( nthreads : Int ) {
 		neko.Sys.putEnv("MOD_NEKO","1");
+		neko.vm.Thread.create(callback(startup,nthreads));
+	}
+
+	function startup( nthreads : Int ) {
 		for( i in 0...nthreads ) {
 			var inf : ThreadData = {
 				id : i,
@@ -67,13 +71,18 @@ class Tora {
 			};
 			inf.t = neko.vm.Thread.create(callback(threadLoop,inf));
 			threads.push(inf);
+			while( true ) {
+				neko.Sys.sleep(0.5);
+				if( totalHits > (i + 1) * 10 )
+					break;
+			}
 		}
-		neko.vm.Thread.create(cleanupLoop);
+		cleanupLoop();
 	}
 
 	function cleanupLoop() {
 		while( true ) {
-			neko.Sys.sleep(5);
+			neko.Sys.sleep(15);
 			cacheLock.acquire();
 			var caches = Lambda.array(moduleCache);
 			if( caches.length == 0 ) {
