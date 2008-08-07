@@ -183,7 +183,7 @@ estring := Lexer.build [
 	});
 	("\\\\" , function(l) { error l Invalid_escape });
 	("\"" , function(l) { });
-	("[^\"\\]+", function(l) { Buffer.add (Lexer.data l) (Lexer.current l); str l });
+	("[^\\\\\"]+", function(l) { Buffer.add (Lexer.data l) (Lexer.current l); str l });
 ] (function(l) { throw Exit });
 
 enxml := Lexer.build [

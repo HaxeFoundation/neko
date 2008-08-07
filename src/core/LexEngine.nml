@@ -288,7 +288,9 @@ function escaped(s,i) {
 	| '+'
 	| '*'
 	| '?'
-	| '[' -> c
+	| '['
+	| ']'
+	| '-' -> c
 	| _ -> invalid s
 	}
 }
@@ -349,11 +351,14 @@ function parse( s : string ) : t {
 						range := Some x1;
 						loop l
 					}
-				} else match *range {
+				} else {
+					var c = (if c == '\\' then escaped s i else c);
+					match *range {
 					| None -> loop ((c,c) :: acc)
 					| Some c2 ->
 						range := None;
 						loop ((c2,c) :: acc)
+					}
 				}
 			};
 			var c = String.get s (*i);
