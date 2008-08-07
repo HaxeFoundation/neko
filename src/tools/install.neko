@@ -56,7 +56,7 @@ libs = {
 		src => $array("mysql"),
 		inc => "mysql.h",
 		incname => "MySQL 4.+"
-		lib => "libmysqlclient.a",
+		lib => "libmysqlclient_r.a",
 		lparams => "-lz -lssl"
 	},
 	regexp => {
@@ -101,11 +101,14 @@ libs = {
 
 // PLATFORM
 
-cflags = "-O3 -fPIC";
+cflags = "-O3 -fPIC -pthread";
 cc = getenv("CC");
 if( cc == null ) cc = "gcc";
 linkcmd = switch system { "BSD" => "ld" default => cc };
-linkoptions = switch system { "Mac" => "-bundle -undefined dynamic_lookup -L../../bin -lneko" default => "-shared -L../../bin -lneko" };
+linkoptions = switch system { 
+	"Mac" => "-bundle -undefined dynamic_lookup -L../../bin -lneko"
+	default => "-shared -L../../bin -lneko"
+};
 nekovm = switch system { "Windows" => "..\\bin\\neko" default => "../bin/neko" };
 
 if( osx_universal ) {
