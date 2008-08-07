@@ -293,7 +293,15 @@ static value host_resolve( value host ) {
 	val_check(host,string);
 	ip = inet_addr(val_string(host));
 	if( ip == INADDR_NONE ) {
-		struct hostent *h = gethostbyname(val_string(host));
+		struct hostent *h;
+#	ifdef NEKO_WINDOWS
+		h = gethostbyname(val_string(host));
+#	else
+		struct hostent hbase;
+		char buf[1024];
+		int errcode;
+		gethostbyname_r(val_string(host),&hbase,buf,1024,&h,&errcode);
+#	endif
 		if( h == NULL )
 			neko_error();
 		ip = *((unsigned int*)h->h_addr);
@@ -321,7 +329,14 @@ static value host_reverse( value host ) {
 	unsigned int ip;
 	val_check(host,int32);
 	ip = val_int32(host);
+#	ifdef NEKO_WINDOWS
 	h = gethostbyaddr((char *)&ip,4,AF_INET);
+#	else
+	struct hostent htmp;
+	int errcode;
+	char buf[1024];
+	gethostbyaddr_r((char *)&ip,4,AF_INET,&htmp,buf,1024,&h,&errcode);
+#	endif
 	if( h == NULL )
 		neko_error();
 	return alloc_string( h->h_name );

@@ -23,7 +23,12 @@ struct _mt_local {
 	void *value;
 };
 
-#elif defined(NEKO_WINDOWS)
+#else
+
+#define GC_THREADS
+#include <gc/gc.h>
+
+#ifdef NEKO_WINDOWS
 
 // necessary for TryEnterCriticalSection
 // which is only available on 2000 PRO and XP
@@ -33,17 +38,10 @@ struct _mt_lock {
 	CRITICAL_SECTION cs;
 };
 
-extern HANDLE WINAPI GC_CreateThread(
-      LPSECURITY_ATTRIBUTES lpThreadAttributes,
-      DWORD dwStackSize, LPTHREAD_START_ROUTINE lpStartAddress,
-      LPVOID lpParameter, DWORD dwCreationFlags, LPDWORD lpThreadId
-);
-
 #else
 
 #include <stdlib.h>
 #include <pthread.h>
-#include <gc/gc_version.h>
 
 struct _mt_local {
 	pthread_key_t key;
@@ -52,12 +50,7 @@ struct _mt_lock {
 	pthread_mutex_t lock;
 };
 
-extern int GC_pthread_create(
-	pthread_t *new_thread,
-	const pthread_attr_t *attr,
-	void *(*start_routine)(void *), void *arg
-);
-
+#endif
 #endif
 
 typedef struct {

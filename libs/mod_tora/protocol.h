@@ -33,6 +33,7 @@
 #	define ap_table_set		apr_table_set
 #	define ap_table_add		apr_table_add
 #	define ap_table_do		apr_table_do
+#	define ap_palloc		apr_palloc
 #	define LOG_SUCCESS		APR_SUCCESS,
 #	define REDIRECT			HTTP_MOVED_TEMPORARILY
 #else

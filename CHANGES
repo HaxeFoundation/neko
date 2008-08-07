@@ -15,6 +15,7 @@ TODO :
 	vm : moved threads stuff into threads.c
 	nekoml : fixed lexing engine, allow escape sequences in char groups
 	mysql : fixed conv_date storage to prevent finalizer cycle
+	std : fixed mthreads issues with host_resolve and host_reverse
 
 2008-07-28 : 1.7.1
 	nekotools : fixed set_return_code in web server
