@@ -150,6 +150,9 @@
 			<File
 				RelativePath=".\others.c">
 			</File>
+			<File
+				RelativePath=".\threads.c">
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"

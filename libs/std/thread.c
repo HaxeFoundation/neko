@@ -212,7 +212,7 @@ static vthread *alloc_thread() {
 	return t;
 }
 
-static int thread_init( void *_p ) {
+static void thread_init( void *_p ) {
 	tparams *p = (tparams*)_p;
 	neko_vm *vm;
 	p->t = alloc_thread();
@@ -220,10 +220,9 @@ static int thread_init( void *_p ) {
 	vm = neko_vm_alloc(NULL);
 	neko_vm_select(vm);
 	neko_vm_set_custom(vm,k_thread,p->t);
-	return 0;
 }
 
-static int thread_loop( void *_p ) {
+static void thread_loop( void *_p ) {
 	tparams *p = (tparams*)_p;
 	value exc = NULL;
 	val_callEx(val_null,p->callb,&p->callparam,1,&exc);
@@ -236,7 +235,6 @@ static int thread_loop( void *_p ) {
 	}
 	// cleanup
 	neko_vm_select(NULL);
-	return 0;
 }
 
 /**

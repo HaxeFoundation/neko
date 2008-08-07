@@ -19,25 +19,18 @@
 #include "objtable.h"
 #include "opcodes.h"
 #include "vm.h"
-//#define NEKO_GC
-#ifdef NEKO_GC
-#	include "gc.h"
-#else
-#	ifdef NEKO_WINDOWS
-#		define GC_NOT_DLL
-#		define GC_WIN32_THREADS
-#	endif
-#	define GC_THREADS
-#	include "gc/gc.h"
+
+#ifdef NEKO_WINDOWS
+#	define GC_NOT_DLL
+#	define GC_WIN32_THREADS
 #endif
+
+#define GC_THREADS
+#include "gc/gc.h"
 
 #ifndef GC_MALLOC
 #	error Looks like libgc was not installed, please install it before compiling
 #else
-
-#if defined(NEKO_THREADS) && !defined(NEKO_WINDOWS)
-#	include <pthread.h>
-#endif
 
 typedef struct _klist {
 	const char *name;
@@ -72,8 +65,6 @@ field id_get, id_set;
 field id_add, id_radd, id_sub, id_rsub, id_mult, id_rmult, id_div, id_rdiv, id_mod, id_rmod;
 EXTERN field neko_id_module;
 
-#ifndef NEKO_GC
-
 static void null_warn_proc( char *msg, int arg ) {
 }
 
@@ -94,11 +85,6 @@ void neko_gc_init( void *ptr ) {
 void neko_gc_close() {
 }
 
-void neko_gc_set_stack_base( void *ptr ) {
-}
-
-#endif
-
 EXTERN void neko_gc_loop() {
 	GC_collect_a_little();
 }
@@ -111,75 +97,6 @@ EXTERN void neko_gc_stats( int *heap, int *free ) {
 	*heap = (int)GC_get_heap_size();
 	*free = (int)GC_get_free_bytes();
 }
-
-typedef struct {
-	thread_main_func init;
-	thread_main_func main;
-	void *param;
-#ifdef NEKO_THREADS
-#	ifdef NEKO_WINDOWS
-	HANDLE lock;
-#	else
-	pthread_mutex_t lock;
-#	endif
-#endif
-} tparams;
-
-#ifdef NEKO_WINDOWS
-static DWORD WINAPI ThreadMain( void *_p ) {
-	tparams p = *(tparams*)_p;
-	p.init(p.param);
-	ReleaseSemaphore(p.lock,1,NULL);
-	return p.main(p.param);
-}
-#else
-static void *ThreadMain( void *_p ) {
-	tparams *lp = (tparams*)_p;
-	tparams p = *lp;
-	p.init(p.param);
-	// we have the 'param' value on this thread C stack
-	// so it's safe to give back control to main thread
-	pthread_mutex_unlock(&lp->lock);
-	return (void*)(int_val)p.main(p.param);
-}
-#endif
-
-EXTERN int neko_thread_create( thread_main_func init, thread_main_func main, void *param, void *handle ) {
-	tparams p;
-	p.init = init;
-	p.main = main;
-	p.param = param;
-#	if !defined(NEKO_THREADS)
-	return 0;
-#	elif defined(NEKO_WINDOWS)
-	{
-		HANDLE h;
-		p.lock = CreateSemaphore(NULL,0,1,NULL);
-		h = GC_CreateThread(NULL,0,ThreadMain,&p,0,handle);
-		if( h == NULL ) {
-			CloseHandle(p.lock);
-			return 0;
-		}
-		WaitForSingleObject(p.lock,INFINITE);
-		CloseHandle(p.lock);
-		CloseHandle(h);
-		return 1;
-	}
-#	else
-	pthread_mutex_init(&p.lock,NULL);
-	pthread_mutex_lock(&p.lock);
-	// force the use of a the GC method to capture created threads
-	// this function should be defined in gc/gc.h
-	if( GC_pthread_create((pthread_t*)handle,NULL,&ThreadMain,&p) != 0 ) {
-		pthread_mutex_destroy(&p.lock);
-		return 0;
-	}
-	pthread_mutex_lock(&p.lock);
-	pthread_mutex_destroy(&p.lock);
-	return 1;
-#	endif
-}
-
 
 EXTERN char *alloc( unsigned int nbytes ) {
 	return (char*)GC_MALLOC(nbytes);
@@ -433,7 +350,7 @@ EXTERN void neko_global_free() {
 }
 
 EXTERN void neko_set_stack_base( void *s ) {
-	neko_gc_set_stack_base(s);
+	// deprecated
 }
 
 EXTERN void kind_share( vkind *k, const char *name ) {

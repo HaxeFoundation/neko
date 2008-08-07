@@ -182,7 +182,6 @@ static int neko_handler_rec( request_rec *r ) {
 
 	config.hits++;
 
-	neko_set_stack_base(&ctx);
 	ctx.r = r;
 	ctx.main = cache_find(r);
 	ctx.post_data = val_null;

@@ -12,6 +12,7 @@ TODO :
 	std : added EINTR handling in send/recv socket operations
 	gc : upgraded windows version to 7.1 static
 	vm : fixed comparison of bool
+	vm : moved threads stuff into threads.c
 
 2008-07-28 : 1.7.1
 	nekotools : fixed set_return_code in web server
