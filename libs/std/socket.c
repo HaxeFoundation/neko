@@ -218,13 +218,17 @@ static value socket_recv( value o, value data, value pos, value len ) {
 	<doc>Read a single char from a connected socket.</doc>
 **/
 static value socket_recv_char( value o ) {
+	int ret;
 	unsigned char cc;
 	val_check_kind(o,k_socket);
 	LABEL(recv_char_again);
-	if( recv(val_sock(o),&cc,1,MSG_NOSIGNAL) <= 0 ) {
+	ret = recv(val_sock(o),&cc,1,MSG_NOSIGNAL);
+	if( ret == SOCKET_ERROR ) {
 		HANDLE_EINTR(recv_char_again);
 		return block_error();
 	}
+	if( ret == 0 )
+		neko_error();
 	return alloc_int(cc);
 }
 
