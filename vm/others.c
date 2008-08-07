@@ -106,6 +106,8 @@ EXTERN int val_compare( value a, value b ) {
 		return scmp(val_bool(a)?"true":"false",val_bool(a)?4:5,val_string(b),val_strlen(b));
 	case C(VAL_STRING,VAL_STRING):
 		return scmp(val_string(a),val_strlen(a),val_string(b),val_strlen(b));
+	case C(VAL_BOOL,VAL_BOOL):
+		return (a == b) ? 0 : (val_bool(a) ? 1 : -1);
 	case C(VAL_OBJECT,VAL_OBJECT):
 		if( a == b )
 			return 0;
