@@ -318,7 +318,7 @@ static void mod_neko_do_init() {
 	putenv(strdup("MOD_NEKO=1"));
 #	endif
 	cache_root = alloc_local();
-	neko_global_init(&tmp);
+	neko_global_init();
 }
 
 static value init_module() {

@@ -72,7 +72,7 @@ static void __on_finalize(value v, void *f ) {
 	((finalizer)f)(v);
 }
 
-void neko_gc_init( void *ptr ) {
+void neko_gc_init() {
 	GC_init();
 	GC_no_dls = 1;
 #ifdef LOW_MEM
@@ -298,12 +298,12 @@ extern void neko_free_jit();
 
 #define INIT_ID(x)	id_##x = val_id("__" #x)
 
-EXTERN void neko_global_init( void *s ) {
+EXTERN void neko_global_init() {
 #	ifdef NEKO_DIRECT_THREADED
 	op_last = neko_get_ttable()[Last];
 #	endif
 	empty_array.ptr = val_null;
-	neko_gc_init(s);
+	neko_gc_init();
 	neko_vm_context = alloc_local();
 	neko_fields_lock = alloc_lock();
 	neko_fields = (objtable*)alloc_root(1);
