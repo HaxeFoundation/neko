@@ -55,7 +55,7 @@ DEFINE_KIND(neko_kind_module);
 #endif
 
 #define MAXSIZE 0x100
-#define ERROR() { return NULL; }
+#define ERROR() { free(tmp); return NULL; }
 #define READ(buf,len) if( r(p,buf,len) == -1 ) ERROR()
 
 #ifdef NEKO_64BITS
@@ -349,7 +349,7 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 	READ_LONG(m->codesize);
 	if( m->nglobals < 0 || m->nglobals > 0xFFFF || m->nfields < 0 || m->nfields > 0xFFFF || m->codesize < 0 || m->codesize > 0xFFFFF )
 		ERROR();
-	tmp = alloc_private(sizeof(char)*(((m->codesize+1)>MAXSIZE)?(m->codesize+1):MAXSIZE));
+	tmp = (char*)malloc(sizeof(char)*(((m->codesize+1)>MAXSIZE)?(m->codesize+1):MAXSIZE));
 	m->jit = NULL;
 	m->jit_gc = NULL;
 	m->dbgtbl = val_null;
@@ -386,8 +386,10 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 			m->globals[i] = alloc_float( atof(tmp) );
 			break;
 		case 5:
-			if( !read_debug_infos(r,p,tmp,m) )
+			if( !read_debug_infos(r,p,tmp,m) ) {
+				tmp = NULL; // already free in read_debug_infos
 				ERROR();
+			}
 			m->globals[i] = val_null;
 			break;
 		default:
@@ -532,23 +534,30 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 	}
 	// Check stack preservation
 	{
-		unsigned char *stmp = (unsigned char*)alloc_private(m->codesize+1);
+		unsigned char *stmp = (unsigned char*)malloc(m->codesize+1);
 		unsigned int prev = 0;
 		memset(stmp,UNKNOWN,m->codesize+1);
-		if( !vm->trusted_code && !neko_check_stack(m,stmp,0,0,0) )
+		if( !vm->trusted_code && !neko_check_stack(m,stmp,0,0,0) ) {
+			free(stmp);
 			ERROR();
+		}
 		for(i=0;i<m->nglobals;i++) {
 			vfunction *f = (vfunction*)m->globals[i];
 			if( val_type(f) == VAL_FUNCTION ) {
 				itmp = (unsigned int)(int_val)f->addr;
-				if( itmp >= m->codesize || !tmp[itmp] || itmp < prev )
+				if( itmp >= m->codesize || !tmp[itmp] || itmp < prev ) {
+					free(stmp);
 					ERROR();
-				if( !vm->trusted_code && !neko_check_stack(m,stmp,itmp,f->nargs,f->nargs) )
+				}
+				if( !vm->trusted_code && !neko_check_stack(m,stmp,itmp,f->nargs,f->nargs) ) {
+					free(stmp);
 					ERROR();
+				}
 				f->addr = m->code + itmp;
 				prev = itmp;
 			}
 		}
+		free(stmp);
 	}
 	if( vm->fstats ) vm->fstats(vm,"neko_read_module_check",0);
 	// jit ?
