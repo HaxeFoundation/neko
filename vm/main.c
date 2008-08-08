@@ -198,14 +198,6 @@ int main( int argc, char *argv[] ) {
 	neko_global_init(&vm);
 	vm = neko_vm_alloc(NULL);
 	neko_vm_select(vm);
-#	ifdef NEKO_POSIX
-	struct sigaction act;
-	act.sa_sigaction = NULL;
-	act.sa_handler = handle_signal;
-	act.sa_flags = 0;
-	sigemptyset(&act.sa_mask);
-	sigaction(SIGSEGV,&act,NULL);
-#	endif
 #	ifdef NEKO_STANDALONE
 	neko_standalone_init();
 #	endif
@@ -229,6 +221,16 @@ int main( int argc, char *argv[] ) {
 			}
 			break;
 		}
+#		ifdef NEKO_POSIX
+		if( jit ) {
+			struct sigaction act;
+			act.sa_sigaction = NULL;
+			act.sa_handler = handle_signal;
+			act.sa_flags = 0;
+			sigemptyset(&act.sa_mask);
+			sigaction(SIGSEGV,&act,NULL);
+		}
+#		endif
 		neko_vm_jit(vm,jit);
 		if( argc == 1 ) {
 #			ifdef NEKO_STANDALONE
