@@ -105,7 +105,7 @@ cflags = "-O3 -fPIC -pthread";
 cc = getenv("CC");
 if( cc == null ) cc = "gcc";
 linkcmd = switch system { "BSD" => "ld" default => cc };
-linkoptions = switch system { 
+linkoptions = switch system {
 	"Mac" => "-bundle -undefined dynamic_lookup -L../../bin -lneko"
 	default => "-shared -L../../bin -lneko"
 };
@@ -382,8 +382,7 @@ while( i < $asize(liblist) ) {
 
 chdir("../src");
 if( libs.zlib.built )
-	exec(nekovm+" nekoml -nostd neko/Main.nml nekoml/Main.nml core/*.nml -pack ../boot/nekoml.std");
-copy("../boot/nekoml.std",base);
+	exec(nekovm+" nekoml -nostd neko/Main.nml nekoml/Main.nml core/*.nml -pack ../bin/nekoml.std");
 
 // END
 $print("Install done, all files are available in /bin directory\n");

@@ -64,11 +64,11 @@ spass3:
 	${NEKOVM} neko/Main -v *.neko neko/*.neko nekoml/*.neko
 
 tpass3:
-	${NEKOVM} nekoml/Main -nostd neko/Main.nml nekoml/Main.nml core/*.nml -pack ../boot/nekoml.std
+	${NEKOVM} nekoml/Main -nostd neko/Main.nml nekoml/Main.nml core/*.nml -pack ../bin/nekoml.std
 
 install: tools link
 	-cp nekoc.n nekoml.n ../boot
-	-cp nekoc.exe nekoml.exe nekotools.exe tools/test.n ../boot/nekoml.std ../bin
+	-cp nekoc.exe nekoml.exe nekotools.exe tools/test.n ../bin
 
 clean:
 	rm -rf *.n
