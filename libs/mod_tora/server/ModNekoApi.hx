@@ -175,6 +175,10 @@ class ModNekoApi {
 		return Tora.inst.infos();
 	}
 
+	function tora_command(cmd,param) {
+		return Tora.inst.command(cmd,param);
+	}
+
 	public function print( value : Dynamic ) {
 		var str = NativeString.toString(untyped if( __dollar__typeof(value) == __dollar__tstring ) value else __dollar__string(value));
 		client.headersSent = true;

@@ -26,9 +26,13 @@ class Admin {
 	}
 
 	static function main() {
+		neko.Web.setHeader("Content-Type","text/plain");
+		var command : String -> String -> Void = neko.Lib.load("mod_neko","tora_command",2);
+		var params = neko.Web.getParams();
+		if( params.exists("command") )
+			command(params.get("command"),params.get("p"));
 		var mem = neko.vm.Gc.stats();
 		var infos : Infos = neko.Lib.load("mod_neko","tora_infos",0)();
-		neko.Web.setHeader("Content-Type","text/plain");
 		var busy = 0;
 		var cacheHits = 0;
 		for( t in infos.threads )

@@ -95,7 +95,18 @@ class Tora {
 				if( cache.datas.head != null ) break;
 			}
 			cacheLock.release();
+			// remove the last from the list : it's better to recycle the oldest to prevent leaks
 			cache.lock.acquire();
+			var h = cache.datas.head;
+			var prev = null;
+			while( h != null ) {
+				prev = h;
+				h = h.next;
+			}
+			if( prev == null )
+				cache.datas.head = null;
+			else
+				prev.next = null;
 			cache.datas.pop();
 			cache.lock.release();
 		}
@@ -213,6 +224,17 @@ class Tora {
 			var client = s.accept();
 			totalHits++;
 			clientQueue.add(new Client(client));
+		}
+	}
+
+	public function command( cmd : String, param : String ) : Void {
+		switch( cmd ) {
+		case "clean":
+			moduleCache = new Hash();
+			neko.Sys.sleep(3);
+			neko.vm.Gc.run(true);
+		default:
+			throw "No such command "+cmd;
 		}
 	}
 

@@ -1,3 +1,3 @@
 @echo off
-neko tora
+neko -interp tora
 pause
