@@ -235,6 +235,7 @@ static void thread_loop( void *_p ) {
 	}
 	// cleanup
 	neko_vm_select(NULL);
+	p->t->v = val_null;
 }
 
 /**
