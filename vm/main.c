@@ -71,7 +71,7 @@ static char *executable_path() {
 #endif
 }
 
-int neko_has_embedded_module() {
+int neko_has_embedded_module( neko_vm *vm ) {
 	char *exe = executable_path();
 	unsigned char id[8];
 	int pos;
@@ -86,8 +86,11 @@ int neko_has_embedded_module() {
 		fclose(self);
 		return 0;
 	}
-	pos = id[4] | id[5] << 8 | id[6] << 16 | id[7] << 24;
+	pos = id[4] | id[5] << 8 | id[6] << 16;
 	fseek(self,pos,SEEK_SET);
+	// flags
+	if( (id[7] & 1) == 0 )
+		neko_vm_jit(vm,1);
 	return 1;
 }
 
@@ -201,7 +204,7 @@ int main( int argc, char *argv[] ) {
 #	ifdef NEKO_STANDALONE
 	neko_standalone_init();
 #	endif
-	if( !neko_has_embedded_module() ) {
+	if( !neko_has_embedded_module(vm) ) {
 		int jit = 1;
 		int stats = 0;
 		while( argc > 1 ) {
