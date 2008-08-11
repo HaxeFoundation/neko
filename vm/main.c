@@ -275,6 +275,7 @@ int main( int argc, char *argv[] ) {
 	if( mload != NULL && val_field(mload,val_id("dump_prof")) != val_null )
 		val_ocall0(mload,val_id("dump_prof"));
 	vm = NULL;
+	mload = NULL;
 	neko_vm_select(NULL);
 	neko_global_free();
 	return r;

@@ -72,25 +72,25 @@ typedef struct {
 } tparams;
 
 #ifdef NEKO_WINDOWS
-static DWORD WINAPI ThreadMain( void *_p ) {
-	tparams p = *(tparams*)_p;
-	p.init(p.param);
-	ReleaseSemaphore(p.lock,1,NULL);
-	p.main(p.param);
-	return 0;
-}
+#	define THREAD_FUN DWORD WINAPI 
 #else
-static void *ThreadMain( void *_p ) {
+#	define THREAD_FUN void*
+#endif
+
+static THREAD_FUN ThreadMain( void *_p ) {
 	tparams *lp = (tparams*)_p;
 	tparams p = *lp;
 	p.init(p.param);
 	// we have the 'param' value on this thread C stack
 	// so it's safe to give back control to main thread
+#	ifdef NEKO_WINDOWS
+	ReleaseSemaphore(p.lock,1,NULL);
+#	else
 	pthread_mutex_unlock(&lp->lock);
+#	endif
 	p.main(p.param);
-	return NULL;
+	return 0;
 }
-#endif
 
 EXTERN int neko_thread_create( thread_main_func init, thread_main_func main, void *param, void **handle ) {
 	tparams p;

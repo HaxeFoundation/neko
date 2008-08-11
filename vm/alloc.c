@@ -66,6 +66,7 @@ field id_add, id_radd, id_sub, id_rsub, id_mult, id_rmult, id_div, id_rdiv, id_m
 EXTERN field neko_id_module;
 
 static void null_warn_proc( char *msg, int arg ) {
+	//printf(msg,arg);
 }
 
 static void __on_finalize(value v, void *f ) {
@@ -82,15 +83,16 @@ void neko_gc_init() {
 	GC_set_warn_proc((GC_warn_proc)(void*)null_warn_proc);
 }
 
-void neko_gc_close() {
-}
-
 EXTERN void neko_gc_loop() {
 	GC_collect_a_little();
 }
 
 EXTERN void neko_gc_major() {
 	GC_gcollect();
+}
+
+EXTERN void neko_gc_dump() {
+	GC_dump();
 }
 
 EXTERN void neko_gc_stats( int *heap, int *free ) {
@@ -273,14 +275,10 @@ EXTERN void alloc_field( value obj, field f, value v ) {
 EXTERN void val_gc(value v, finalizer f ) {
 	if( !val_is_abstract(v) )
 		failure("val_gc");
-#ifdef NEKO_GC
-	neko_gc_finalizer(v,(gc_final_fun)f);
-#else
 	if( f )
-		GC_register_finalizer(v,(GC_finalization_proc)__on_finalize,f,0,0);
+		GC_REGISTER_FINALIZER(v,(GC_finalization_proc)__on_finalize,f,0,0);
 	else
-		GC_register_finalizer(v,NULL,NULL,0,0);
-#endif
+		GC_REGISTER_FINALIZER(v,NULL,NULL,0,0);
 }
 
 EXTERN value *alloc_root( unsigned int nvals ) {
@@ -288,7 +286,7 @@ EXTERN value *alloc_root( unsigned int nvals ) {
 }
 
 EXTERN void free_root(value *v) {
-	GC_free(v);
+	GC_FREE(v);
 }
 
 extern void neko_init_builtins();
@@ -346,7 +344,6 @@ EXTERN void neko_global_free() {
 	free_local(neko_vm_context);
 	free_lock(neko_fields_lock);
 	neko_gc_major();
-	neko_gc_close();
 }
 
 EXTERN void neko_set_stack_base( void *s ) {
