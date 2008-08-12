@@ -124,7 +124,7 @@ try {
 	| Some file ->
 		var h = Hashtbl.create();
 		Hashtbl.iter (function(key,m) {
-			Hashtbl.add h (String.concat "/" key + ".nml") (IO.file_contents m.file)
+			Hashtbl.add h (String.concat "." key) (IO.file_contents m.file)
 		}) ctx.modules;
 		Zip.init();
 		var ch = IO.write_file file true;

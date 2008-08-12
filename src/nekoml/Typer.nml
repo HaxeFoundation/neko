@@ -1109,12 +1109,13 @@ function module_infos(m) {
 	(m.path,*deps,*idents)
 }
 
-function open_file(ctx,file,p) {
+function open_file(ctx,m,p) {
+	var file = file_name m ".nml";
 	function rec loop(l) {
 		match l {
 		| [] ->
 			try {
-				(file, IO.read_string (Hashtbl.find ctx.filecache file))
+				(file, IO.read_string (Hashtbl.find ctx.filecache (String.concat "." m)))
 			} catch {
 				Not_found -> error Custom("File not found " + file) p
 			}
@@ -1133,7 +1134,7 @@ function load_module(ctx,m,p) {
 		Hashtbl.find ctx.modules m
 	catch {
 		Not_found ->
-			var file , ch = open_file ctx (file_name m ".nml") p;
+			var file , ch = open_file ctx m p;
 			var is_core , core = try
 				(false , Hashtbl.find ctx.modules ["Core"])
 			catch { Not_found ->
