@@ -23,6 +23,7 @@ typedef ThreadData = {
 	var client : Client;
 	var time : Float;
 	var hits : Int;
+	var restarts : Int;
 }
 
 typedef CacheData = {
@@ -43,6 +44,7 @@ class Tora {
 	var cacheLock : neko.vm.Mutex;
 	var rootLoader : neko.vm.Loader;
 	var modulePath : Array<String>;
+	var redirect : Dynamic;
 
 	function new() {
 		totalHits = 0;
@@ -57,6 +59,7 @@ class Tora {
 
 	function init( nthreads : Int ) {
 		neko.Sys.putEnv("MOD_NEKO","1");
+		redirect = neko.Lib.load("std","print_redirect",1);
 		neko.vm.Thread.create(callback(startup,nthreads));
 	}
 
@@ -67,6 +70,7 @@ class Tora {
 				t : null,
 				client : null,
 				hits : 0,
+				restarts : 0,
 				time : haxe.Timer.stamp(),
 			};
 			inf.t = neko.vm.Thread.create(callback(threadLoop,inf));
@@ -81,7 +85,8 @@ class Tora {
 	}
 
 	function cleanupLoop() {
-		while( true ) {
+		var count = 50;
+		while( count > 0 ) {
 			neko.Sys.sleep(15);
 			cacheLock.acquire();
 			var caches = Lambda.array(moduleCache);
@@ -109,7 +114,9 @@ class Tora {
 				prev.next = null;
 			cache.datas.pop();
 			cache.lock.release();
+			count--;
 		}
+		neko.vm.Thread.create(cleanupLoop);
 	}
 
 	function initLoader( api : ModNekoApi ) {
@@ -147,9 +154,16 @@ class Tora {
 	}
 
 	function threadLoop( t : ThreadData ) {
-		var redirect = neko.vm.Loader.local().loadPrimitive("std@print_redirect",1);
-		while( true ) {
+		var count = 500 + Std.random(1000);
+		while( count > 0 ) {
 			var client = clientQueue.pop(true);
+			if( client == null ) {
+				// let other threads pop 'null' as well
+				// in case of global restart
+				neko.Sys.sleep(1);
+				break;
+			}
+			count--;
 			t.hits++;
 			t.time = haxe.Timer.stamp();
 			t.client = client;
@@ -210,6 +224,8 @@ class Tora {
 			client.sock.close();
 			t.client = null;
 		}
+		t.restarts++;
+		t.t = neko.vm.Thread.create(callback(threadLoop,t));
 	}
 
 	function run( host : String, port : Int ) {
@@ -229,10 +245,13 @@ class Tora {
 
 	public function command( cmd : String, param : String ) : Void {
 		switch( cmd ) {
+		case "restart":
+			for( i in 0...threads.length )
+				clientQueue.add(null);
+		case "gc":
+			neko.vm.Gc.run(true);
 		case "clean":
 			moduleCache = new Hash();
-			neko.Sys.sleep(3);
-			neko.vm.Gc.run(true);
 		default:
 			throw "No such command "+cmd;
 		}
@@ -276,7 +295,6 @@ class Tora {
 	}
 
 	public static var inst : Tora;
-
 
 	static function main() {
 		var args = neko.Sys.args();
