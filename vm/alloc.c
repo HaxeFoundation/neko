@@ -32,6 +32,11 @@
 #	error Looks like libgc was not installed, please install it before compiling
 #else
 
+#define gc_alloc			GC_MALLOC
+#define gc_alloc_private	GC_MALLOC_ATOMIC
+#define gc_alloc_root		GC_MALLOC_UNCOLLECTABLE
+#define gc_free_root		GC_FREE
+
 typedef struct _klist {
 	const char *name;
 	vkind k;
@@ -74,6 +79,7 @@ static void __on_finalize(value v, void *f ) {
 }
 
 void neko_gc_init() {
+	GC_all_interior_pointers = 0;
 	GC_init();
 	GC_no_dls = 1;
 #ifdef LOW_MEM
@@ -101,11 +107,11 @@ EXTERN void neko_gc_stats( int *heap, int *free ) {
 }
 
 EXTERN char *alloc( unsigned int nbytes ) {
-	return (char*)GC_MALLOC(nbytes);
+	return (char*)gc_alloc(nbytes);
 }
 
 EXTERN char *alloc_private( unsigned int nbytes ) {
-	return (char*)GC_MALLOC_ATOMIC(nbytes);
+	return (char*)gc_alloc_private(nbytes);
 }
 
 EXTERN value alloc_empty_string( unsigned int size ) {
@@ -114,7 +120,7 @@ EXTERN value alloc_empty_string( unsigned int size ) {
 		return (value)&empty_string;
 	if( size > max_string_size )
 		failure("max_string_size reached");
-	s = (vstring*)GC_MALLOC_ATOMIC(size+sizeof(vstring));
+	s = (vstring*)gc_alloc_private(size+sizeof(vstring));
 	s->t = VAL_STRING | (size << 3);
 	(&s->c)[size] = 0;
 	return (value)s;
@@ -127,7 +133,7 @@ EXTERN value alloc_string( const char *str ) {
 }
 
 EXTERN value alloc_float( tfloat f ) {
-	vfloat *v = (vfloat*)GC_MALLOC_ATOMIC(sizeof(vfloat));
+	vfloat *v = (vfloat*)gc_alloc_private(sizeof(vfloat));
 	v->t = VAL_FLOAT;
 	v->f = f;
 	return (value)v;
@@ -139,13 +145,13 @@ EXTERN value alloc_array( unsigned int n ) {
 		return (value)(void*)&empty_array;
 	if( n > max_array_size )
 		failure("max_array_size reached");
-	v = (value)GC_MALLOC(sizeof(varray)+(n - 1)*sizeof(value));
+	v = (value)gc_alloc(sizeof(varray)+(n - 1)*sizeof(value));
 	v->t = VAL_ARRAY | (n << 3);
 	return v;
 }
 
 EXTERN value alloc_abstract( vkind k, void *data ) {
-	vabstract *v = (vabstract*)GC_MALLOC(sizeof(vabstract));
+	vabstract *v = (vabstract*)gc_alloc(sizeof(vabstract));
 	v->t = VAL_ABSTRACT;
 	v->kind = k;
 	v->data = data;
@@ -156,7 +162,7 @@ EXTERN value alloc_function( void *c_prim, unsigned int nargs, const char *name 
 	vfunction *v;
 	if( c_prim == NULL || (nargs < 0 && nargs != VAR_ARGS) )
 		failure("alloc_function");
-	v = (vfunction*)GC_MALLOC(sizeof(vfunction));
+	v = (vfunction*)gc_alloc(sizeof(vfunction));
 	v->t = VAL_PRIMITIVE;
 	v->addr = c_prim;
 	v->nargs = nargs;
@@ -169,7 +175,7 @@ value neko_alloc_module_function( void *m, int_val pos, int nargs ) {
 	vfunction *v;
 	if( nargs < 0 && nargs != VAR_ARGS )
 		failure("alloc_module_function");
-	v = (vfunction*)GC_MALLOC(sizeof(vfunction));
+	v = (vfunction*)gc_alloc(sizeof(vfunction));
 	v->t = VAL_FUNCTION;
 	v->addr = (void*)pos;
 	v->nargs = nargs;
@@ -229,7 +235,7 @@ static value apply5( value p1, value p2, value p3, value p4, value p5 ) {
 }
 
 value neko_alloc_apply( int nargs, value env ) {
-	vfunction *v = (vfunction*)GC_MALLOC(sizeof(vfunction));
+	vfunction *v = (vfunction*)gc_alloc(sizeof(vfunction));
 	v->t = VAL_PRIMITIVE;
 	switch( nargs ) {
 	case 1: v->addr = apply1; break;
@@ -249,7 +255,7 @@ EXTERN value alloc_object( value cpy ) {
 	vobject *v;
 	if( cpy != NULL && !val_is_null(cpy) && !val_is_object(cpy) )
 		val_throw(alloc_string("$new")); // 'new' opcode simulate $new
-	v = (vobject*)GC_MALLOC(sizeof(vobject));
+	v = (vobject*)gc_alloc(sizeof(vobject));
 	v->t = VAL_OBJECT;
 	if( cpy == NULL || val_is_null(cpy) ) {
 		v->proto = NULL;
@@ -282,11 +288,11 @@ EXTERN void val_gc(value v, finalizer f ) {
 }
 
 EXTERN value *alloc_root( unsigned int nvals ) {
-	return (value*)GC_MALLOC_UNCOLLECTABLE(nvals*sizeof(value));
+	return (value*)gc_alloc_root(nvals*sizeof(value));
 }
 
 EXTERN void free_root(value *v) {
-	GC_FREE(v);
+	gc_free_root(v);
 }
 
 extern void neko_init_builtins();
