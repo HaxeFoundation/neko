@@ -77,6 +77,15 @@ typedef struct {
 #	define THREAD_FUN void*
 #endif
 
+typedef int (*rec)( int, void * );
+
+static int clean_c_stack( int n, void *f ) {
+	char buf[256];
+	memset(buf,n,sizeof(buf));
+	if( n == 0 ) return *buf;
+	return ((rec)f)(n-1,f) ? 1 : 0; // prevent tail-rec
+}
+
 static THREAD_FUN ThreadMain( void *_p ) {
 	tparams *lp = (tparams*)_p;
 	tparams p = *lp;
@@ -88,6 +97,7 @@ static THREAD_FUN ThreadMain( void *_p ) {
 #	else
 	pthread_mutex_unlock(&lp->lock);
 #	endif
+	clean_c_stack(40,clean_c_stack);
 	p.main(p.param);
 	return 0;
 }
