@@ -76,8 +76,9 @@ static void free_db( value v ) {
 	database *db = val_db(v);
 	if( db->last != NULL )
 		finalize_result(val_result(db->last),0);
-	if( sqlite3_close(db->db) != SQLITE_OK )
-		sqlite_error(db->db);
+	if( sqlite3_close(db->db) != SQLITE_OK ) {
+		// No exception : we shouldn't alloc memory in a finalizer anyway
+	}
 }
 
 /**
@@ -148,8 +149,8 @@ static value request( value v, value sql ) {
 		val_throw(alloc_string("Cannot execute several SQL requests at the same time"));
 	}
 	r->ncols = sqlite3_column_count(r->r);
-	r->names = (field*)alloc(sizeof(field)*r->ncols);
-	r->bools = (int*)alloc(sizeof(int)*r->ncols);
+	r->names = (field*)alloc_private(sizeof(field)*r->ncols);
+	r->bools = (int*)alloc_private(sizeof(int)*r->ncols);
 	r->first = 1;
 	r->done = 0;
 	for(i=0;i<r->ncols;i++) {
