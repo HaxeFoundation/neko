@@ -10,7 +10,7 @@ TODO :
 	changed mod_neko get_host_name : return the http host instead of the server IP
 	bugfix in nekoml : fixed usage of nekoml.std + added -nostd
 	std : added EINTR handling in send/recv socket operations
-	gc : upgraded windows version to 7.1 static
+	gc : upgraded windows version to 7.1
 	vm : fixed comparison of bool
 	vm : moved threads stuff into threads.c
 	nekoml : fixed lexing engine, allow escape sequences in char groups

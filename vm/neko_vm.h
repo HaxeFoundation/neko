@@ -32,7 +32,6 @@ EXTERN void neko_global_free();
 EXTERN void neko_gc_major();
 EXTERN void neko_gc_loop();
 EXTERN void neko_gc_stats( int *heap, int *free );
-EXTERN void neko_gc_dump();
 EXTERN int neko_thread_create( thread_main_func init, thread_main_func main, void *param, void **handle );
 EXTERN void neko_thread_blocking( thread_main_func f, void *p );
 

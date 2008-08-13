@@ -29,7 +29,11 @@ struct _mt_local {
 // necessary for TryEnterCriticalSection
 // which is only available on 2000 PRO and XP
 #	define _WIN32_WINNT 0x0400 
-#	define GC_NOT_DLL
+#	ifdef NEKO_STANDALONE
+#		define GC_NOT_DLL
+#	else
+#		define GC_DLL
+#	endif
 #	define GC_WIN32_THREADS
 #endif
 

@@ -21,7 +21,11 @@
 #include "vm.h"
 
 #ifdef NEKO_WINDOWS
-#	define GC_NOT_DLL
+#	ifdef NEKO_STANDALONE
+#		define GC_NOT_DLL
+#	else
+#		define GC_DLL
+#	endif
 #	define GC_WIN32_THREADS
 #endif
 
@@ -79,7 +83,12 @@ static void __on_finalize(value v, void *f ) {
 }
 
 void neko_gc_init() {
+#if GC_VERSION_MAJOR >= 7
 	GC_all_interior_pointers = 0;
+#	ifdef NEKO_WINDOWS
+	GC_use_DllMain();
+#	endif
+#endif
 	GC_init();
 	GC_no_dls = 1;
 #ifdef LOW_MEM
@@ -95,10 +104,6 @@ EXTERN void neko_gc_loop() {
 
 EXTERN void neko_gc_major() {
 	GC_gcollect();
-}
-
-EXTERN void neko_gc_dump() {
-	GC_dump();
 }
 
 EXTERN void neko_gc_stats( int *heap, int *free ) {
