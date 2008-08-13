@@ -559,6 +559,7 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 		}
 		free(stmp);
 	}
+	free(tmp);
 	if( vm->fstats ) vm->fstats(vm,"neko_read_module_check",0);
 	// jit ?
 	if( vm->run_jit ) {
