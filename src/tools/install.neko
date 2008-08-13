@@ -106,8 +106,8 @@ cc = getenv("CC");
 if( cc == null ) cc = "gcc";
 linkcmd = switch system { "BSD" => "ld" default => cc };
 linkoptions = switch system {
-	"Mac" => "-bundle -undefined dynamic_lookup -L../../bin -lneko"
-	default => "-shared -L../../bin -lneko"
+	"Mac" => "-bundle -undefined dynamic_lookup -L../../bin -lneko -pthread"
+	default => "-shared -L../../bin -lneko -pthread"
 };
 nekovm = switch system { "Windows" => "..\\bin\\neko" default => "../bin/neko" };
 
