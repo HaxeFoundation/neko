@@ -1,20 +1,22 @@
 
 typedef ThreadInfos = {
 	var hits : Int;
+	var errors : Int;
 	var file : String;
 	var url : String;
 	var time : Float;
 }
 
-typedef CacheInfos = {
+typedef FileInfos = {
 	var file : String;
-	var hits : Int;
-	var count : Int;
+	var loads : Int;
+	var cacheHits : Int;
+	var cacheCount : Int;
 }
 
 typedef Infos = {
 	var threads : Array<ThreadInfos>;
-	var cache : Array<CacheInfos>;
+	var files : Array<FileInfos>;
 	var hits : Int;
 	var queue : Int;
 	var upTime : Float;

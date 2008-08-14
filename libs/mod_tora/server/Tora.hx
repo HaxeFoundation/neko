@@ -23,15 +23,16 @@ typedef ThreadData = {
 	var client : Client;
 	var time : Float;
 	var hits : Int;
-	var restarts : Int;
+	var errors : Int;
 }
 
-typedef CacheData = {
+typedef FileData = {
 	var file : String;
 	var filetime : Float;
-	var hits : Int;
+	var loads : Int;
+	var cacheHits : Int;
 	var lock : neko.vm.Mutex;
-	var datas : haxe.FastList<ModNekoApi>;
+	var cache : haxe.FastList<ModNekoApi>;
 }
 
 class Tora {
@@ -40,8 +41,8 @@ class Tora {
 	var threads : Array<ThreadData>;
 	var startTime : Float;
 	var totalHits : Int;
-	var moduleCache : Hash<CacheData>;
-	var cacheLock : neko.vm.Mutex;
+	var files : Hash<FileData>;
+	var flock : neko.vm.Mutex;
 	var rootLoader : neko.vm.Loader;
 	var modulePath : Array<String>;
 	var redirect : Dynamic;
@@ -49,8 +50,8 @@ class Tora {
 	function new() {
 		totalHits = 0;
 		startTime = haxe.Timer.stamp();
-		moduleCache = new Hash();
-		cacheLock = new neko.vm.Mutex();
+		files = new Hash();
+		flock = new neko.vm.Mutex();
 		clientQueue = new neko.vm.Deque();
 		threads = new Array();
 		rootLoader = neko.vm.Loader.local();
@@ -70,7 +71,7 @@ class Tora {
 				t : null,
 				client : null,
 				hits : 0,
-				restarts : 0,
+				errors : 0,
 				time : haxe.Timer.stamp(),
 			};
 			inf.t = neko.vm.Thread.create(callback(threadLoop,inf));
@@ -85,38 +86,34 @@ class Tora {
 	}
 
 	function cleanupLoop() {
-		var count = 50;
-		while( count > 0 ) {
+		while( true ) {
 			neko.Sys.sleep(15);
-			cacheLock.acquire();
-			var caches = Lambda.array(moduleCache);
-			if( caches.length == 0 ) {
-				cacheLock.release();
+			flock.acquire();
+			var files = Lambda.array(files);
+			if( files.length == 0 ) {
+				flock.release();
 				continue;
 			}
-			var cache = null;
+			var f = null;
 			for( i in 0...10 ) {
-				cache = caches[Std.random(caches.length)];
-				if( cache.datas.head != null ) break;
+				f = files[Std.random(files.length)];
+				if( f.cache.head != null ) break;
 			}
-			cacheLock.release();
+			flock.release();
 			// remove the last from the list : it's better to recycle the oldest to prevent leaks
-			cache.lock.acquire();
-			var h = cache.datas.head;
+			f.lock.acquire();
+			var h = f.cache.head;
 			var prev = null;
 			while( h != null ) {
 				prev = h;
 				h = h.next;
 			}
 			if( prev == null )
-				cache.datas.head = null;
+				f.cache.head = null;
 			else
 				prev.next = null;
-			cache.datas.pop();
-			cache.lock.release();
-			count--;
+			f.lock.release();
 		}
-		neko.vm.Thread.create(cleanupLoop);
 	}
 
 	function initLoader( api : ModNekoApi ) {
@@ -154,8 +151,7 @@ class Tora {
 	}
 
 	function threadLoop( t : ThreadData ) {
-		var count = 500 + Std.random(1000);
-		while( count > 0 ) {
+		while( true ) {
 			var client = clientQueue.pop(true);
 			if( client == null ) {
 				// let other threads pop 'null' as well
@@ -163,27 +159,57 @@ class Tora {
 				neko.Sys.sleep(1);
 				break;
 			}
-			count--;
 			t.hits++;
 			t.time = haxe.Timer.stamp();
 			t.client = client;
+			client.sock.setTimeout(3);
 			try {
-				client.sock.setTimeout(3);
 				while( !client.processMessage() ) {
 				}
-				var cache = moduleCache.get(client.file);
-				var api = null;
-				if( cache != null ) {
-					cache.lock.acquire();
-					var time = getFileTime(client.file);
-					if( time != cache.filetime ) {
-						cache.filetime = time;
-						cache.datas = new haxe.FastList<ModNekoApi>();
-					} else
-						cache.hits++;
-					api = cache.datas.pop();
-					cache.lock.release();
+			} catch( e : Dynamic ) {
+				log(e);
+				client.sock.close();
+				t.client = null;
+				t.errors++;
+				continue;
+			}
+			var f = files.get(client.file);
+			var api = null;
+			// file entry not found : we need to acquire
+			// a global lock before setting the entry
+			if( f == null ) {
+				flock.acquire();
+				f = files.get(client.file);
+				if( f == null ) {
+					f = {
+						file : client.file,
+						filetime : 0.,
+						loads : 0,
+						cacheHits : 0,
+						lock : new neko.vm.Mutex(),
+						cache : null,
+					};
+					files.set(client.file,f);
 				}
+				flock.release();
+			}
+			// check if up-to-date cache is available
+			f.lock.acquire();
+			var time = getFileTime(client.file);
+			if( time != f.filetime ) {
+				f.filetime = time;
+				f.cache = new haxe.FastList<ModNekoApi>();
+			}
+			api = f.cache.pop();
+			if( api == null )
+				f.loads++;
+			else
+				f.cacheHits++;
+			f.lock.release();
+			// execute
+			var code = CExecute;
+			var data = "";
+			try {
 				if( api == null ) {
 					api = new ModNekoApi(client);
 					redirect(api.print);
@@ -193,39 +219,29 @@ class Tora {
 					redirect(api.print);
 					api.main();
 				}
-				redirect(null);
-				if( api.main != null ) {
-					if( cache == null ) {
-						cacheLock.acquire();
-						cache = moduleCache.get(client.file);
-						if( cache == null ) {
-							cache = {
-								file : client.file,
-								filetime : getFileTime(client.file),
-								hits : 0,
-								lock : new neko.vm.Mutex(),
-								datas : new haxe.FastList<ModNekoApi>(),
-							};
-							moduleCache.set(client.file,cache);
-						}
-						cacheLock.release();
-					}
-					api.client = null;
-					cache.lock.acquire();
-					cache.datas.add(api);
-					cache.lock.release();
-				}
-				client.sendMessage(CExecute,"");
-			} catch( e : Dynamic ) try {
-				redirect(null);
-				var error = try Std.string(e) + haxe.Stack.toString(haxe.Stack.exceptionStack()) catch( _ : Dynamic ) "??? TORA Error";
-				try client.sendMessage(CError,error) catch( e : Dynamic ) {}
+			} catch( e : Dynamic ) {
+				code = CError;
+				data = try Std.string(e) + haxe.Stack.toString(haxe.Stack.exceptionStack()) catch( _ : Dynamic ) "??? TORA Error";
+			}
+			// send result
+			try {
+				client.sendMessage(code,data);
+			} catch( e : Dynamic ) {
+				log(e);
+				t.errors++;
+				api.main = null; // in case of cache-bug
+			}
+			// cleanup
+			redirect(null);
+			if( api.main != null ) {
+				api.client = null;
+				f.lock.acquire();
+				f.cache.add(api);
+				f.lock.release();
 			}
 			client.sock.close();
 			t.client = null;
 		}
-		t.restarts++;
-		t.t = neko.vm.Thread.create(callback(threadLoop,t));
 	}
 
 	function run( host : String, port : Int ) {
@@ -251,7 +267,10 @@ class Tora {
 		case "gc":
 			neko.vm.Gc.run(true);
 		case "clean":
-			moduleCache = new Hash();
+			flock.acquire();
+			for( f in files.keys() )
+				files.remove(f);
+			flock.release();
 		default:
 			throw "No such command "+cmd;
 		}
@@ -264,6 +283,7 @@ class Tora {
 			var cur = t.client;
 			var t : ThreadInfos = {
 				hits : t.hits,
+				errors : t.errors,
 				file : (cur == null) ? null : (cur.file == null ? "???" : cur.file),
 				url : (cur == null) ? null : (cur.hostName == null ? "???" : cur.hostName + ((cur.uri == null) ? "???" : cur.uri)),
 				time : (haxe.Timer.stamp() - t.time),
@@ -271,18 +291,19 @@ class Tora {
 			tot += t.hits;
 			tinf.push(t);
 		}
-		var cinf = new Array();
-		for( c in moduleCache ) {
-			var c : CacheInfos = {
-				file : c.file,
-				hits : c.hits,
-				count : Lambda.count(c.datas),
+		var finf = new Array();
+		for( f in files ) {
+			var f : FileInfos = {
+				file : f.file,
+				loads : f.loads,
+				cacheHits : f.cacheHits,
+				cacheCount : Lambda.count(f.cache),
 			};
-			cinf.push(c);
+			finf.push(f);
 		}
 		return {
 			threads : tinf,
-			cache : cinf,
+			files : finf,
 			hits : totalHits,
 			queue : totalHits - tot,
 			upTime : haxe.Timer.stamp() - startTime,
