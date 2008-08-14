@@ -102,8 +102,10 @@ class Admin {
 		w('<div class="left">');
 		title("Files");
 
+		infos.files.sort(function(f1,f2) return (f2.loads + f2.cacheHits) - (f1.loads + f1.cacheHits));
+
 		table(
-			["File","Loads","CacheHits","CacheCount"],
+			["File","Loads","C.Hits","Inst"],
 			infos.files,
 			function(f:FileInfos) return [f.file,f.loads,f.cacheHits,f.cacheCount]
 		);
@@ -114,7 +116,7 @@ class Admin {
 
 		var count = 1;
 		table(
-			["TID","Hits","Errors","Status","Time"],
+			["TID","Hits","E","Status","Time"],
 			infos.threads,
 			function(t:ThreadInfos) return [count++,t.hits,t.errors,if( t.file == null ) "idle" else t.url,f(t.time)+"s"]
 		);
