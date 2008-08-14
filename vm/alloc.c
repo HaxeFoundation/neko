@@ -38,6 +38,7 @@
 
 #define gc_alloc			GC_MALLOC
 #define gc_alloc_private	GC_MALLOC_ATOMIC
+#define gc_alloc_big(n)		(((n) > 256) ? GC_MALLOC_ATOMIC_IGNORE_OFF_PAGE(n) : GC_MALLOC_ATOMIC(n))
 #define gc_alloc_root		GC_MALLOC_UNCOLLECTABLE
 #define gc_free_root		GC_FREE
 
@@ -83,11 +84,9 @@ static void __on_finalize(value v, void *f ) {
 }
 
 void neko_gc_init() {
-#if GC_VERSION_MAJOR >= 7
 	GC_all_interior_pointers = 0;
-#	ifdef NEKO_WINDOWS
+#if (GC_VERSION_MAJOR >= 7) && defined(NEKO_WINDOWS)
 	GC_use_DllMain();
-#	endif
 #endif
 	GC_init();
 	GC_no_dls = 1;
@@ -116,7 +115,7 @@ EXTERN char *alloc( unsigned int nbytes ) {
 }
 
 EXTERN char *alloc_private( unsigned int nbytes ) {
-	return (char*)gc_alloc_private(nbytes);
+	return (char*)gc_alloc_big(nbytes);
 }
 
 EXTERN value alloc_empty_string( unsigned int size ) {
@@ -125,7 +124,7 @@ EXTERN value alloc_empty_string( unsigned int size ) {
 		return (value)&empty_string;
 	if( size > max_string_size )
 		failure("max_string_size reached");
-	s = (vstring*)gc_alloc_private(size+sizeof(vstring));
+	s = (vstring*)gc_alloc_big(size+sizeof(vstring));
 	s->t = VAL_STRING | (size << 3);
 	(&s->c)[size] = 0;
 	return (value)s;
