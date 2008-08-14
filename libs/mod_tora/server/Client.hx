@@ -40,6 +40,7 @@ enum Code {
 	CPartKey;
 	CPartData;
 	CPartDone;
+	CTestConnect;
 }
 
 class Client {
@@ -52,6 +53,7 @@ class Client {
 	public var bytes : Int;
 
 	// variables
+	public var execute : Bool;
 	public var file : String;
 	public var uri : String;
 	public var ip : String;
@@ -114,7 +116,8 @@ class Client {
 		case CParamValue: params.push({ k : key, v : data });
 		case CHostName: hostName = data;
 		case CHttpMethod: httpMethod = data;
-		case CExecute: return true;
+		case CExecute: execute = true; return true;
+		case CTestConnect: execute = false; return true;
 		case CError: throw data;
 		default: throw "Unexpected "+Std.string(code);
 		}

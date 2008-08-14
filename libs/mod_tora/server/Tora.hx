@@ -168,9 +168,12 @@ class Tora {
 				}
 			} catch( e : Dynamic ) {
 				log(e);
+				t.errors++;
+			}
+			// check if we need to do something
+			if( !client.execute ) {
 				client.sock.close();
 				t.client = null;
-				t.errors++;
 				continue;
 			}
 			var f = files.get(client.file);

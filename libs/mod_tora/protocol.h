@@ -93,6 +93,7 @@ typedef enum {
 	CODE_PART_KEY,
 	CODE_PART_DATA,
 	CODE_PART_DONE,
+	CODE_TEST_CONNECT,
 } proto_code;
 
 #define send_headers(c) \
