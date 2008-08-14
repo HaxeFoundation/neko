@@ -315,7 +315,7 @@ class Tora {
 
 	public static function log( v : Dynamic ) {
 		var msg = try Std.string(v) catch( e : Dynamic ) "???";
-		neko.io.File.stderr().writeString(msg+"\n");
+		neko.io.File.stderr().writeString("["+Date.now().toString()+"] "+msg+"\n");
 	}
 
 	public static var inst : Tora;
@@ -331,7 +331,7 @@ class Tora {
 		var port = Std.parseInt(port);
 		var nthreads = Std.parseInt(nthreads);
 		inst = new Tora();
-		neko.Lib.println("Starting Tora server on "+host+":"+port+" with "+nthreads+" threads");
+		log("Starting Tora server on "+host+":"+port+" with "+nthreads+" threads");
 		inst.init(nthreads);
 		inst.run(host,port);
 	}
