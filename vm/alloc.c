@@ -39,7 +39,7 @@
 #else
 
 // activate to get debug informations about the GC
-// #define GC_OUTPUT
+// #define GC_LOG
 
 #define gc_alloc			GC_MALLOC
 #define gc_alloc_private	GC_MALLOC_ATOMIC
@@ -80,7 +80,7 @@ field id_get, id_set;
 field id_add, id_radd, id_sub, id_rsub, id_mult, id_rmult, id_div, id_rdiv, id_mod, id_rmod;
 EXTERN field neko_id_module;
 
-#ifdef GC_OUTPUT
+#ifdef GC_LOG
 static int bitcount( unsigned int k ) {
 	int b = 0;
 	while( k ) {
@@ -92,7 +92,7 @@ static int bitcount( unsigned int k ) {
 #endif
 
 static void null_warn_proc( char *msg, int arg ) {
-#	ifdef GC_OUTPUT
+#	ifdef GC_LOG
 	int print_stack = 0;
 	printf(msg,arg);
 	if( strstr(msg,"very large block") )
