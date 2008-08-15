@@ -15,10 +15,12 @@
 /*																			*/
 /* ************************************************************************ */
 #include <string.h>
+#include <stdio.h>
 #include "neko.h"
 #include "objtable.h"
 #include "opcodes.h"
 #include "vm.h"
+#include "neko_mod.h"
 
 #ifdef NEKO_WINDOWS
 #	ifdef NEKO_STANDALONE
@@ -35,6 +37,9 @@
 #ifndef GC_MALLOC
 #	error Looks like libgc was not installed, please install it before compiling
 #else
+
+// activate to get debug informations about the GC
+// #define GC_OUTPUT
 
 #define gc_alloc			GC_MALLOC
 #define gc_alloc_private	GC_MALLOC_ATOMIC
@@ -75,8 +80,54 @@ field id_get, id_set;
 field id_add, id_radd, id_sub, id_rsub, id_mult, id_rmult, id_div, id_rdiv, id_mod, id_rmod;
 EXTERN field neko_id_module;
 
+#ifdef GC_OUTPUT
+static int bitcount( unsigned int k ) {
+	int b = 0;
+	while( k ) {
+		b++;
+		k &= (k - 1);
+	}
+	return b;
+}
+#endif
+
 static void null_warn_proc( char *msg, int arg ) {
-	//printf(msg,arg);
+#	ifdef GC_OUTPUT
+	int print_stack = 0;
+	printf(msg,arg);
+	if( strstr(msg,"very large block") )
+		print_stack = 1;
+	if( !print_stack )
+		return;
+	// we can't do any GC allocation here since we might hold the lock
+	// instead, we directly print the stack to the stdout
+	{
+		neko_vm *vm = neko_vm_current();
+		int_val *cspup = vm->csp;
+		int_val *csp = vm->spmin - 1;
+		while( csp != cspup ) {
+			neko_module *m = (neko_module*)csp[4];
+			printf("Called from ");
+			if( m ) {
+				if( m->dbgidxs ) {
+					int ppc = (int)((((int_val**)csp)[1]-2) - m->code);
+					int idx = m->dbgidxs[ppc>>5].base + bitcount(m->dbgidxs[ppc>>5].bits >> (31 - (ppc & 31)));
+					value s = val_array_ptr(m->dbgtbl)[idx];
+					if( val_is_string(s) )
+						printf("%s",val_string(s));
+					else if( val_is_array(s) && val_array_size(s) == 2 && val_is_string(val_array_ptr(s)[0]) && val_is_int(val_array_ptr(s)[1]) )
+						printf("%s line %d",val_string(val_array_ptr(s)[0]),val_int(val_array_ptr(s)[1]));
+					else
+						printf("???");
+				} else
+					printf("Module %s",val_string(m->name));
+			} else
+				printf("a C function");
+			csp += 4;
+		}
+		printf("\n");
+	}	
+#	endif
 }
 
 static void __on_finalize(value v, void *f ) {
@@ -84,7 +135,6 @@ static void __on_finalize(value v, void *f ) {
 }
 
 void neko_gc_init() {
-	GC_all_interior_pointers = 0;
 #if (GC_VERSION_MAJOR >= 7) && defined(NEKO_WINDOWS)
 	GC_use_DllMain();
 #endif
