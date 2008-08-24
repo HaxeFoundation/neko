@@ -200,7 +200,7 @@ DEFINE_PRIM(int32_new,1);
 DEFINE_PRIM(int32_to_int,1);
 DEFINE_PRIM(int32_to_float,1);
 DEFINE_PRIM(int32_compare,2);
-DEFINE_PRIM(int32_ushr,2)
+DEFINE_PRIM(int32_ushr,2);
 DEFINE_PRIM(int32_address,1);
 
 /* ************************************************************************ */
