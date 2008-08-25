@@ -124,8 +124,8 @@ static void null_warn_proc( char *msg, int arg ) {
 			} else
 				printf("a C function");
 			csp += 4;
+			printf("\n");
 		}
-		printf("\n");
 	}	
 #	endif
 }
