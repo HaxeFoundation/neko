@@ -105,8 +105,9 @@ cflags = "-O3 -fPIC -pthread";
 cc = getenv("CC");
 if( cc == null ) cc = "gcc";
 linkcmd = switch system { "BSD" => "ld" default => cc };
+linkneko = "-lneko";
 linkoptions = switch system {
-	"Mac" => "-bundle -undefined dynamic_lookup -L../../bin -lneko -pthread"
+	"Mac" => "-bundle -undefined dynamic_lookup -L../../bin -pthread"
 	default => "-shared -L../../bin -lneko -pthread"
 };
 nekovm = switch system { "Windows" => "..\\bin\\neko" default => "../bin/neko" };
@@ -281,7 +282,10 @@ nekoboot = function(file) {
 
 link = function(files,target,params1,params2) {
 	files = make("",map(files,function(f){ f + ".o" }));
-	var cmd = linkcmd+" "+linkoptions+" "+make("-L",libraries);
+	var opt = linkoptions;
+	if( target != "mod_tora" && target != "mod_tora2" )
+		opt += " "+linkneko;
+	var cmd = linkcmd+" "+opt+" "+make("-L",libraries);
 	var out = " -o ../../bin/"+target+".ndll ";
 	exec(cmd+out+params1+files+params2);
 }
