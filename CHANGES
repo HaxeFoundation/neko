@@ -21,6 +21,7 @@ TODO :
 	std : added set_trusted primitive
 	vm : use gc alloc_ignore_off_page for large blocks
 	vm : use gc finalizers with no_order (prevent cycles)
+	mysql : prevent hashing the fields that looks like inner requests
 
 2008-07-28 : 1.7.1
 	nekotools : fixed set_return_code in web server

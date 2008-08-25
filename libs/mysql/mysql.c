@@ -24,6 +24,7 @@
 #include <time.h>
 typedef int SOCKET;
 #include <mysql.h>
+#include <string.h>
 
 /**
 	<doc>
@@ -173,7 +174,7 @@ static value result_next( value o ) {
 						t.tm_sec = 0;
 						t.tm_isdst = -1;
 						t.tm_year -= 1900;
-						t.tm_mon--;						
+						t.tm_mon--;
 						v = val_call1(r->conv_date,alloc_int32((int)mktime(&t)));
 					}
 					break;
@@ -315,22 +316,27 @@ static value alloc_result( MYSQL_RES *r ) {
 	res->fields_ids = (field*)alloc_private(sizeof(field)*num_fields);
 	res->fields_convs = (CONV*)alloc_private(sizeof(CONV)*num_fields);
 	for(i=0;i<num_fields;i++) {
-		field id = val_id(fields[i].name);
-		for(j=0;j<i;j++)
-			if( res->fields_ids[j] == id ) {
-				buffer b = alloc_buffer("Error, same field ids for : ");
-				buffer_append(b,fields[i].name);
-				buffer_append(b,":");
-				val_buffer(b,alloc_int(i));
-				buffer_append(b," and ");
-				buffer_append(b,fields[j].name);
-				buffer_append(b,":");
-				val_buffer(b,alloc_int(j));
-				buffer_append(b,".");
-				bfailure(b);
-			}
+		field id;
+		if( strchr(fields[i].name,'(') )
+			id = val_id("???"); // looks like an inner request : prevent hashing + cashing it
+		else {
+			id = val_id(fields[i].name);
+			for(j=0;j<i;j++)
+				if( res->fields_ids[j] == id ) {
+					buffer b = alloc_buffer("Error, same field ids for : ");
+					buffer_append(b,fields[i].name);
+					buffer_append(b,":");
+					val_buffer(b,alloc_int(i));
+					buffer_append(b," and ");
+					buffer_append(b,fields[j].name);
+					buffer_append(b,":");
+					val_buffer(b,alloc_int(j));
+					buffer_append(b,".");
+					bfailure(b);
+				}
+		}
 		res->fields_ids[i] = id;
-		res->fields_convs[i] = convert_type(fields[i].type,fields[i].length); 
+		res->fields_convs[i] = convert_type(fields[i].type,fields[i].length);
 	}
 	val_gc(o,free_result);
 	return o;
@@ -362,7 +368,7 @@ static value select_db( value o, value db ) {
 	val_check_kind(o,k_connection);
 	val_check(db,string);
 	if( mysql_select_db(MYSQLDATA(o),val_string(db)) != 0 )
-		error(MYSQLDATA(o),"Failed to select database :");	
+		error(MYSQLDATA(o),"Failed to select database :");
 	return val_true;
 }
 
@@ -382,7 +388,7 @@ static value request( value o, value r )  {
 			return alloc_int( (int)mysql_affected_rows(MYSQLDATA(o)) );
 		else
 			error(MYSQLDATA(o),val_string(r));
-	}	
+	}
 	return alloc_result(res);
 }
 
@@ -425,7 +431,7 @@ static value connect( value params  ) {
 	val_check(host,string);
 	val_check(port,int);
 	val_check(user,string);
-	val_check(pass,string);	
+	val_check(pass,string);
 	if( !val_is_string(socket) && !val_is_null(socket) )
 		neko_error();
 	{
@@ -433,14 +439,14 @@ static value connect( value params  ) {
 		value v;
 		if( mysql_real_connect(m,val_string(host),val_string(user),val_string(pass),NULL,val_int(port),val_is_null(socket)?NULL:val_string(socket),0) == NULL ) {
 			buffer b = alloc_buffer("Failed to connect to mysql server : ");
-			buffer_append(b,mysql_error(m));			
+			buffer_append(b,mysql_error(m));
 			mysql_close(m);
 			bfailure(b);
 		}
 		v = alloc_abstract(k_connection,m);
 		val_gc(v,free_connection);
 		return v;
-	}	
+	}
 }
 
 // ---------------------------------------------------------------
