@@ -130,10 +130,6 @@ static void null_warn_proc( char *msg, int arg ) {
 #	endif
 }
 
-static void __on_finalize(value v, void *f ) {
-	((finalizer)f)(v);
-}
-
 void neko_gc_init() {
 #if (GC_VERSION_MAJOR >= 7) && defined(NEKO_WINDOWS)
 	GC_use_DllMain();
@@ -332,13 +328,17 @@ EXTERN void alloc_field( value obj, field f, value v ) {
 	otable_replace(((vobject*)obj)->table,f,v);
 }
 
+static void __on_finalize( value v, void *f ) {
+	((finalizer)f)(v);
+}
+
 EXTERN void val_gc(value v, finalizer f ) {
 	if( !val_is_abstract(v) )
 		failure("val_gc");
 	if( f )
-		GC_REGISTER_FINALIZER(v,(GC_finalization_proc)__on_finalize,f,0,0);
+		GC_REGISTER_FINALIZER_NO_ORDER(v,(GC_finalization_proc)__on_finalize,f,0,0);
 	else
-		GC_REGISTER_FINALIZER(v,NULL,NULL,0,0);
+		GC_REGISTER_FINALIZER_NO_ORDER(v,NULL,NULL,0,0);
 }
 
 EXTERN value *alloc_root( unsigned int nvals ) {

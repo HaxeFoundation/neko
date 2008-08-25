@@ -71,14 +71,12 @@ typedef struct {
 	CONV *fields_convs;
 	field *fields_ids;
 	MYSQL_ROW current;
-	int_val conv_date;
+	value conv_date;
 } result;
 
 static void free_result( value o ) {
 	result *r = RESULT(o);
 	mysql_free_result(r->r);
-	if( r->conv_date != 0 )
-		free_root((value*)(r->conv_date & ~1));
 }
 
 /**
@@ -87,15 +85,11 @@ static void free_result( value o ) {
 	to the corresponding value.</doc>
 **/
 static value result_set_conv_date( value o, value c ) {
-	result *r;
 	val_check_function(c,1);
 	if( val_is_int(o) )
 		return val_true;
 	val_check_kind(o,k_result);
-	r = RESULT(o);
-	if( r->conv_date == 0 )
-		r->conv_date = (int_val)alloc_root(1) | 1;
-	*(value*)(r->conv_date & ~1) = c;
+	RESULT(o)->conv_date = c;
 	return val_true;
 }
 
@@ -135,14 +129,11 @@ static value result_next( value o ) {
 	result *r;
 	unsigned long *lengths = NULL;
 	MYSQL_ROW row;
-	value conv_date = NULL;
 	val_check_kind(o,k_result);
 	r = RESULT(o);
 	row = mysql_fetch_row(r->r);
 	if( row == NULL )
 		return val_null;
-	if( r->conv_date != 0 )
-		conv_date = *(value*)(r->conv_date & ~1);
 	{
 		int i;
 		value cur = alloc_object(NULL);
@@ -172,7 +163,7 @@ static value result_next( value o ) {
 					v = copy_string(row[i],lengths[i]);
 					break;
 				case CONV_DATE:
-					if( conv_date == NULL )
+					if( r->conv_date == NULL )
 						v = alloc_string(row[i]);
 					else {
 						struct tm t;
@@ -183,11 +174,11 @@ static value result_next( value o ) {
 						t.tm_isdst = -1;
 						t.tm_year -= 1900;
 						t.tm_mon--;						
-						v = val_call1(conv_date,alloc_int32((int)mktime(&t)));
+						v = val_call1(r->conv_date,alloc_int32((int)mktime(&t)));
 					}
 					break;
 				case CONV_DATETIME:
-					if( conv_date == NULL )
+					if( r->conv_date == NULL )
 						v = alloc_string(row[i]);
 					else {
 						struct tm t;
@@ -195,7 +186,7 @@ static value result_next( value o ) {
 						t.tm_isdst = -1;
 						t.tm_year -= 1900;
 						t.tm_mon--;
-						v = val_call1(conv_date,alloc_int32((int)mktime(&t)));
+						v = val_call1(r->conv_date,alloc_int32((int)mktime(&t)));
 					}
 					break;
 				default:
@@ -318,7 +309,7 @@ static value alloc_result( MYSQL_RES *r ) {
 	int i,j;
 	MYSQL_FIELD *fields = mysql_fetch_fields(r);
 	res->r = r;
-	res->conv_date = 0;
+	res->conv_date = NULL;
 	res->current = NULL;
 	res->nfields = num_fields;
 	res->fields_ids = (field*)alloc_private(sizeof(field)*num_fields);
