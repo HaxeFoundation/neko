@@ -156,7 +156,9 @@ EXTERN int neko_thread_create( thread_main_func init, thread_main_func main, voi
 #endif
 
 EXTERN void neko_thread_blocking( thread_main_func f, void *p ) {
-	GC_do_blocking(f,p);
+	//GC_do_blocking(f,p);	
+	// commented, since 7.0 is not yet widespread and since
+	// we don't want to build a libneko that is tied to a specific GC version
 }
 
 EXTERN mt_local *alloc_local() {
