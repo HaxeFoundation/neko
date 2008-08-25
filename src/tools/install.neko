@@ -108,7 +108,7 @@ linkcmd = switch system { "BSD" => "ld" default => cc };
 linkneko = "-lneko";
 linkoptions = switch system {
 	"Mac" => "-bundle -undefined dynamic_lookup -L../../bin -pthread"
-	default => "-shared -L../../bin -lneko -pthread"
+	default => "-shared -L../../bin -pthread"
 };
 nekovm = switch system { "Windows" => "..\\bin\\neko" default => "../bin/neko" };
 
