@@ -167,13 +167,25 @@ static value print_redirect( value f ) {
 	neko_vm *vm = neko_vm_current();
 	if( val_is_null(f) ) {
 		neko_vm_redirect(vm,NULL,NULL);
-		return val_true;
+		return val_null;
 	}
 	val_check_function(f,1);
 	neko_vm_redirect(vm,print_callback,f);
-	return val_true;
+	return val_null;
 }
 
+/**
+	set_trusted : bool -> void
+	<doc>
+	Change the trusted mode of the VM.
+	This can optimize some operations such as module loading by turning off some checks.
+	</doc>
+**/
+static value set_trusted( value b ) {
+	val_check(b,bool);
+	neko_vm_trusted(neko_vm_current(),val_bool(b));
+	return val_null;
+}
 
 DEFINE_PRIM(float_bytes,2);
 DEFINE_PRIM(double_bytes,2);
@@ -184,5 +196,6 @@ DEFINE_PRIM(gc_stats,0);
 DEFINE_PRIM(enable_jit,1);
 DEFINE_PRIM(test,0);
 DEFINE_PRIM(print_redirect,1);
+DEFINE_PRIM(set_trusted,1);
 
 /* ************************************************************************ */

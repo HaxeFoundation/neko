@@ -134,6 +134,12 @@ EXTERN int neko_vm_jit( neko_vm *vm, int enable_jit ) {
 	return vm->run_jit;
 }
 
+EXTERN int neko_vm_trusted( neko_vm *vm, int t ) {
+	int old = vm->trusted_code;
+	vm->trusted_code = t;
+	return old;
+}
+
 EXTERN void neko_vm_set_stats( neko_vm *vm, neko_stat_func fstats, neko_stat_func pstats ) {
 	vm->fstats = fstats;
 	vm->pstats = pstats;
