@@ -233,7 +233,7 @@ static void *load_primitive( const char *prim, int nargs, value path, liblist **
 		}
 		l = (liblist*)alloc(sizeof(liblist));
 		l->handle = h;
-		l->name = alloc(len);
+		l->name = alloc_private(len);
 		memcpy(l->name,prim,len);
 		l->next = *libs;
 		*libs = l;
