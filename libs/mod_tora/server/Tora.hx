@@ -166,8 +166,8 @@ class Tora {
 			t.hits++;
 			t.time = haxe.Timer.stamp();
 			t.client = client;
-			client.sock.setTimeout(3);
 			try {
+				client.sock.setTimeout(3);
 				while( !client.processMessage() ) {
 				}
 			} catch( e : Dynamic ) {
