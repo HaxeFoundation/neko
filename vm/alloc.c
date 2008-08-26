@@ -136,7 +136,7 @@ static void handle_signal( int signal ) {
 	sigemptyset(&act.sa_mask);
 	sigaction(SIGSEGV,&act,NULL);
 	// print signal VM stack
-	printf("**** SIGNAL %d CAUGHT ****\n");
+	printf("**** SIGNAL %d CAUGHT ****\n",signal);
 	do_print_stack();
 	// signal again
 	raise(signal);
