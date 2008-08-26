@@ -12,6 +12,7 @@ typedef FileInfos = {
 	var loads : Int;
 	var cacheHits : Int;
 	var cacheCount : Int;
+	var bytes : Float;
 }
 
 typedef Infos = {

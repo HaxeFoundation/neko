@@ -31,6 +31,7 @@ typedef FileData = {
 	var filetime : Float;
 	var loads : Int;
 	var cacheHits : Int;
+	var bytes : Float;
 	var lock : neko.vm.Mutex;
 	var cache : haxe.FastList<ModNekoApi>;
 }
@@ -194,6 +195,7 @@ class Tora {
 						cacheHits : 0,
 						lock : new neko.vm.Mutex(),
 						cache : null,
+						bytes : 0.,
 					};
 					files.set(client.file,f);
 				}
@@ -237,14 +239,16 @@ class Tora {
 				t.errors++;
 				api.main = null; // in case of cache-bug
 			}
-			// cleanup
-			redirect(null);
+			// save infos
+			f.lock.acquire();
+			f.bytes += client.dataBytes;
 			if( api.main != null ) {
 				api.client = null;
-				f.lock.acquire();
 				f.cache.add(api);
-				f.lock.release();
 			}
+			f.lock.release();
+			// cleanup
+			redirect(null);
 			client.sock.close();
 			t.client = null;
 		}
@@ -304,6 +308,7 @@ class Tora {
 				loads : f.loads,
 				cacheHits : f.cacheHits,
 				cacheCount : Lambda.count(f.cache),
+				bytes : f.bytes,
 			};
 			finf.push(f);
 		}

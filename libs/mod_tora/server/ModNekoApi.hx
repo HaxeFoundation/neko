@@ -182,6 +182,7 @@ class ModNekoApi {
 	public function print( value : Dynamic ) {
 		var str = NativeString.toString(untyped if( __dollar__typeof(value) == __dollar__tstring ) value else __dollar__string(value));
 		client.headersSent = true;
+		client.dataBytes += str.length;
 		client.sendMessage(CPrint,str);
 	}
 

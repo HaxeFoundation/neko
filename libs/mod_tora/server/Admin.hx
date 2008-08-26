@@ -52,6 +52,12 @@ class Admin {
 		w("</table>");
 	}
 
+	static function fileSize( size : Float ) {
+		if( size < 1024 ) return size+" B";
+		if( size < 1024 * 1024 ) return f(size/1024)+" KB";
+		return f(size/(1024*1024))+" MB";
+	}
+
 	static function main() {
 
 		w("<html>");
@@ -105,9 +111,9 @@ class Admin {
 		infos.files.sort(function(f1,f2) return (f2.loads + f2.cacheHits) - (f1.loads + f1.cacheHits));
 
 		table(
-			["File","Loads","C.Hits","Inst"],
+			["File","Loads","C.Hits","Inst","Data"],
 			infos.files,
-			function(f:FileInfos) return [f.file,f.loads,f.cacheHits,f.cacheCount]
+			function(f:FileInfos) return [f.file,f.loads,f.cacheHits,f.cacheCount,fileSize(f.bytes)]
 		);
 		w("</div>");
 

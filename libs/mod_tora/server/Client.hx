@@ -51,6 +51,7 @@ class Client {
 	public var sock : neko.net.Socket;
 	public var data : String;
 	public var bytes : Int;
+	public var dataBytes : Int;
 
 	// variables
 	public var execute : Bool;
@@ -69,6 +70,7 @@ class Client {
 
 	public function new(s) {
 		sock = s;
+		dataBytes = 0;
 		headersSent = false;
 		headers = new Array();
 		params = new Array();
