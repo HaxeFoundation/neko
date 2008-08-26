@@ -52,10 +52,8 @@ class Admin {
 		w("</table>");
 	}
 
-	static function fileSize( size : Float ) {
-		if( size < 1024 ) return size+" B";
-		if( size < 1024 * 1024 ) return f(size/1024)+" KB";
-		return f(size/(1024*1024))+" MB";
+	static function megas( size : Float )  {
+		return f( size / (1024*1024) );
 	}
 
 	static function main() {
@@ -113,7 +111,7 @@ class Admin {
 		table(
 			["File","Loads","C.Hits","Inst","Data"],
 			infos.files,
-			function(f:FileInfos) return [f.file,f.loads,f.cacheHits,f.cacheCount,fileSize(f.bytes)]
+			function(f:FileInfos) return [f.file,f.loads,f.cacheHits,f.cacheCount,megas(f.bytes)]
 		);
 		w("</div>");
 
