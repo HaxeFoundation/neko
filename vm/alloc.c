@@ -106,6 +106,7 @@ static void do_print_stack() {
 		neko_module *m = (neko_module*)csp[4];
 		printf("Called from ");
 		if( m ) {
+			printf("%s ",val_string(m->name));
 			if( m->dbgidxs ) {
 				int ppc = (int)((((int_val**)csp)[1]-2) - m->code);
 				int idx = m->dbgidxs[ppc>>5].base + bitcount(m->dbgidxs[ppc>>5].bits >> (31 - (ppc & 31)));
@@ -113,11 +114,10 @@ static void do_print_stack() {
 				if( val_is_string(s) )
 					printf("%s",val_string(s));
 				else if( val_is_array(s) && val_array_size(s) == 2 && val_is_string(val_array_ptr(s)[0]) && val_is_int(val_array_ptr(s)[1]) )
-					printf("%s line %d",val_string(val_array_ptr(s)[0]),val_int(val_array_ptr(s)[1]));
+					printf("file %s line %d",val_string(val_array_ptr(s)[0]),val_int(val_array_ptr(s)[1]));
 				else
 					printf("???");
-			} else
-				printf("Module %s",val_string(m->name));
+			}
 		} else
 			printf("a C function");
 		csp += 4;
