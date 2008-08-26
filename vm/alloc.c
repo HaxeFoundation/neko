@@ -123,6 +123,7 @@ static void do_print_stack() {
 		csp += 4;
 		printf("\n");
 	}
+	fflush(stdout);
 }
 
 #ifdef NEKO_POSIX
