@@ -27,6 +27,7 @@ DEFINE_KIND(k_hash);
 
 extern mt_lock *neko_fields_lock;
 extern objtable *neko_fields;
+extern int neko_fields_size;
 extern field id_compare;
 extern field id_string;
 extern char *jit_handle_trap;
@@ -363,20 +364,63 @@ EXTERN field val_id( const char *name ) {
 		name++;
 	}
 	f = val_int(acc);
-	lock_acquire(neko_fields_lock);
 	fdata = otable_find(*neko_fields,f);
-	if( fdata != NULL ) {
-		if( scmp(val_string(*fdata),val_strlen(*fdata),oname,(int)(name - oname)) != 0 ) {
-			buffer b = alloc_buffer("Field conflict between ");
-			val_buffer(b,*fdata);
-			buffer_append(b," and ");
-			buffer_append(b,oname);
-			lock_release(neko_fields_lock);
-			bfailure(b);
+	if( fdata == NULL ) {
+		// insert in the table, but by using a larger table that grows faster
+		// since we don't want to resize the table for each insert
+		objtable t;
+		int min = 0;
+		int max;
+		int mid;
+		field cid;
+		cell *c;
+		lock_acquire(neko_fields_lock);
+		t = *neko_fields;
+		max = t->count;
+		c = t->cells;
+		while( min < max ) {
+			mid = (min + max) >> 1;
+			cid = c[mid].id;
+			if( cid < f )
+				min = mid + 1;
+			else if( cid > f )
+				max = mid;
+			else {
+				fdata = &c[mid].v;
+				break;
+			}
 		}
-	} else
-		otable_replace(*neko_fields,f,copy_string(oname,name - oname));
-	lock_release(neko_fields_lock);
+		// in case we found it, it means that it's been inserted by another thread
+		if( fdata == NULL ) {
+			// grow the size if needed
+			if( t->count == neko_fields_size ) {
+				int nsize = neko_fields_size ? (neko_fields_size << 1) : 128;
+				cell *ncells = (cell*)alloc(sizeof(cell)*nsize);
+				memcpy(ncells,t->cells,t->count * sizeof(cell));
+				t->cells = ncells;
+				neko_fields_size = nsize;
+			}
+			// insert into the table
+			mid = (min + max) >> 1;
+			min = t->count;
+			while( min > mid ) {
+				t->cells[min] = t->cells[min-1];
+				min--;
+			}
+			t->cells[mid].id = f;
+			t->cells[mid].v = copy_string(oname,name - oname);
+			t->count++;
+		}
+		lock_release(neko_fields_lock);		
+	}
+	if( fdata != NULL && scmp(val_string(*fdata),val_strlen(*fdata),oname,(int)(name - oname)) != 0 ) {
+		buffer b = alloc_buffer("Field conflict between ");
+		val_buffer(b,*fdata);
+		buffer_append(b," and ");
+		buffer_append(b,oname);
+		lock_release(neko_fields_lock);
+		bfailure(b);
+	}
 	return f;
 }
 
