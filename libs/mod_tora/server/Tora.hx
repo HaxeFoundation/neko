@@ -46,6 +46,7 @@ class Tora {
 	var rootLoader : neko.vm.Loader;
 	var modulePath : Array<String>;
 	var redirect : Dynamic;
+	var set_trusted : Dynamic;
 
 	function new() {
 		totalHits = 0;
@@ -61,6 +62,7 @@ class Tora {
 	function init( nthreads : Int ) {
 		neko.Sys.putEnv("MOD_NEKO","1");
 		redirect = neko.Lib.load("std","print_redirect",1);
+		set_trusted = neko.Lib.load("std","set_trusted",1);
 		neko.vm.Thread.create(callback(startup,nthreads));
 	}
 
@@ -151,6 +153,7 @@ class Tora {
 	}
 
 	function threadLoop( t : ThreadData ) {
+		set_trusted(true);
 		while( true ) {
 			var client = clientQueue.pop(true);
 			if( client == null ) {
