@@ -22,6 +22,10 @@
 #include "vm.h"
 #include "neko_mod.h"
 
+#ifdef NEKO_POSIX
+#	include <signal.h>
+#endif
+
 #ifdef NEKO_WINDOWS
 #	ifdef NEKO_STANDALONE
 #		define GC_NOT_DLL
@@ -82,6 +86,7 @@ field id_add, id_radd, id_sub, id_rsub, id_mult, id_rmult, id_div, id_rdiv, id_m
 EXTERN field neko_id_module;
 
 #ifdef GC_LOG
+
 static int bitcount( unsigned int k ) {
 	int b = 0;
 	while( k ) {
@@ -90,44 +95,60 @@ static int bitcount( unsigned int k ) {
 	}
 	return b;
 }
+
+static void do_print_stack() {
+	// we can't do any GC allocation here since we might hold the lock
+	// instead, we directly print the stack to the stdout
+	neko_vm *vm = neko_vm_current();
+	int_val *cspup = vm->csp;
+	int_val *csp = vm->spmin - 1;
+	while( csp != cspup ) {
+		neko_module *m = (neko_module*)csp[4];
+		printf("Called from ");
+		if( m ) {
+			if( m->dbgidxs ) {
+				int ppc = (int)((((int_val**)csp)[1]-2) - m->code);
+				int idx = m->dbgidxs[ppc>>5].base + bitcount(m->dbgidxs[ppc>>5].bits >> (31 - (ppc & 31)));
+				value s = val_array_ptr(m->dbgtbl)[idx];
+				if( val_is_string(s) )
+					printf("%s",val_string(s));
+				else if( val_is_array(s) && val_array_size(s) == 2 && val_is_string(val_array_ptr(s)[0]) && val_is_int(val_array_ptr(s)[1]) )
+					printf("%s line %d",val_string(val_array_ptr(s)[0]),val_int(val_array_ptr(s)[1]));
+				else
+					printf("???");
+			} else
+				printf("Module %s",val_string(m->name));
+		} else
+			printf("a C function");
+		csp += 4;
+		printf("\n");
+	}
+}
+
+#ifdef NEKO_POSIX
+static void handle_signal( int signal ) {
+	// reset to default handler
+	struct sigaction act;
+	act.sa_sigaction = NULL;
+	act.sa_handler = SIG_DFL;
+	act.sa_flags = 0;
+	sigemptyset(&act.sa_mask);
+	sigaction(SIGSEGV,&act,NULL);
+	// print signal VM stack
+	printf("**** SIGNAL %d CAUGHT ****\n");
+	do_print_stack();
+	// signal again
+	raise(signal);
+}
+#endif
+
 #endif
 
 static void null_warn_proc( char *msg, int arg ) {
 #	ifdef GC_LOG
-	int print_stack = 0;
 	printf(msg,arg);
 	if( strstr(msg,"very large block") )
-		print_stack = 1;
-	if( !print_stack )
-		return;
-	// we can't do any GC allocation here since we might hold the lock
-	// instead, we directly print the stack to the stdout
-	{
-		neko_vm *vm = neko_vm_current();
-		int_val *cspup = vm->csp;
-		int_val *csp = vm->spmin - 1;
-		while( csp != cspup ) {
-			neko_module *m = (neko_module*)csp[4];
-			printf("Called from ");
-			if( m ) {
-				if( m->dbgidxs ) {
-					int ppc = (int)((((int_val**)csp)[1]-2) - m->code);
-					int idx = m->dbgidxs[ppc>>5].base + bitcount(m->dbgidxs[ppc>>5].bits >> (31 - (ppc & 31)));
-					value s = val_array_ptr(m->dbgtbl)[idx];
-					if( val_is_string(s) )
-						printf("%s",val_string(s));
-					else if( val_is_array(s) && val_array_size(s) == 2 && val_is_string(val_array_ptr(s)[0]) && val_is_int(val_array_ptr(s)[1]) )
-						printf("%s line %d",val_string(val_array_ptr(s)[0]),val_int(val_array_ptr(s)[1]));
-					else
-						printf("???");
-				} else
-					printf("Module %s",val_string(m->name));
-			} else
-				printf("a C function");
-			csp += 4;
-			printf("\n");
-		}
-	}	
+		do_print_stack();
 #	endif
 }
 
@@ -142,6 +163,16 @@ void neko_gc_init() {
 #endif
 	GC_clear_roots();
 	GC_set_warn_proc((GC_warn_proc)(void*)null_warn_proc);
+#if defined(GC_LOG) && defined(NEKO_POSIX)
+	{
+		struct sigaction act;
+		act.sa_sigaction = NULL;
+		act.sa_handler = handle_signal;
+		act.sa_flags = 0;
+		sigemptyset(&act.sa_mask);
+		sigaction(SIGSEGV,&act,NULL);
+	}
+#endif
 }
 
 EXTERN void neko_gc_loop() {
