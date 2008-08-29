@@ -59,7 +59,7 @@ static value string_split( value o, value s ) {
 				pos = start - 1;
 		}
 	if( ilen > 0 && slen ) {
-		value ss = copy_string(val_string(o)+start,ilen-start);
+		value ss = start ? copy_string(val_string(o)+start,ilen-start) : o;
 		value l2 = alloc_array(2);
 		val_array_ptr(l2)[0] = ss;
 		val_array_ptr(l2)[1] = val_null;
