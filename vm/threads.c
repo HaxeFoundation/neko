@@ -76,6 +76,8 @@ typedef struct {
 #endif
 } tparams;
 
+#ifdef NEKO_THREADS
+
 #ifdef NEKO_WINDOWS
 #	define THREAD_FUN DWORD WINAPI 
 #else
@@ -106,6 +108,8 @@ static THREAD_FUN ThreadMain( void *_p ) {
 	p.main(p.param);
 	return 0;
 }
+
+#endif
 
 EXTERN int neko_thread_create( thread_main_func init, thread_main_func main, void *param, void **handle ) {
 	tparams p;
