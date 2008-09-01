@@ -248,7 +248,7 @@ class Tora {
 			// save infos
 			f.lock.acquire();
 			f.bytes += client.dataBytes;
-			if( api.main != null ) {
+			if( api.main != null && f.filetime == time ) {
 				api.client = null;
 				f.cache.add(api);
 			}
