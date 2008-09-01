@@ -122,6 +122,7 @@ class Tora {
 	function initLoader( api : ModNekoApi ) {
 		var me = this;
 		var mod_neko = neko.NativeString.ofString("mod_neko@");
+		var mem_size = "std@mem_size";
 		var self : neko.vm.Loader = null;
 		var loadPrim = function(prim:String,nargs:Int) {
 			if( untyped __dollar__sfind(prim.__s,0,mod_neko) == 0 ) {
@@ -130,6 +131,8 @@ class Tora {
 					throw "Primitive not found "+prim+" "+nargs;
 				return untyped __dollar__varargs( function(args) return __dollar__call(p,api,args) );
 			}
+			if( prim == mem_size )
+				return function(_) return 0;
 			return me.rootLoader.loadPrimitive(prim,nargs);
 		};
 		var loadModule = function(module:String,l) {
