@@ -34,6 +34,7 @@
 #	include <termios.h>
 #	include <sys/time.h>
 #	include <sys/times.h>
+#	include <xlocale.h>
 #endif
 
 #ifdef NEKO_MAC
@@ -113,8 +114,23 @@ static value sys_sleep( value f ) {
 	<doc>Set the locale for LC_TIME, returns true on success</doc>
 **/
 static value set_time_locale( value l ) {
+#ifdef NEKO_POSIX
+	locale_t lc, old;
+	val_check(l,string);
+	lc = newlocale(LC_TIME_MASK,val_string(l),NULL);
+	if( lc == NULL ) return val_false;
+	old = uselocale(lc);
+	if( old == NULL ) {
+		freelocale(lc);
+		return val_false;
+	}
+	if( old != LC_GLOBAL_LOCALE )
+		freelocale(old);
+	return val_true;
+#else
 	val_check(l,string);
 	return alloc_bool(setlocale(LC_TIME,val_string(l)) != NULL);
+#endif
 }
 
 /**
