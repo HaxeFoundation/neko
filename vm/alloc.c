@@ -21,6 +21,7 @@
 #include "opcodes.h"
 #include "vm.h"
 #include "neko_mod.h"
+#include "neko_vm.h"
 
 #ifdef NEKO_POSIX
 #	include <signal.h>
@@ -47,7 +48,8 @@
 
 #define gc_alloc			GC_MALLOC
 #define gc_alloc_private	GC_MALLOC_ATOMIC
-#define gc_alloc_big(n)		(((n) > 256) ? GC_MALLOC_ATOMIC_IGNORE_OFF_PAGE(n) : GC_MALLOC_ATOMIC(n))
+#define gc_alloc_big(n)			(((n) > 256) ? GC_MALLOC_IGNORE_OFF_PAGE(n) : GC_MALLOC(n))
+#define gc_alloc_private_big(n)	(((n) > 256) ? GC_MALLOC_ATOMIC_IGNORE_OFF_PAGE(n) : GC_MALLOC_ATOMIC(n))
 #define gc_alloc_root		GC_MALLOC_UNCOLLECTABLE
 #define gc_free_root		GC_FREE
 
@@ -85,48 +87,7 @@ field id_get, id_set;
 field id_add, id_radd, id_sub, id_rsub, id_mult, id_rmult, id_div, id_rdiv, id_mod, id_rmod;
 EXTERN field neko_id_module;
 
-#ifdef GC_LOG
-
-static int bitcount( unsigned int k ) {
-	int b = 0;
-	while( k ) {
-		b++;
-		k &= (k - 1);
-	}
-	return b;
-}
-
-static void do_print_stack() {
-	// we can't do any GC allocation here since we might hold the lock
-	// instead, we directly print the stack to the stdout
-	neko_vm *vm = neko_vm_current();
-	int_val *cspup = vm->csp;
-	int_val *csp = vm->spmin - 1;
-	while( csp != cspup ) {
-		neko_module *m = (neko_module*)csp[4];
-		printf("Called from ");
-		if( m ) {
-			printf("%s ",val_string(m->name));
-			if( m->dbgidxs ) {
-				int ppc = (int)((((int_val**)csp)[1]-2) - m->code);
-				int idx = m->dbgidxs[ppc>>5].base + bitcount(m->dbgidxs[ppc>>5].bits >> (31 - (ppc & 31)));
-				value s = val_array_ptr(m->dbgtbl)[idx];
-				if( val_is_string(s) )
-					printf("%s",val_string(s));
-				else if( val_is_array(s) && val_array_size(s) == 2 && val_is_string(val_array_ptr(s)[0]) && val_is_int(val_array_ptr(s)[1]) )
-					printf("file %s line %d",val_string(val_array_ptr(s)[0]),val_int(val_array_ptr(s)[1]));
-				else
-					printf("???");
-			}
-		} else
-			printf("a C function");
-		csp += 4;
-		printf("\n");
-	}
-	fflush(stdout);
-}
-
-#ifdef NEKO_POSIX
+#if defined (GC_LOG) && defined(NEKO_POSIX) 
 static void handle_signal( int signal ) {
 	// reset to default handler
 	struct sigaction act;
@@ -137,24 +98,28 @@ static void handle_signal( int signal ) {
 	sigaction(SIGSEGV,&act,NULL);
 	// print signal VM stack
 	printf("**** SIGNAL %d CAUGHT ****\n",signal);
-	do_print_stack();
+	neko_vm_dump_stack(neko_vm_current());
 	// signal again
 	raise(signal);
 }
-#endif
-
 #endif
 
 static void null_warn_proc( char *msg, int arg ) {
 #	ifdef GC_LOG
 	printf(msg,arg);
 	if( strstr(msg,"very large block") )
-		do_print_stack();
+		neko_vm_dump_stack(neko_vm_current());
 #	endif
 }
 
 void neko_gc_init() {
+#	ifndef NEKO_WINDOWS
+	// we can't set this on windows with old GC since
+	// it's already initialized through its own DllMain
+	GC_all_interior_pointers = 0;
+#	endif
 #if (GC_VERSION_MAJOR >= 7) && defined(NEKO_WINDOWS)
+	GC_all_interior_pointers = 0;
 	GC_use_DllMain();
 #endif
 	GC_init();
@@ -190,11 +155,11 @@ EXTERN void neko_gc_stats( int *heap, int *free ) {
 }
 
 EXTERN char *alloc( unsigned int nbytes ) {
-	return (char*)gc_alloc(nbytes);
+	return (char*)gc_alloc_big(nbytes);
 }
 
 EXTERN char *alloc_private( unsigned int nbytes ) {
-	return (char*)gc_alloc_big(nbytes);
+	return (char*)gc_alloc_private_big(nbytes);
 }
 
 EXTERN value alloc_empty_string( unsigned int size ) {
@@ -203,7 +168,7 @@ EXTERN value alloc_empty_string( unsigned int size ) {
 		return (value)&empty_string;
 	if( size > max_string_size )
 		failure("max_string_size reached");
-	s = (vstring*)gc_alloc_big(size+sizeof(vstring));
+	s = (vstring*)gc_alloc_private_big(size+sizeof(vstring));
 	s->t = VAL_STRING | (size << 3);
 	(&s->c)[size] = 0;
 	return (value)s;
@@ -228,7 +193,7 @@ EXTERN value alloc_array( unsigned int n ) {
 		return (value)(void*)&empty_array;
 	if( n > max_array_size )
 		failure("max_array_size reached");
-	v = (value)gc_alloc(sizeof(varray)+(n - 1)*sizeof(value));
+	v = (value)gc_alloc_big(sizeof(varray)+(n - 1)*sizeof(value));
 	v->t = VAL_ARRAY | (n << 3);
 	return v;
 }
