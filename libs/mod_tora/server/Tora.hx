@@ -170,7 +170,7 @@ class Tora {
 				client.sock.setTimeout(3);
 				while( !client.processMessage() ) {
 				}
-				if( client.file == null )
+				if( client.execute && client.file == null )
 					throw "Missing module file";
 			} catch( e : Dynamic ) {
 				log("Error while reading request ("+Std.string(e)+")");

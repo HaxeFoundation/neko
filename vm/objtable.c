@@ -45,7 +45,7 @@ int otable_remove( objtable t, field id ) {
 				c[mid] = c[mid+1];
 				mid++;
 			}
-			c[mid].v = NULL;
+			c[mid].v = val_null;
 			return 1;
 		}
 	}
@@ -112,8 +112,9 @@ objtable otable_copy( objtable t ) {
 
 void otable_iter(objtable t, void f( value data, field id, void *), void *p ) {
 	int i;
+	int n = t->count;
 	cell *c = t->cells;
-	for(i=0;i<t->count;i++)
+	for(i=0;i<n;i++)
 		f(c[i].v,c[i].id,p);
 }
 
