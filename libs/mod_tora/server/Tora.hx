@@ -170,9 +170,12 @@ class Tora {
 				client.sock.setTimeout(3);
 				while( !client.processMessage() ) {
 				}
+				if( client.file == null )
+					throw "Missing module file";
 			} catch( e : Dynamic ) {
-				log(e);
+				log("Error while reading request ("+Std.string(e)+")");
 				t.errors++;
+				client.execute = false;
 			}
 			// check if we need to do something
 			if( !client.execute ) {
@@ -235,7 +238,7 @@ class Tora {
 			try {
 				client.sendMessage(code,data);
 			} catch( e : Dynamic ) {
-				log(e);
+				log("Error while sending answer ("+Std.string(e)+")");
 				t.errors++;
 				api.main = null; // in case of cache-bug
 			}
@@ -321,8 +324,7 @@ class Tora {
 		};
 	}
 
-	public static function log( v : Dynamic ) {
-		var msg = try Std.string(v) catch( e : Dynamic ) "???";
+	public static function log( msg : String ) {
 		neko.io.File.stderr().writeString("["+Date.now().toString()+"] "+msg+"\n");
 	}
 
