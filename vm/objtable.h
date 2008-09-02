@@ -33,22 +33,44 @@ static INLINE value *otable_find(objtable t,field id) {
 	int min;
 	int max;
 	int mid;
+	cell *c;
 	field cid;
-	if( !t->count )
-		return NULL;
-	max = t->count;
 	min = 0;
+	max = t->count;
+	c = t->cells;
 	while( min < max ) {
 		mid = (min + max) >> 1;
-		cid = t->cells[mid].id;
+		cid = c[mid].id;
 		if( cid < id )
 			min = mid + 1;
 		else if( cid > id )
 			max = mid;
 		else
-			return &t->cells[mid].v;
+			return &c[mid].v;
 	}
 	return NULL;
+}
+
+static INLINE value otable_get(objtable t,field id) {
+	int min;
+	int max;
+	int mid;
+	cell *c;
+	field cid;
+	min = 0;
+	max = t->count;
+	c = t->cells;
+	while( min < max ) {
+		mid = (min + max) >> 1;
+		cid = c[mid].id;
+		if( cid < id )
+			min = mid + 1;
+		else if( cid > id )
+			max = mid;
+		else
+			return c[mid].v;
+	}
+	return val_null;
 }
 
 objtable otable_empty();
