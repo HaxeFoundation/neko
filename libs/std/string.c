@@ -298,7 +298,7 @@ static value url_encode( value v ) {
 		unsigned char *out = (unsigned char*)val_string(v2);
 		while( len-- > 0 ) {
 			unsigned char c = in[pin++];
-			if( (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' )
+			if( (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' || c == '-' || c == '.' )
 				out[pout++] = c;
 			else {
 				out[pout++] = '%';
