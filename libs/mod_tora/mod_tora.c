@@ -114,9 +114,10 @@ static int tora_handler( request_rec *r ) {
 
 	// wait and handle response
 	{
-		char *emsg = protocol_loop(ctx);
+		int exc = 0;
+		char *emsg = protocol_loop(ctx,&exc);
 		if( emsg != NULL ) {
-			request_error(ctx,emsg,false);
+			request_error(ctx,emsg,!exc);
 			free(emsg);
 		}
 	}

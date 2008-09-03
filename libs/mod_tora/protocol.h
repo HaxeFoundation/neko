@@ -103,6 +103,6 @@ typedef enum {
 	}
 
 void protocol_send_request( mcontext *c );
-char *protocol_loop( mcontext *c );
+char *protocol_loop( mcontext *c, int *exc );
 
 #endif

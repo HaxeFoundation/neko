@@ -25,8 +25,6 @@
 #	define MSG_NOSIGNAL 0
 #endif
 
-#define MAX_PARAM_SIZE		1024
-
 #define PARSE_HEADER(start,cursor) \
 	cursor = start; \
 	if( *cursor == '"' ) { \
@@ -85,10 +83,6 @@ static int send_client_header( void *_c, const char *key, const char *val ) {
 static int url_decode( const char *bin, int len, char *bout ) {
 	int pin = 0;
 	int pout = 0;
-	if( len >= MAX_PARAM_SIZE ) {
-		*bout = 0;
-		return 0;
-	}
 	while( len-- > 0 ) {
 		char c = bin[pin++];
 		if( c == '+' )
@@ -124,10 +118,22 @@ static int url_decode( const char *bin, int len, char *bout ) {
 	return pout;
 }
 
+#define DEFAULT_SIZE	256
+
+static void psend_decode( mcontext *ctx, proto_code code, const char *str, int len ) {
+	char tmp[DEFAULT_SIZE];
+	char *buf = NULL;
+	int size;
+	if( len > DEFAULT_SIZE )
+		buf = malloc(len);
+	size = url_decode(str,len,buf?buf:tmp);
+	psend_size(ctx,code,buf?buf:tmp,size);
+	if( buf )
+		free(buf);
+}
+
 static void send_parsed_params( mcontext *ctx, const char *args ) {
 	char *aand, *aeq, *asep;
-	char tmp[MAX_PARAM_SIZE];
-	int size;
 	while( true ) {
 		aand = strchr(args,'&');
 		if( aand == NULL ) {
@@ -143,10 +149,8 @@ static void send_parsed_params( mcontext *ctx, const char *args ) {
 		aeq = strchr(args,'=');
 		if( aeq != NULL ) {
 			*aeq = 0;
-			size = url_decode(args,(int)(aeq-args),tmp);
-			psend_size(ctx,CODE_PARAM_KEY,tmp,size);
-			size = url_decode(aeq+1,(int)strlen(aeq+1),tmp);
-			psend_size(ctx,CODE_PARAM_VALUE,tmp,size);
+			psend_decode(ctx,CODE_PARAM_KEY,args,(int)(aeq-args));
+			psend_decode(ctx,CODE_PARAM_VALUE,aeq+1,(int)strlen(aeq+1));
 			*aeq = '=';
 		}
 		if( aand == NULL )
@@ -317,12 +321,13 @@ void protocol_send_request( mcontext *c ) {
 #define BUFSIZE	(1 << 16) // 64 KB
 #define ABORT(msg)	{ error = strdup(msg); goto exit; }
 
-char *protocol_loop( mcontext *c ) {
+char *protocol_loop( mcontext *c, int *exc ) {
 	unsigned char header[4];
 	int len;
 	char *buf = (char*)malloc(BUFSIZE), *key = NULL;
 	char *error = NULL;
 	int buflen = BUFSIZE;
+	*exc = 0;
 	while( true ) {
 		if( !pread(c,header,4) )
 			ABORT("Connection Closed");
@@ -358,6 +363,7 @@ char *protocol_loop( mcontext *c ) {
 		case CODE_EXECUTE:
 			goto exit;
 		case CODE_ERROR:
+			*exc = 1;
 			ABORT(buf);
 		case CODE_PRINT:
 			ap_soft_timeout("Client Timeout",c->r);
