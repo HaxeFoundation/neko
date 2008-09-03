@@ -124,8 +124,8 @@ static void psend_decode( mcontext *ctx, proto_code code, const char *str, int l
 	char tmp[DEFAULT_SIZE];
 	char *buf = NULL;
 	int size;
-	if( len > DEFAULT_SIZE )
-		buf = malloc(len);
+	if( len >= DEFAULT_SIZE )
+		buf = malloc(len+1);
 	size = url_decode(str,len,buf?buf:tmp);
 	psend_size(ctx,code,buf?buf:tmp,size);
 	if( buf )
