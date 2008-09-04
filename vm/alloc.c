@@ -64,7 +64,6 @@ static value *apply_string = NULL;
 int_val *callback_return = &op_last;
 value *neko_builtins = NULL;
 objtable *neko_fields = NULL;
-int neko_fields_size = 0;
 mt_lock *neko_fields_lock = NULL;
 mt_local *neko_vm_context = NULL;
 static val_type t_null = VAL_NULL;
@@ -362,9 +361,12 @@ EXTERN void neko_global_init() {
 	neko_gc_init();
 	neko_vm_context = alloc_local();
 	neko_fields_lock = alloc_lock();
-	neko_fields = (objtable*)alloc_root(1);
-	neko_fields_size = 0;
-	*neko_fields = otable_empty();
+	neko_fields = (objtable*)alloc_root(NEKO_FIELDS_MASK+1);
+	{
+		int i;
+		for(i=0;i<=NEKO_FIELDS_MASK;i++)
+			neko_fields[i] = otable_empty();
+	}
 	neko_init_builtins();
 	kind_names = (kind_list**)alloc_root(1);
 	*kind_names = NULL;

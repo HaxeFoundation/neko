@@ -27,7 +27,6 @@ DEFINE_KIND(k_hash);
 
 extern mt_lock *neko_fields_lock;
 extern objtable *neko_fields;
-extern int neko_fields_size;
 extern field id_compare;
 extern field id_string;
 extern char *jit_handle_trap;
@@ -355,6 +354,7 @@ int neko_stack_expand( int_val *sp, int_val *csp, neko_vm *vm ) {
 }
 
 EXTERN field val_id( const char *name ) {
+	objtable t;
 	value fdata;
 	field f;
 	value acc = alloc_int(0);
@@ -364,18 +364,18 @@ EXTERN field val_id( const char *name ) {
 		name++;
 	}
 	f = val_int(acc);
-	fdata = otable_get(*neko_fields,f);
+	t = neko_fields[f&NEKO_FIELDS_MASK];
+	fdata = otable_get(t,f);
 	if( fdata == val_null ) {
 		// insert in the table, but by using a larger table that grows faster
 		// since we don't want to resize the table for each insert
-		objtable t;
-		int min = 0;
+		int min;
 		int max;
 		int mid;
 		field cid;
 		cell *c;
 		lock_acquire(neko_fields_lock);
-		t = *neko_fields;
+		min = 0;
 		max = t->count;
 		c = t->cells;
 		while( min < max ) {
@@ -392,26 +392,28 @@ EXTERN field val_id( const char *name ) {
 		}
 		// in case we found it, it means that it's been inserted by another thread
 		if( fdata == val_null ) {
-			// grow the size if needed
-			if( t->count == neko_fields_size ) {
-				int nsize = neko_fields_size ? (neko_fields_size << 1) : 128;
-				c = (cell*)alloc(sizeof(cell)*nsize);
-				memcpy(c,t->cells,t->count * sizeof(cell));
-				neko_fields_size = nsize;
-			}
-			// insert into the table
+			cell *c2 = (cell*)alloc(sizeof(cell)*(t->count+1));
+
+			// copy the whole table
 			mid = (min + max) >> 1;
-			min = t->count;
-			while( min > mid ) {
-				c[min] = c[min-1];
-				min--;
+			min = 0;
+			while( min < mid ) {
+				c2[min] = c[min];
+				min++;
 			}
-			c[mid].id = f;
-			c[mid].v = copy_string(oname,name - oname);
-			t->cells = c;
+			c2[min].id = f;
+			c2[min].v = copy_string(oname,name - oname);
+			max = t->count;
+			while( min < max ) {
+				c2[min+1] = c[min];
+				min++;
+			}
+
+			// update
+			t->cells = c2;
 			t->count++;
 		}
-		lock_release(neko_fields_lock);		
+		lock_release(neko_fields_lock);
 	}
 	if( fdata != val_null && scmp(val_string(fdata),val_strlen(fdata),oname,(int)(name - oname)) != 0 ) {
 		buffer b = alloc_buffer("Field conflict between ");
@@ -424,7 +426,7 @@ EXTERN field val_id( const char *name ) {
 }
 
 EXTERN value val_field_name( field id ) {
-	return otable_get(*neko_fields,id);
+	return otable_get(neko_fields[id&NEKO_FIELDS_MASK],id);
 }
 
 EXTERN value val_field( value _o, field id ) {

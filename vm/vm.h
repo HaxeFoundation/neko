@@ -24,6 +24,7 @@
 #define MAX_STACK_PER_FUNCTION	128
 #define PROF_SIZE		(1 << 20)
 #define CALL_MAX_ARGS	5
+#define NEKO_FIELDS_MASK 63
 
 typedef struct _custom_list {
 	vkind tag;
