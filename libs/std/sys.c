@@ -28,6 +28,7 @@
 #	include <direct.h>
 #	include <conio.h>
 #else
+#	include <errno.h>
 #	include <unistd.h>
 #	include <dirent.h>
 #	include <limits.h>
@@ -102,9 +103,17 @@ static value sys_sleep( value f ) {
 #ifdef NEKO_WINDOWS
 	Sleep((DWORD)(val_number(f) * 1000));
 #else
-	if( (int)val_number(f) > 0 )
-		sleep((int)val_number(f));
-	usleep( (int)((val_number(f) - (int)val_number(f)) * 1000000) );
+	{
+		struct timespec t;
+		struct timespec tmp;
+		t.tv_sec = (int)val_number(f);
+		t.tv_nsec = (int)((val_number(f) - t.tv_sec) * 1e9);
+		while( nanosleep(&t,&tmp) == -1 ) {
+			if( errno != EINTR )
+				neko_error();
+			t = tmp;
+		}
+	}
 #endif
 	return val_true;
 }
