@@ -88,9 +88,23 @@ class Tora {
 		cleanupLoop();
 	}
 
+	function checkThreads() {
+		var now = haxe.Timer.stamp();
+		for( t in threads ) {
+			var c = t.client;
+			if( c == null ) continue;
+			var dt = now - t.time;
+			if( dt < 100 ) continue;
+			var file = t.client.file;
+			if( file == null ) file = "???";
+			log("Thread "+t.id+" blocked in "+file+" for "+(Std.int(dt*10)/10)+"s");
+		}
+	}
+
 	function cleanupLoop() {
 		while( true ) {
 			neko.Sys.sleep(15);
+			checkThreads();
 			flock.acquire();
 			var files = Lambda.array(files);
 			if( files.length == 0 ) {
