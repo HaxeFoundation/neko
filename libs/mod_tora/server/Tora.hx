@@ -95,9 +95,9 @@ class Tora {
 			if( c == null ) continue;
 			var dt = now - t.time;
 			if( dt < 100 ) continue;
-			var file = t.client.file;
-			if( file == null ) file = "???";
-			log("Thread "+t.id+" blocked in "+file+" for "+(Std.int(dt*10)/10)+"s");
+			var uri = t.client.uri;
+			if( uri == null ) uri = "???";
+			log("Thread "+t.id+" blocked in "+uri+" for "+(Std.int(dt*10)/10)+"s");
 		}
 	}
 
