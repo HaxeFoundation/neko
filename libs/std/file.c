@@ -106,9 +106,13 @@ static value file_write( value o, value s, value pp, value n ) {
 	if( p < 0 || len < 0 || p > val_strlen(s) || p + len > val_strlen(s) )
 		neko_error();
 	while( len > 0 ) {
-		int d = (int)fwrite(val_string(s)+p,1,len,f->io);
-		if( d <= 0 )
+		int d;
+		POSIX_LABEL(file_write_again);
+		d = (int)fwrite(val_string(s)+p,1,len,f->io);
+		if( d <= 0 ) {
+			HANDLE_FINTR(f->io,file_write_again);
 			file_error("file_write",f);
+		}
 		p += d;
 		len -= d;
 	}
@@ -136,9 +140,12 @@ static value file_read( value o, value s, value pp, value n ) {
 	if( p < 0 || len < 0 || p > val_strlen(s) || p + len > val_strlen(s) )
 		neko_error();
 	while( len > 0 ) {
-		int d = (int)fread((char*)val_string(s)+p,1,len,f->io);
+		int d;
+		POSIX_LABEL(file_read_again);
+		d = (int)fread((char*)val_string(s)+p,1,len,f->io);
 		if( d <= 0 ) {
 			int size = val_int(n) - len;
+			HANDLE_FINTR(f->io,file_read_again);
 			if( size == 0 )
 				file_error("file_read",f);
 			return alloc_int(size);
@@ -162,8 +169,11 @@ static value file_write_char( value o, value c ) {
 		neko_error();
 	cc = (char)val_int(c);
 	f = val_file(o);
-	if( fwrite(&cc,1,1,f->io) != 1 )
+	POSIX_LABEL(write_char_again);
+	if( fwrite(&cc,1,1,f->io) != 1 ) {
+		HANDLE_FINTR(f->io,write_char_again);
 		file_error("file_write_char",f);
+	}
 	return val_true;
 }
 
@@ -175,9 +185,12 @@ static value file_read_char( value o ) {
 	unsigned char cc;
 	fio *f;
 	val_check_kind(o,k_file);
-	f = val_file(o);	
-	if( fread(&cc,1,1,f->io) != 1 )
+	f = val_file(o);
+	POSIX_LABEL(read_char_again);
+	if( fread(&cc,1,1,f->io) != 1 ) {
+		HANDLE_FINTR(f->io,read_char_again);
 		file_error("file_read_char",f);
+	}
 	return alloc_int(cc);
 }
 
@@ -253,8 +266,11 @@ static value file_contents( value name ) {
 	s = alloc_empty_string(len);
 	p = 0;
 	while( len > 0 ) {
-		int d = (int)fread((char*)val_string(s)+p,1,len,f.io);
+		int d;
+		POSIX_LABEL(file_contents);
+		d = (int)fread((char*)val_string(s)+p,1,len,f.io);
 		if( d <= 0 ) {
+			HANDLE_FINTR(f.io,file_contents);
 			fclose(f.io);
 			file_error("file_contents",&f);
 		}

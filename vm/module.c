@@ -585,9 +585,13 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 int neko_file_reader( readp p, void *buf, int size ) {
 	int len = 0;
 	while( size > 0 ) {
-		int l = (int)fread(buf,1,size,(FILE*)p);
-		if( l <= 0 )
+		int l;
+		POSIX_LABEL(fread_again);
+		l = (int)fread(buf,1,size,(FILE*)p);
+		if( l <= 0 ) {
+			HANDLE_FINTR((FILE*)p,fread_again);
 			return len;
+		}
 		size -= l;
 		len += l;
 		buf = (char*)buf+l;

@@ -258,6 +258,17 @@ typedef struct _mt_lock mt_lock;
 #	define CONV_FLOAT
 #endif
 
+#ifdef NEKO_POSIX
+#	include <errno.h>
+#	define POSIX_LABEL(name)	name:
+#	define HANDLE_EINTR(label)	if( errno == EINTR ) goto label
+#	define HANDLE_FINTR(f,label) if( ferror(f) && errno == EINTR ) goto label
+#else
+#	define POSIX_LABEL(name)
+#	define HANDLE_EINTR(label)
+#	define HANDLE_FINTR(f,label)
+#endif
+
 #define VAR_ARGS (-1)
 #define DEFINE_PRIM_MULT(func) C_FUNCTION_BEGIN EXPORT void *func##__MULT() { return (void*)(&func); } C_FUNCTION_END
 #define DEFINE_PRIM(func,nargs) C_FUNCTION_BEGIN EXPORT void *func##__##nargs() { return (void*)(&func); } C_FUNCTION_END

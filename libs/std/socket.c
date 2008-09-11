@@ -68,14 +68,6 @@ DEFINE_KIND(k_poll);
 #define val_sock(o)		((SOCKET)(int_val)val_data(o))
 #define val_poll(o)		((polldata*)val_data(o))
 
-#ifdef NEKO_POSIX
-#	define LABEL(name)			name:
-#	define HANDLE_EINTR(label)	if( errno == EINTR ) goto label
-#else
-#	define LABEL(name)
-#	define HANDLE_EINTR(label)
-#endif
-
 /**
 	<doc>
 	<h1>Socket</h1>
@@ -158,7 +150,7 @@ static value socket_send_char( value o, value v ) {
 	if( c < 0 || c > 255 )
 		neko_error();
 	cc = (unsigned char)c;
-	LABEL(send_char_again);
+	POSIX_LABEL(send_char_again);
 	if( send(val_sock(o),&cc,1,MSG_NOSIGNAL) == SOCKET_ERROR ) {
 		HANDLE_EINTR(send_char_again);
 		return block_error();
@@ -204,7 +196,7 @@ static value socket_recv( value o, value data, value pos, value len ) {
 	dlen = val_strlen(data);
 	if( p < 0 || l < 0 || p > dlen || p + l > dlen )
 		neko_error();
-	LABEL(recv_again);
+	POSIX_LABEL(recv_again);
 	dlen = recv(val_sock(o), val_string(data) + p , l, MSG_NOSIGNAL);
 	if( dlen == SOCKET_ERROR ) {
 		HANDLE_EINTR(recv_again);
@@ -221,7 +213,7 @@ static value socket_recv_char( value o ) {
 	int ret;
 	unsigned char cc;
 	val_check_kind(o,k_socket);
-	LABEL(recv_char_again);
+	POSIX_LABEL(recv_char_again);
 	ret = recv(val_sock(o),&cc,1,MSG_NOSIGNAL);
 	if( ret == SOCKET_ERROR ) {
 		HANDLE_EINTR(recv_char_again);
@@ -245,7 +237,7 @@ static value socket_write( value o, value data ) {
 	cdata = val_string(data);
 	datalen = val_strlen(data);
 	while( datalen > 0 ) {
-		LABEL(write_again);
+		POSIX_LABEL(write_again);
 		slen = send(val_sock(o),cdata,datalen,MSG_NOSIGNAL);
 		if( slen == SOCKET_ERROR ) {
 			HANDLE_EINTR(write_again);
@@ -271,7 +263,7 @@ static value socket_read( value o ) {
 	val_check_kind(o,k_socket);
 	b = alloc_buffer(NULL);
 	while( true ) {
-		LABEL(read_again);
+		POSIX_LABEL(read_again);
 		len = recv(val_sock(o),buf,256,MSG_NOSIGNAL);
 		if( len == SOCKET_ERROR ) {
 			HANDLE_EINTR(read_again);
@@ -441,7 +433,7 @@ static value socket_select( value rs, value ws, value es, value timeout ) {
 	fd_set rx, wx, ex;
 	fd_set *ra, *wa, *ea;
 	value r;
-	LABEL(select_again);
+	POSIX_LABEL(select_again);
 	ra = make_socket_array(rs,&rx,&n);
 	wa = make_socket_array(ws,&wx,&n);
 	ea = make_socket_array(es,&ex,&n);
@@ -742,7 +734,7 @@ static value socket_poll_events( value pdata, value timeout ) {
 	val_check(timeout,number);
 	p = val_poll(pdata);
 	tot = p->rcount + p->wcount;
-	LABEL(poll_events_again);
+	ELABEL(poll_events_again);
 	if( poll(p->fds,tot,(int)(val_number(timeout) * 1000)) < 0 ) {
 		HANDLE_EINTR(poll_events_again);
 		neko_error();
