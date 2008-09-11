@@ -734,7 +734,7 @@ static value socket_poll_events( value pdata, value timeout ) {
 	val_check(timeout,number);
 	p = val_poll(pdata);
 	tot = p->rcount + p->wcount;
-	ELABEL(poll_events_again);
+	POSIX_LABEL(poll_events_again);
 	if( poll(p->fds,tot,(int)(val_number(timeout) * 1000)) < 0 ) {
 		HANDLE_EINTR(poll_events_again);
 		neko_error();
