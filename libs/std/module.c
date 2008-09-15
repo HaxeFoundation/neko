@@ -60,10 +60,31 @@ static value module_read( value fread, value loader ) {
 	value p;
 	neko_module *m;
 	val_check_function(fread,3);
+	val_check(loader,object);
 	p = alloc_array(2);
 	val_array_ptr(p)[0] = fread;
 	val_array_ptr(p)[1] = alloc_empty_string(READ_BUFSIZE);
 	m = neko_read_module(read_proxy,p,loader);
+	if( m == NULL )
+		neko_error();
+	m->name = alloc_string("");
+	return alloc_abstract(neko_kind_module,m);
+}
+
+/**
+	module_read_string : srting -> loader:object -> 'module
+	<doc>
+	Read a module using the specified string datas.
+	</doc>
+**/
+static value module_read_string( value str, value loader ) {
+	neko_module *m;
+	string_pos p;
+	val_check(str,string);
+	val_check(loader,object);
+	p.p = val_string(str);
+	p.len = val_strlen(str);
+	m = neko_read_module(neko_string_reader,&p,loader);
 	if( m == NULL )
 		neko_error();
 	m->name = alloc_string("");
@@ -204,6 +225,7 @@ static value module_code_size( value mv ) {
 }
 
 DEFINE_PRIM(module_read,2);
+DEFINE_PRIM(module_read_string,2);
 DEFINE_PRIM(module_read_path,3);
 DEFINE_PRIM(module_exec,1);
 DEFINE_PRIM(module_name,1);
