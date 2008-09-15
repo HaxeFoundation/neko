@@ -72,7 +72,7 @@ static value module_read( value fread, value loader ) {
 }
 
 /**
-	module_read_string : srting -> loader:object -> 'module
+	module_read_string : string -> loader:object -> 'module
 	<doc>
 	Read a module using the specified string datas.
 	</doc>
@@ -147,6 +147,19 @@ static value module_name( value mv ) {
 	val_check_kind(mv,neko_kind_module);
 	m = (neko_module*)val_data(mv);
 	return m->name;
+}
+
+/**
+	module_set_name : 'module -> string -> void
+	<doc>Set the module name</doc>
+**/
+static value module_set_name( value mv, value str ) {
+	neko_module *m;
+	val_check_kind(mv,neko_kind_module);
+	val_check(str,string);
+	m = (neko_module*)val_data(mv);
+	m->name = str;
+	return val_null;
 }
 
 /**
@@ -235,5 +248,6 @@ DEFINE_PRIM(module_nglobals,1);
 DEFINE_PRIM(module_global_get,2);
 DEFINE_PRIM(module_global_set,3);
 DEFINE_PRIM(module_code_size,1);
+DEFINE_PRIM(module_set_name,2);
 
 /* ************************************************************************ */

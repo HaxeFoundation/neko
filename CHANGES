@@ -28,7 +28,7 @@ TODO :
 	std : use per-thread locale on POSIX systems
 	std : url_encode does not encode anymore - and . chars
 	std : fixed sleep() for unix (more accurate and deal with signals)
-	std : added module_read_string
+	std : added module_read_string and module_set_name
 
 2008-07-28 : 1.7.1
 	nekotools : fixed set_return_code in web server
