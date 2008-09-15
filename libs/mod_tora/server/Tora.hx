@@ -156,7 +156,13 @@ class Tora {
 			if( mod == null ) {
 				var b = try neko.io.File.getBytes(module+".n") catch( e : Dynamic ) null;
 				try {
-					mod = if( b == null ) neko.vm.Module.readPath(module,me.modulePath,self) else neko.vm.Module.readBytes(b,self);
+					if( b == null )
+						mod = neko.vm.Module.readPath(module,me.modulePath,self);
+					else {
+						mod = neko.vm.Module.readBytes(b,self);
+						mod.name = module;
+						b = null;
+					}
 				} catch( e : Dynamic ) {
 					log("Failed to load module '"+module+"'");
 					neko.Lib.rethrow(e);
