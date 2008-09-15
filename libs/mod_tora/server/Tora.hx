@@ -95,9 +95,7 @@ class Tora {
 			if( c == null ) continue;
 			var dt = now - t.time;
 			if( dt < 100 ) continue;
-			var uri = t.client.uri;
-			if( uri == null ) uri = "???";
-			log("Thread "+t.id+" blocked in "+uri+" for "+(Std.int(dt*10)/10)+"s");
+			log("Thread "+t.id+" blocked in "+c.getURL()+" for "+(Std.int(dt*10)/10)+"s");
 		}
 	}
 
@@ -156,7 +154,13 @@ class Tora {
 			var cache : Dynamic = untyped self.l.cache;
 			var mod = Reflect.field(cache,module);
 			if( mod == null ) {
-				mod = neko.vm.Module.readPath(module,me.modulePath,self);
+				var b = try neko.io.File.getBytes(module+".n") catch( e : Dynamic ) null;
+				try {
+					mod = if( b == null ) neko.vm.Module.readPath(module,me.modulePath,self) else neko.vm.Module.readBytes(b,self);
+				} catch( e : Dynamic ) {
+					log("Failed to load module '"+module+"'");
+					neko.Lib.rethrow(e);
+				}
 				Reflect.setField(cache,module,mod);
 				mod.execute();
 			}
@@ -315,7 +319,7 @@ class Tora {
 				hits : t.hits,
 				errors : t.errors,
 				file : (cur == null) ? null : (cur.file == null ? "???" : cur.file),
-				url : (cur == null) ? null : (cur.hostName == null ? "???" : cur.hostName + ((cur.uri == null) ? "???" : cur.uri)),
+				url : (cur == null) ? null : cur.getURL(),
 				time : (haxe.Timer.stamp() - t.time),
 			};
 			tot += t.hits;

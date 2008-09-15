@@ -127,4 +127,12 @@ class Client {
 		return false;
 	}
 
+	public function getURL() {
+		var h = hostName;
+		var u = uri;
+		if( h == null ) h = "???";
+		if( u == null ) u = "/???";
+		return h + u;
+	}
+
 }
