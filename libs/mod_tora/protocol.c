@@ -380,7 +380,6 @@ char *protocol_loop( mcontext *c, int *exc ) {
 		case CODE_REDIRECT:
 			if( c->headers_sent )
 				ABORT("Cannot redirect : headers already sent");
-			ap_log_rerror(__FILE__, __LINE__, APLOG_NOTICE, LOG_SUCCESS c->r, "[mod_tora] REDIR[%s]", buf);
 			ap_table_set(c->r->headers_out,"Location",buf);
 			c->r->status = REDIRECT;
 			break;
