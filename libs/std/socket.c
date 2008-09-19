@@ -123,6 +123,13 @@ static value socket_new( value udp ) {
 #	ifdef NEKO_MAC
 	setsockopt(s,SOL_SOCKET,SO_NOSIGPIPE,NULL,0);
 #	endif
+#	ifdef NEKO_POSIX
+	// we don't want sockets to be inherited in case of exec
+	{
+		int old = fcntl(s,F_GETFD,0);
+		if( old >= 0 ) fcntl(s,F_SETFD,old|FD_CLOEXEC);
+	}
+#	endif
 	return alloc_abstract(k_socket,(value)(int_val)s);
 }
 
@@ -132,7 +139,10 @@ static value socket_new( value udp ) {
 **/
 static value socket_close( value o ) {
 	val_check_kind(o,k_socket);
-	closesocket(val_sock(o));
+	POSIX_LABEL(close_again);
+	if( closesocket(val_sock(o)) ) {
+		HANDLE_EINTR(close_again);
+	}
 	val_kind(o) = NULL;
 	return val_true;
 }
