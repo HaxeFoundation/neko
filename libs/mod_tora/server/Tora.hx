@@ -32,6 +32,7 @@ typedef FileData = {
 	var loads : Int;
 	var cacheHits : Int;
 	var bytes : Float;
+	var time : Float;
 	var lock : neko.vm.Mutex;
 	var cache : haxe.FastList<ModNekoApi>;
 }
@@ -88,21 +89,9 @@ class Tora {
 		cleanupLoop();
 	}
 
-	function checkThreads() {
-		var now = haxe.Timer.stamp();
-		for( t in threads ) {
-			var c = t.client;
-			if( c == null ) continue;
-			var dt = now - t.time;
-			if( dt < 100 ) continue;
-			log("Thread "+t.id+" blocked in "+c.getURL()+" for "+(Std.int(dt*10)/10)+"s");
-		}
-	}
-
 	function cleanupLoop() {
 		while( true ) {
 			neko.Sys.sleep(15);
-			checkThreads();
 			flock.acquire();
 			var files = Lambda.array(files);
 			if( files.length == 0 ) {
@@ -154,19 +143,7 @@ class Tora {
 			var cache : Dynamic = untyped self.l.cache;
 			var mod = Reflect.field(cache,module);
 			if( mod == null ) {
-				var b = try neko.io.File.getBytes(module+".n") catch( e : Dynamic ) null;
-				try {
-					if( b == null )
-						mod = neko.vm.Module.readPath(module,me.modulePath,self);
-					else {
-						mod = neko.vm.Module.readBytes(b,self);
-						mod.name = module;
-						b = null;
-					}
-				} catch( e : Dynamic ) {
-					log("Failed to load module '"+module+"'");
-					neko.Lib.rethrow(e);
-				}
+				mod = neko.vm.Module.readPath(module,me.modulePath,self);
 				Reflect.setField(cache,module,mod);
 				mod.execute();
 			}
@@ -226,6 +203,7 @@ class Tora {
 						lock : new neko.vm.Mutex(),
 						cache : null,
 						bytes : 0.,
+						time : 0.,
 					};
 					files.set(client.file,f);
 				}
@@ -271,6 +249,7 @@ class Tora {
 			}
 			// save infos
 			f.lock.acquire();
+			f.time += haxe.Timer.stamp() - t.time;
 			f.bytes += client.dataBytes;
 			if( api.main != null && f.filetime == time ) {
 				api.client = null;
@@ -339,6 +318,7 @@ class Tora {
 				cacheHits : f.cacheHits,
 				cacheCount : Lambda.count(f.cache),
 				bytes : f.bytes,
+				time : f.time,
 			};
 			finf.push(f);
 		}

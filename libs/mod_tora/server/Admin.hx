@@ -22,7 +22,7 @@ class Admin {
 		neko.Lib.println(str);
 	}
 
-	static function f( v : Float ) {
+	static function fmt( v : Float ) {
 		return Math.round(v * 10) / 10;
 	}
 
@@ -52,8 +52,30 @@ class Admin {
 		w("</table>");
 	}
 
-	static function megas( size : Float )  {
-		return f( size / (1024*1024) );
+
+	static var TABID = 0;
+	static var TABS = new Array();
+
+	static function tab( s : String, f ) {
+		var id = TABID++;
+		w('<a class="tab" href="#" onclick="return toggle(\'tab_'+id+'\')">'+s+'</a>');
+		TABS.push(function() {
+			w('<div name="tab" class="tab" id="tab_'+id+'" style="display : none">');
+			f();
+			w('</div>');
+		});
+	}
+
+	static function displayTabs() {
+		for( t in TABS )
+			t();
+		w('<script type="text/javascript">');
+		w('
+		var ck = document.cookie.split("tab=")[1];
+		if( ck == null ) ck = "tab_0"; else ck = ck.split(";")[0];
+		toggle(ck);
+		');
+		w('</script>');
 	}
 
 	static function main() {
@@ -63,7 +85,8 @@ class Admin {
 		w("<title>Tora Admin</title>");
 		w('<style type="text/css">');
 		w("body, td, th { font-size : 8pt; font-family : monospace; }");
-		w("h1 { font-size : 20pt; margin-top : 5px; margin-bottom : 5px; }");
+		w("h1, a.tab { font-size : 20pt; margin-top : 5px; margin-bottom : 5px; }");
+		w("a.tab { color : black; font-weight : bold; text-decoration : none; margin-right : 30px; }");
 		w("table { border-collapse : collapse; border-spacing : 0; margin-left : 30px; }");
 		w("ul { margin-top : 5px; margin-bottom : 5px; }");
 		w("tr { margin : 0; padding : 0; }");
@@ -71,6 +94,19 @@ class Admin {
 		w(".left { float : left; }");
 		w(".right { float : right; margin-right : 30px; }");
 		w('</style>');
+		w('<script type="text/javascript">');
+		w('
+		function toggle(id) {
+			var elts = document.getElementsByName("tab");
+			var i = 0;
+			while( i < elts.length )
+				elts[i++].style.display = "none";
+			document.getElementById(id).style.display = "";
+			document.cookie = "tab="+id;
+			return false;
+		}
+		');
+		w('</script>');
 		w("</head>");
 		w("<body>");
 
@@ -82,7 +118,7 @@ class Admin {
 		if( cmd != null ) {
 			var t = neko.Sys.time();
 			command(cmd,params.get("p"));
-			w("<p>Command <b>"+cmd+"</b> took "+f(neko.Sys.time() - t)+"s to execute</p>");
+			w("<p>Command <b>"+cmd+"</b> took "+fmt(neko.Sys.time() - t)+"s to execute</p>");
 		}
 		var mem = neko.vm.Gc.stats();
 		var infos : Infos = neko.Lib.load("mod_neko","tora_infos",0)();
@@ -95,39 +131,39 @@ class Admin {
 			cacheHits += f.cacheHits;
 
 		list([
-			"Uptime : "+f(infos.upTime)+"s",
+			"Uptime : "+fmt(infos.upTime)+"s",
 			"Threads : "+busy+" / "+infos.threads.length,
 			"Queue size : "+infos.queue,
 			"Memory : "+Std.int((mem.heap - mem.free)/1024)+" / "+Std.int(mem.heap/1024)+" KB",
-			"Total hits : "+infos.hits+" ("+f(infos.hits/infos.upTime)+"/sec)",
-			"Cache hits : "+cacheHits+" ("+f(cacheHits*100/infos.hits)+"%)",
+			"Total hits : "+infos.hits+" ("+fmt(infos.hits/infos.upTime)+"/sec)",
+			"Cache hits : "+cacheHits+" ("+fmt(cacheHits*100/infos.hits)+"%)",
 		]);
 
-		w('<div class="left">');
-		title("Files");
+		tab("Files",function() {
+			infos.files.sort(function(f1,f2) return (f2.loads + f2.cacheHits) - (f1.loads + f1.cacheHits));
+			table(
+				["File","Loads","Cache Hits","Instances","KB/hit","ms/hit"],
+				infos.files,
+				function(f:FileInfos) {
+					var tot = f.loads + f.cacheHits;
+					return [f.file,f.loads,f.cacheHits,f.cacheCount,fmt(f.bytes/(1024.0 * tot)),fmt(f.time*1000/tot)];
+				}
+			);
+		});
 
-		infos.files.sort(function(f1,f2) return (f2.loads + f2.cacheHits) - (f1.loads + f1.cacheHits));
+		tab("Threads",function() {
+			var count = 1;
+			table(
+				["TID","Hits","E","Status","Time"],
+				infos.threads,
+				function(t:ThreadInfos) return [count++,t.hits,t.errors,if( t.file == null ) "idle" else t.url,fmt(t.time)+"s"]
+			);
+		});
 
-		table(
-			["File","Loads","C.Hits","Inst","Data"],
-			infos.files,
-			function(f:FileInfos) return [f.file,f.loads,f.cacheHits,f.cacheCount,megas(f.bytes)]
-		);
-		w("</div>");
+		displayTabs();
 
-		w('<div class="right">');
-		title("Threads");
-
-		var count = 1;
-		table(
-			["TID","Hits","E","Status","Time"],
-			infos.threads,
-			function(t:ThreadInfos) return [count++,t.hits,t.errors,if( t.file == null ) "idle" else t.url,f(t.time)+"s"]
-		);
-		w("</div>");
-
-		w("</body></html>");
-
+		w('</body>');
+		w('</html>');
 	}
 
 }
