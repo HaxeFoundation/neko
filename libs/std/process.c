@@ -56,7 +56,7 @@ DEFINE_KIND(k_process);
 	</p>
 	</doc>
 **/
-
+#ifndef NEKO_WINDOWS
 static int do_close( int fd ) {
 	POSIX_LABEL(close_again);
 	if( close(fd) != 0 ) {
@@ -65,6 +65,7 @@ static int do_close( int fd ) {
 	}
 	return 0;
 }
+#endif
 
 static void free_process( value vp ) {
 	vprocess *p = val_process(vp);
