@@ -187,6 +187,28 @@ static value set_trusted( value b ) {
 	return val_null;
 }
 
+/**
+	same_closure : f1 -> f2 -> bool
+	<doc>
+	Compare two functions by checking that they refer to the same implementation and that their environments contains physically equal values.
+	</doc>
+**/
+static value same_closure( value _f1, value _f2 ) {
+	vfunction *f1 = (vfunction*)_f1;
+	vfunction *f2 = (vfunction*)_f2;
+	int i;
+	if( !val_is_function(f1) || !val_is_function(f2) )
+		return val_false;
+	if( f1 == f2 )
+		return val_true;
+	if( f1->nargs != f2->nargs || f1->addr != f2->addr || f1->module != f2->module || val_array_size(f1->env) != val_array_size(f2->env) )
+		return val_false;
+	for(i=0;i<val_array_size(f1->env);i++)
+		if( val_array_ptr(f1->env)[i] != val_array_ptr(f2->env)[i] )
+			return val_false;
+	return val_true;
+}
+
 DEFINE_PRIM(float_bytes,2);
 DEFINE_PRIM(double_bytes,2);
 DEFINE_PRIM(float_of_bytes,2);
@@ -197,5 +219,6 @@ DEFINE_PRIM(enable_jit,1);
 DEFINE_PRIM(test,0);
 DEFINE_PRIM(print_redirect,1);
 DEFINE_PRIM(set_trusted,1);
+DEFINE_PRIM(same_closure,2);
 
 /* ************************************************************************ */
