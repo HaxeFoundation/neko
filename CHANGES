@@ -1,4 +1,4 @@
-2008-??-?? : 1.7.2
+2008-??-?? : 1.8.0
 	added mod_tora (neko application server)
 	changed mod_neko get_host_name : return the http host instead of the server IP
 	bugfix in nekoml : fixed usage of nekoml.std + added -nostd
@@ -24,6 +24,7 @@
 	std : added module_read_string and module_set_name
 	std : fixed some file descriptor issues with processes and threads
 	jit : fixed crash whith unsupported OO overloading
+	vm : added $getkind and $iskind builtins
 
 2008-07-28 : 1.7.1
 	nekotools : fixed set_return_code in web server

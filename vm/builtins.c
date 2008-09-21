@@ -33,6 +33,8 @@
 
 extern value *neko_builtins;
 
+DEFINE_KIND(neko_k_kind);
+
 /**
 	<doc>
 		<h1>Builtins</h1>
@@ -714,6 +716,26 @@ static value builtin_float( value f ) {
 	return val_null;
 }
 
+/** <doc><h2>Abstract Builtins</h2></doc> **/
+
+/**
+	$getkind : abstract -> 'kind
+	<doc>Returns the kind value of the abstract</doc>
+**/
+static value builtin_getkind( value v ) {
+	val_check(v,abstract);
+	return alloc_abstract(neko_k_kind,val_kind(v));
+}
+
+/**
+	$iskind : any -> 'kind -> bool
+	<doc>Tells if a value is of the given kind</doc>
+**/
+static value builtin_iskind( value v, value k ) {
+	val_check_kind(k,neko_k_kind);
+	return val_is_abstract(v) ? alloc_bool(val_kind(v) == (vkind)val_data(k)) : val_false;
+}
+
 /** <doc><h2>Hashtable Builtins</h2></doc> **/
 
 /**
@@ -1228,6 +1250,9 @@ void neko_init_builtins() {
 	BUILTIN(isnan,1);
 	BUILTIN(isinfinite,1);
 	BUILTIN(istrue,1);
+
+	BUILTIN(getkind,1);
+	BUILTIN(iskind,2);
 
 	BUILTIN(hnew,1);
 	BUILTIN(hget,3);
