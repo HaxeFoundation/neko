@@ -119,7 +119,9 @@ void neko_gc_init() {
 #	endif
 #if (GC_VERSION_MAJOR >= 7) && defined(NEKO_WINDOWS)
 	GC_all_interior_pointers = 0;
+#	ifndef NEKO_STANDALONE
 	GC_use_DllMain();
+#	endif
 #endif
 	GC_init();
 	GC_no_dls = 1;
