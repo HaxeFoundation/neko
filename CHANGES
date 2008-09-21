@@ -1,10 +1,3 @@
-TODO :
-	FIX OO dispatch order for JIT (done for interp in 1.5.4)
-	OSX/Intel JIT
-	use pcre with UTF8 support on OSX ?
-	support the ~ operation
-	use a per-function max stack with a real entry point function
-
 2008-??-?? : 1.7.2
 	added mod_tora (neko application server)
 	changed mod_neko get_host_name : return the http host instead of the server IP
@@ -30,6 +23,7 @@ TODO :
 	std : fixed sleep() for unix (more accurate and deal with signals)
 	std : added module_read_string and module_set_name
 	std : fixed some file descriptor issues with processes and threads
+	jit : fixed crash whith unsupported OO overloading
 
 2008-07-28 : 1.7.1
 	nekotools : fixed set_return_code in web server

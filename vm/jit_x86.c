@@ -1621,7 +1621,7 @@ static void jit_object_op_gen( jit_ctx *ctx, enum Operation op, int right ) {
 	XCall_m(val_field);
 	XCmp_rc(ACC,CONST(val_null));
 	XJump(JNeq,next);
-	stack_pop(Esp,7);
+	stack_pop(Esp,(op == OP_SET)?7:6);
 	runtime_error(21,true); // Unsupported operation
 	PATCH_JUMP(next);
 	XPop_r(TMP);
