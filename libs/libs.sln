@@ -39,12 +39,14 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mod_tora", "mod_tora\mod_to
 	ProjectSection(ProjectDependencies) = postProject
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mod_tora2", "mod_tora\mod_tora2.vcproj", "{311DC43B-AABB-4796-883C-F2482165F8C4}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfiguration) = preSolution
 		Debug = Debug
 		Release = Release
-	EndGlobalSection
-	GlobalSection(ProjectDependencies) = postSolution
 	EndGlobalSection
 	GlobalSection(ProjectConfiguration) = postSolution
 		{BC400EC9-8F65-4E34-85DC-687D5272B049}.Debug.ActiveCfg = Debug|Win32
@@ -87,6 +89,10 @@ Global
 		{BC400EC9-8F65-4E34-85DC-687D5272B049}.Debug.Build.0 = Debug|Win32
 		{BC400EC9-8F65-4E34-85DC-687D5272B049}.Release.ActiveCfg = Release|Win32
 		{BC400EC9-8F65-4E34-85DC-687D5272B049}.Release.Build.0 = Release|Win32
+		{311DC43B-AABB-4796-883C-F2482165F8C4}.Debug.ActiveCfg = Debug|Win32
+		{311DC43B-AABB-4796-883C-F2482165F8C4}.Debug.Build.0 = Debug|Win32
+		{311DC43B-AABB-4796-883C-F2482165F8C4}.Release.ActiveCfg = Release|Win32
+		{311DC43B-AABB-4796-883C-F2482165F8C4}.Release.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 	EndGlobalSection

@@ -68,7 +68,7 @@ static void psend_size( mcontext *c, proto_code code, const char *str, int len )
 }
 
 static void psend( mcontext *c, proto_code code, const char *str ) {
-	psend_size(c,code,str,strlen(str));
+	psend_size(c,code,str,(int)strlen(str));
 }
 
 static int send_client_header( void *_c, const char *key, const char *val ) {
