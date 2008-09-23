@@ -101,26 +101,28 @@ libs = {
 
 // PLATFORM
 
-cflags = "-O3 -fPIC -pthread";
+cflags = "-O3 -fPIC";
+if( system == "Linux" ) cflags += " -pthread";
 cc = getenv("CC");
 if( cc == null ) cc = "gcc";
 linkcmd = switch system { "BSD" => "ld" default => cc };
 linkneko = "-lneko";
 linkoptions = switch system {
-	"Mac" => "-bundle -undefined dynamic_lookup -L../../bin -pthread"
+	"Mac" => "-bundle -undefined dynamic_lookup -L../../bin"
 	default => "-shared -L../../bin -pthread"
 };
 nekovm = switch system { "Windows" => "..\\bin\\neko" default => "../bin/neko" };
 
 if( osx_universal ) {
+	var dir = "../libs/include/osx_universal/";
 	cflags += " -arch ppc -arch i386";
 	linkoptions += " -arch ppc -arch i386";
 	libs.regexp.lparams = null;
-	libs.regexp.lib = "osx_universal/libpcre.a";
+	libs.regexp.lib = dir + "libpcre.a";
 	libs.zlib.lparams = null;
-	libs.zlib.lib = "osx_universal/libz.a";
+	libs.zlib.lib = dir + "libz.a";
 	libs.mysql.lparams = null;
-	libs.mysql.lib = "osx_universal/libmysqlclient.a";
+	libs.mysql.lib = dir + "libmysqlclient.a";
 }
 
 // COMMANDS
@@ -167,8 +169,10 @@ search_includes = function(isap2) {
 	return $aconcat($array(inc1,inc2));
 }
 
+var cwd = $loader.loadprim("std@get_cwd",0)();
+cwd = $ssub(cwd,0,$ssize(cwd)-1);
 libraries = $array(
-	"../../libs/include",
+	cwd,
 	"/usr/lib",
 	"/usr/lib/mysql",
 	"/usr/local/lib",

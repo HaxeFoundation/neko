@@ -25,6 +25,11 @@
 #	define MSG_NOSIGNAL 0
 #endif
 
+#if defined(NEKO_MAC)
+#	define pread	tora_pread
+#	define pwrite	tora_pwrite
+#endif
+
 #define PARSE_HEADER(start,cursor) \
 	cursor = start; \
 	if( *cursor == '"' ) { \
