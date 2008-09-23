@@ -100,16 +100,12 @@ static OSStatus handleEvents( EventHandlerCallRef ref, EventRef e, void *data ) 
 
 #elif defined(NEKO_LINUX)
 
-static gint nothing( gpointer data ) {
-	return TRUE;
-}
-
 static gint onSyncCall( gpointer data ) {
 	value *r = (value*)data;
 	value f = *r;
 	free_root(r);
 	val_call0(f);
-	return 0;
+	return FALSE;
 }
 
 #endif
@@ -150,7 +146,6 @@ void ui_main() {
 	g_thread_init(NULL);
 	gdk_threads_init();
 	gtk_init(NULL,NULL);
-	gtk_timeout_add( 100, nothing, NULL ); 	// keep the loop alive
 	setlocale(LC_NUMERIC,"POSIX"); // prevent broking atof()
 	data.tid = pthread_self();
 	pthread_mutex_init(&data.lock,NULL);
@@ -246,7 +241,7 @@ static value ui_sync( value f ) {
 	// however the GTK lock mechanism is a LOT slower than
 	// using a pthread_mutex
 	pthread_mutex_lock(&data.lock);
-	gtk_idle_add( onSyncCall, (gpointer)r );
+	gtk_timeout_add( 0, onSyncCall, (gpointer)r );
 	pthread_mutex_unlock(&data.lock);
 #	endif
 	return val_null;
