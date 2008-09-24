@@ -25,7 +25,7 @@
 #	define MSG_NOSIGNAL 0
 #endif
 
-#if defined(NEKO_MAC)
+#ifdef NEKO_POSIX
 #	define pread	tora_pread
 #	define pwrite	tora_pwrite
 #endif
