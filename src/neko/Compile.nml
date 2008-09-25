@@ -231,8 +231,10 @@ function get_cases_ints(cases) {
 		| _ -> throw Exit
 		}
 	}) cases;
-	// only create jump table if small or >50% cases matched
-	if *max >= 16 && (List.length l * 100) / (*max + 1) < 50 then throw Exit;
+	// only create jump table if small or >10% cases matched
+	var nmatches = List.length l;
+	if nmatches < 3 then throw Exit;
+	if *max >= 16 && (nmatches * 100) / (*max + 1) < 10 then throw Exit;
 	(l,*max + 1)
 }
 

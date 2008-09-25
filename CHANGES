@@ -1,3 +1,6 @@
+2008-??-?? : 1.8.1
+	nekoc : small fix in evaluation of using jump tables for switch on integers
+
 2008-09-23 : 1.8.0
 	added mod_tora (neko application server)
 	changed mod_neko get_host_name : return the http host instead of the server IP
