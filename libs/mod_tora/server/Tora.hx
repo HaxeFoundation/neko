@@ -201,7 +201,7 @@ class Tora {
 						loads : 0,
 						cacheHits : 0,
 						lock : new neko.vm.Mutex(),
-						cache : null,
+						cache : new haxe.FastList<ModNekoApi>(),
 						bytes : 0.,
 						time : 0.,
 					};
