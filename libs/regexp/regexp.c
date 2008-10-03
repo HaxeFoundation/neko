@@ -32,6 +32,7 @@ DEFINE_KIND(k_regexp);
 
 static field id_pos;
 static field id_len;
+static pcre_extra limit;
 
 /**
 	<doc>
@@ -44,6 +45,15 @@ static field id_len;
 
 static void free_regexp( value p ) {	
 	pcre_free( PCRE(p)->r );
+}
+
+static int do_exec( pcredata *d, const char *str, int len, int pos ) {
+	int res = pcre_exec(d->r,&limit,str,len,pos,0,d->matchs,d->nmatchs * 3);
+	if( res >= 0 )
+		return 1;
+	if( res != PCRE_ERROR_NOMATCH )
+		val_throw(alloc_string("An error occured while running pcre_exec"));
+	return 0;
 }
 
 /**
@@ -137,7 +147,7 @@ static value regexp_match( value o, value s, value p, value len ) {
 	if( pp < 0 || ll < 0 || pp > val_strlen(s) || pp + ll > val_strlen(s) )
 		neko_error();
 	d = PCRE(o);
-	if( pcre_exec(d->r,NULL,val_string(s)+pp,ll,0,0,d->matchs,d->nmatchs * 3) >= 0 ) {
+	if( do_exec(d,val_string(s)+pp,ll,0) ) {
 		if( pp > 0 ) {
 			int i;
 			for(i=0;i<d->nmatchs * 3;i++)
@@ -163,7 +173,7 @@ static value do_replace( value o, value s, value s2, bool all ) {
 		const char *str = val_string(s);
 		const char *str2 = val_string(s2);
 		int len2 = val_strlen(s2);
-		while( pcre_exec(d->r,NULL,str,len,pos,0,d->matchs,d->nmatchs * 3) >= 0 ) {
+		while( do_exec(d,str,len,pos) ) {
 			buffer_append_sub(b,str+pos,d->matchs[0] - pos);
 			buffer_append_sub(b,str2,len2);
 			pos = d->matchs[1];
@@ -207,7 +217,7 @@ static value regexp_replace_fun( value o, value s, value f ) {
 		int len = val_strlen(s);
 		const char *str = val_string(s);
 		d->str = s;
-		while( pcre_exec(d->r,NULL,str,len,pos,0,d->matchs,d->nmatchs * 3) >= 0 ) {
+		while( do_exec(d,str,len,pos) ) {
 			buffer_append_sub(b,str+pos,d->matchs[0] - pos);
 			val_buffer(b,val_call1(f,o));
 			pos = d->matchs[1];
@@ -271,6 +281,8 @@ static value regexp_matched_pos( value o, value n ) {
 void regexp_main() {
 	id_pos = val_id("pos");
 	id_len = val_id("len");	
+	limit.flags = PCRE_EXTRA_MATCH_LIMIT_RECURSION;
+	limit.match_limit_recursion = 3500; // adapted based on Windows 1MB stack size
 }
 
 DEFINE_PRIM(regexp_new,1);
