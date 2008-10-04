@@ -719,7 +719,7 @@ static value builtin_float( value f ) {
 /** <doc><h2>Abstract Builtins</h2></doc> **/
 
 /**
-	$getkind : abstract -> 'kind
+	$getkind : 'abstract -> 'kind
 	<doc>Returns the kind value of the abstract</doc>
 **/
 static value builtin_getkind( value v ) {
