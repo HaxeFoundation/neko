@@ -188,7 +188,7 @@ static value set_trusted( value b ) {
 }
 
 /**
-	same_closure : f1 -> f2 -> bool
+	same_closure : any -> any -> bool
 	<doc>
 	Compare two functions by checking that they refer to the same implementation and that their environments contains physically equal values.
 	</doc>

@@ -42,6 +42,7 @@ var libs = readdir("../libs");
 while( libs != null ) {
 	var l = libs[0];
 	var k = try readdir("../libs/"+l) catch _ { null };
+	if( l == "mod_tora" ) k = null;
 	while( k != null ) {
 		var f = k[0];
 		var len = $ssize(f);

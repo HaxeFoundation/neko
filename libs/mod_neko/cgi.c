@@ -475,7 +475,7 @@ static value cgi_get_cwd() {
 }
 
 /**
-	cgi_set_main : ?function:0 -> void
+	cgi_set_main : function:0? -> void
 	<doc>Set or disable the main entry point function</doc>
 **/
 static value cgi_set_main( value f ) {
