@@ -86,7 +86,6 @@
 				OutputFile="../../bin/mysql5.ndll"
 				LinkIncremental="1"
 				IgnoreDefaultLibraryNames=""
-				GenerateDebugInformation="TRUE"
 				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
