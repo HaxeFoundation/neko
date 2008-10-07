@@ -241,6 +241,7 @@ class Tora {
 			}
 			// send result
 			try {
+				client.sendHeaders(); // if no data has been printed
 				client.sendMessage(code,data);
 			} catch( e : Dynamic ) {
 				log("Error while sending answer ("+Std.string(e)+")");

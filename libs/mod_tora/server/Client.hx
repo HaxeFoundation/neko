@@ -65,6 +65,7 @@ class Client {
 	public var hostName : String;
 	public var httpMethod : String;
 	public var headersSent : Bool;
+	public var outputHeaders : List<{ code : Code, str : String }>;
 
 	var key : String;
 
@@ -73,7 +74,15 @@ class Client {
 		dataBytes = 0;
 		headersSent = false;
 		headers = new Array();
+		outputHeaders = new List();
 		params = new Array();
+	}
+
+	public function sendHeaders() {
+		if( headersSent ) return;
+		headersSent = true;
+		for( h in outputHeaders )
+			sendMessage(h.code,h.str);
 	}
 
 	public function readMessageBuffer( buf : haxe.io.Bytes ) : Code {
