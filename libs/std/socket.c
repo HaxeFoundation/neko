@@ -16,6 +16,7 @@
 /* ************************************************************************ */
 #include <string.h>
 #include <neko.h>
+#include <neko_vm.h>
 #ifdef NEKO_WINDOWS
 #	include <winsock2.h>
 #	define FDSIZE(n)	(sizeof(u_int) + (n) * sizeof(SOCKET))
@@ -45,6 +46,15 @@
 #if defined(NEKO_WINDOWS) || defined(NEKO_MAC)
 #	define MSG_NOSIGNAL 0
 #endif
+
+#define NRETRYS	20
+
+typedef struct {
+	SOCKET sock;
+	char *buf;
+	int size;
+	int ret;
+} sock_tmp;
 
 typedef struct {
 	int max;
@@ -184,10 +194,18 @@ static value socket_send( value o, value data, value pos, value len ) {
 	dlen = val_strlen(data);
 	if( p < 0 || l < 0 || p > dlen || p + l > dlen )
 		neko_error();
+	POSIX_LABEL(send_again);
 	dlen = send(val_sock(o), val_string(data) + p , l, MSG_NOSIGNAL);
-	if( dlen == SOCKET_ERROR )
+	if( dlen == SOCKET_ERROR ) {
+		HANDLE_EINTR(send_again);
 		return block_error();
+	}
 	return alloc_int(dlen);
+}
+
+static void tmp_recv( void *_t ) {
+	sock_tmp *t = (sock_tmp*)_t;
+	t->ret = recv(t->sock,t->buf,t->size,MSG_NOSIGNAL);
 }
 
 /**
@@ -196,7 +214,8 @@ static value socket_send( value o, value data, value pos, value len ) {
 	Return the number of bytes readed.</doc>
 **/
 static value socket_recv( value o, value data, value pos, value len ) {
-	int p,l,dlen;
+	int p,l,dlen,ret;
+	int retry = 0;
 	val_check_kind(o,k_socket);
 	val_check(data,string);
 	val_check(pos,int);
@@ -207,12 +226,20 @@ static value socket_recv( value o, value data, value pos, value len ) {
 	if( p < 0 || l < 0 || p > dlen || p + l > dlen )
 		neko_error();
 	POSIX_LABEL(recv_again);
-	dlen = recv(val_sock(o), val_string(data) + p , l, MSG_NOSIGNAL);
-	if( dlen == SOCKET_ERROR ) {
+	if( retry++ > NRETRYS ) {
+		sock_tmp t;
+		t.sock = val_sock(o);
+		t.buf = val_string(data) + p;
+		t.size = l;
+		neko_thread_blocking(tmp_recv,&t);
+		ret = t.ret;
+	} else
+		ret = recv(val_sock(o), val_string(data) + p , l, MSG_NOSIGNAL);
+	if( ret == SOCKET_ERROR ) {
 		HANDLE_EINTR(recv_again);
 		return block_error();
 	}
-	return alloc_int(dlen);
+	return alloc_int(ret);
 }
 
 /**
@@ -221,10 +248,19 @@ static value socket_recv( value o, value data, value pos, value len ) {
 **/
 static value socket_recv_char( value o ) {
 	int ret;
+	int retry = 0;
 	unsigned char cc;
 	val_check_kind(o,k_socket);
 	POSIX_LABEL(recv_char_again);
-	ret = recv(val_sock(o),&cc,1,MSG_NOSIGNAL);
+	if( retry++ > NRETRYS ) {
+		sock_tmp t;
+		t.sock = val_sock(o);
+		t.buf = &cc;
+		t.size = 1;
+		neko_thread_blocking(tmp_recv,&t);
+		ret = t.ret;
+	} else
+		ret = recv(val_sock(o),&cc,1,MSG_NOSIGNAL);
 	if( ret == SOCKET_ERROR ) {
 		HANDLE_EINTR(recv_char_again);
 		return block_error();
