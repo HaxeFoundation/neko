@@ -148,21 +148,37 @@ EXTERN int neko_thread_create( thread_main_func init, thread_main_func main, voi
 }
 
 #if defined(NEKO_POSIX) && defined(NEKO_THREADS)
-#	if GC_VERSION_MAJOR >= 7
-	extern void GC_do_blocking( void (*fn)(void *), void *arg );
-#	else
-	extern void GC_start_blocking();
-	extern void GC_end_blocking();
-#	define GC_do_blocking(f,arg) { GC_start_blocking(); f(arg); GC_end_blocking(); }
-#	endif
-#else
-#	define GC_do_blocking(f,arg)	f(arg)
+#	include <dlfcn.h>
+	typedef void (*callb_func)( thread_main_func, void * );
+	typedef void (*std_func)();
 #endif
 
 EXTERN void neko_thread_blocking( thread_main_func f, void *p ) {
-	//GC_do_blocking(f,p);	
-	// commented, since 7.0 is not yet widespread and since
-	// we don't want to build a libneko that is tied to a specific GC version
+#	if !defined(NEKO_THREADS) || !defined(NEKO_POSIX)
+	f(p); // nothing
+#	else
+	// we have different APIs depending on the GC version, make sure we load
+	// the good one at runtime
+	static callb_func do_blocking = NULL;
+	static std_func start = NULL, end = NULL;
+	if( do_blocking )
+		do_blocking(f,p);
+	else if( start ) {
+		start();
+		f(p);
+		end();
+	} else {
+		void *self = dlopen(NULL,0);
+		do_blocking = (callb_func)dlsym(self,"GC_do_blocking");
+		if( !do_blocking ) {
+			start = (std_func)dlsym(self,"GC_start_blocking");
+			end = (std_func)dlsym(self,"GC_end_blocking");
+			if( !start || !end )
+				val_throw(alloc_string("Could not init GC blocking API"));
+		}
+		neko_thread_blocking(f,p);
+	}
+#	endif
 }
 
 EXTERN mt_local *alloc_local() {

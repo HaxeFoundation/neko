@@ -255,7 +255,7 @@ static value socket_recv_char( value o ) {
 	if( retry++ > NRETRYS ) {
 		sock_tmp t;
 		t.sock = val_sock(o);
-		t.buf = &cc;
+		t.buf = (char*)&cc;
 		t.size = 1;
 		neko_thread_blocking(tmp_recv,&t);
 		ret = t.ret;
