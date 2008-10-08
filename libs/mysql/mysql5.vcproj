@@ -19,7 +19,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\vm;..\include\mysql5"
+				AdditionalIncludeDirectories="..\..\vm;my_proto"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;MYSQL_EXPORTS"
 				MinimalRebuild="TRUE"
 				BasicRuntimeChecks="3"
@@ -32,7 +32,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="..\include\mysql5\mysqlclient.lib ws2_32.lib ..\..\bin\neko.lib"
+				AdditionalDependencies="..\..\bin\neko.lib ws2_32.lib"
 				OutputFile="../../bin/mysql5.ndll"
 				LinkIncremental="2"
 				IgnoreDefaultLibraryNames="LIBCMT"
@@ -70,9 +70,9 @@
 			CharacterSet="2">
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="..\..\vm;..\include\mysql5"
+				AdditionalIncludeDirectories="..\..\vm;my_proto"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;MYSQL_EXPORTS"
-				RuntimeLibrary="0"
+				RuntimeLibrary="2"
 				BufferSecurityCheck="FALSE"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -82,10 +82,10 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="..\include\mysql5\mysqlclient.lib ..\..\bin\neko.lib ws2_32.lib"
+				AdditionalDependencies="..\..\bin\neko.lib msvcrt60.lib ws2_32.lib"
 				OutputFile="../../bin/mysql5.ndll"
 				LinkIncremental="1"
-				IgnoreDefaultLibraryNames=""
+				IgnoreDefaultLibraryNames="MSVCRT"
 				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
@@ -116,6 +116,58 @@
 	<References>
 	</References>
 	<Files>
+		<Filter
+			Name="my_proto"
+			Filter="">
+			<File
+				RelativePath=".\my_proto\my_api.c">
+			</File>
+			<File
+				RelativePath=".\my_proto\my_proto.c">
+			</File>
+			<File
+				RelativePath=".\my_proto\my_proto.h">
+			</File>
+			<File
+				RelativePath=".\my_proto\mysql.h">
+			</File>
+			<File
+				RelativePath=".\my_proto\sha1.c">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						ObjectFile="$(IntDir)/$(InputName)1.obj"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						ObjectFile="$(IntDir)/$(InputName)1.obj"/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\my_proto\sha1.h">
+			</File>
+			<File
+				RelativePath=".\my_proto\socket.c">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						ObjectFile="$(IntDir)/$(InputName)1.obj"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						ObjectFile="$(IntDir)/$(InputName)1.obj"/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\my_proto\socket.h">
+			</File>
+		</Filter>
 		<File
 			RelativePath=".\mysql.c">
 		</File>
