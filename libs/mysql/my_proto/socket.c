@@ -179,4 +179,10 @@ SERR psock_set_blocking( PSOCK s, int block ) {
 	return PS_OK;
 }
 
+SERR psock_set_fastsend( PSOCK s, int fast ) {
+	if( setsockopt(s,IPPROTO_TCP,TCP_NODELAY,(char*)&fast,sizeof(fast)) )
+		return block_error();
+	return PS_OK;
+}
+
 /* ************************************************************************ */

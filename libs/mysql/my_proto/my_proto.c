@@ -18,6 +18,7 @@
 /*  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 /*																			*/
 /* ************************************************************************ */
+#include <math.h>
 #include "my_proto.h"
 
 int my_recv( MYSQL *m, void *buf, int size ) {
@@ -51,6 +52,46 @@ int my_read( MYSQL_PACKET *p, void *buf, int size ) {
 	return 1;
 }
 
+unsigned char my_read_byte( MYSQL_PACKET *p ) {
+	unsigned char c;
+	if( !my_read(p,&c,1) )
+		return 0;
+	return c;
+}
+
+unsigned short my_read_ui16( MYSQL_PACKET *p ) {
+	unsigned short i;
+	if( !my_read(p,&i,2) )
+		return 0;
+	return i;
+}
+
+int my_read_int( MYSQL_PACKET *p ) {
+	int i;
+	if( !my_read(p,&i,4) )
+		return 0;
+	return i;
+}
+
+int my_read_bin( MYSQL_PACKET *p ) {
+	int c = my_read_byte(p);
+	if( c <= 250 )
+		return c;
+	if( c == 251 )
+		return -1; // NULL
+	if( c == 252 )
+		return my_read_ui16(p);
+	if( c == 253 ) {
+		c = 0;
+		my_read(p,&c,3);
+		return c;
+	}
+	if( c == 254 )
+		return my_read_int(p);
+	p->error = 1;
+	return 0;
+}
+
 const char *my_read_string( MYSQL_PACKET *p ) {
 	char *str;
 	if( p->pos >= p->size ) {
@@ -59,6 +100,22 @@ const char *my_read_string( MYSQL_PACKET *p ) {
 	}
 	str = p->buf + p->pos;
 	p->pos += strlen(str) + 1;
+	return str;
+}
+
+char *my_read_bin_str( MYSQL_PACKET *p ) {
+	int size = my_read_bin(p);
+	char *str;
+	if( size == -1 )
+		return NULL;
+	if( p->error || p->pos + size > p->size ) {
+		p->error = 1;
+		return NULL;
+	}
+	str = (char*)malloc(size + 1);
+	memcpy(str,p->buf + p->pos, size);
+	str[size] = 0;
+	p->pos += size;
 	return str;
 }
 
@@ -120,7 +177,7 @@ void my_write( MYSQL_PACKET *p, const void *data, int size ) {
 		if( p->mem == 0 ) p->mem = 32;
 		do {
 			p->mem <<= 1;
-		} while( p->size + size <= p->mem );
+		} while( p->size + size > p->mem );
 		buf2 = (char*)malloc(p->mem);
 		memcpy(buf2,p->buf,p->size);
 		free(p->buf);
@@ -130,11 +187,25 @@ void my_write( MYSQL_PACKET *p, const void *data, int size ) {
 	p->size += size;
 }
 
+void my_write_byte( MYSQL_PACKET *p, int i ) {
+	unsigned char c = (unsigned char)i;
+	my_write(p,&c,1);
+}
+
+void my_write_ui16( MYSQL_PACKET *p, int i ) {
+	unsigned short c = (unsigned char)i;
+	my_write(p,&c,2);
+}
+
+void my_write_int( MYSQL_PACKET *p, int i ) {
+	my_write(p,&i,4);
+}
+
 void my_write_string( MYSQL_PACKET *p, const char *str ) {
 	my_write(p,str,strlen(str) + 1);
 }
 
-void my_write_bin( MYSQL_PACKET *p, const void *data, int size ) {
+void my_write_bin( MYSQL_PACKET *p, int size ) {
 	if( size <= 250 ) {
 		unsigned char l = (unsigned char)size;
 		my_write(p,&l,1);
@@ -153,7 +224,6 @@ void my_write_bin( MYSQL_PACKET *p, const void *data, int size ) {
 		my_write(p,&c,1);
 		my_write(p,&size,4);
 	}
-	my_write(p,data,size);
 }
 
 void my_crypt( unsigned char *out, const unsigned char *s1, const unsigned char *s2, unsigned int len ) {
@@ -180,6 +250,115 @@ void my_encrypt_password( const char *pass, const char *seed, SHA1_DIGEST out ) 
 	sha1_final( &ctx, out );
 	// xor the result
 	my_crypt(out,out,hash_stage1,SHA1_SIZE);
+}
+
+typedef struct {
+	unsigned long seed1;
+	unsigned long seed2;
+	unsigned long max_value;
+	double max_value_dbl;
+} rand_ctx;
+
+static void random_init( rand_ctx *r, unsigned long seed1, unsigned long seed2 ) {
+	r->max_value = 0x3FFFFFFFL;
+	r->max_value_dbl = (double)r->max_value;
+	r->seed1 = seed1 % r->max_value ;
+	r->seed2 = seed2 % r->max_value;
+}
+
+static double my_rnd( rand_ctx *r ) {
+	r->seed1 = (r->seed1 * 3 + r->seed2) % r->max_value;
+	r->seed2 = (r->seed1 + r->seed2 + 33) % r->max_value;
+	return (((double) r->seed1)/r->max_value_dbl);
+}
+
+static void hash_password( unsigned long *result, const char *password, int password_len ) {
+	register unsigned long nr = 1345345333L, add = 7, nr2 = 0x12345671L;
+	unsigned long tmp;
+	const char *password_end = password + password_len;
+	for(; password < password_end; password++) {
+		if( *password == ' ' || *password == '\t' )
+			continue;
+		tmp = (unsigned long)(unsigned char)*password;
+		nr ^= (((nr & 63)+add)*tmp)+(nr << 8);
+		nr2 += (nr2 << 8) ^ nr;
+		add += tmp;
+	}
+	result[0] = nr & (((unsigned long) 1L << 31) -1L);
+	result[1] = nr2 & (((unsigned long) 1L << 31) -1L);
+}
+
+void my_encrypt_pass_323( const char *password, const char seed[SEED_LENGTH_323], char to[SEED_LENGTH_323] ) {
+	rand_ctx r;
+	unsigned long hash_pass[2], hash_seed[2];
+	char extra, *to_start = to;
+	const char *seed_end = seed + SEED_LENGTH_323;
+	hash_password(hash_pass,password,(unsigned int)strlen(password));
+	hash_password(hash_seed,seed,SEED_LENGTH_323);
+	random_init(&r,hash_pass[0] ^ hash_seed[0],hash_pass[1] ^ hash_seed[1]);
+	while( seed < seed_end ) {
+		*to++ = (char)(floor(my_rnd(&r)*31)+64);
+		seed++;
+	}
+	extra= (char)(floor(my_rnd(&r)*31));
+	while( to_start != to )
+		*(to_start++) ^= extra;
+}
+
+int my_escape_string( int charset, char *sout, const char *sin, int length ) {
+	// !! we don't handle UTF-8 chars here !!
+	const char *send = sin + length;
+	char *sbegin = sout;
+	while( sin != send ) {
+		char c = *sin++;
+		switch( c ) {
+		case 0:
+			*sout++ = '\\';
+			*sout++ = '0';
+			break;
+		case '\n':
+			*sout++ = '\\';
+			*sout++ = 'n';
+			break;
+		case '\r':
+			*sout++ = '\\';
+			*sout++ = 'r';
+			break;
+		case '\\':
+			*sout++ = '\\';
+			*sout++ = '\\';
+			break;
+		case '\'':
+			*sout++ = '\\';
+			*sout++ = '\'';
+			break;
+		case '"':
+			*sout++ = '\\';
+			*sout++ = '"';
+			break;
+		case '\032':
+			*sout++ = '\\';
+			*sout++ = 'Z';
+			break;
+		default:
+			*sout++ = c;
+		}
+	}
+	*sout = 0;
+	return sout - sbegin;
+}
+
+int my_escape_quotes( int charset, char *sout, const char *sin, int length ) {
+	const char *send = sin + length;
+	char *sbegin = sout;
+	while( sin != send ) {
+		char c = *sin++;
+		*sout++ = c;
+		if( c == '\'' )
+			*sout++ = c;
+	}
+	*sout = 0;
+	return sout - sbegin;
 }
 
 /* ************************************************************************ */

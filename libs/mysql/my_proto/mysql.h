@@ -28,30 +28,66 @@ typedef struct _MYSQL_RES MYSQL_RES;
 typedef char **MYSQL_ROW;
 
 typedef enum {
-	FIELD_TYPE_TINY,
-	FIELD_TYPE_SHORT,
-	FIELD_TYPE_LONG,
-	FIELD_TYPE_INT24,
-	FIELD_TYPE_LONGLONG,
-	FIELD_TYPE_DECIMAL,
-	FIELD_TYPE_FLOAT,
-	FIELD_TYPE_DOUBLE,
-	FIELD_TYPE_BLOB,
-	FIELD_TYPE_TINY_BLOB,
-	FIELD_TYPE_MEDIUM_BLOB,
-	FIELD_TYPE_LONG_BLOB,
-	FIELD_TYPE_DATE,
-	FIELD_TYPE_DATETIME,
-	FIELD_TYPE_NULL,
-	FIELD_TYPE_ENUM,
-	FIELD_TYPE_SET,
+	FIELD_TYPE_DECIMAL = 0x00,
+	FIELD_TYPE_TINY = 0x01,
+	FIELD_TYPE_SHORT = 0x02,
+	FIELD_TYPE_LONG = 0x03,
+	FIELD_TYPE_FLOAT = 0x04,
+	FIELD_TYPE_DOUBLE = 0x05,
+	FIELD_TYPE_NULL = 0x06,
+	FIELD_TYPE_TIMESTAMP = 0x07,
+	FIELD_TYPE_LONGLONG = 0x08,
+	FIELD_TYPE_INT24 = 0x09,
+	FIELD_TYPE_DATE = 0x0A,
+	FIELD_TYPE_TIME = 0x0B,
+	FIELD_TYPE_DATETIME = 0x0C,
+	FIELD_TYPE_YEAR = 0x0D,
+	FIELD_TYPE_NEWDATE = 0x0E,
+	FIELD_TYPE_VARCHAR = 0x0F,
+	FIELD_TYPE_BIT = 0x10,
+	FIELD_TYPE_NEWDECIMAL = 0xF6,
+	FIELD_TYPE_ENUM = 0xF7,
+	FIELD_TYPE_SET = 0xF8,
+	FIELD_TYPE_TINY_BLOB = 0xF9,
+	FIELD_TYPE_MEDIUM_BLOB = 0xFA,
+	FIELD_TYPE_LONG_BLOB = 0xFB,
+	FIELD_TYPE_BLOB = 0xFC,
+	FIELD_TYPE_VAR_STRING = 0xFD,
+	FIELD_TYPE_STRING = 0xFE,
+	FIELD_TYPE_GEOMETRY = 0xFF
 } FIELD_TYPE;
 
 typedef struct {
+	char *catalog;
+	char *db;
+	char *table;
+	char *org_table;
 	char *name;
-	FIELD_TYPE type;
+	char *org_name;
+	int charset;
 	int length;
+	int flags;
+	int decimals;
+	FIELD_TYPE type;
 } MYSQL_FIELD;
+
+#define	mysql_init			mp_init
+#define mysql_real_connect	mp_real_connect
+#define mysql_select_db		mp_select_db
+#define mysql_real_query	mp_real_query
+#define mysql_store_result	mp_store_result
+#define mysql_field_count	mp_field_count
+#define mysql_affected_rows	mp_affected_rows
+#define mysql_escape_string	mp_escape_string
+#define mysql_real_escape_string mp_real_escape_string
+#define mysql_close			mp_close
+#define mysql_error			mp_error
+#define mysql_num_rows		mp_num_rows
+#define mysql_num_fields	mp_num_fields
+#define mysql_fetch_fields	mp_fetch_fields
+#define mysql_fetch_lengths	mp_fetch_lengths
+#define mysql_fetch_row		mp_fetch_row
+#define mysql_free_result	mp_free_result
 
 MYSQL *mysql_init( void * );
 MYSQL *mysql_real_connect( MYSQL *m, const char *host, const char *user, const char *pass, void *unused, int port, const char *socket, int options );
@@ -60,6 +96,7 @@ int mysql_real_query( MYSQL *m, const char *query, int qlength );
 MYSQL_RES *mysql_store_result( MYSQL *m );
 int mysql_field_count( MYSQL *m );
 int mysql_affected_rows( MYSQL *m );
+int mysql_escape_string( MYSQL *m, char *sout, const char *sin, int length );
 int mysql_real_escape_string( MYSQL *m, char *sout, const char *sin, int length );
 void mysql_close( MYSQL *m );
 const char *mysql_error( MYSQL *m );

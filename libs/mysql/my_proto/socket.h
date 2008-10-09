@@ -51,6 +51,7 @@ void psock_close( PSOCK s );
 SERR psock_connect( PSOCK s, PHOST h, int port );
 SERR psock_set_timeout( PSOCK s, double timeout );
 SERR psock_set_blocking( PSOCK s, int block );
+SERR psock_set_fastsend( PSOCK s, int fast );
 
 int psock_send( PSOCK s, const char *buf, int size );
 int psock_recv( PSOCK s, char *buf, int size );
