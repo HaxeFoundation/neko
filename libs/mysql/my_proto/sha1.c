@@ -24,15 +24,27 @@
 
 // original code by Steve Reid
 
-#define rol(value, bits) (((value) << (bits)) | ((value) >> (32 - (bits))))
-#ifdef BIG_ENDIAN
-#	define blk0(i) block->l[i]
+#ifdef _WIN32
+#	define LITTLE_ENDIAN 1
+#	define BIG_ENDIAN 2
+#	define BYTE_ORDER LITTLE_ENDIAN
 #else
-#	define blk0(i) (block->l[i] = (rol(block->l[i],24)&0xFF00FF00) \
-		|(rol(block->l[i],8)&0x00FF00FF))
+#	include <endian.h>
 #endif
-#define blk(i) (block->l[i&15] = rol(block->l[(i+13)&15]^block->l[(i+8)&15] \
-    ^block->l[(i+2)&15]^block->l[i&15],1))
+#ifndef BYTE_ORDER
+#	warning BYTE_ORDER unknown, assuming BIG_ENDIAN
+#	define BYTE_ORDER BIG_ENDIAN
+#endif
+
+#define rol(value, bits) (((value) << (bits)) | ((value) >> (32 - (bits))))
+#if BYTE_ORDER == BIG_ENDIAN
+#	define blk0(i) block[i]
+#else
+#	define blk0(i) (block[i] = (rol(block[i],24)&0xFF00FF00) \
+		|(rol(block[i],8)&0x00FF00FF))
+#endif
+#define blk(i) (block[i&15] = rol(block[(i+13)&15]^block[(i+8)&15] \
+    ^block[(i+2)&15]^block[i&15],1))
 /* (R0+R1), R2, R3, R4 are the different operations used in SHA1 */
 #define R0(v,w,x,y,z,i) z+=((w&(x^y))^y)+blk0(i)+0x5A827999+rol(v,5);w=rol(w,30);
 #define R1(v,w,x,y,z,i) z+=((w&(x^y))^y)+blk(i)+0x5A827999+rol(v,5);w=rol(w,30);
@@ -41,14 +53,9 @@
 #define R4(v,w,x,y,z,i) z+=(w^x^y)+blk(i)+0xCA62C1D6+rol(v,5);w=rol(w,30);
 
 static void sha1_transform( unsigned long state[5], unsigned char buffer[64] ) {
-	static unsigned char workspace[64];
 	unsigned long a, b, c, d, e;
-	typedef union {
-		unsigned char c[64];
-		unsigned long l[16];
-	} CHAR64LONG16;
-	CHAR64LONG16* block = (CHAR64LONG16*)workspace;
-    memcpy(block, buffer, 64);
+	unsigned long block[16];
+	memcpy(block, buffer, 64);
 	/* Copy context->state[] to working vars */
 	a = state[0];
 	b = state[1];
@@ -82,8 +89,6 @@ static void sha1_transform( unsigned long state[5], unsigned char buffer[64] ) {
 	state[2] += c;
 	state[3] += d;
 	state[4] += e;
-	/* Wipe variables */
-	a = b = c = d = e = 0;
 }
 
 void sha1_init( SHA1_CTX *context ) {
@@ -128,11 +133,6 @@ void sha1_final( SHA1_CTX *context, unsigned char digest[SHA1_SIZE] ) {
 		digest[i] = (unsigned char)
 			((context->state[i>>2] >> ((3-(i & 3)) * 8) ) & 255);
 	}
-	/* Wipe variables */
-	i = j = 0;
-	memset(context->buffer, 0, 64);
-	memset(context->state, 0, 20);
-	memset(context->count, 0, 8);
-	memset(&finalcount, 0, 8);
 	sha1_transform(context->state, context->buffer);
 }
+

@@ -93,7 +93,7 @@ MYSQL *mysql_real_connect( MYSQL *m, const char *host, const char *user, const c
 	PHOST h;
 	char scramble_buf[21];
 	MYSQL_PACKET *p = &m->packet;
-	if( socket ) {
+	if( socket && *socket ) {
 		error(m,"Unix Socket connections are not supported",NULL);
 		return NULL;
 	}
