@@ -19,6 +19,7 @@
 /*																			*/
 /* ************************************************************************ */
 #include <math.h>
+#include <string.h>
 #include "my_proto.h"
 
 int my_recv( MYSQL *m, void *buf, int size ) {

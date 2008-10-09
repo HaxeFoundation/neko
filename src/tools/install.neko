@@ -59,6 +59,12 @@ libs = {
 		lib => "libmysqlclient_r.a",
 		lparams => "-lz -lssl"
 	},
+	mysql5 => {
+		src => $array("mysql","my_proto/my_api","my_proto/my_proto","my_proto/sha1","my_proto/socket"),
+		inc => $array(),
+		realdir => "mysql",
+		cflags => "-Imy_proto",
+	},
 	regexp => {
 		src => $array("regexp"),
 		inc => "pcre.h",
@@ -285,7 +291,12 @@ nekoboot = function(file) {
 }
 
 link = function(files,target,params1,params2) {
-	files = make("",map(files,function(f){ f + ".o" }));
+	files = make("",map(files,function(f) {
+		var dir = split(f,"/");
+		while( dir[1] != null )
+			dir = dir[1];
+		dir[0] + ".o" 
+	}));
 	var opt = linkoptions;
 	if( target != "mod_tora" && target != "mod_tora2" )
 		opt += " "+linkneko;

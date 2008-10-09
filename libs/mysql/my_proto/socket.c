@@ -19,6 +19,7 @@
 /*																			*/
 /* ************************************************************************ */
 #include "socket.h"
+#include <string.h>
 
 #ifdef WINDOWS
 	static int init_done = 0;
@@ -36,6 +37,7 @@
 #	include <sys/socket.h>
 #	include <sys/time.h>
 #	include <netinet/in.h>
+#	include <netinet/tcp.h>
 #	include <arpa/inet.h>
 #	include <unistd.h>
 #	include <netdb.h>
@@ -145,8 +147,8 @@ SERR psock_set_timeout( PSOCK s, double t ) {
 	int time = (int)(t * 1000);
 #else
 	struct timeval time;
-	t->tv_usec = ((int)(t*1000000)) % 1000000;
-	t->tv_sec = (int)t;
+	time.tv_usec = ((int)(t*1000000)) % 1000000;
+	time.tv_sec = (int)t;
 #endif
 	if( setsockopt(s,SOL_SOCKET,SO_SNDTIMEO,(char*)&time,sizeof(time)) != 0 )
 		return PS_ERROR;

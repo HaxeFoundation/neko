@@ -27,7 +27,7 @@ typedef struct _MYSQL MYSQL;
 typedef struct _MYSQL_RES MYSQL_RES;
 typedef char **MYSQL_ROW;
 
-typedef enum {
+typedef enum enum_field_types {
 	FIELD_TYPE_DECIMAL = 0x00,
 	FIELD_TYPE_TINY = 0x01,
 	FIELD_TYPE_SHORT = 0x02,
