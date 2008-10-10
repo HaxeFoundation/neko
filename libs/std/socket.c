@@ -30,6 +30,7 @@
 #	include <sys/socket.h>
 #	include <sys/time.h>
 #	include <netinet/in.h>
+#	include <netinet/tcp.h>
 #	include <arpa/inet.h>
 #	include <unistd.h>
 #	include <netdb.h>
@@ -824,6 +825,22 @@ static value socket_poll( value socks, value pdata, value timeout ) {
 	return a;
 }
 
+/**
+	socket_set_fast_send : 'socket -> bool -> void
+	<doc>
+	Disable or enable to TCP_NODELAY flag for the socket
+	</doc>
+**/
+static value socket_set_fast_send( value s, value f ) {
+	int fast;
+	val_check_kind(s,k_socket);
+	val_check(f,bool);
+	fast = val_bool(f);
+	if( setsockopt(val_sock(s),IPPROTO_TCP,TCP_NODELAY,(char*)&fast,sizeof(fast)) )
+		neko_error();
+	return val_null;
+}
+
 DEFINE_PRIM(socket_init,0);
 DEFINE_PRIM(socket_new,1);
 DEFINE_PRIM(socket_send,4);
@@ -843,6 +860,7 @@ DEFINE_PRIM(socket_host,1);
 DEFINE_PRIM(socket_set_timeout,2);
 DEFINE_PRIM(socket_shutdown,3);
 DEFINE_PRIM(socket_set_blocking,2);
+DEFINE_PRIM(socket_set_fast_send,2);
 
 DEFINE_PRIM(socket_poll_alloc,1);
 DEFINE_PRIM(socket_poll,3);

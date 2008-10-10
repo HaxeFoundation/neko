@@ -14,6 +14,7 @@
 /* Lesser General Public License or the LICENSE file for more details.		*/
 /*																			*/
 /* ************************************************************************ */
+import neko.net.Socket.SocketHandle;
 import Client.Code;
 import Infos;
 
@@ -49,6 +50,7 @@ class Tora {
 	var modulePath : Array<String>;
 	var redirect : Dynamic;
 	var set_trusted : Dynamic;
+	var set_fast_send : SocketHandle -> Bool -> Void;
 
 	function new() {
 		totalHits = 0;
@@ -65,6 +67,7 @@ class Tora {
 		neko.Sys.putEnv("MOD_NEKO","1");
 		redirect = neko.Lib.load("std","print_redirect",1);
 		set_trusted = neko.Lib.load("std","set_trusted",1);
+		set_fast_send = try neko.Lib.load("std","socket_set_fast_send",2) catch( e : Dynamic ) function(s,f) {};
 		neko.vm.Thread.create(callback(startup,nthreads));
 	}
 
@@ -242,6 +245,8 @@ class Tora {
 			// send result
 			try {
 				client.sendHeaders(); // if no data has been printed
+				var s : { private var __s : SocketHandle; } = client.sock;
+				set_fast_send(s.__s,true);
 				client.sendMessage(code,data);
 			} catch( e : Dynamic ) {
 				log("Error while sending answer ("+Std.string(e)+")");

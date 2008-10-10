@@ -136,6 +136,7 @@ class ModNekoApi {
 		client.sendMessage(CQueryMultipart,Std.string(bufsize));
 		var filename = null;
 		var buffer = haxe.io.Bytes.alloc(bufsize);
+		var error = null;
 		while( true ) {
 			var msg = client.readMessageBuffer(buffer);
 			switch( msg ) {
@@ -144,10 +145,20 @@ class ModNekoApi {
 			case CPartFilename:
 				filename = buffer.sub(0,client.bytes).getData();
 			case CPartKey:
-				onPart( buffer.sub(0,client.bytes).getData(), filename );
+				if( error == null )
+					try {
+						onPart( buffer.sub(0,client.bytes).getData(), filename );
+					} catch( e : Dynamic ) {
+						error = { r : e };
+					}
 				filename = null;
 			case CPartData:
-				onData( buffer.getData(), 0, client.bytes );
+				if( error == null )
+					try {
+						onData( buffer.getData(), 0, client.bytes );
+					} catch( e : Dynamic ) {
+						error = { r : e };
+					}
 			case CPartDone:
 			case CError:
 				throw buffer.readString(0,client.bytes);
@@ -155,6 +166,8 @@ class ModNekoApi {
 				throw "Unexpected "+msg;
 			}
 		}
+		if( error != null )
+			neko.Lib.rethrow(error.r);
 	}
 
 	function cgi_flush() {
