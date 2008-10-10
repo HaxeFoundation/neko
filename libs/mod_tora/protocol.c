@@ -89,7 +89,7 @@ bool protocol_connect( proto *p, const char *host, int port ) {
 	p->s = psock_create();
 	if( p->s == INVALID_SOCKET )
 		return proto_error(p,"Failed to create socket");
-	if( psock_connect(p->s,h,port) != S_OK )
+	if( psock_connect(p->s,h,port) != PS_OK )
 		return proto_error(p,"Failed to connect to TORA host");
 	return true;
 }
