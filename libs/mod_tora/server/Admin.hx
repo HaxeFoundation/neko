@@ -121,6 +121,8 @@ class Admin {
 			w("<p>Command <b>"+cmd+"</b> took "+fmt(neko.Sys.time() - t)+"s to execute</p>");
 		}
 		var mem = neko.vm.Gc.stats();
+		mem.heap >>>= 10;
+		mem.free >>>= 10;
 		var infos : Infos = neko.Lib.load("mod_neko","tora_infos",0)();
 		var busy = 0;
 		var cacheHits = 0;
@@ -134,7 +136,7 @@ class Admin {
 			"Uptime : "+fmt(infos.upTime)+"s",
 			"Threads : "+busy+" / "+infos.threads.length,
 			"Queue size : "+infos.queue,
-			"Memory : "+Std.int((mem.heap - mem.free)/1024)+" / "+Std.int(mem.heap/1024)+" KB",
+			"Memory : "+(mem.heap - mem.free)+" / "+mem.heap+" KB",
 			"Total hits : "+infos.hits+" ("+fmt(infos.hits/infos.upTime)+"/sec)",
 			"Cache hits : "+cacheHits+" ("+fmt(cacheHits*100.0/infos.hits)+"%)",
 		]);
