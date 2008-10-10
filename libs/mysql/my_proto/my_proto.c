@@ -25,7 +25,7 @@
 int my_recv( MYSQL *m, void *buf, int size ) {
 	while( size ) {
 		int len = psock_recv(m->s,(char*)buf,size);
-		if( len < 0 ) return 0;
+		if( len <= 0 ) return size == 0 ? 1 : 0;
 		buf = ((char*)buf) + len;
 		size -= len;
 	}
@@ -36,7 +36,7 @@ int my_recv( MYSQL *m, void *buf, int size ) {
 int my_send( MYSQL *m, void *buf, int size ) {
 	while( size ) {
 		int len = psock_send(m->s,(char*)buf,size);
-		if( len < 0 ) return 0;
+		if( len <= 0 ) return size == 0 ? 1 : 0;
 		buf = ((char*)buf) + len;
 		size -= len;
 	}
