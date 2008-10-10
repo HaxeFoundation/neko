@@ -1,6 +1,6 @@
 /* ************************************************************************ */
 /*																			*/
-/*  MYSQL 5.0 Protocol Implementation 										*/
+/*  COMMON C LIBRARY				 										*/
 /*  Copyright (c)2008 Nicolas Cannasse										*/
 /*																			*/
 /*  This program is free software; you can redistribute it and/or modify	*/
@@ -18,22 +18,47 @@
 /*  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 /*																			*/
 /* ************************************************************************ */
-#ifndef SHA1_H
-#define SHA1_H
+#ifndef OS_H
+#define OS_H
 
-#define SHA1_SIZE 20
+#if defined(_WIN32)
+#	define OS_WINDOWS
+#endif
 
-typedef unsigned char SHA1_DIGEST[SHA1_SIZE];
+#if defined(__APPLE__) || defined(__MACH__) || defined(macintosh)
+#	define OS_MAC
+#endif
 
-typedef struct {
-	unsigned long state[5];
-	unsigned long count[2];
-	unsigned char buffer[64];
-} SHA1_CTX;
+#if defined(linux) || defined(__linux__)
+#	define OS_LINUX
+#endif
 
-void sha1_init( SHA1_CTX *c );
-void sha1_update( SHA1_CTX *c, const unsigned char *data, unsigned int len );
-void sha1_final( SHA1_CTX *c, SHA1_DIGEST digest );
+#if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
+#	define OS_BSD
+#endif
+
+#if defined(NEKO_LINUX) || defined(NEKO_MAC) || defined(NEKO_BSD) || defined(NEKO_GNUKBSD)
+#	define OS_POSIX
+#endif
+
+#ifdef OS_WINDOWS
+#	define LITTLE_ENDIAN 1
+#	define BIG_ENDIAN 2
+#	define BYTE_ORDER LITTLE_ENDIAN
+#else
+#	include <endian.h>
+#endif
+
+#ifndef BYTE_ORDER
+#	warning BYTE_ORDER unknown, assuming BIG_ENDIAN
+#	define BYTE_ORDER BIG_ENDIAN
+#endif
+
+#if BYTE_ORDER == BIG_ENDIAN
+#	define IS_BIG_ENDIAN
+#else
+#	define IS_LITTLE_ENDIAN
+#endif
 
 #endif
 /* ************************************************************************ */

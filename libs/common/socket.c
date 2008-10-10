@@ -1,6 +1,6 @@
 /* ************************************************************************ */
 /*																			*/
-/*  MYSQL 5.0 Protocol Implementation 										*/
+/*  COMMON C LIBRARY				 										*/
 /*  Copyright (c)2008 Nicolas Cannasse										*/
 /*																			*/
 /*  This program is free software; you can redistribute it and/or modify	*/
@@ -21,7 +21,7 @@
 #include "socket.h"
 #include <string.h>
 
-#ifdef WINDOWS
+#ifdef OS_WINDOWS
 	static int init_done = 0;
 	static WSADATA init_data;
 #	define POSIX_LABEL(x)
@@ -50,12 +50,12 @@
 #	define HANDLE_EINTR(x)	if( errno == EINTR ) goto x
 #endif
 
-#if defined(WINDOWS) || defined(MAC)
+#if defined(OS_WINDOWS) || defined(OS_MAC)
 #	define MSG_NOSIGNAL 0
 #endif
 
 static int block_error() {
-#ifdef WINDOWS
+#ifdef OS_WINDOWS
 	int err = WSAGetLastError();
 	if( err == WSAEWOULDBLOCK || err == WSAEALREADY )
 #else
@@ -66,7 +66,7 @@ static int block_error() {
 }
 
 void psock_init() {
-#ifdef WINDOWS
+#ifdef OS_WINDOWS
 	if( !init_done ) {
 		WSAStartup(MAKEWORD(2,0),&init_data);
 		init_done = 1;
@@ -116,7 +116,7 @@ PHOST phost_resolve( const char *host ) {
 	PHOST ip = inet_addr(host);
 	if( ip == INADDR_NONE ) {
 		struct hostent *h;
-#	if defined(WINDOWS) || defined(MAC)
+#	if defined(OS_WINDOWS) || defined(OS_MAC)
 		h = gethostbyname(host);
 #	else
 		struct hostent hbase;
@@ -143,7 +143,7 @@ SERR psock_connect( PSOCK s, PHOST host, int port ) {
 }
 
 SERR psock_set_timeout( PSOCK s, double t ) {
-#ifdef WINDOWS
+#ifdef OS_WINDOWS
 	int time = (int)(t * 1000);
 #else
 	struct timeval time;
@@ -159,7 +159,7 @@ SERR psock_set_timeout( PSOCK s, double t ) {
 
 
 SERR psock_set_blocking( PSOCK s, int block ) {
-#ifdef WINDOWS
+#ifdef OS_WINDOWS
 	{
 		unsigned long arg = !block;
 		if( ioctlsocket(s,FIONBIO,&arg) != 0 )

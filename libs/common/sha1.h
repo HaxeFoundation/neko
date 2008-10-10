@@ -1,6 +1,6 @@
 /* ************************************************************************ */
 /*																			*/
-/*  MYSQL 5.0 Protocol Implementation 										*/
+/*  COMMON C LIBRARY				 										*/
 /*  Copyright (c)2008 Nicolas Cannasse										*/
 /*																			*/
 /*  This program is free software; you can redistribute it and/or modify	*/
@@ -18,45 +18,22 @@
 /*  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 /*																			*/
 /* ************************************************************************ */
-#ifndef SOCKET_H
-#define SOCKET_H
+#ifndef SHA1_H
+#define SHA1_H
 
-#ifdef _WIN32
-#	define WINDOWS
-#else
-#	define POSIX
-#endif
+#define SHA1_SIZE 20
 
-#ifdef WINDOWS
-#	include <winsock2.h>
-	typedef SOCKET PSOCK;
-#else
-	typedef int PSOCK;
-#	define INVALID_SOCKET (-1)
-#endif
+typedef unsigned char SHA1_DIGEST[SHA1_SIZE];
 
-typedef unsigned int PHOST;
+typedef struct {
+	unsigned long state[5];
+	unsigned long count[2];
+	unsigned char buffer[64];
+} SHA1_CTX;
 
-#define UNRESOLVED_HOST ((PHOST)-1)
-
-typedef enum {
-	PS_OK = 0,
-	PS_ERROR = -1,
-	PS_BLOCK = -2,
-} SERR;
-
-void psock_init();
-PSOCK psock_create();
-void psock_close( PSOCK s );
-SERR psock_connect( PSOCK s, PHOST h, int port );
-SERR psock_set_timeout( PSOCK s, double timeout );
-SERR psock_set_blocking( PSOCK s, int block );
-SERR psock_set_fastsend( PSOCK s, int fast );
-
-int psock_send( PSOCK s, const char *buf, int size );
-int psock_recv( PSOCK s, char *buf, int size );
-
-PHOST phost_resolve( const char *hostname );
+void sha1_init( SHA1_CTX *c );
+void sha1_update( SHA1_CTX *c, const unsigned char *data, unsigned int len );
+void sha1_final( SHA1_CTX *c, SHA1_DIGEST digest );
 
 #endif
 /* ************************************************************************ */

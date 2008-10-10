@@ -1,6 +1,6 @@
 /* ************************************************************************ */
 /*																			*/
-/*  MYSQL 5.0 Protocol Implementation 										*/
+/*  COMMON C LIBRARY				 										*/
 /*  Copyright (c)2008 Nicolas Cannasse										*/
 /*																			*/
 /*  This program is free software; you can redistribute it and/or modify	*/
@@ -18,26 +18,15 @@
 /*  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 /*																			*/
 /* ************************************************************************ */
+#include "os.h"
 #include "sha1.h"
 #include <stdio.h>
 #include <string.h>
 
 // original code by Steve Reid
 
-#ifdef _WIN32
-#	define LITTLE_ENDIAN 1
-#	define BIG_ENDIAN 2
-#	define BYTE_ORDER LITTLE_ENDIAN
-#else
-#	include <endian.h>
-#endif
-#ifndef BYTE_ORDER
-#	warning BYTE_ORDER unknown, assuming BIG_ENDIAN
-#	define BYTE_ORDER BIG_ENDIAN
-#endif
-
 #define rol(value, bits) (((value) << (bits)) | ((value) >> (32 - (bits))))
-#if BYTE_ORDER == BIG_ENDIAN
+#if IS_BIG_ENDIAN
 #	define blk0(i) block[i]
 #else
 #	define blk0(i) (block[i] = (rol(block[i],24)&0xFF00FF00) \
@@ -118,7 +107,7 @@ void sha1_update( SHA1_CTX *context, const unsigned char *data, unsigned int len
 }
 
 void sha1_final( SHA1_CTX *context, unsigned char digest[SHA1_SIZE] ) {
-	unsigned long i, j;
+	unsigned long i;
 	unsigned char finalcount[8];
 	for (i = 0; i < 8; i++) {
 		finalcount[i] = (unsigned char)((context->count[(i >= 4 ? 0 : 1)]

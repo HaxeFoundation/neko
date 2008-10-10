@@ -70,7 +70,7 @@
 			CharacterSet="2">
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="..\..\vm;my_proto"
+				AdditionalIncludeDirectories="..\..\vm;my_proto;..\common"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;MYSQL_EXPORTS"
 				RuntimeLibrary="2"
 				BufferSecurityCheck="FALSE"
@@ -132,40 +132,19 @@
 				RelativePath=".\my_proto\mysql.h">
 			</File>
 			<File
-				RelativePath=".\my_proto\sha1.c">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						ObjectFile="$(IntDir)/$(InputName)1.obj"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						ObjectFile="$(IntDir)/$(InputName)1.obj"/>
-				</FileConfiguration>
+				RelativePath="..\common\os.h">
 			</File>
 			<File
-				RelativePath=".\my_proto\sha1.h">
+				RelativePath="..\common\sha1.c">
 			</File>
 			<File
-				RelativePath=".\my_proto\socket.c">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						ObjectFile="$(IntDir)/$(InputName)1.obj"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						ObjectFile="$(IntDir)/$(InputName)1.obj"/>
-				</FileConfiguration>
+				RelativePath="..\common\sha1.h">
 			</File>
 			<File
-				RelativePath=".\my_proto\socket.h">
+				RelativePath="..\common\socket.c">
+			</File>
+			<File
+				RelativePath="..\common\socket.h">
 			</File>
 		</Filter>
 		<File
