@@ -17,92 +17,49 @@
 #ifndef PROTOCOL_H
 #define PROTOCOL_H
 
-#include <httpd.h>
-#include <http_config.h>
-#include <http_core.h>
-#include <http_log.h>
-#include <http_main.h>
-#include <http_protocol.h>
+#include "osdef.h"
 
-#ifdef STANDARD20_MODULE_STUFF
-#	define APACHE_2_X
-#	define ap_send_http_header(x)
-#	define ap_soft_timeout(msg,r)
-#	define ap_kill_timeout(r)
-#	define ap_table_get		apr_table_get
-#	define ap_table_set		apr_table_set
-#	define ap_table_add		apr_table_add
-#	define ap_table_do		apr_table_do
-#	define ap_palloc		apr_palloc
-#	define LOG_SUCCESS		APR_SUCCESS,
-#	define REDIRECT			HTTP_MOVED_TEMPORARILY
-#else
-#	define LOG_SUCCESS
-#endif
-
-#undef INLINE
-#undef closesocket
-
-#include <neko.h>
-// neko is only used for some #ifdef, no primitive is linked here
-#ifdef NEKO_WINDOWS
-#	include <winsock2.h>
-#else
-#	include <sys/types.h>
-#	include <sys/socket.h>
-#	include <netinet/in.h>
-#	include <arpa/inet.h>
-#	include <unistd.h>
-#	include <netdb.h>
-	typedef int SOCKET;
-#	define closesocket close
-#	define SOCKET_ERROR (-1)
-#	define INVALID_SOCKET (-1)
-#endif
+typedef void (*pf_callback)( void *custom );
+typedef void (*pf_print)( void *custom, const char *buffer, int size );
+typedef void (*pf_set_header)( void *custom, const char *key, const char *value, bool add );
+typedef void (*pf_set_code)( void *custom, int code );
+typedef void (*pf_log)( void *custom, const char *message, bool inner_log );
+typedef int (*pf_stream_data)( void *custom, char *buffer, int size );
 
 typedef struct {
-	request_rec *r;
-	SOCKET sock;
-	char *post_data;
+	const char *script;
+	const char *uri;
+	const char *hostname;
+	const char *client_ip;
+	const char *http_method;
+	const char *get_data;
+	const char *post_data;
+	const char *content_type;
 	int post_data_size;
-	int headers_sent;
-} mcontext;
+	pf_callback do_get_headers;
+	pf_callback do_get_params;
+	pf_print do_print;
+	pf_callback do_flush;
+	pf_set_header do_set_header;
+	pf_set_code do_set_return_code;
+	pf_stream_data do_stream_data;
+	pf_log do_log;
+	void *custom;
+} protocol_infos;
 
-typedef enum {
-	CODE_FILE = 1,
-	CODE_URI,
-	CODE_CLIENT_IP,
-	CODE_GET_PARAMS,
-	CODE_POST_DATA,
-	CODE_HEADER_KEY,
-	CODE_HEADER_VALUE,
-	CODE_HEADER_ADD_VALUE,
-	CODE_PARAM_KEY,
-	CODE_PARAM_VALUE,
-	CODE_HOST_NAME,
-	CODE_HTTP_METHOD,
-	CODE_EXECUTE,
-	CODE_ERROR,
-	CODE_PRINT,
-	CODE_LOG,
-	CODE_FLUSH,
-	CODE_REDIRECT,
-	CODE_RETURNCODE,
-	CODE_QUERY_MULTIPART,
-	CODE_PART_FILENAME,
-	CODE_PART_KEY,
-	CODE_PART_DATA,
-	CODE_PART_DONE,
-	CODE_TEST_CONNECT,
-} proto_code;
+struct _protocol;
+typedef struct _protocol proto;
 
-#define send_headers(c) \
-	if( !c->headers_sent ) { \
-		ap_send_http_header(c->r); \
-		c->headers_sent = true; \
-	}
-
-void protocol_send_request( mcontext *c );
-char *protocol_loop( mcontext *c, int *exc );
+proto *protocol_init( protocol_infos *inf );
+bool protocol_connect( proto *p, const char *host, int port );
+bool protocol_send_request( proto *p );
+void protocol_send_header( proto *p, const char *header, const char *value );
+void protocol_send_param( proto *p, const char *param, int param_size, const char *value, int value_size );
+void protocol_send_raw_params( proto *p, const char *data );
+bool protocol_read_answer( proto *p );
+const char *protocol_get_error( proto *p );
+void protocol_free( proto *p );
 
 #endif
+
+/* ************************************************************************ */

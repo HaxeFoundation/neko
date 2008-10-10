@@ -21,7 +21,7 @@
 #ifndef SOCKET_H
 #define SOCKET_H
 
-#include "os.h"
+#include "osdef.h"
 
 #ifdef OS_WINDOWS
 #	include <winsock2.h>

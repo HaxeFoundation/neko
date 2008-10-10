@@ -60,5 +60,11 @@
 #	define IS_LITTLE_ENDIAN
 #endif
 
+#ifndef true
+#	define true 1
+#	define false 0
+	typedef int bool;
+#endif
+
 #endif
 /* ************************************************************************ */

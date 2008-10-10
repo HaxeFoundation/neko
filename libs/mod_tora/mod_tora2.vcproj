@@ -19,7 +19,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../vm;..\include\apache2;..\include\apache2\apr"
+				AdditionalIncludeDirectories="../../vm;../common;..\include\apache2;..\include\apache2\apr"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;MOD_TORA2_EXPORTS"
 				MinimalRebuild="TRUE"
 				BasicRuntimeChecks="3"
@@ -69,7 +69,7 @@
 			CharacterSet="2">
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../../vm;..\include\apache2;..\include\apache2\apr"
+				AdditionalIncludeDirectories="../../vm;../common;..\include\apache2;..\include\apache2\apr"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;MOD_TORA2_EXPORTS"
 				RuntimeLibrary="2"
 				BufferSecurityCheck="FALSE"
@@ -120,10 +120,19 @@
 			RelativePath=".\mod_tora.c">
 		</File>
 		<File
+			RelativePath="..\common\os.h">
+		</File>
+		<File
 			RelativePath=".\protocol.c">
 		</File>
 		<File
 			RelativePath=".\protocol.h">
+		</File>
+		<File
+			RelativePath="..\common\socket.c">
+		</File>
+		<File
+			RelativePath="..\common\socket.h">
 		</File>
 	</Files>
 	<Globals>

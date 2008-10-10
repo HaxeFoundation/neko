@@ -61,7 +61,7 @@ static int block_error() {
 #else
 	if( errno == EAGAIN || errno == EWOULDBLOCK || errno == EINPROGRESS || errno == EALREADY )
 #endif
-		return PS_BLOCK;	
+		return PS_BLOCK;
 	return PS_ERROR;
 }
 
@@ -76,7 +76,7 @@ void psock_init() {
 
 PSOCK psock_create() {
 	PSOCK s = socket(AF_INET,SOCK_STREAM,0);
-#	ifdef MAC
+#	if defined(OS_MAC) || defined(OS_BSD)
 	if( s != INVALID_SOCKET )
 		setsockopt(s,SOL_SOCKET,SO_NOSIGPIPE,NULL,0);
 #	endif
@@ -87,7 +87,7 @@ void psock_close( PSOCK s ) {
 	POSIX_LABEL(close_again);
 	if( closesocket(s) ) {
 		HANDLE_EINTR(close_again);
-	}	
+	}
 }
 
 int psock_send( PSOCK s, const char *buf, int size ) {

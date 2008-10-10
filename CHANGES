@@ -1,6 +1,10 @@
 2008-??-?? : 1.8.1
 	nekoc : small fix in evaluation of using jump tables for switch on integers
 	regexp : use a recursion limit to prevent stack overflows in pcre
+	mysql5 : completely rewrote mysql client
+	mod_tora : complete rearchitecture with abstract protocol
+	std : added socket_set_fast_send
+	mod_tora : use socket fast send to optimize timing
 
 2008-09-23 : 1.8.0
 	added mod_tora (neko application server)

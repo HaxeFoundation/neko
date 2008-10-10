@@ -14,7 +14,39 @@
 /* Lesser General Public License or the LICENSE file for more details.		*/
 /*																			*/
 /* ************************************************************************ */
+#include <httpd.h>
+#include <http_config.h>
+#include <http_core.h>
+#include <http_log.h>
+#include <http_main.h>
+#include <http_protocol.h>
 #include "protocol.h"
+
+#ifndef OS_WINDOWS
+#	define strcmpi	strcasecmp
+#endif
+
+#define send_headers(c) \
+	if( !c->headers_sent ) { \
+		ap_send_http_header(c->r); \
+		c->headers_sent = 1; \
+	}
+
+#ifdef STANDARD20_MODULE_STUFF
+#	define APACHE_2_X
+#	define ap_send_http_header(x)
+#	define ap_soft_timeout(msg,r)
+#	define ap_kill_timeout(r)
+#	define ap_table_get		apr_table_get
+#	define ap_table_set		apr_table_set
+#	define ap_table_add		apr_table_add
+#	define ap_table_do		apr_table_do
+#	define ap_palloc		apr_palloc
+#	define LOG_SUCCESS		APR_SUCCESS,
+#	define REDIRECT			HTTP_MOVED_TEMPORARILY
+#else
+#	define LOG_SUCCESS
+#endif
 
 #define DEFAULT_HOST			"127.0.0.1"
 #define DEFAULT_PORT			6666
@@ -27,38 +59,115 @@ typedef struct {
 	int hits;
 } mconfig;
 
-static mconfig config;
-static int init_done = 0;
+typedef struct {
+	request_rec *r;
+	proto *p;
+	char *post_data;
+	int post_data_size;
+	bool headers_sent;
+	bool is_multipart;
+	bool need_discard;
+} mcontext;
 
-static void request_error( mcontext *c, const char *error, bool log ) {
-	c->r->content_type = "text/plain";
-	ap_soft_timeout("Client Timeout",c->r);
-	send_headers(c);
-	if( log )
-		ap_rprintf(c->r,"Error : %s",error);
-	else
-		ap_rprintf(c->r,"Error : %s\n\n",error);
-	ap_kill_timeout(c->r);
-	if( log )
-		ap_log_rerror(__FILE__, __LINE__, APLOG_WARNING, LOG_SUCCESS c->r, "[mod_tora error] %s", error);
+static mconfig config;
+static bool init_done = false;
+
+static int get_client_header( void *_c, const char *key, const char *val ) {
+	mcontext *c = (mcontext*)_c;
+	if( key == NULL || val == NULL )
+		return 1;
+	protocol_send_header(c->p,key,val);
+	return 1;
 }
 
-static int error( mcontext *c, const char *msg ) {
-	request_error(c,msg,true);
-	free(c->post_data);
-	closesocket(c->sock);
-	return OK;
+static void do_get_headers( void *_c ) {
+	mcontext *c = (mcontext*)_c;
+	ap_table_do(get_client_header,c,c->r->headers_in,NULL);
+}
+
+static void do_get_params( void *_c ) {
+	mcontext *c = (mcontext*)_c;
+	if( c->r->args )
+		protocol_send_raw_params(c->p,c->r->args);
+	if( c->post_data )
+		protocol_send_raw_params(c->p,c->post_data);
+}
+
+static void do_print( void *_c, const char *buf, int len ) {
+	mcontext *c = (mcontext*)_c;
+	ap_soft_timeout("Client Timeout",c->r);
+	send_headers(c);
+	ap_rwrite(buf,len,c->r);
+	ap_kill_timeout(c->r);
+}
+
+static void do_flush( void *_c ) {
+	mcontext *c = (mcontext*)_c;
+	ap_rflush(c->r);
+}
+
+static void do_set_header( void *_c, const char *key, const char *value, bool add ) {
+	mcontext *c = (mcontext*)_c;
+	if( add )
+		ap_table_add(c->r->headers_out,key,value);
+	else if( strcmpi(key,"Content-Type") == 0 ) {
+		int len = (int)strlen(value);
+		char *ct = (char*)ap_palloc(c->r->pool,len+1);
+		memcpy(ct,value,len+1);
+		c->r->content_type = ct;
+	} else
+		ap_table_set(c->r->headers_out,key,value);
+}
+
+static void do_set_return_code( void *_c, int code ) {
+	mcontext *c = (mcontext*)_c;
+	c->r->status = code;
+}
+
+static void do_log( void *_c, const char *msg, bool user_log ) {
+	mcontext *c = (mcontext*)_c;
+	if( user_log ) {
+		c->r->content_type = "text/plain";
+		do_print(c,"Error : ",8);
+		do_print(c,msg,(int)strlen(msg));
+	} else
+		ap_log_rerror(__FILE__, __LINE__, APLOG_WARNING, LOG_SUCCESS c->r, "[mod_tora] %s", msg);
+}
+
+static void log_error( mcontext *c, const char *msg ) {
+	do_log(c,msg,false); // add to apache log
+	do_log(c,msg,true); // display to user
+}
+
+static int do_stream_data( void *_c, char *buf, int size ) {
+	mcontext *c = (mcontext*)_c;
+	// startup
+	if( size == 0 ) {
+		if( !ap_should_client_block(c->r) )
+			return -1;
+		c->need_discard = true;
+		return 0;
+	}
+	return ap_get_client_block(c->r,buf,size);
+}
+
+static void discard_body( mcontext *c ) {
+	char buf[1024];
+	while( ap_get_client_block(c->r,buf,1024) > 0 ) {
+	}
 }
 
 static int tora_handler( request_rec *r ) {
-	mcontext _ctx, *ctx = &_ctx;
+	mcontext ctx, *c = &ctx;
 
 	// init context
-	ctx->headers_sent = 0;
-	ctx->r = r;
-	ctx->post_data = NULL;
-	ctx->sock = INVALID_SOCKET;
-	ctx->r->content_type = "text/html";
+	c->need_discard = false;
+	c->is_multipart = false;
+	c->headers_sent = false;
+	c->r = r;
+	c->post_data = NULL;
+	c->p = NULL;
+	c->r->content_type = "text/html";
 	if( strcmp(r->handler,"tora-handler") != 0)
 		return DECLINED;
 	config.hits++;
@@ -67,82 +176,78 @@ static int tora_handler( request_rec *r ) {
 	{
 		const char *ctype = ap_table_get(r->headers_in,"Content-Type");
 		ap_setup_client_block(r,REQUEST_CHUNKED_ERROR);
-		if( (!ctype || strstr(ctype,"multipart/form-data") == NULL) && ap_should_client_block(r) ) {
+		if( ctype && strstr(ctype,"multipart/form-data") )
+			c->is_multipart = true;
+		else if( ap_should_client_block(r) ) {
 			int tlen = 0;
-			ctx->post_data = (char*)malloc(config.max_post_size);
+			c->post_data = (char*)malloc(config.max_post_size);
 			while( true ) {
-				int len = ap_get_client_block(r,ctx->post_data + tlen,config.max_post_size - tlen);
+				int len = ap_get_client_block(r,c->post_data + tlen,config.max_post_size - tlen);
 				if( len <= 0 )
 					break;
 				tlen += len;
 			}
-			if( tlen >= config.max_post_size )
-				return error(ctx,"Maximum POST data exceeded. Try using multipart encoding");
-			ctx->post_data[tlen] = 0;
-			ctx->post_data_size = tlen;
+			if( tlen >= config.max_post_size ) {
+				discard_body(c);
+				free(c->post_data);
+				log_error(c,"Maximum POST data exceeded. Try using multipart encoding");
+				return OK;
+			}
+			c->post_data[tlen] = 0;
+			c->post_data_size = tlen;
 		}
 	}
 
-	// init socket
-	ctx->sock = socket(AF_INET,SOCK_STREAM,0);
-	if( ctx->sock == INVALID_SOCKET )
-		return error(ctx,"Failed to create socket");
-#	ifdef NEKO_MAC
-	setsockopt(ctx->sock,SOL_SOCKET,SO_NOSIGPIPE,NULL,0);
-#	endif
-
-	// connect to host
+	// init protocol
 	{
-		unsigned int ip = inet_addr(config.host);
-		struct sockaddr_in addr;
-		if( ip == INADDR_NONE ) {
-			struct hostent *h = (struct hostent*)gethostbyname(config.host);
-			if( h == NULL )
-				return error(ctx,"Failed to resolve TORA host");
-			ip = *((unsigned int*)h->h_addr);
-		}
-		memset(&addr,0,sizeof(addr));
-		addr.sin_family = AF_INET;
-		addr.sin_port = htons(config.port);
-		*(int*)&addr.sin_addr.s_addr = ip;
-		if( connect(ctx->sock,(struct sockaddr*)&addr,sizeof(addr)) != 0 )
-			return error(ctx,"Failed to connect to TORA host");
+		protocol_infos infos;
+		request_rec *first = r;
+		while( first->prev != NULL )
+			first = first->prev;
+		infos.custom = c;
+		infos.script = r->filename;
+		infos.uri = first->uri;
+		infos.hostname = r->hostname ? r->hostname : "";
+		infos.client_ip = r->connection->remote_ip;
+		infos.http_method = r->method;
+		infos.get_data = r->args;
+		infos.post_data = c->post_data;
+		infos.post_data_size = c->post_data_size;
+		infos.content_type = ap_table_get(r->headers_in,"Content-Type");
+		infos.do_get_headers = do_get_headers;
+		infos.do_get_params = do_get_params;
+		infos.do_set_header = do_set_header;
+		infos.do_set_return_code = do_set_return_code;
+		infos.do_print = do_print;
+		infos.do_flush = do_flush;
+		infos.do_log = do_log;
+		infos.do_stream_data = c->is_multipart ? do_stream_data : NULL;
+		c->p = protocol_init(&infos);
 	}
 
-	// send request infos
-	protocol_send_request(ctx);
-
-	// wait and handle response
-	{
-		int exc = 0;
-		char *emsg = protocol_loop(ctx,&exc);
-		if( emsg != NULL ) {
-			request_error(ctx,emsg,!exc);
-			free(emsg);
-		}
-	}
+	// run protocol
+	if( !protocol_connect(c->p,config.host,config.port) ||
+		!protocol_send_request(c->p) ||
+		!protocol_read_answer(c->p) )
+		log_error(c,protocol_get_error(c->p));
 
 	// cleanup
-	closesocket(ctx->sock);
-	free(ctx->post_data);
-	send_headers(ctx);
+	protocol_free(c->p);
+	free(c->post_data);
+	send_headers(c); // in case...
+	if( c->need_discard )
+		discard_body(c);
 	return OK;
 }
 
 static void mod_tora_do_init() {
 	int tmp = 0;
 	if( init_done ) return;
-	init_done = 1;
+	init_done = true;
 	memset(&config,0,sizeof(config));
 	config.host = DEFAULT_HOST;
 	config.port = DEFAULT_PORT;
 	config.max_post_size = DEFAULT_MAX_POST_DATA;
-#	ifdef _WIN32
-	{
-		WSADATA init_data;
-		WSAStartup(MAKEWORD(2,0),&init_data);
-	}
-#	endif
 }
 
 #ifdef APACHE_2_X

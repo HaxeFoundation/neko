@@ -14,21 +14,44 @@
 /* Lesser General Public License or the LICENSE file for more details.		*/
 /*																			*/
 /* ************************************************************************ */
-#include "protocol.h"
 #include <string.h>
+#include "protocol.h"
+#include "socket.h"
 
-#ifndef NEKO_WINDOWS
-#	define strcmpi	strcasecmp
-#endif
+struct _protocol {
+	PSOCK s;
+	bool error;
+	char *error_msg;
+	protocol_infos inf;
+};
 
-#if defined(NEKO_WINDOWS) || defined(NEKO_MAC)
-#	define MSG_NOSIGNAL 0
-#endif
-
-#ifdef NEKO_POSIX
-#	define pread	tora_pread
-#	define pwrite	tora_pwrite
-#endif
+typedef enum {
+	CODE_FILE = 1,
+	CODE_URI,
+	CODE_CLIENT_IP,
+	CODE_GET_PARAMS,
+	CODE_POST_DATA,
+	CODE_HEADER_KEY,
+	CODE_HEADER_VALUE,
+	CODE_HEADER_ADD_VALUE,
+	CODE_PARAM_KEY,
+	CODE_PARAM_VALUE,
+	CODE_HOST_NAME,
+	CODE_HTTP_METHOD,
+	CODE_EXECUTE,
+	CODE_ERROR,
+	CODE_PRINT,
+	CODE_LOG,
+	CODE_FLUSH,
+	CODE_REDIRECT,
+	CODE_RETURNCODE,
+	CODE_QUERY_MULTIPART,
+	CODE_PART_FILENAME,
+	CODE_PART_KEY,
+	CODE_PART_DATA,
+	CODE_PART_DONE,
+	CODE_TEST_CONNECT,
+} proto_code;
 
 #define PARSE_HEADER(start,cursor) \
 	cursor = start; \
@@ -42,47 +65,87 @@
 			cursor++; \
 	}
 
-static int pwrite( mcontext *c, const char *buf, int len ) {
-	while( len > 0 ) {
-		int k = send(c->sock,buf,len,MSG_NOSIGNAL);
-		if( k <= 0 ) return 0;
-		buf += k;
-		len -= k;
-	}
-	return 1;
+static bool proto_error( proto *p, const char *error ) {
+	free(p->error_msg);
+	p->error_msg = strdup(error);
+	p->error = true;
+	return false;
 }
 
-static int pread( mcontext *c, char *buf, int len ) {
-	while( len > 0 ) {
-		int k = recv(c->sock,buf,len,MSG_NOSIGNAL);
-		if( k <= 0 ) return 0;
-		buf += k;
-		len -= k;
-	}
-	return 1;
+proto *protocol_init( protocol_infos *inf ) {
+	proto *p = (proto*)malloc(sizeof(struct _protocol));
+	p->s = INVALID_SOCKET;
+	p->inf = *inf;
+	p->error = false;
+	p->error_msg = NULL;
+	psock_init();
+	return p;
 }
 
-static void psend_size( mcontext *c, proto_code code, const char *str, int len ) {
+bool protocol_connect( proto *p, const char *host, int port ) {
+	PHOST h = phost_resolve(host);
+	if( h == UNRESOLVED_HOST )
+		return proto_error(p,"Failed to resolve host");
+	p->s = psock_create();
+	if( p->s == INVALID_SOCKET )
+		return proto_error(p,"Failed to create socket");
+	if( psock_connect(p->s,h,port) != S_OK )
+		return proto_error(p,"Failed to connect to TORA host");
+	return true;
+}
+
+const char *protocol_get_error( proto *p ) {
+	return p->error_msg ? p->error_msg : "NO ERROR";
+}
+
+void protocol_free( proto *p ) {
+	psock_close(p->s);
+	free(p->error_msg);
+	free(p);
+}
+
+static void proto_write( proto *p, const char *str, int len ) {
+	while( len ) {
+		int b = psock_send(p->s,str,len);
+		if( b <= 0 ) {
+			p->error = true;
+			return;
+		}
+		len -= b;
+		str += b;
+	}
+}
+
+static bool proto_read( proto *p, char *str, int len ) {
+	while( len ) {
+		int b = psock_recv(p->s,str,len);
+		if( b <= 0 ) {
+			p->error = true;
+			return false;
+		}
+		len -= b;
+		str += b;
+	}
+	return true;
+}
+
+static void proto_send_size( proto *p, proto_code code, const char *str, int len ) {
 	unsigned char h[4];
 	h[0] = (unsigned char)code;
 	h[1] = (unsigned char)len;
 	h[2] = (unsigned char)(len >> 8);
 	h[3] = (unsigned char)(len >> 16);
-	pwrite(c,(char*)h,4);
-	pwrite(c,str,len);
+	proto_write(p,(char*)h,4);
+	proto_write(p,str,len);
 }
 
-static void psend( mcontext *c, proto_code code, const char *str ) {
-	psend_size(c,code,str,(int)strlen(str));
+static void proto_send( proto *p, proto_code code, const char *str ) {
+	proto_send_size(p,code,str,(int)strlen(str));
 }
 
-static int send_client_header( void *_c, const char *key, const char *val ) {
-	mcontext *c = (mcontext*)_c;
-	if( key == NULL || val == NULL )
-		return 1;
-	psend(c,CODE_HEADER_KEY,key);
-	psend(c,CODE_HEADER_VALUE,val);
-	return 1;
+void protocol_send_header( proto *p, const char *key, const char *val ) {
+	proto_send(p,CODE_HEADER_KEY,key);
+	proto_send(p,CODE_HEADER_VALUE,val);
 }
 
 static int url_decode( const char *bin, int len, char *bout ) {
@@ -125,19 +188,24 @@ static int url_decode( const char *bin, int len, char *bout ) {
 
 #define DEFAULT_SIZE	256
 
-static void psend_decode( mcontext *ctx, proto_code code, const char *str, int len ) {
+static void proto_send_decode( proto *p, proto_code code, const char *str, int len ) {
 	char tmp[DEFAULT_SIZE];
 	char *buf = NULL;
 	int size;
 	if( len >= DEFAULT_SIZE )
 		buf = malloc(len+1);
 	size = url_decode(str,len,buf?buf:tmp);
-	psend_size(ctx,code,buf?buf:tmp,size);
+	proto_send_size(p,code,buf?buf:tmp,size);
 	if( buf )
 		free(buf);
 }
 
-static void send_parsed_params( mcontext *ctx, const char *args ) {
+void protocol_send_param( proto *p, const char *param, int param_size, const char *value, int value_size ) {
+	proto_send_size(p,CODE_PARAM_KEY,param,param_size);
+	proto_send_size(p,CODE_PARAM_VALUE,value,value_size);
+}
+
+void protocol_send_raw_params( proto *p, const char *args ) {
 	char *aand, *aeq, *asep;
 	while( true ) {
 		aand = strchr(args,'&');
@@ -154,8 +222,8 @@ static void send_parsed_params( mcontext *ctx, const char *args ) {
 		aeq = strchr(args,'=');
 		if( aeq != NULL ) {
 			*aeq = 0;
-			psend_decode(ctx,CODE_PARAM_KEY,args,(int)(aeq-args));
-			psend_decode(ctx,CODE_PARAM_VALUE,aeq+1,(int)strlen(aeq+1));
+			proto_send_decode(p,CODE_PARAM_KEY,args,(int)(aeq-args));
+			proto_send_decode(p,CODE_PARAM_VALUE,aeq+1,(int)strlen(aeq+1));
 			*aeq = '=';
 		}
 		if( aand == NULL )
@@ -181,34 +249,45 @@ static char *memfind( char *mem, int mlen, const char *v ) {
 	return NULL;
 }
 
-static void fill_buffer( mcontext *c, char *buf, int bufsize, int *len ) {
-	int pos = *len;
+bool protocol_send_request( proto *p ) {
+	proto_send(p,CODE_FILE,p->inf.script);
+	proto_send(p,CODE_URI,p->inf.uri);
+	proto_send(p,CODE_HOST_NAME,p->inf.hostname);
+	proto_send(p,CODE_CLIENT_IP,p->inf.client_ip);
+	if( p->inf.do_get_headers )
+		p->inf.do_get_headers(p->inf.custom);
+	if( p->inf.get_data )
+		proto_send(p,CODE_GET_PARAMS,p->inf.get_data);
+	if( p->inf.post_data )
+		proto_send_size(p,CODE_POST_DATA,p->inf.post_data,p->inf.post_data_size);
+	if( p->inf.do_get_params )
+		p->inf.do_get_params(p->inf.custom);
+	proto_send(p,CODE_HTTP_METHOD,p->inf.http_method);
+	psock_set_fastsend(p->s,1);
+	proto_send_size(p,CODE_EXECUTE,NULL,0);
+	psock_set_fastsend(p->s,0);
+	return !p->error;
+}
+
+static int fill_buffer( proto *p, char *buf, int bufsize, int pos ) {
 	while( pos < bufsize ) {
-		int k = ap_get_client_block(c->r,buf+pos,bufsize-pos);
-		if( k == 0 )
-			break;
+		int k = p->inf.do_stream_data(p->inf.custom,buf+pos,bufsize-pos);
+		if( k <= 0 ) break;
 		pos += k;
 	}
-	*len = pos;
+	return pos;
 }
 
-static int discard_body( mcontext *c, char *buf, int bufsize ) {
-	while( ap_get_client_block(c->r,buf,bufsize) > 0 ) {
-	}
-	return false;
-}
-
-static bool send_multipart_data( mcontext *c, char *buf, int bufsize ) {
+static bool send_multipart_data( proto *p, char *buf, int bufsize ) {
 	int len = 0;
-	const char *ctype = ap_table_get(c->r->headers_in,"Content-Type");
 	char *boundstr = NULL;
 	int boundstr_len;
-	if( !ctype || strstr(ctype,"multipart/form-data") == NULL )
+	if( p->inf.content_type == NULL || p->inf.do_stream_data == NULL )
 		return true;
 	// extract boundary value
 	{
 		const char *boundary, *bend;
-		if( (boundary = strstr(ctype,"boundary=")) == NULL )
+		if( (boundary = strstr(p->inf.content_type,"boundary=")) == NULL )
 			return false;
 		boundary += 9;
 		PARSE_HEADER(boundary,bend);
@@ -223,7 +302,8 @@ static bool send_multipart_data( mcontext *c, char *buf, int bufsize ) {
 		memcpy(boundstr+2,boundary,len);
 	}
 	len = 0;
-	if( !ap_should_client_block(c->r) ) {
+	// permit the server to start download if needed
+	if( p->inf.do_stream_data(p->inf.custom,NULL,0) != 0 ) {
 		free(boundstr);
 		return false;
 	}
@@ -232,11 +312,11 @@ static bool send_multipart_data( mcontext *c, char *buf, int bufsize ) {
 		int pos;
 		// refill buffer
 		// we assume here that the the whole multipart header can fit in the buffer
-		fill_buffer(c,buf,bufsize,&len);
+		len = fill_buffer(p,buf,bufsize,len);
 		// is boundary at the beginning of buffer ?
 		if( len < boundstr_len || memcmp(buf,boundstr,boundstr_len) != 0 ) {
 			free(boundstr);
-			return discard_body(c,buf,bufsize);
+			return false;
 		}
 		name = memfind(buf,len,"Content-Disposition:");
 		if( name == NULL )
@@ -244,14 +324,14 @@ static bool send_multipart_data( mcontext *c, char *buf, int bufsize ) {
 		name = memfind(name,len - (int)(name - buf),"name=");
 		if( name == NULL ) {
 			free(boundstr);
-			return discard_body(c,buf,bufsize);
+			return false;
 		}
 		name += 5;
 		PARSE_HEADER(name,end_name);
 		data = memfind(end_name,len - (int)(end_name - buf),"\r\n\r\n");
 		if( data == NULL ) {
 			free(boundstr);
-			return discard_body(c,buf,bufsize);
+			return false;
 		}
 		filename = memfind(name,(int)(data - name),"filename=");
 		if( filename != NULL ) {
@@ -262,8 +342,8 @@ static bool send_multipart_data( mcontext *c, char *buf, int bufsize ) {
 		pos = (int)(data - buf);
 		// send part name
 		if( filename )
-			psend_size(c,CODE_PART_FILENAME,filename,(int)(end_file_name - filename));
-		psend_size(c,CODE_PART_KEY,name,(int)(end_name - name));
+			proto_send_size(p,CODE_PART_FILENAME,filename,(int)(end_file_name - filename));
+		proto_send_size(p,CODE_PART_KEY,name,(int)(end_name - name));
 		// read data
 		while( true ) {
 			const char *boundary;
@@ -271,70 +351,46 @@ static bool send_multipart_data( mcontext *c, char *buf, int bufsize ) {
 			memcpy(buf,buf+pos,len - pos);
 			len -= pos;
 			pos = 0;
-			fill_buffer(c,buf,bufsize,&len);
+			len = fill_buffer(p,buf,bufsize,len);
 			// lookup bounds
 			boundary = memfind(buf,len,boundstr);
 			if( boundary == NULL ) {
 				if( len == 0 ) {
 					free(boundstr);
-					return discard_body(c,buf,len);
+					return false;
 				}
 				// send as much buffer as possible to client
 				if( len < bufsize )
 					pos = len;
 				else
 					pos = len - boundstr_len + 1;
-				psend_size(c,CODE_PART_DATA,buf,pos);
+				proto_send_size(p,CODE_PART_DATA,buf,pos);
 			} else {
 				// send remaining data
 				pos = (int)(boundary - buf);
-				psend_size(c,CODE_PART_DATA,buf,pos - 2);
+				proto_send_size(p,CODE_PART_DATA,buf,pos - 2);
 				// recall
 				memcpy(buf,buf+pos,len - pos);
 				len -= pos;
 				break;
 			}
 		}
-		psend_size(c,CODE_PART_DONE,"",0);
+		proto_send_size(p,CODE_PART_DONE,"",0);
 	}
 	free(boundstr);
 	return true;
 }
 
-void protocol_send_request( mcontext *c ) {
-	request_rec *tmp = c->r;
-	while( tmp->prev != NULL )
-		tmp = tmp->prev;
-	psend(c,CODE_FILE,c->r->filename);
-	psend(c,CODE_URI,tmp->uri);
-	psend(c,CODE_HOST_NAME, c->r->hostname );
-	psend(c,CODE_CLIENT_IP, c->r->connection->remote_ip );
-	ap_table_do(send_client_header,c,c->r->headers_in,NULL);
-	if( c->r->args != NULL ) {
-		psend(c,CODE_GET_PARAMS,c->r->args);
-		send_parsed_params(c,c->r->args);
-	}
-	if( c->post_data != NULL ) {
-		psend_size(c,CODE_POST_DATA,c->post_data,c->post_data_size);
-		send_parsed_params(c,c->post_data);
-	}
-	psend(c,CODE_HTTP_METHOD,c->r->method);
-	psend_size(c,CODE_EXECUTE,NULL,0);
-}
-
-
 #define BUFSIZE	(1 << 16) // 64 KB
-#define ABORT(msg)	{ error = strdup(msg); goto exit; }
+#define ABORT(msg)	{ proto_error(p,msg); goto exit; }
 
-char *protocol_loop( mcontext *c, int *exc ) {
+bool protocol_read_answer( proto *p ) {
 	unsigned char header[4];
 	int len;
 	char *buf = (char*)malloc(BUFSIZE), *key = NULL;
-	char *error = NULL;
 	int buflen = BUFSIZE;
-	*exc = 0;
 	while( true ) {
-		if( !pread(c,header,4) )
+		if( !proto_read(p,header,4) )
 			ABORT("Connection Closed");
 		len = header[1] | (header[2] << 8) | (header[3] << 16);
 		if( buflen <= len ) {
@@ -343,67 +399,55 @@ char *protocol_loop( mcontext *c, int *exc ) {
 			free(buf);
 			buf = (char*)malloc(buflen);
 		}
-		if( !pread(c,buf,len) )
+		if( !proto_read(p,buf,len) )
 			ABORT("Connection Closed");
 		buf[len] = 0;
 		switch( *header ) {
 		case CODE_HEADER_KEY:
-			if( c->headers_sent )
-				ABORT("Cannot set header : headers already sent");
 			key = strdup(buf);
 			break;
 		case CODE_HEADER_VALUE:
-			if( strcmpi(key,"Content-Type") == 0 ) {
-				char *ct = (char*)ap_palloc(c->r->pool,len+1);
-				memcpy(ct,buf,len+1);
-				c->r->content_type = ct;
-			} else
-				ap_table_set(c->r->headers_out,key,buf);
+			if( !key ) ABORT("Missing key");
+			p->inf.do_set_header(p->inf.custom,key,buf,false);
 			free(key); key = NULL;
 			break;
 		case CODE_HEADER_ADD_VALUE:
-			ap_table_add(c->r->headers_out,key,buf);
+			if( !key ) ABORT("Missing key");
+			p->inf.do_set_header(p->inf.custom,key,buf,true);
 			free(key); key = NULL;
 			break;
 		case CODE_EXECUTE:
 			goto exit;
 		case CODE_ERROR:
-			*exc = 1;
-			ABORT(buf);
+			p->inf.do_log(p->inf.custom,buf,true);
+			goto exit;
 		case CODE_PRINT:
-			ap_soft_timeout("Client Timeout",c->r);
-			send_headers(c);
-			ap_rwrite(buf,len,c->r);
-			ap_kill_timeout(c->r);
+			p->inf.do_print(p->inf.custom,buf,len);
 			break;
 		case CODE_LOG:
-			ap_log_rerror(__FILE__, __LINE__, APLOG_NOTICE, LOG_SUCCESS c->r, "[mod_tora] %s", buf);
+			p->inf.do_log(p->inf.custom,buf,false);
 			break;
 		case CODE_FLUSH:
-			ap_rflush(c->r);
+			p->inf.do_flush(p->inf.custom);
 			break;
 		case CODE_REDIRECT:
-			if( c->headers_sent )
-				ABORT("Cannot redirect : headers already sent");
-			ap_table_set(c->r->headers_out,"Location",buf);
-			c->r->status = REDIRECT;
+			p->inf.do_set_header(p->inf.custom,"Location",buf,false);
+			p->inf.do_set_return_code(p->inf.custom,302);
 			break;
 		case CODE_RETURNCODE:
-			if( c->headers_sent )
-				ABORT("Cannot set return code : headers already sent");
-			c->r->status = atoi(buf);
+			p->inf.do_set_return_code(p->inf.custom,atoi(buf));
 			break;
 		case CODE_QUERY_MULTIPART:
 			{
 				int tmpsize = atoi(buf);
 				char *tmp = (char*)malloc(tmpsize + 1);
 				tmp[tmpsize] = 0;
-				if( !send_multipart_data(c,tmp,tmpsize) ) {
+				if( !send_multipart_data(p,tmp,tmpsize) ) {
 					free(tmp);
-					ABORT("Failed to parse multipart data");
+					ABORT("Failed to send multipart data");
 				}
 				free(tmp);
-				psend(c,CODE_EXECUTE,"");
+				proto_send(p,CODE_EXECUTE,"");
 			}
 			break;
 		default:
@@ -413,7 +457,7 @@ char *protocol_loop( mcontext *c, int *exc ) {
 exit:
 	free(key);
 	free(buf);
-	return error;
+	return !p->error;
 }
 
 /* ************************************************************************ */
