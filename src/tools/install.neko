@@ -91,13 +91,13 @@ libs = {
 		lparams => switch system { "Mac" => "-framework Carbon" default => "`pkg-config --libs gtk+-2.0` -lgthread-2.0" },
 	},
 	mod_tora => {
-		src => $array("mod_tora","protocol"),
+		src => $array("mod_tora","protocol","../common/socket"),
 		inc => "httpd.h",
 		incname => "Apache 1.3.x",
 		cflags => "-I../common",
 	},
 	mod_tora2 => {
-		src => $array("mod_tora","protocol"),
+		src => $array("mod_tora","protocol","../common/socket"),
 		inc => $array("httpd.h","apr.h"),
 		incname => "Apache 2.2.x",
 		cflags => "-D_LARGEFILE64_SOURCE -I../common",
