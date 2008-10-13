@@ -44,6 +44,7 @@
 #	include <fcntl.h>
 #	include <errno.h>
 #	include <stdio.h>
+#	include <poll.h>
 #	define closesocket close
 #	define SOCKET_ERROR (-1)
 #	define POSIX_LABEL(x)	x:
@@ -185,6 +186,24 @@ SERR psock_set_fastsend( PSOCK s, int fast ) {
 	if( setsockopt(s,IPPROTO_TCP,TCP_NODELAY,(char*)&fast,sizeof(fast)) )
 		return block_error();
 	return PS_OK;
+}
+
+void psock_wait( PSOCK s ) {
+#	ifdef OS_WINDOWS
+	fd_set set;
+	FD_ZERO(&set);
+	FD_SET(s,&set);
+	select(s+1,&set,NULL,NULL,NULL);
+#	else
+	struct pollfd fds;
+	POSIX_LABEL(poll_again);
+	fds.fd = s;
+	fds.events = POLLIN;
+	fds.revents = 0;
+	if( poll(&fds,1,0) < 0 ) {
+		HANDLE_EINTR(poll_again);
+	}
+#	endif
 }
 
 /* ************************************************************************ */
