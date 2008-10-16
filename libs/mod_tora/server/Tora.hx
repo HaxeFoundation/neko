@@ -157,7 +157,7 @@ class Tora {
 	}
 
 	function getFileTime( file ) {
-		return neko.FileSystem.stat(file).mtime.getTime();
+		return try neko.FileSystem.stat(file).mtime.getTime() catch( e : Dynamic ) 0.;
 	}
 
 	function threadLoop( t : ThreadData ) {
