@@ -200,7 +200,7 @@ void psock_wait( PSOCK s ) {
 	fds.fd = s;
 	fds.events = POLLIN;
 	fds.revents = 0;
-	if( poll(&fds,1,0) < 0 ) {
+	if( poll(&fds,1,-1) < 0 ) {
 		HANDLE_EINTR(poll_again);
 	}
 #	endif
