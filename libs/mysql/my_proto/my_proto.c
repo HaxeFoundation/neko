@@ -179,7 +179,7 @@ void my_write( MYSQL_PACKET *p, const void *data, int size ) {
 		do {
 			p->mem <<= 1;
 		} while( p->size + size > p->mem );
-		buf2 = (char*)malloc(p->mem);
+		buf2 = (char*)malloc(p->mem + 1);
 		memcpy(buf2,p->buf,p->size);
 		free(p->buf);
 		p->buf = buf2;
