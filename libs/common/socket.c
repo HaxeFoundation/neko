@@ -193,7 +193,7 @@ void psock_wait( PSOCK s ) {
 	fd_set set;
 	FD_ZERO(&set);
 	FD_SET(s,&set);
-	select(s+1,&set,NULL,NULL,NULL);
+	select((int)s+1,&set,NULL,NULL,NULL);
 #	else
 	struct pollfd fds;
 	POSIX_LABEL(poll_again);
