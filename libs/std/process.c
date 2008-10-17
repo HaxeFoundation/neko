@@ -152,8 +152,15 @@ static value process_run( value cmd, value vargs ) {
 		neko_error();
 	p = (vprocess*)alloc_private(sizeof(vprocess));
 	p->pid = fork();
-	if( p->pid == -1 )
+	if( p->pid == -1 ) {
+		do_close(input[0]);
+		do_close(input[1]);
+		do_close(output[0]);
+		do_close(output[1]);
+		do_close(error[0]);
+		do_close(error[1]);
 		neko_error();
+	}
 	// child
 	if( p->pid == 0 ) {
 		close(input[1]);
