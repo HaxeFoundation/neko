@@ -159,6 +159,8 @@ static void discard_body( mcontext *c ) {
 
 static int tora_handler( request_rec *r ) {
 	mcontext ctx, *c = &ctx;
+	if( strcmp(r->handler,"tora-handler") != 0)
+		return DECLINED;
 
 	// init context
 	c->need_discard = false;
@@ -168,8 +170,6 @@ static int tora_handler( request_rec *r ) {
 	c->post_data = NULL;
 	c->p = NULL;
 	c->r->content_type = "text/html";
-	if( strcmp(r->handler,"tora-handler") != 0)
-		return DECLINED;
 	config.hits++;
 
 	// read post data

@@ -6,6 +6,7 @@
 	std : added socket_set_fast_send
 	mod_tora : use socket fast send to optimize timing
 	mod_tora : fixed bug when .n file does not exists
+	mod_tora : fix for Apache 2.x - does not set the content-type if declined
 
 2008-09-23 : 1.8.0
 	added mod_tora (neko application server)
