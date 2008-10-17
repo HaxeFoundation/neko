@@ -81,6 +81,13 @@ PSOCK psock_create() {
 	if( s != INVALID_SOCKET )
 		setsockopt(s,SOL_SOCKET,SO_NOSIGPIPE,NULL,0);
 #	endif
+#	ifdef OS_POSIX
+	// we don't want sockets to be inherited in case of exec
+	{
+		int old = fcntl(s,F_GETFD,0);
+		if( old >= 0 ) fcntl(s,F_SETFD,old|FD_CLOEXEC);
+	}
+#	endif
 	return s;
 }
 
