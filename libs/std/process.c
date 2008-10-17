@@ -210,8 +210,14 @@ static value process_stdout_read( value vp, value str, value pos, value len ) {
 		return alloc_int(nbytes);
 	}
 #	else
-	int nbytes = read(p->oread,val_string(str)+val_int(pos),val_int(len));
-	if( nbytes <= 0 )
+	int nbytes;
+	POSIX_LABEL(stdout_read_again);
+	nbytes = read(p->oread,val_string(str)+val_int(pos),val_int(len));
+	if( nbytes < 0 ) {
+		HANDLE_EINTR(stdout_read_again);
+		neko_error();
+	}
+	if( nbytes == 0 )
 		neko_error();
 	return alloc_int(nbytes);
 #	endif
@@ -235,8 +241,14 @@ static value process_stderr_read( value vp, value str, value pos, value len ) {
 		return alloc_int(nbytes);
 	}
 #	else
-	int nbytes = read(p->eread,val_string(str)+val_int(pos),val_int(len));
-	if( nbytes <= 0 )
+	int nbytes;
+	POSIX_LABEL(stderr_read_again);
+	nbytes = read(p->eread,val_string(str)+val_int(pos),val_int(len));
+	if( nbytes < 0 ) {
+		HANDLE_EINTR(stderr_read_again);
+		neko_error();
+	}
+	if( nbytes == 0 )
 		neko_error();
 	return alloc_int(nbytes);
 #	endif
@@ -260,9 +272,13 @@ static value process_stdin_write( value vp, value str, value pos, value len ) {
 		return alloc_int(nbytes);
 	}
 #	else
-	int nbytes = write(p->iwrite,val_string(str)+val_int(pos),val_int(len));
-	if( nbytes == -1 )
+	int nbytes;
+	POSIX_LABEL(stdin_write_again);
+	nbytes = write(p->iwrite,val_string(str)+val_int(pos),val_int(len));
+	if( nbytes == -1 ) {
+		HANDLE_EINTR(stdin_write_again);
 		neko_error();
+	}
 	return alloc_int(nbytes);
 #	endif
 }
