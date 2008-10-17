@@ -535,9 +535,12 @@ static value socket_accept( value o ) {
 	unsigned int addrlen = sizeof(addr);
 	SOCKET s;
 	val_check_kind(o,k_socket);
+	POSIX_LABEL(accept_again);
 	s = accept(val_sock(o),(struct sockaddr*)&addr,&addrlen);
-	if( s == INVALID_SOCKET )
+	if( s == INVALID_SOCKET ) {
+		HANDLE_EINTR(accept_again);
 		return block_error();
+	}
 	return alloc_abstract(k_socket,(value)(int_val)s);
 }
 
