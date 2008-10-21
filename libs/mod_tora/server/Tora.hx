@@ -51,6 +51,7 @@ class Tora {
 	var modulePath : Array<String>;
 	var redirect : Dynamic;
 	var set_trusted : Dynamic;
+	var enable_jit : Bool -> Bool;
 	var set_fast_send : SocketHandle -> Bool -> Void;
 	var running : Bool;
 
@@ -70,6 +71,10 @@ class Tora {
 		neko.Sys.putEnv("MOD_NEKO","1");
 		redirect = neko.Lib.load("std","print_redirect",1);
 		set_trusted = neko.Lib.load("std","set_trusted",1);
+		enable_jit = neko.Lib.load("std","enable_jit",1);
+		// always disable jit if not enabled when running tora
+		if( enable_jit(null) != true )
+			enable_jit = function(_) return false;
 		set_fast_send = try neko.Lib.load("std","socket_set_fast_send",2) catch( e : Dynamic ) function(s,f) {};
 		neko.vm.Thread.create(callback(startup,nthreads));
 	}
@@ -132,6 +137,7 @@ class Tora {
 		var mod_neko = neko.NativeString.ofString("mod_neko@");
 		var mem_size = "std@mem_size";
 		var self : neko.vm.Loader = null;
+		var first_module = true;
 		var loadPrim = function(prim:String,nargs:Int) {
 			if( untyped __dollar__sfind(prim.__s,0,mod_neko) == 0 ) {
 				var p = Reflect.field(api,prim.substr(9));
@@ -150,7 +156,13 @@ class Tora {
 			var cache : Dynamic = untyped self.l.cache;
 			var mod = Reflect.field(cache,module);
 			if( mod == null ) {
+				if( first_module )
+					me.enable_jit(true);
 				mod = neko.vm.Module.readPath(module,me.modulePath,self);
+				if( first_module ) {
+					me.enable_jit(false);
+					first_module = false;
+				}
 				Reflect.setField(cache,module,mod);
 				mod.execute();
 			}

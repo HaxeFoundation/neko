@@ -127,6 +127,8 @@ EXTERN neko_vm *neko_vm_alloc( void *custom ) {
 }
 
 EXTERN int neko_vm_jit( neko_vm *vm, int enable_jit ) {
+	if( enable_jit < 0 )
+		return vm->run_jit;
 	if( enable_jit )
 		vm->run_jit = neko_can_jit();
 	else

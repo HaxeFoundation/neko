@@ -187,6 +187,7 @@ typedef struct {
 	value callparam;
 	vthread *t;
 	void *handle;
+	int jit;
 } tparams;
 
 static vthread *neko_thread_current() {
@@ -218,6 +219,7 @@ static void thread_init( void *_p ) {
 	p->t = alloc_thread();
 	// init the VM and set current thread
 	vm = neko_vm_alloc(NULL);
+	neko_vm_jit(vm,p->jit);
 	neko_vm_select(vm);
 	neko_vm_set_custom(vm,k_thread,p->t);
 }
@@ -248,6 +250,7 @@ static value thread_create( value f, value param ) {
 	p = (tparams*)alloc(sizeof(tparams));
 	p->callb = f;
 	p->callparam = param;
+	p->jit = neko_vm_jit(neko_vm_current(),-1);	
 	if( !neko_thread_create(thread_init,thread_loop,p,&p->handle) )
 		neko_error();
 	return p->t->v;
