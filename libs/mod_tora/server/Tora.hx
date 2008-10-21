@@ -25,6 +25,7 @@ typedef ThreadData = {
 	var time : Float;
 	var hits : Int;
 	var errors : Int;
+	var stopped : Bool;
 }
 
 typedef FileData = {
@@ -51,9 +52,11 @@ class Tora {
 	var redirect : Dynamic;
 	var set_trusted : Dynamic;
 	var set_fast_send : SocketHandle -> Bool -> Void;
+	var running : Bool;
 
 	function new() {
 		totalHits = 0;
+		running = true;
 		startTime = haxe.Timer.stamp();
 		files = new Hash();
 		flock = new neko.vm.Mutex();
@@ -80,6 +83,7 @@ class Tora {
 				hits : 0,
 				errors : 0,
 				time : haxe.Timer.stamp(),
+				stopped : false,
 			};
 			inf.t = neko.vm.Thread.create(callback(threadLoop,inf));
 			threads.push(inf);
@@ -93,7 +97,7 @@ class Tora {
 	}
 
 	function cleanupLoop() {
-		while( true ) {
+		while( running ) {
 			neko.Sys.sleep(15);
 			flock.acquire();
 			var files = Lambda.array(files);
@@ -167,7 +171,7 @@ class Tora {
 			if( client == null ) {
 				// let other threads pop 'null' as well
 				// in case of global restart
-				neko.Sys.sleep(1);
+				t.stopped = true;
 				break;
 			}
 			t.hits++;
@@ -277,18 +281,51 @@ class Tora {
 			throw "Failed to bind socket : invalid host or port is busy";
 		}
 		s.listen(100);
-		while( true ) {
-			var client = s.accept();
-			totalHits++;
-			clientQueue.add(new Client(client));
+		try {
+			while( running ) {
+				var client = s.accept();
+				totalHits++;
+				clientQueue.add(new Client(client));
+			}
+		} catch( e : Dynamic ) {
+			log("accept() failure : maybe too much FD opened ?");
 		}
+		// close our waiting socket
+		s.close();
 	}
+
+	function stop() {
+		log("Shuting down...");
+		// inform all threads that we are stopping
+		for( i in 0...threads.length )
+			clientQueue.add(null);
+		// our own marker
+		clientQueue.add(null);
+		var count = 0;
+		while( true ) {
+			var c = clientQueue.pop(false);
+			if( c == null )
+				break;
+			c.sock.close();
+			count++;
+		}
+		log(count + " sockets closed in queue...");
+		// wait for threads to stop
+		neko.Sys.sleep(5);
+		count = 0;
+		for( t in threads )
+			if( t.stopped )
+				count++;
+			else
+				log("Thread "+t.id+" is locked in "+((t.client == null)?"???":t.client.getURL()));
+		log(count + " / " + threads.length + " threads stopped");
+	}
+
 
 	public function command( cmd : String, param : String ) : Void {
 		switch( cmd ) {
-		case "restart":
-			for( i in 0...threads.length )
-				clientQueue.add(null);
+		case "stop":
+			running = false;
 		case "gc":
 			neko.vm.Gc.run(true);
 		case "clean":
@@ -297,7 +334,7 @@ class Tora {
 				files.remove(f);
 			flock.release();
 		default:
-			throw "No such command "+cmd;
+			throw "No such command '"+cmd+"'";
 		}
 	}
 
@@ -357,6 +394,7 @@ class Tora {
 		log("Starting Tora server on "+host+":"+port+" with "+nthreads+" threads");
 		inst.init(nthreads);
 		inst.run(host,port);
+		inst.stop();
 	}
 
 }
