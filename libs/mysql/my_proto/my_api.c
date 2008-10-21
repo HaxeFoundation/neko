@@ -412,13 +412,28 @@ unsigned long *mysql_fetch_lengths( MYSQL_RES *r ) {
 }
 
 MYSQL_ROW mysql_fetch_row( MYSQL_RES * r ) {
-	if( r->current == NULL )
-		r->current = r->rows;
-	else
-		r->current++;
-	if( r->current >= r->rows + r->row_count )
-		r->current = NULL;
-	return r->current ? r->current->datas : NULL;
+	MYSQL_ROW_DATA *cur = r->current;
+	if( cur == NULL )
+		cur = r->rows;
+	else {
+		// free the previous result, since we're done with it
+		free(cur->datas);
+		free(cur->lengths);
+		free(cur->raw);
+		cur->datas = NULL;
+		cur->lengths = NULL;
+		cur->raw = NULL;
+		// next
+		cur++;
+	}
+	if( cur >= r->rows + r->row_count ) {		
+		free(r->rows);
+		r->rows = NULL;
+		r->memory_rows = 0;
+		cur = NULL;	
+	}
+	r->current = cur;
+	return cur ? cur->datas : NULL;
 }
 
 void mysql_free_result( MYSQL_RES *r ) {
