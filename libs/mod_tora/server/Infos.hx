@@ -22,4 +22,5 @@ typedef Infos = {
 	var hits : Int;
 	var queue : Int;
 	var upTime : Float;
+	var jit : Bool;
 }

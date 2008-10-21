@@ -54,6 +54,7 @@ class Tora {
 	var enable_jit : Bool -> Bool;
 	var set_fast_send : SocketHandle -> Bool -> Void;
 	var running : Bool;
+	var jit : Bool;
 
 	function new() {
 		totalHits = 0;
@@ -72,9 +73,7 @@ class Tora {
 		redirect = neko.Lib.load("std","print_redirect",1);
 		set_trusted = neko.Lib.load("std","set_trusted",1);
 		enable_jit = neko.Lib.load("std","enable_jit",1);
-		// always disable jit if not enabled when running tora
-		if( enable_jit(null) != true )
-			enable_jit = function(_) return false;
+		jit = (enable_jit(null) == true);
 		set_fast_send = try neko.Lib.load("std","socket_set_fast_send",2) catch( e : Dynamic ) function(s,f) {};
 		neko.vm.Thread.create(callback(startup,nthreads));
 	}
@@ -137,7 +136,7 @@ class Tora {
 		var mod_neko = neko.NativeString.ofString("mod_neko@");
 		var mem_size = "std@mem_size";
 		var self : neko.vm.Loader = null;
-		var first_module = true;
+		var first_module = jit;
 		var loadPrim = function(prim:String,nargs:Int) {
 			if( untyped __dollar__sfind(prim.__s,0,mod_neko) == 0 ) {
 				var p = Reflect.field(api,prim.substr(9));
@@ -383,6 +382,7 @@ class Tora {
 			hits : totalHits,
 			queue : totalHits - tot,
 			upTime : haxe.Timer.stamp() - startTime,
+			jit : jit,
 		};
 	}
 

@@ -139,6 +139,7 @@ class Admin {
 			"Memory : "+(mem.heap - mem.free)+" / "+mem.heap+" KB",
 			"Total hits : "+infos.hits+" ("+fmt(infos.hits/infos.upTime)+"/sec)",
 			"Cache hits : "+cacheHits+" ("+fmt(cacheHits*100.0/infos.hits)+"%)",
+			"JIT : "+(infos.jit?"ON":"OFF"),
 		]);
 
 		tab("Files",function() {
