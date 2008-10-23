@@ -140,40 +140,40 @@ struct _MYSQL_RES {
 
 
 // network
-int my_recv( MYSQL *m, void *buf, int size );
-int my_send( MYSQL *m, void *buf, int size );
-int my_read_packet( MYSQL *m, MYSQL_PACKET *p );
-int my_send_packet( MYSQL *m, MYSQL_PACKET *p );
+int myp_recv( MYSQL *m, void *buf, int size );
+int myp_send( MYSQL *m, void *buf, int size );
+int myp_read_packet( MYSQL *m, MYSQL_PACKET *p );
+int myp_send_packet( MYSQL *m, MYSQL_PACKET *p );
 
 // packet read
-int my_read( MYSQL_PACKET *p, void *buf, int size );
-unsigned char my_read_byte( MYSQL_PACKET *p );
-unsigned short my_read_ui16( MYSQL_PACKET *p );
-int my_read_int( MYSQL_PACKET *p );
-const char *my_read_string( MYSQL_PACKET *p );
-int my_read_bin( MYSQL_PACKET *p );
-char *my_read_bin_str( MYSQL_PACKET *p );
+int myp_read( MYSQL_PACKET *p, void *buf, int size );
+unsigned char myp_read_byte( MYSQL_PACKET *p );
+unsigned short myp_read_ui16( MYSQL_PACKET *p );
+int myp_read_int( MYSQL_PACKET *p );
+const char *myp_read_string( MYSQL_PACKET *p );
+int myp_read_bin( MYSQL_PACKET *p );
+char *myp_read_bin_str( MYSQL_PACKET *p );
 
 // packet write
-void my_begin_packet( MYSQL_PACKET *p, int id, int minsize );
-void my_write( MYSQL_PACKET *p, const void *data, int size );
-void my_write_byte( MYSQL_PACKET *p, int b );
-void my_write_ui16( MYSQL_PACKET *p, int b );
-void my_write_int( MYSQL_PACKET *p, int b );
+void myp_begin_packet( MYSQL_PACKET *p, int id, int minsize );
+void myp_write( MYSQL_PACKET *p, const void *data, int size );
+void myp_write_byte( MYSQL_PACKET *p, int b );
+void myp_write_ui16( MYSQL_PACKET *p, int b );
+void myp_write_int( MYSQL_PACKET *p, int b );
 
-void my_write_string( MYSQL_PACKET *p, const char *str );
-void my_write_bin( MYSQL_PACKET *p, int size );
+void myp_write_string( MYSQL_PACKET *p, const char *str );
+void myp_write_bin( MYSQL_PACKET *p, int size );
 
 // passwords
 #define SEED_LENGTH_323 8
 
-void my_crypt( unsigned char *out, const unsigned char *s1, const unsigned char *s2, unsigned int len );
-void my_encrypt_password( const char *pass, const char *seed, SHA1_DIGEST out );
-void my_encrypt_pass_323( const char *pass, const char seed[SEED_LENGTH_323], char out[SEED_LENGTH_323] );
+void myp_crypt( unsigned char *out, const unsigned char *s1, const unsigned char *s2, unsigned int len );
+void myp_encrypt_password( const char *pass, const char *seed, SHA1_DIGEST out );
+void myp_encrypt_pass_323( const char *pass, const char seed[SEED_LENGTH_323], char out[SEED_LENGTH_323] );
 
 // escaping
-int my_escape_string( int charset, char *sout, const char *sin, int length );
-int my_escape_quotes( int charset, char *sout, const char *sin, int length );
+int myp_escape_string( int charset, char *sout, const char *sin, int length );
+int myp_escape_quotes( int charset, char *sout, const char *sin, int length );
 
 #endif
 /* ************************************************************************ */

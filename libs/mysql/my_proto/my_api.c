@@ -45,21 +45,21 @@ static void error( MYSQL *m, const char *err, const char *param ) {
 static void save_error( MYSQL *m, MYSQL_PACKET *p ) {
 	int ecode;
 	p->pos = 1;
-	ecode = my_read_ui16(p);
+	ecode = myp_read_ui16(p);
 	if( m->is41 && p->buf[p->pos] == '#' )
 		p->pos += 6; // skip sqlstate marker
-	error(m,"%s",my_read_string(p));
+	error(m,"%s",myp_read_string(p));
 	m->errcode = ecode;
 }
 
-static int my_ok( MYSQL *m, int allow_others ) {
+static int myp_ok( MYSQL *m, int allow_others ) {
 	int code;
 	MYSQL_PACKET *p = &m->packet;
-	if( !my_read_packet(m,p) || m->packet.size == 0 ) {
+	if( !myp_read_packet(m,p) || m->packet.size == 0 ) {
 		error(m,"Failed to read packet",NULL);
 		return 0;
 	}
-	code = my_read_byte(p);
+	code = myp_read_byte(p);
 	if( code == 0x00 )
 		return 1;
 	if( code == 0xFF )
@@ -71,7 +71,7 @@ static int my_ok( MYSQL *m, int allow_others ) {
 	return 0;
 }
 
-static void my_close( MYSQL *m ) {
+static void myp_close( MYSQL *m ) {
 	psock_close(m->s);
 	m->s = INVALID_SOCKET;
 }
@@ -109,33 +109,33 @@ MYSQL *mysql_real_connect( MYSQL *m, const char *host, const char *user, const c
 	}
 	psock_set_fastsend(m->s,1);
 	if( psock_connect(m->s,h,port) != PS_OK ) {
-		my_close(m);
+		myp_close(m);
 		error(m,"Failed to connect on host '%s'",host);
 		return NULL;
 	}
-	if( !my_read_packet(m,p) ) {
-		my_close(m);
+	if( !myp_read_packet(m,p) ) {
+		myp_close(m);
 		error(m,"Failed to read handshake packet",NULL);
 		return NULL;
 	}
 	// process handshake packet
 	{
 		char filler[13];
-		m->infos.proto_version = my_read_byte(p);
-		m->infos.server_version = strdup(my_read_string(p));
-		m->infos.thread_id = my_read_int(p);
-		my_read(p,scramble_buf,8);
-		if( my_read_byte(p) != 0 ) p->error = 1;
-		m->infos.server_flags = my_read_ui16(p);
-		m->infos.server_charset = my_read_byte(p);
-		m->infos.server_status = my_read_ui16(p);
-		my_read(p,filler,13);
+		m->infos.proto_version = myp_read_byte(p);
+		m->infos.server_version = strdup(myp_read_string(p));
+		m->infos.thread_id = myp_read_int(p);
+		myp_read(p,scramble_buf,8);
+		if( myp_read_byte(p) != 0 ) p->error = 1;
+		m->infos.server_flags = myp_read_ui16(p);
+		m->infos.server_charset = myp_read_byte(p);
+		m->infos.server_status = myp_read_ui16(p);
+		myp_read(p,filler,13);
 		// try to disable 41
 		m->is41 = (m->infos.server_flags & FL_PROTOCOL_41) != 0;
 		if( !p->error && m->is41 )
-			my_read(p,scramble_buf + 8,13);
+			myp_read(p,scramble_buf + 8,13);
 		if( p->error || p->pos != p->size ) {
-			my_close(m);
+			myp_close(m);
 			error(m,"Failed to decode server handshake",NULL);
 			return NULL;
 		}
@@ -146,74 +146,74 @@ MYSQL *mysql_real_connect( MYSQL *m, const char *host, const char *user, const c
 			SHA1_DIGEST hpass;
 			char filler[23];
 			flags &= (FL_PROTOCOL_41 | FL_TRANSACTIONS | FL_SECURE_CONNECTION);
-			my_begin_packet(p,1,128);
+			myp_begin_packet(p,1,128);
 			if( m->is41 ) {
-				my_write_int(p,flags);
-				my_write_int(p,max_packet_size);
-				my_write_byte(p,m->infos.server_charset);
+				myp_write_int(p,flags);
+				myp_write_int(p,max_packet_size);
+				myp_write_byte(p,m->infos.server_charset);
 				memset(filler,0,23);
-				my_write(p,filler,23);
-				my_write_string(p,user);
+				myp_write(p,filler,23);
+				myp_write_string(p,user);
 				if( *pass ) {
-					my_encrypt_password(pass,scramble_buf,hpass);
-					my_write_bin(p,SHA1_SIZE);
-					my_write(p,hpass,SHA1_SIZE);
-					my_write_byte(p,0);
+					myp_encrypt_password(pass,scramble_buf,hpass);
+					myp_write_bin(p,SHA1_SIZE);
+					myp_write(p,hpass,SHA1_SIZE);
+					myp_write_byte(p,0);
 				} else
-					my_write_bin(p,0);
+					myp_write_bin(p,0);
 			} else {
-				my_write_ui16(p,flags);
+				myp_write_ui16(p,flags);
 				// max_packet_size
-				my_write_byte(p,0xFF);
-				my_write_byte(p,0xFF);
-				my_write_byte(p,0xFF);
-				my_write_string(p,user);
+				myp_write_byte(p,0xFF);
+				myp_write_byte(p,0xFF);
+				myp_write_byte(p,0xFF);
+				myp_write_string(p,user);
 				if( *pass ) {
 					char hpass[SEED_LENGTH_323 + 1];
-					my_encrypt_pass_323(pass,scramble_buf,hpass);
+					myp_encrypt_pass_323(pass,scramble_buf,hpass);
 					hpass[SEED_LENGTH_323] = 0;
-					my_write(p,hpass,SEED_LENGTH_323 + 1);
+					myp_write(p,hpass,SEED_LENGTH_323 + 1);
 				} else
-					my_write_bin(p,0);
+					myp_write_bin(p,0);
 			}
 		}
 	}
 	// send connection packet
 send_cnx_packet:
-	if( !my_send_packet(m,p) ) {
-		my_close(m);
+	if( !myp_send_packet(m,p) ) {
+		myp_close(m);
 		error(m,"Failed to send connection packet",NULL);
 		return NULL;
 	}
 	// read answer packet
-	if( !my_read_packet(m,p) || m->packet.size == 0 ) {
-		my_close(m);
+	if( !myp_read_packet(m,p) || m->packet.size == 0 ) {
+		myp_close(m);
 		error(m,"Failed to read packet",NULL);
 		return NULL;
 	}
 	// process answer
 	{
-		int code = my_read_byte(p);
+		int code = myp_read_byte(p);
 		switch( code ) {
 		case 0: // OK packet
 			break;
 		case 0xFF: // ERROR
-			my_close(m);
+			myp_close(m);
 			save_error(m,p);
 			return NULL;
 		case 0xFE: // EOF
 			// we are asked to send old password authentification
 			if( p->size == 1 ) {
 				char hpass[SEED_LENGTH_323 + 1];
-				my_encrypt_pass_323(pass,scramble_buf,hpass);
+				myp_encrypt_pass_323(pass,scramble_buf,hpass);
 				hpass[SEED_LENGTH_323] = 0;
-				my_begin_packet(p,3,0);
-				my_write(p,hpass,SEED_LENGTH_323 + 1);
+				myp_begin_packet(p,3,0);
+				myp_write(p,hpass,SEED_LENGTH_323 + 1);
 				goto send_cnx_packet;
 			}
 			// fallthrough
 		default:
-			my_close(m);
+			myp_close(m);
 			error(m,"Invalid packet error",NULL);
 			return NULL;
 		}
@@ -223,29 +223,29 @@ send_cnx_packet:
 
 int mysql_select_db( MYSQL *m, const char *dbname ) {
 	MYSQL_PACKET *p = &m->packet;
-	my_begin_packet(p,0,0);
-	my_write_byte(p,COM_INIT_DB);
-	my_write_string(p,dbname);
-	if( !my_send_packet(m,p) ) {
+	myp_begin_packet(p,0,0);
+	myp_write_byte(p,COM_INIT_DB);
+	myp_write_string(p,dbname);
+	if( !myp_send_packet(m,p) ) {
 		error(m,"Failed to send packet",NULL);
 		return -1;
 	}
-	return my_ok(m,0) ? 0 : -1;
+	return myp_ok(m,0) ? 0 : -1;
 }
 
 int mysql_real_query( MYSQL *m, const char *query, int qlength ) {
 	MYSQL_PACKET *p = &m->packet;
-	my_begin_packet(p,0,0);
-	my_write_byte(p,COM_QUERY);
-	my_write(p,query,qlength);
+	myp_begin_packet(p,0,0);
+	myp_write_byte(p,COM_QUERY);
+	myp_write(p,query,qlength);
 	m->last_field_count = -1;
 	m->affected_rows = -1;
 	m->last_insert_id = -1;
-	if( !my_send_packet(m,p) ) {
+	if( !myp_send_packet(m,p) ) {
 		error(m,"Failed to send packet",NULL);
 		return -1;
 	}
-	if( !my_ok(m,1) )
+	if( !myp_ok(m,1) )
 		return -1;
 	p->id = IS_QUERY;
 	return 0;
@@ -255,37 +255,37 @@ static int do_store( MYSQL *m, MYSQL_RES *r ) {
 	int i;
 	MYSQL_PACKET *p = &m->packet;
 	p->pos = 0;
-	r->nfields = my_read_bin(p);
+	r->nfields = myp_read_bin(p);
 	if( p->error ) return 0;
 	r->fields = (MYSQL_FIELD*)malloc(sizeof(MYSQL_FIELD) * r->nfields);
 	memset(r->fields,0,sizeof(MYSQL_FIELD) * r->nfields);
 	for(i=0;i<r->nfields;i++) {
-		if( !my_read_packet(m,p) )
+		if( !myp_read_packet(m,p) )
 			return 0;
 		{
 			MYSQL_FIELD *f = r->fields + i;
-			f->catalog = m->is41 ? my_read_bin_str(p) : NULL;
-			f->db = m->is41 ? my_read_bin_str(p) : NULL;
-			f->table = my_read_bin_str(p);
-			f->org_table = m->is41 ? my_read_bin_str(p) : NULL;
-			f->name = my_read_bin_str(p);
-			f->org_name = m->is41 ? my_read_bin_str(p) : NULL;
-			if( m->is41 ) my_read_byte(p);
-			f->charset = m->is41 ? my_read_ui16(p) : 0x08;
-			f->length = m->is41 ? my_read_int(p) : my_read_bin(p);
-			f->type = m->is41 ? my_read_byte(p) : my_read_bin(p);
-			f->flags = m->is41 ? my_read_ui16(p) : my_read_bin(p);
-			f->decimals = my_read_byte(p);
-			if( m->is41 ) p->error |= my_read_byte(p) != 0;
-			if( m->is41 ) p->error |= my_read_byte(p) != 0;
+			f->catalog = m->is41 ? myp_read_bin_str(p) : NULL;
+			f->db = m->is41 ? myp_read_bin_str(p) : NULL;
+			f->table = myp_read_bin_str(p);
+			f->org_table = m->is41 ? myp_read_bin_str(p) : NULL;
+			f->name = myp_read_bin_str(p);
+			f->org_name = m->is41 ? myp_read_bin_str(p) : NULL;
+			if( m->is41 ) myp_read_byte(p);
+			f->charset = m->is41 ? myp_read_ui16(p) : 0x08;
+			f->length = m->is41 ? myp_read_int(p) : myp_read_bin(p);
+			f->type = m->is41 ? myp_read_byte(p) : myp_read_bin(p);
+			f->flags = m->is41 ? myp_read_ui16(p) : myp_read_bin(p);
+			f->decimals = myp_read_byte(p);
+			if( m->is41 ) p->error |= myp_read_byte(p) != 0;
+			if( m->is41 ) p->error |= myp_read_byte(p) != 0;
 			if( p->error )
 				return 0;
 		}
 	}
 	// first EOF packet
-	if( !my_read_packet(m,p) )
+	if( !myp_read_packet(m,p) )
 		return 0;
-	if( my_read_byte(p) != 0xFE || p->size >= 9 )
+	if( myp_read_byte(p) != 0xFE || p->size >= 9 )
 		return 0;
 	// reset packet buffer (to prevent to store large buffer in row data)
 	free(p->buf);
@@ -293,7 +293,7 @@ static int do_store( MYSQL *m, MYSQL_RES *r ) {
 	p->mem = 0;
 	// datas
 	while( 1 ) {
-		if( !my_read_packet(m,p) )
+		if( !myp_read_packet(m,p) )
 			return 0;
 		// EOF : end of datas
 		if( p->size > 0 && (unsigned char)p->buf[0] == 0xFE && p->size < 9 )
@@ -315,7 +315,7 @@ static int do_store( MYSQL *m, MYSQL_RES *r ) {
 			current->lengths = (unsigned long*)malloc(sizeof(unsigned long) * r->nfields);
 			current->datas = (char**)malloc(sizeof(char*) * r->nfields);
 			for(i=0;i<r->nfields;i++) {
-				int l = my_read_bin(p);
+				int l = myp_read_bin(p);
 				if( !p->error )
 					p->buf[prev] = 0;
 				if( l == -1 ) {
@@ -348,9 +348,9 @@ MYSQL_RES *mysql_store_result( MYSQL *m ) {
 	// OK without result
 	if( p->buf[0] == 0 ) {
 		p->pos = 0;
-		m->last_field_count = my_read_byte(p); // 0
-		m->affected_rows = my_read_bin(p);
-		m->last_insert_id = my_read_bin(p);
+		m->last_field_count = myp_read_byte(p); // 0
+		m->affected_rows = myp_read_bin(p);
+		m->last_insert_id = myp_read_bin(p);
 		return NULL;
 	}
 	r = (MYSQL_RES*)malloc(sizeof(struct _MYSQL_RES));
@@ -373,17 +373,17 @@ int mysql_affected_rows( MYSQL *m ) {
 }
 
 int mysql_escape_string( MYSQL *m, char *sout, const char *sin, int length ) {
-	return my_escape_string(m->infos.server_charset,sout,sin,length);
+	return myp_escape_string(m->infos.server_charset,sout,sin,length);
 }
 
 int mysql_real_escape_string( MYSQL *m, char *sout, const char *sin, int length ) {
 	if( m->infos.server_status & SERVER_STATUS_NO_BACKSLASH_ESCAPES )
-		return my_escape_quotes(m->infos.server_charset,sout,sin,length);
-	return my_escape_string(m->infos.server_charset,sout,sin,length);
+		return myp_escape_quotes(m->infos.server_charset,sout,sin,length);
+	return myp_escape_string(m->infos.server_charset,sout,sin,length);
 }
 
 void mysql_close( MYSQL *m ) {
-	my_close(m);
+	myp_close(m);
 	free(m->packet.buf);
 	free(m->infos.server_version);
 	free(m);
