@@ -40,12 +40,12 @@ buffer_string = $loader.loadprim("std@buffer_string",1);
 
 libs = {
 	mod_neko => {
-		src => $array("mod_neko","cgi","../../vm/stats"),
+		src => $array("../../vm/stats","mod_neko","cgi"),
 		inc => "httpd.h",
 		incname => "Apache 1.3.x"
 	},
 	mod_neko2 => {
-		src => $array("mod_neko","cgi","../../vm/stats"),
+		src => $array("../../vm/stats","mod_neko","cgi"),
 		inc => $array("httpd.h","apr.h"),
 		incname => "Apache 2.2.x",
 		cflags => "-D_LARGEFILE64_SOURCE",
@@ -60,7 +60,7 @@ libs = {
 		lparams => "-lz -lssl"
 	},
 	mysql5 => {
-		src => $array("mysql","my_proto/my_api","my_proto/my_proto","../common/sha1","../common/socket"),
+		src => $array("../common/sha1","../common/socket","my_proto/my_proto","my_proto/my_api","mysql"),
 		inc => $array(),
 		realdir => "mysql",
 		cflags => "-Imy_proto -I../common",
@@ -91,13 +91,13 @@ libs = {
 		lparams => switch system { "Mac" => "-framework Carbon" default => "`pkg-config --libs gtk+-2.0` -lgthread-2.0" },
 	},
 	mod_tora => {
-		src => $array("mod_tora","protocol","../common/socket"),
+		src => $array("../common/socket","protocol","mod_tora"),
 		inc => "httpd.h",
 		incname => "Apache 1.3.x",
 		cflags => "-I../common",
 	},
 	mod_tora2 => {
-		src => $array("mod_tora","protocol","../common/socket"),
+		src => $array("../common/socket","protocol","mod_tora"),
 		inc => $array("httpd.h","apr.h"),
 		incname => "Apache 2.2.x",
 		cflags => "-D_LARGEFILE64_SOURCE -I../common",
