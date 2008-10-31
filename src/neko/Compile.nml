@@ -12,7 +12,7 @@
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *  Lesser General Public License or the LICENSE file for more details.
  */
-
+open Lexer;
 open Neko.Ast;
 open Neko.Bytecode;
 
@@ -37,9 +37,11 @@ type label {
 type globals {
 	globals : (global,int) Hashtbl.t;
 	gobjects : (string list,int) Hashtbl.t;
-	mutable functions : (opcode array, (string,int) array, int , int) list;
+	mutable functions : (opcode array, (int,int) array, int , int) list;
 	mutable gtable : global array;
 	labels : (string,label) Hashtbl.t;
+	hfiles : (string,int) Hashtbl.t;
+	files : string array;
 }
 
 type context {
@@ -54,8 +56,9 @@ type context {
 	mutable traps : int list;
 	mutable breaks : (void -> void, pos) list;
 	mutable continues : (void -> void, pos) list;
-	mutable pos : (string,int) array;
-	mutable curpos : (string,int);
+	mutable pos : (int,int) array;
+	mutable curpos : (int, int);
+	mutable curfile : string;
 }
 
 type error_msg = string
@@ -145,7 +148,22 @@ function pos(ctx) {
 }
 
 function set_pos(ctx,p) {
-	if p != Lexer.null_pos then ctx.curpos := (Lexer.source p,Lexer.line p);
+	if p.psource == ctx.curfile then {
+		if p.pline != snd ctx.curpos then ctx.curpos := (fst ctx.curpos, p.pline);
+	} else if p == Lexer.null_pos then {
+		// nothing
+	} else {
+		var fid = try 
+			Hashtbl.find ctx.g.hfiles p.psource 
+		catch { Not_found -> 
+			var fid = Array.length ctx.g.files;
+			Array.add ctx.g.files p.psource;
+			Hashtbl.add ctx.g.hfiles p.psource fid;
+			fid;
+		}
+		ctx.curfile := p.psource;
+		ctx.curpos := (fid,p.pline);
+	}
 }
 
 function write(ctx,op) {
@@ -583,6 +601,7 @@ function rec compile_function(main,params,e) {
 		locals = main.locals;
 		loop_limit = main.loop_limit;
 		curpos = main.curpos;
+		curfile = main.curfile;
 	};
 	List.iter (function(v) {
 		ctx.stack := ctx.stack + 1;
@@ -994,6 +1013,8 @@ function compile(ast) {
 		gtable = Array.create();
 		functions = [];
 		labels = Hashtbl.create();
+		hfiles = Hashtbl.create();
+		files = Array.create();
 	};
 	var ctx = {
 		g = g;
@@ -1008,7 +1029,8 @@ function compile(ast) {
 		nenv = 0;
 		traps = [];
 		pos = Array.create();
-		curpos = ("",0);
+		curpos = (0,0);
+		curfile = "_";
 	};
 	scan_labels ctx true ast;
 	compile ctx false ast;
@@ -1040,6 +1062,6 @@ function compile(ast) {
 		Array.append ctxpos pos;
 		Array.append ctxops ops;
 	};
-	Array.add g.gtable (GlobalDebug ctx.pos);
+	Array.add g.gtable (GlobalDebug ctx.g.files ctx.pos);
 	(g.gtable, ctx.ops)
 }

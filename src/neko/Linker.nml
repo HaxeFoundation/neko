@@ -17,7 +17,8 @@ open Neko.Bytecode;
 type context {
 	globals : global array;
 	opcodes : opcode array;
-	debug : (string, int) array;
+	debug : (int, int) array;
+	debug_files : string array;
 	loaded : (string, int option) Hashtbl.t;
 	mutable have_debug : bool;
 }
@@ -65,20 +66,31 @@ function rec do_link(ctx,module) {
 					Array.add ctx.globals g;
 					k
 			}
-		| GlobalDebug d ->
+		| GlobalDebug(files,inf) ->
 			ctx.have_debug := true;
-			debug := Some d;
+			debug := Some (files,inf);
 			-1
 		}
 	}) globals;
 	var mid = Array.length ctx.globals;
+	var module_fid = Array.length ctx.debug_files;
+	Array.add ctx.debug_files module;
 	Array.add ctx.globals (GlobalVar module);
 	List.iter (Array.add ctx.opcodes) [AccNull; Push; AccBuiltin "new"; Call 1; SetGlobal mid];
-	Array.append (Array.make 8 (module,0)) ctx.debug;
+	Array.append (Array.make 8 (module_fid,0)) ctx.debug;
 	Hashtbl.add ctx.loaded module None;
 	var nops = Array.length opcodes;
 	var opmap = Array.make nops (-1);
-	var debug = match *debug { None -> Array.make (nops*2) (module,0) | Some d -> d };
+	var debug = match *debug { 
+		| None -> Array.make (nops*2) (module_fid,0)
+		| Some(files,inf) ->
+			var fmap = Array.map (function(f) {
+				var p = Array.length ctx.debug_files;
+				Array.add ctx.debug_files f;
+				p
+			}) files;
+			Array.map (function((f,p)) { (fmap.[f],p) }) inf
+	};
 	var debug_pos = &0;
 	var jumps = &[];
 	function op(o) {
@@ -157,8 +169,8 @@ function rec do_link(ctx,module) {
 	}) (*funcs);
 	Hashtbl.replace ctx.loaded module (Some mid);
 	Array.add ctx.opcodes (AccGlobal mid);
-	Array.add ctx.debug (module,0);
-	Array.add ctx.debug (module,0);
+	Array.add ctx.debug (module_fid,0);
+	Array.add ctx.debug (module_fid,0);
 	mid
 }
 
@@ -167,11 +179,12 @@ function link(output,modules) {
 		globals = Array.create();
 		opcodes = Array.create();
 		debug = Array.create();
+		debug_files = Array.create();
 		loaded = Hashtbl.create();
 		have_debug = false;
 	};
 	List.iter (function(m) { ignore(do_link ctx m) }) modules;
-	if ctx.have_debug then Array.add ctx.globals (GlobalDebug ctx.debug);
+	if ctx.have_debug then Array.add ctx.globals (GlobalDebug ctx.debug_files ctx.debug);
 	var ch = IO.write_file output true;
 	Neko.Bytecode.write ch (ctx.globals,ctx.opcodes);
 	IO.close_out ch

@@ -90,7 +90,7 @@ type global {
 	GlobalFunction : (int , int);
 	GlobalString : string;
 	GlobalFloat : string;
-	GlobalDebug : (string, int) array;
+	GlobalDebug : (string array, (int, int) array);
 }
 
 exception Invalid_file;
@@ -198,20 +198,7 @@ function code_tables(ops) {
 	(ids , pos , *p)
 }
 
-function write_debug_infos(ch,inf) {
-	var h = Hashtbl.create();
-	var files = Array.create();
-	var inf = Array.map (function((f,p)) {
-		var fid = try
-			Hashtbl.find h f
-		catch { Not_found ->
-			var id = Array.length files;
-			Hashtbl.add h f id;
-			Array.add files f;
-			id
-		};
-		(fid,p);
-	}) inf;
+function write_debug_infos(ch,files,inf) {
 	var nfiles = Array.length files;
 	// the encoding of nfiles was set to keep
 	// backward compatibility with 1.3 which
@@ -285,7 +272,7 @@ function write(ch,(globals,ops)) {
 		| GlobalFunction (p,nargs) -> IO.write_byte ch 2; IO.write_i32 ch (pos.[p] or (nargs << 24))
 		| GlobalString s -> IO.write_byte ch 3; IO.write_ui16 ch (String.length s); IO.write ch s
 		| GlobalFloat s -> IO.write_byte ch 4; IO.write ch s; IO.write_char ch '\000'
-		| GlobalDebug inf -> IO.write_byte ch 5; write_debug_infos ch inf;
+		| GlobalDebug (files,inf) -> IO.write_byte ch 5; write_debug_infos ch files inf;
 		}
 	}) globals;
 	Hashtbl.iter (function(_,s) {
@@ -403,9 +390,9 @@ function read_debug_infos(ch) {
 	if nfiles == 0 then invalid_arg();
 	var files = Array.init nfiles (function(_) { read_string ch });
     var npos = IO.read_i32 ch;
-	var curfile = &files.[0];
+	var curfile = &0;
 	var curpos = &0;
-	var pos = Array.make npos ("",0);
+	var pos = Array.make npos (0,0);
 	function rec loop(i) {
 		if i == npos then
 			()
@@ -418,7 +405,7 @@ function read_debug_infos(ch) {
 				} else
 					b >> 1;
 			if file >= Array.length files then invalid_arg();
-			curfile := files.[file];
+			curfile := file;
 			loop(i)
 		} else if b and 2 != 0 then {
 			var delta = b >> 6;
@@ -444,7 +431,7 @@ function read_debug_infos(ch) {
 		}
 	}
 	loop 0;
-	pos
+	(files, pos)
 }
 
 function read(ch) {
@@ -468,7 +455,8 @@ function read(ch) {
 			| 4 ->
 				GlobalFloat(read_string ch)
 			| 5 ->
-				GlobalDebug(read_debug_infos ch)
+				var files, inf = read_debug_infos ch;
+				GlobalDebug files inf
 			| _ ->
 				throw Invalid_file
 			}
@@ -620,9 +608,9 @@ function dump(ch,(globals,ops)) {
 				"function " + string p + " nargs " + string n
 			| GlobalString s -> "string \"" + String.escape s + "\""
 			| GlobalFloat s -> "float " + String.escape s
-			| GlobalDebug inf ->
+			| GlobalDebug (files,inf) ->
 				var ch, buf = IO.write_string();
-				write_debug_infos ch inf;
+				write_debug_infos ch files inf;
 				sprintf "debug %d ops %d bytes" (Array.length inf,String.length buf())
 			})
 	}) globals;
