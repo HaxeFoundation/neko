@@ -34,11 +34,18 @@ type label {
 	mutable lwait : (void -> void) list;
 }
 
-type context {
-	mutable ops : opcode array;
-	mutable locals : (string,int) Map.t;
+type globals {
 	globals : (global,int) Hashtbl.t;
 	gobjects : (string list,int) Hashtbl.t;
+	mutable functions : (opcode array, (string,int) array, int , int) list;
+	mutable gtable : global array;
+	labels : (string,label) Hashtbl.t;
+}
+
+type context {
+	g : globals;
+	mutable ops : opcode array;
+	mutable locals : (string,int) Map.t;
 	mutable env : (string,int) Map.t;
 	mutable nenv : int;
 	mutable stack : int;
@@ -47,9 +54,6 @@ type context {
 	mutable traps : int list;
 	mutable breaks : (void -> void, pos) list;
 	mutable continues : (void -> void, pos) list;
-	mutable functions : (opcode array, (string,int) array, int , int) list;
-	mutable gtable : global array;
-	labels : (string,label) Hashtbl.t;
 	mutable pos : (string,int) array;
 	mutable curpos : (string,int);
 }
@@ -180,13 +184,14 @@ function goto(ctx,p) {
 }
 
 function global(ctx,g) {
+	var ginf = ctx.g;
 	try
-		Hashtbl.find ctx.globals g
+		Hashtbl.find ginf.globals g
 	catch {
 		Not_found ->
-			var gid = Array.length ctx.gtable;
-			Hashtbl.add ctx.globals g gid;
-			Array.add ctx.gtable g;
+			var gid = Array.length ginf.gtable;
+			Hashtbl.add ginf.globals g gid;
+			Array.add ginf.gtable g;
 			gid
 	}
 }
@@ -262,7 +267,7 @@ function rec scan_labels(ctx,supported,e) {
 		}) l
 	| ELabel l when !supported ->
 		error "Label is not supported in this part of the program" (snd e);
-	| ELabel l when Hashtbl.exists ctx.labels l ->
+	| ELabel l when Hashtbl.exists ctx.g.labels l ->
 		error ("Duplicate label " + l) (snd e)
 	| ELabel l ->
 		var label = {
@@ -272,7 +277,7 @@ function rec scan_labels(ctx,supported,e) {
 			lpos = None;
 			lwait = [];
 		};
-		Hashtbl.add ctx.labels l label
+		Hashtbl.add ctx.g.labels l label
 	| ETry (e,_,e2) ->
 		ctx.stack := ctx.stack + trap_stack_delta;
 		ctx.traps := ctx.stack :: ctx.traps;
@@ -561,24 +566,24 @@ function rec compile_binop(ctx,tail,op,e1,e2,p) {
 	}
 }
 
-function rec compile_function(ctx,params,e) {
-	var limit = ctx.limit;
-	var ops = ctx.ops;
-	var breaks = ctx.breaks;
-	var continues = ctx.continues;
-	var locals = ctx.locals;
-	var env = ctx.env;
-	var nenv = ctx.nenv;
-	var traps = ctx.traps;
-	var pos = ctx.pos;
-	ctx.pos := Array.create();
-	ctx.ops := Array.create();
-	ctx.breaks := [];
-	ctx.continues := [];
-	ctx.env := Map.empty();
-	ctx.nenv := 0;
-	ctx.traps := [];
-	ctx.limit := ctx.stack;
+function rec compile_function(main,params,e) {
+	var ctx = {
+		g = main.g;
+		// reset
+		ops = Array.create();
+		pos = Array.create();
+		breaks = [];
+		continues = [];
+		env = Map.empty();
+		nenv = 0;
+		traps = [];
+		limit = main.stack;
+		// dup
+		stack = main.stack;
+		locals = main.locals;
+		loop_limit = main.loop_limit;
+		curpos = main.curpos;
+	};
 	List.iter (function(v) {
 		ctx.stack := ctx.stack + 1;
 		ctx.locals := Map.add ctx.locals v ctx.stack;
@@ -588,32 +593,22 @@ function rec compile_function(ctx,params,e) {
 	write ctx (Ret (ctx.stack - ctx.limit));
 	check_stack ctx s (snd e);
 	check_breaks ctx;
-	ctx.stack := ctx.limit;
-	ctx.limit := limit;
-	ctx.breaks := breaks;
-	ctx.continues := continues;
-	ctx.locals := locals;
-	var gid = Array.length ctx.gtable;
-	ctx.functions := (ctx.ops,ctx.pos,gid,List.length params) :: ctx.functions;
-	Array.add ctx.gtable GlobalFunction(gid,-1);
-	ctx.ops := ops;
-	ctx.pos := pos;
-	var local_env = ctx.env;
-	var local_nenv = ctx.nenv;
-	ctx.env := env;
-	ctx.traps := traps;
-	ctx.nenv := nenv;
-	if local_nenv > 0 then {
-		var a = Array.make local_nenv "";
-		Map.iter (function(v,i){ a.[i] := v }) local_env;
+	// add function
+	var gid = Array.length ctx.g.gtable;
+	ctx.g.functions := (ctx.ops,ctx.pos,gid,List.length params) :: ctx.g.functions;
+	Array.add ctx.g.gtable GlobalFunction(gid,-1);
+	// environment
+	if ctx.nenv > 0 then {
+		var a = Array.make ctx.nenv "";
+		Map.iter (function(v,i){ a.[i] := v }) ctx.env;
 		Array.iter (function(v){
-			compile_constant ctx (Ident v) snd(e);
-			write ctx Push;
+			compile_constant main (Ident v) snd(e);
+			write main Push;
 		}) a;
-		write ctx (AccGlobal gid);
-		write ctx (MakeEnv local_nenv);
+		write main (AccGlobal gid);
+		write main (MakeEnv ctx.nenv);
 	} else
-		write ctx (AccGlobal gid);
+		write main (AccGlobal gid);
 }
 
 function rec compile_builtin(ctx,tail,b,el,p) {
@@ -644,7 +639,7 @@ function rec compile_builtin(ctx,tail,b,el,p) {
 		compile ctx false e2;
 		write ctx PhysCompare
 	| ("goto" , [(EConst (Ident l) , _)] ) ->
-		var l = try Hashtbl.find ctx.labels l catch { Not_found -> error ("Unknown label " + l) p };
+		var l = try Hashtbl.find ctx.g.labels l catch { Not_found -> error ("Unknown label " + l) p };
 		var os = ctx.stack;
 		function rec loop(l1,l2) {
 			match (l1,l2) {
@@ -911,10 +906,10 @@ function rec compile(ctx,tail,(e,p)) {
 	| EObject fl ->
 		var fields = List.sort compare (List.map fst fl);
 		var id = try
-			Hashtbl.find ctx.gobjects fields
+			Hashtbl.find ctx.g.gobjects fields
 		catch { Not_found ->
-			var id = global ctx (GlobalVar ("o:" + Hashtbl.length ctx.gobjects));
-			Hashtbl.add ctx.gobjects fields id;
+			var id = global ctx (GlobalVar ("o:" + Hashtbl.length ctx.g.gobjects));
+			Hashtbl.add ctx.g.gobjects fields id;
 			id
 		};
 		write ctx (AccGlobal id);
@@ -928,7 +923,7 @@ function rec compile(ctx,tail,(e,p)) {
 		}) fl;
 		write ctx (Pop 1)
 	| ELabel l ->
-		var l = try Hashtbl.find ctx.labels l catch { Not_found -> assert() };
+		var l = try Hashtbl.find ctx.g.labels l catch { Not_found -> assert() };
 		if ctx.stack != l.lstack || List.rev(ctx.traps) != l.ltraps then error (sprintf "Label failure %d %d %s %s" (ctx.stack,l.lstack,string List.rev(ctx.traps),string l.ltraps)) p;
 		List.iter (function(f) { f() }) l.lwait;
 		l.lwait := [];
@@ -993,29 +988,32 @@ function rec compile(ctx,tail,(e,p)) {
 }
 
 function compile(ast) {
-	var ctx = {
-		stack = 0;
-		loop_limit = 0;
-		limit = -1;
+	var g = {
 		globals = Hashtbl.create();
 		gobjects = Hashtbl.create();
 		gtable = Array.create();
+		functions = [];
+		labels = Hashtbl.create();
+	};
+	var ctx = {
+		g = g;
+		stack = 0;
+		loop_limit = 0;
+		limit = -1;
 		locals = Map.empty();
 		ops = Array.create();
 		breaks = [];
 		continues = [];
-		functions = [];
 		env = Map.empty();
 		nenv = 0;
 		traps = [];
-		labels = Hashtbl.create();
 		pos = Array.create();
 		curpos = ("",0);
 	};
 	scan_labels ctx true ast;
 	compile ctx false ast;
 	check_breaks ctx;
-	if ctx.functions != [] || Hashtbl.length ctx.gobjects != 0 then {
+	if g.functions != [] || Hashtbl.length g.gobjects != 0 then {
 		var ctxops = ctx.ops;
 		var ctxpos = ctx.pos;
 		var ops = Array.create();
@@ -1024,10 +1022,10 @@ function compile(ast) {
 		ctx.ops := ops;
 		write ctx (Jump 0);
 		List.iter (function((fops,fpos,gid,nargs)) {
-			Array.set ctx.gtable gid GlobalFunction(Array.length ops,nargs);
+			Array.set g.gtable gid GlobalFunction(Array.length ops,nargs);
 			Array.append fops ops;
 			Array.append fpos pos;
-		}) (List.rev ctx.functions);
+		}) (List.rev g.functions);
 		Array.set ops 0 (Jump (Array.length ops));
 		Hashtbl.iter (function(fl,g) {
 			write ctx AccNull;
@@ -1038,10 +1036,10 @@ function compile(ast) {
 				write ctx Push;
 				write ctx (SetField f);
 			}) fl
-		}) ctx.gobjects;
+		}) g.gobjects;
 		Array.append ctxpos pos;
 		Array.append ctxops ops;
 	};
-	Array.add ctx.gtable (GlobalDebug ctx.pos);
-	(ctx.gtable, ctx.ops)
+	Array.add g.gtable (GlobalDebug ctx.pos);
+	(g.gtable, ctx.ops)
 }
