@@ -125,7 +125,7 @@ MYSQL *mysql_real_connect( MYSQL *m, const char *host, const char *user, const c
 		m->infos.server_version = strdup(myp_read_string(p));
 		m->infos.thread_id = myp_read_int(p);
 		myp_read(p,scramble_buf,8);
-		if( myp_read_byte(p) != 0 ) p->error = 1;
+		myp_read_byte(p); // should be 0
 		m->infos.server_flags = myp_read_ui16(p);
 		m->infos.server_charset = myp_read_byte(p);
 		m->infos.server_status = myp_read_ui16(p);
@@ -276,8 +276,8 @@ static int do_store( MYSQL *m, MYSQL_RES *r ) {
 			f->type = m->is41 ? myp_read_byte(p) : myp_read_bin(p);
 			f->flags = m->is41 ? myp_read_ui16(p) : myp_read_bin(p);
 			f->decimals = myp_read_byte(p);
-			if( m->is41 ) p->error |= myp_read_byte(p) != 0;
-			if( m->is41 ) p->error |= myp_read_byte(p) != 0;
+			if( m->is41 ) myp_read_byte(p); // should be 0
+			if( m->is41 ) myp_read_byte(p); // should be 0
 			if( p->error )
 				return 0;
 		}
