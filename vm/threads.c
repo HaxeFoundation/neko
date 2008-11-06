@@ -30,11 +30,7 @@ struct _mt_local {
 // necessary for TryEnterCriticalSection
 // which is only available on 2000 PRO and XP
 #	define _WIN32_WINNT 0x0400 
-#	ifdef NEKO_STANDALONE
-#		define GC_NOT_DLL
-#	else
-#		define GC_DLL
-#	endif
+#	define GC_NOT_DLL
 #	define GC_WIN32_THREADS
 #endif
 
@@ -59,9 +55,13 @@ struct _mt_lock {
 	pthread_mutex_t lock;
 };
 
-#endif
+// should be enough to store any GC_stack_base
+// implementation
+typedef char[64] __stack_base;
 
 #endif
+
+#endif // !NEKO_THREADS
 
 typedef struct {
 	thread_main_func init;
@@ -151,6 +151,12 @@ EXTERN int neko_thread_create( thread_main_func init, thread_main_func main, voi
 #	include <dlfcn.h>
 	typedef void (*callb_func)( thread_main_func, void * );
 	typedef void (*std_func)();
+	typedef int (*gc_stack_ptr)( __stack_base * );
+
+static int do_nothing( __stack_base *sb ) {
+	return -1;
+}
+
 #endif
 
 EXTERN void neko_thread_blocking( thread_main_func f, void *p ) {
@@ -180,6 +186,45 @@ EXTERN void neko_thread_blocking( thread_main_func f, void *p ) {
 	}
 #	endif
 }
+
+EXTERN bool neko_thread_register( bool t ) {
+#	if !defined(NEKO_THREADS)
+	return 0;
+#	elif defined(NEKO_WINDOWS)
+	struct GC_stack_base sb;
+	int r;
+	if( !t )	
+		return GC_unregister_my_thread() == GC_SUCCESS;
+	if( GC_get_stack_base(&sb) != GC_SUCCESS )
+		return 0;
+	r = GC_register_my_thread(&sb);
+	return( r == GC_SUCCESS || r == GC_DUPLICATE );
+#	else
+	// since the API is only available on GC 7.0,
+	// we will do our best to locate it dynamically	
+	static gc_stack_ptr get_sb = NULL, my_thread = NULL, std_func unreg_my_thread;
+	if( !t && unreg_my_thread != NULL ) {
+		return unreg_my_thread() == GC_SUCCESS;
+	} else if( my_thread != NULL ) {
+		__stack_base sb;
+		int r;
+		if( get_sb(&sb) != GC_SUCCESS )
+			return 0;
+		r = my_thread(&sb);
+		return( r == GC_SUCCESS || r == GC_DUPLICATE );
+	} else {
+		void *self = dlopen(NULL,0);	
+		my_thread = (gc_stack_ptr)dlsym(self,"GC_register_my_thread");
+		get_sb = (gc_stack_ptr)dlsym(self,"GC_get_stack_base");
+		unreg_my_thread = (std_func)dlsym(self,"GC_unregister_my_thread");
+		if( my_thread == NULL ) my_thread = do_nothing;
+		if( get_sb == NULL ) get_sb = do_nothing;
+		if( unreg_my_thread == NULL ) unreg_my_thread = (std_func)do_nothing;
+		return neko_gc_register_thread();
+	}
+#	endif
+}
+
 
 EXTERN mt_local *alloc_local() {
 #	if !defined(NEKO_THREADS)
