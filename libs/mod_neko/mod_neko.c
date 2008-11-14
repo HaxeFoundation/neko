@@ -180,10 +180,14 @@ static int neko_handler_rec( request_rec *r ) {
 	const char *ctype;
 	value exc = NULL;
 
+/*
+	Seems to crash on Windows. And on Linux, we rarely have libGC 7.x installed anyway
+
 #	if defined(APACHE_2_X) || defined(NEKO_WINDOWS)
 	// we are using threads, so let's make sure that the current thread is registered
 	neko_thread_register(true);
 #	endif
+*/
 
 	config.hits++;
 
@@ -322,8 +326,8 @@ static void mod_neko_do_init() {
 #	else
 	putenv(strdup("MOD_NEKO=1"));
 #	endif
-	cache_root = alloc_local();
 	neko_global_init();
+	cache_root = alloc_local();
 }
 
 static value init_module() {

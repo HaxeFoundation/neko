@@ -29,7 +29,7 @@ struct _mt_local {
 #ifdef NEKO_WINDOWS
 // necessary for TryEnterCriticalSection
 // which is only available on 2000 PRO and XP
-#	define _WIN32_WINNT 0x0400 
+#	define _WIN32_WINNT 0x0400
 #	define GC_NOT_DLL
 #	define GC_WIN32_THREADS
 #endif
@@ -57,7 +57,7 @@ struct _mt_lock {
 
 // should be enough to store any GC_stack_base
 // implementation
-typedef char[64] __stack_base;
+typedef char __stack_base[64];
 
 #endif
 
@@ -79,7 +79,7 @@ typedef struct {
 #ifdef NEKO_THREADS
 
 #ifdef NEKO_WINDOWS
-#	define THREAD_FUN DWORD WINAPI 
+#	define THREAD_FUN DWORD WINAPI
 #else
 #	define THREAD_FUN void*
 #endif
@@ -193,7 +193,7 @@ EXTERN bool neko_thread_register( bool t ) {
 #	elif defined(NEKO_WINDOWS)
 	struct GC_stack_base sb;
 	int r;
-	if( !t )	
+	if( !t )
 		return GC_unregister_my_thread() == GC_SUCCESS;
 	if( GC_get_stack_base(&sb) != GC_SUCCESS )
 		return 0;
@@ -201,7 +201,7 @@ EXTERN bool neko_thread_register( bool t ) {
 	return( r == GC_SUCCESS || r == GC_DUPLICATE );
 #	else
 	// since the API is only available on GC 7.0,
-	// we will do our best to locate it dynamically	
+	// we will do our best to locate it dynamically
 	static gc_stack_ptr get_sb = NULL, my_thread = NULL, std_func unreg_my_thread;
 	if( !t && unreg_my_thread != NULL ) {
 		return unreg_my_thread() == GC_SUCCESS;
@@ -213,7 +213,7 @@ EXTERN bool neko_thread_register( bool t ) {
 		r = my_thread(&sb);
 		return( r == GC_SUCCESS || r == GC_DUPLICATE );
 	} else {
-		void *self = dlopen(NULL,0);	
+		void *self = dlopen(NULL,0);
 		my_thread = (gc_stack_ptr)dlsym(self,"GC_register_my_thread");
 		get_sb = (gc_stack_ptr)dlsym(self,"GC_get_stack_base");
 		unreg_my_thread = (std_func)dlsym(self,"GC_unregister_my_thread");
