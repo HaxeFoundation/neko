@@ -108,6 +108,7 @@ MYSQL *mysql_real_connect( MYSQL *m, const char *host, const char *user, const c
 		return NULL;
 	}
 	psock_set_fastsend(m->s,1);
+	psock_set_timeout(m->s,18000); // 5 hours
 	if( psock_connect(m->s,h,port) != PS_OK ) {
 		myp_close(m);
 		error(m,"Failed to connect on host '%s'",host);
