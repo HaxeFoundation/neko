@@ -165,8 +165,10 @@ static int do_nothing( __stack_base *sb ) {
 #endif
 
 EXTERN void neko_thread_blocking( thread_main_func f, void *p ) {
-#	if !defined(NEKO_THREADS) || !defined(NEKO_POSIX)
+#	if !defined(NEKO_THREADS)
 	f(p); // nothing
+#	elif defined(NEKO_WINDOWS)
+	f(p); // we don't have pthreads issues
 #	else
 	// we have different APIs depending on the GC version, make sure we load
 	// the good one at runtime
