@@ -37,6 +37,11 @@ struct _mt_local {
 #define GC_THREADS
 #include <gc/gc.h>
 
+#if GC_VERSION_MAJOR < 7
+#	define GC_SUCCESS	0
+#	define GC_DUPLICATE	1
+#endif
+
 #ifdef NEKO_WINDOWS
 
 struct _mt_lock {
@@ -150,7 +155,7 @@ EXTERN int neko_thread_create( thread_main_func init, thread_main_func main, voi
 #if defined(NEKO_POSIX) && defined(NEKO_THREADS)
 #	include <dlfcn.h>
 	typedef void (*callb_func)( thread_main_func, void * );
-	typedef void (*std_func)();
+	typedef int (*std_func)();
 	typedef int (*gc_stack_ptr)( __stack_base * );
 
 static int do_nothing( __stack_base *sb ) {
@@ -202,7 +207,8 @@ EXTERN bool neko_thread_register( bool t ) {
 #	else
 	// since the API is only available on GC 7.0,
 	// we will do our best to locate it dynamically
-	static gc_stack_ptr get_sb = NULL, my_thread = NULL, std_func unreg_my_thread;
+	static gc_stack_ptr get_sb = NULL, my_thread = NULL;
+	static std_func unreg_my_thread = NULL;
 	if( !t && unreg_my_thread != NULL ) {
 		return unreg_my_thread() == GC_SUCCESS;
 	} else if( my_thread != NULL ) {
@@ -220,7 +226,7 @@ EXTERN bool neko_thread_register( bool t ) {
 		if( my_thread == NULL ) my_thread = do_nothing;
 		if( get_sb == NULL ) get_sb = do_nothing;
 		if( unreg_my_thread == NULL ) unreg_my_thread = (std_func)do_nothing;
-		return neko_gc_register_thread();
+		return neko_thread_register(t);
 	}
 #	endif
 }
