@@ -44,8 +44,17 @@ static void error( MYSQL *m, const char *err, const char *param ) {
 
 static void save_error( MYSQL *m, MYSQL_PACKET *p ) {
 	int ecode;
-	p->pos = 1;
-	ecode = myp_read_ui16(p);
+	p->pos = 0;
+	// seems like we sometimes get some FFFFFF sequences before
+	// the actual error...
+	do {
+		if( myp_read_byte(p) != 0xFF ) {
+			m->errcode = -1;
+			error(m,"Failed to decode error",NULL);
+			return;
+		}
+		ecode = myp_read_ui16(p);
+	} while( ecode == 0xFFFF );
 	if( m->is41 && p->buf[p->pos] == '#' )
 		p->pos += 6; // skip sqlstate marker
 	error(m,"%s",myp_read_string(p));
@@ -55,7 +64,7 @@ static void save_error( MYSQL *m, MYSQL_PACKET *p ) {
 static int myp_ok( MYSQL *m, int allow_others ) {
 	int code;
 	MYSQL_PACKET *p = &m->packet;
-	if( !myp_read_packet(m,p) || m->packet.size == 0 ) {
+	if( !myp_read_packet(m,p) ) {
 		error(m,"Failed to read packet",NULL);
 		return 0;
 	}
@@ -123,6 +132,12 @@ MYSQL *mysql_real_connect( MYSQL *m, const char *host, const char *user, const c
 	{
 		char filler[13];
 		m->infos.proto_version = myp_read_byte(p);
+		// this seems like an error packet
+		if( m->infos.proto_version == 0xFF ) {
+			myp_close(m);
+			save_error(m,p);
+			return NULL;
+		}	
 		m->infos.server_version = strdup(myp_read_string(p));
 		m->infos.thread_id = myp_read_int(p);
 		myp_read(p,scramble_buf,8);
@@ -187,7 +202,7 @@ send_cnx_packet:
 		return NULL;
 	}
 	// read answer packet
-	if( !myp_read_packet(m,p) || m->packet.size == 0 ) {
+	if( !myp_read_packet(m,p) ) {
 		myp_close(m);
 		error(m,"Failed to read packet",NULL);
 		return NULL;
@@ -297,8 +312,13 @@ static int do_store( MYSQL *m, MYSQL_RES *r ) {
 		if( !myp_read_packet(m,p) )
 			return 0;
 		// EOF : end of datas
-		if( p->size > 0 && (unsigned char)p->buf[0] == 0xFE && p->size < 9 )
+		if( (unsigned char)p->buf[0] == 0xFE && p->size < 9 )
 			break;
+		// ERROR ?
+		if( (unsigned char)p->buf[0] == 0xFF ) {
+			save_error(m,p);
+			return 0;
+		}
 		// allocate one more row
 		if( r->row_count == r->memory_rows ) {
 			MYSQL_ROW_DATA *rows;
@@ -356,9 +376,11 @@ MYSQL_RES *mysql_store_result( MYSQL *m ) {
 	}
 	r = (MYSQL_RES*)malloc(sizeof(struct _MYSQL_RES));
 	memset(r,0,sizeof(struct _MYSQL_RES));
+	m->errcode = 0;
 	if( !do_store(m,r) ) {
 		mysql_free_result(r);
-		error(m,"Failure while storing result",NULL);
+		if( !m->errcode )
+			error(m,"Failure while storing result",NULL);
 		return NULL;
 	}
 	m->last_field_count = r->nfields;

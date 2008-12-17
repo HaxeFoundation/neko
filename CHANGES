@@ -11,6 +11,7 @@
 	nekoc : optimization for debug infos : precompute file table at compile-time
 	threads : added neko_gc_register_thread (but buggy, so not used)
 	mysql5 : added 5 hours network timeout while waiting for an answer
+	mysql5 : fixed some additional errors handling
 
 2008-09-23 : 1.8.0
 	added mod_tora (neko application server)

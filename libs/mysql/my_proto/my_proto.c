@@ -139,7 +139,7 @@ int myp_read_packet( MYSQL *m, MYSQL_PACKET *p ) {
 		p->mem = psize;
 	}
 	p->buf[psize] = 0;
-	if( !myp_recv(m,p->buf,psize) ) {
+	if( psize == 0 || !myp_recv(m,p->buf,psize) ) {
 		p->error = 1;
 		p->size = 0;
 		p->buf[0] = 0;
