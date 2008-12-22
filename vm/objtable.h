@@ -18,22 +18,16 @@
 #define __OBJTABLE_H
 #include "neko.h"
 
-typedef struct {
-	field id;
-	value v;
-} cell;
+static INLINE void otable_init(objtable *t) {
+	t->count = 0;
+	t->cells = NULL;
+}
 
-struct _objtable
-{
-	int count;
-	cell *cells;
-};
-
-static INLINE value *otable_find(objtable t,field id) {
+static INLINE value *otable_find(objtable *t,field id) {
 	int min;
 	int max;
 	int mid;
-	cell *c;
+	objcell *c;
 	field cid;
 	min = 0;
 	max = t->count;
@@ -51,11 +45,11 @@ static INLINE value *otable_find(objtable t,field id) {
 	return NULL;
 }
 
-static INLINE value otable_get(objtable t,field id) {
+static INLINE value otable_get(objtable *t,field id) {
 	int min;
 	int max;
 	int mid;
-	cell *c;
+	objcell *c;
 	field cid;
 	min = 0;
 	max = t->count;
@@ -73,14 +67,13 @@ static INLINE value otable_get(objtable t,field id) {
 	return val_null;
 }
 
-objtable otable_empty();
-void otable_replace(objtable t, field id, value data);
-int otable_remove(objtable t, field id);
-void otable_optimize(objtable t);
+void otable_replace(objtable *t, field id, value data);
+int otable_remove(objtable *t, field id);
+void otable_optimize(objtable *t);
 #define otable_count(t)	(t)->count
 
-objtable otable_copy(objtable t);
-void otable_iter(objtable t, void f( value data, field id, void *), void *p );
+void otable_copy(objtable *t, objtable *target);
+void otable_iter(objtable *t, void f( value data, field id, void *), void *p );
 
 #endif
 /* ************************************************************************ */

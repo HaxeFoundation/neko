@@ -372,7 +372,7 @@ static value builtin_objcall( value o, value f, value args ) {
 **/
 static value builtin_objfield( value o, value f ) {
 	val_check(f,int);
-	return alloc_bool( val_is_object(o) && otable_find(((vobject*)o)->table, val_int(f)) != NULL );
+	return alloc_bool( val_is_object(o) && otable_find(&((vobject*)o)->table, val_int(f)) != NULL );
 }
 
 /**
@@ -382,7 +382,7 @@ static value builtin_objfield( value o, value f ) {
 static value builtin_objremove( value o, value f ) {
 	val_check(o,object);
 	val_check(f,int);
-	return alloc_bool( otable_remove(((vobject*)o)->table,val_int(f)) );
+	return alloc_bool( otable_remove(&((vobject*)o)->table,val_int(f)) );
 }
 
 static void builtin_objfields_rec( value d, field id, void *a ) {
@@ -396,9 +396,9 @@ static void builtin_objfields_rec( value d, field id, void *a ) {
 static value builtin_objfields( value o ) {
 	value a;
 	value *aptr;
-	objtable t;
+	objtable *t;
 	val_check(o,object);
-	t = ((vobject*)o)->table;
+	t = &((vobject*)o)->table;
 	a = alloc_array(otable_count(t));
 	aptr = val_array_ptr(a);
 	otable_iter(t,builtin_objfields_rec,&aptr);

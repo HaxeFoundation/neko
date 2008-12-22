@@ -16,7 +16,6 @@
 /* ************************************************************************ */
 #include <neko.h>
 #include <neko_mod.h>
-#include <objtable.h>
 
 /**
 	<doc>
@@ -88,7 +87,7 @@ static int mem_size_rec( value v,  vtree **l ) {
 		{
 			vparams p;
 			p.t = l;
-			p.s = sizeof(vobject) + sizeof(struct _objtable);			
+			p.s = sizeof(vobject);
 			val_iter_fields(v,mem_obj_field,&p);
 			if( ((vobject*)v)->proto != NULL )
 				p.s += mem_size_rec((value)((vobject*)v)->proto,l);
@@ -149,7 +148,7 @@ static int mem_size_rec( value v,  vtree **l ) {
 
 static void mem_obj_field( value v, field f, void *_p ) {
 	vparams *p = (vparams*)_p;
-	p->s += sizeof(cell);
+	p->s += sizeof(objcell);
 	p->s += mem_size_rec(v,p->t);
 }
 

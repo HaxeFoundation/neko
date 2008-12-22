@@ -104,12 +104,22 @@ struct _value {
 	val_type t;
 };
 
-struct _objtable;
 struct _buffer;
 typedef int field;
 typedef struct { int __zero; } *vkind;
 typedef struct _value *value;
-typedef struct _objtable* objtable;
+
+typedef struct {
+	field id;
+	value v;
+} objcell;
+
+typedef struct _objtable
+{
+	int count;
+	objcell *cells;
+} objtable;
+
 typedef struct _buffer *buffer;
 typedef double tfloat;
 

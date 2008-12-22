@@ -1766,13 +1766,14 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		XMov_rr(VM,ACC);
 		XPush_c(p);
 		start = buf.c;
-		XMov_rp(TMP,VM,FIELD(1));
+		XMov_rr(TMP,VM);
+		XAdd_rc(TMP,FIELD(1));
 		XPush_r(TMP);
 		XCall_m(otable_find);
 		XCmp_rc(ACC,0);
 		XJump(JNeq,jend1);
 		stack_pop(Esp,1);
-		XMov_rp(VM,VM,FIELD(2)); // acc = acc->proto
+		XMov_rp(VM,VM,FIELD(3)); // acc = acc->proto
 		XCmp_rc(VM,0);
 		XJump(JNeq,loop);
 		*loop = (int)(start - buf.c);
@@ -1842,7 +1843,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		stack_pad(2);
 		XPush_r(ACC);
 		XPush_c(p);
-		XMov_rp(TMP,TMP,FIELD(1));
+		XAdd_rc(TMP,FIELD(1));
 		XPush_r(TMP);
 		XCall_m(otable_replace);
 		stack_pop(Esp,3);

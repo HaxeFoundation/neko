@@ -17,19 +17,12 @@
 #include <string.h>
 #include "objtable.h"
 
-objtable otable_empty() {
-	objtable t2 = (objtable)alloc(sizeof(struct _objtable));
-	t2->count = 0;
-	t2->cells = NULL;
-	return t2;
-}
-
-int otable_remove( objtable t, field id ) {
+int otable_remove( objtable *t, field id ) {
 	int min = 0;
 	int max = t->count;
 	int mid;
 	field cid;
-	cell *c = t->cells;
+	objcell *c = t->cells;
 	if( !max )
 		return 0;
 	while( min < max ) {
@@ -52,11 +45,11 @@ int otable_remove( objtable t, field id ) {
 	return 0;
 }
 
-void otable_optimize( objtable t ) {
+void otable_optimize( objtable *t ) {
 	int max = t->count;
 	int i;
 	int cur = 0;
-	cell *c = t->cells;
+	objcell *c = t->cells;
 	for(i=0;i<max;i++) {
 		value v = c[i].v;
 		if( v != val_null )
@@ -67,12 +60,12 @@ void otable_optimize( objtable t ) {
 	t->count = cur;
 }
 
-void otable_replace( objtable t, field id, value data ) {
+void otable_replace( objtable *t, field id, value data ) {
 	int min = 0;
 	int max = t->count;
 	int mid;
 	field cid;
-	cell *c = t->cells;
+	objcell *c = t->cells;
 	while( min < max ) {
 		mid = (min + max) >> 1;
 		cid = c[mid].id;
@@ -86,7 +79,7 @@ void otable_replace( objtable t, field id, value data ) {
 		}
 	}
 	mid = (min + max) >> 1;
-	c = (cell*)alloc(sizeof(cell)*(t->count + 1));
+	c = (objcell*)alloc(sizeof(objcell)*(t->count + 1));
 	min = 0;
 	while( min < mid ) {
 		c[min] = t->cells[min];
@@ -102,18 +95,16 @@ void otable_replace( objtable t, field id, value data ) {
 	t->count++;
 }
 
-objtable otable_copy( objtable t ) {
-	objtable t2 = (objtable)alloc(sizeof(struct _objtable));
-	t2->count = t->count;
-	t2->cells = (cell*)alloc(sizeof(cell)*t->count);
-	memcpy(t2->cells,t->cells,sizeof(cell)*t->count);
-	return t2;
+void otable_copy( objtable *t, objtable *target ) {
+	target->count = t->count;
+	target->cells = (objcell*)alloc(sizeof(objcell)*t->count);
+	memcpy(target->cells,t->cells,sizeof(objcell)*t->count);
 }
 
-void otable_iter(objtable t, void f( value data, field id, void *), void *p ) {
+void otable_iter(objtable *t, void f( value data, field id, void *), void *p ) {
 	int i;
 	int n = t->count;
-	cell *c = t->cells;
+	objcell *c = t->cells;
 	for(i=0;i<n;i++)
 		f(c[i].v,c[i].id,p);
 }

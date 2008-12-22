@@ -354,7 +354,7 @@ int neko_stack_expand( int_val *sp, int_val *csp, neko_vm *vm ) {
 }
 
 EXTERN field val_id( const char *name ) {
-	objtable t;
+	objtable *t;
 	value fdata;
 	field f;
 	value acc = alloc_int(0);
@@ -364,7 +364,7 @@ EXTERN field val_id( const char *name ) {
 		name++;
 	}
 	f = val_int(acc);
-	t = neko_fields[f&NEKO_FIELDS_MASK];
+	t = &neko_fields[f&NEKO_FIELDS_MASK];
 	fdata = otable_get(t,f);
 	if( fdata == val_null ) {
 		// insert in the table, but by using a larger table that grows faster
@@ -373,7 +373,7 @@ EXTERN field val_id( const char *name ) {
 		int max;
 		int mid;
 		field cid;
-		cell *c;
+		objcell *c;
 		lock_acquire(neko_fields_lock);
 		min = 0;
 		max = t->count;
@@ -392,7 +392,7 @@ EXTERN field val_id( const char *name ) {
 		}
 		// in case we found it, it means that it's been inserted by another thread
 		if( fdata == val_null ) {
-			cell *c2 = (cell*)alloc(sizeof(cell)*(t->count+1));
+			objcell *c2 = (objcell*)alloc(sizeof(objcell)*(t->count+1));
 
 			// copy the whole table
 			mid = (min + max) >> 1;
@@ -426,7 +426,7 @@ EXTERN field val_id( const char *name ) {
 }
 
 EXTERN value val_field_name( field id ) {
-	return otable_get(neko_fields[id&NEKO_FIELDS_MASK],id);
+	return otable_get(&neko_fields[id&NEKO_FIELDS_MASK],id);
 }
 
 EXTERN value val_field( value _o, field id ) {
@@ -435,7 +435,7 @@ EXTERN value val_field( value _o, field id ) {
 	// since it will be reused by the JIT (when compiled with GCC)
 	vobject *o = (vobject*)_o;
 	do {
-		f = otable_find(o->table,id);
+		f = otable_find(&o->table,id);
 		if( f != NULL )
 			return *f;
 		o = o->proto;
@@ -444,7 +444,7 @@ EXTERN value val_field( value _o, field id ) {
 }
 
 EXTERN void val_iter_fields( value o, void f( value , field, void * ) , void *p ) {
-	otable_iter( ((vobject*)o)->table, f, p );
+	otable_iter( &((vobject*)o)->table, f, p );
 }
 
 EXTERN void val_print( value v ) {
