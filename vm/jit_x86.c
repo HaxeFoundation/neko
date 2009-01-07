@@ -581,6 +581,20 @@ static void debug_method_call( int line, int stack ) {
 }
 #endif
 
+#ifdef JIT_DEBUG
+
+static void val_print_2( value v ) {
+	val_print(alloc_string(" "));
+	val_print(v);
+}
+
+static void val_print_3( value v ) {
+	val_print_2(v);
+	val_print(alloc_string("\n"));
+}
+
+#endif
+
 static jit_ctx *jit_init_context( void *ptr, int size ) {
 	jit_ctx *c = (jit_ctx*)alloc(sizeof(jit_ctx));
 	c->size = size;
@@ -1386,8 +1400,8 @@ static void jit_add( jit_ctx *ctx, int _ ) {
 	XCmp_rb(TMP2,VAL_OBJECT);
 	XJump(JEq,joop2);
 	PATCH_JUMP(jnext);
+	stack_pop(Esp,1); // directly return after oop
 	label(code->oop_r[OP_ADD]);
-	END();
 
 	// is_other(acc) && !is_int(sp) && is_string(sp) -> BUF
 	PATCH_JUMP(jnot_object);
@@ -1405,8 +1419,8 @@ static void jit_add( jit_ctx *ctx, int _ ) {
 	// object op
 	PATCH_JUMP(joop1);
 	PATCH_JUMP(joop2);
+	stack_pop(Esp,1); // directly return after oop
 	label(code->oop[OP_ADD]);
-	END();
 
 	// errors
 	PATCH_JUMP(jerr1);
@@ -2637,7 +2651,7 @@ void neko_module_jit( neko_module *m ) {
 			stack_pop(Esp,1);
 			// val_print(pc_pos)
 			XPush_c(CONST(alloc_int(i)));
-			XCall_m_real(val_print);
+			XCall_m_real(val_print_2);
 			stack_pop(Esp,1);
 			// val_print(alloc_int(spmax - sp))
 			get_var_r(TMP,VSpMax);
@@ -2645,7 +2659,7 @@ void neko_module_jit( neko_module *m ) {
 			XShr_rc(TMP,1);
 			XOr_rc(TMP,1);
 			XPush_r(TMP);
-			XCall_m_real(val_print);
+			XCall_m_real(val_print_2);
 			stack_pop(Esp,1);
 			// val_print(alloc_int(csp - spmin))
 			XMov_rp(TMP2,VM,VMFIELD(spmin));
@@ -2654,7 +2668,7 @@ void neko_module_jit( neko_module *m ) {
 			XShr_rc(TMP,1);
 			XOr_rc(TMP,1);
 			XPush_r(TMP);
-			XCall_m_real(val_print);
+			XCall_m_real(val_print_3);
 			stack_pop(Esp,1);
 
 			XPop_r(ACC);
