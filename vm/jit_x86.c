@@ -1400,8 +1400,11 @@ static void jit_add( jit_ctx *ctx, int _ ) {
 	XCmp_rb(TMP2,VAL_OBJECT);
 	XJump(JEq,joop2);
 	PATCH_JUMP(jnext);
-	stack_pop(Esp,1); // directly return after oop
+	XMov_rp(TMP2,Esp,FIELD(1+PAD_OPT(2)));
+	XPush_r(TMP2);
 	label(code->oop_r[OP_ADD]);
+	stack_pop(Esp,1);
+	END();
 
 	// is_other(acc) && !is_int(sp) && is_string(sp) -> BUF
 	PATCH_JUMP(jnot_object);
@@ -1419,8 +1422,11 @@ static void jit_add( jit_ctx *ctx, int _ ) {
 	// object op
 	PATCH_JUMP(joop1);
 	PATCH_JUMP(joop2);
-	stack_pop(Esp,1); // directly return after oop
+	XMov_rp(TMP2,Esp,FIELD(1+PAD_OPT(2)));
+	XPush_r(TMP2);
 	label(code->oop[OP_ADD]);
+	stack_pop(Esp,1);
+	END();
 
 	// errors
 	PATCH_JUMP(jerr1);
