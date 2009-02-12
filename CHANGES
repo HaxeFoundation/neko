@@ -12,6 +12,7 @@
 	threads : added neko_gc_register_thread (but buggy, so not used)
 	mysql5 : added 5 hours network timeout while waiting for an answer
 	mysql5 : fixed some additional errors handling
+	mysql5 : allow big requests (more than 16MB)
 	vm : optimize object table - one word and one memory block saved per object
 	jit : one more crash fix for the + operation and unexisting overloaded operator
 

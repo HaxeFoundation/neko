@@ -22,6 +22,8 @@
 #include <string.h>
 #include "my_proto.h"
 
+#define MAX_PACKET_LENGTH 0xFFFFFF
+
 int myp_recv( MYSQL *m, void *buf, int size ) {
 	while( size ) {
 		int len = psock_recv(m->s,(char*)buf,size);
@@ -125,12 +127,11 @@ int myp_read_packet( MYSQL *m, MYSQL_PACKET *p ) {
 	p->pos = 0;
 	p->error = 0;
 	if( !myp_recv(m,&psize,4) ) {
-		p->id = -1;
 		p->error = 1;
 		p->size = 0;
 		return 0;
 	}
-	p->id = (psize >> 24);
+	//p->id = (psize >> 24);
 	psize &= 0xFFFFFF;
 	p->size = psize;
 	if( p->mem < (int)psize ) {
@@ -148,27 +149,37 @@ int myp_read_packet( MYSQL *m, MYSQL_PACKET *p ) {
 	return 1;
 }
 
-int myp_send_packet( MYSQL *m, MYSQL_PACKET *p ) {
-	unsigned int header = p->size | (p->id << 24);
-	if( !myp_send(m,&header,4) ) {
-		p->error = 1;
-		return 0;
-	}
-	if( !myp_send(m,p->buf,p->size) ) {
-		p->error = 1;
-		return 0;
+int myp_send_packet( MYSQL *m, MYSQL_PACKET *p, int *packet_counter ) {
+	unsigned int header;
+	char *buf = p->buf;
+	int size = p->size;
+	int next = 1;
+	while( next ) {
+		int psize;
+		if( size >= MAX_PACKET_LENGTH )
+			psize = MAX_PACKET_LENGTH;
+		else {
+			psize = size;
+			next = 0;
+		}		
+		header = psize | (((*packet_counter)++) << 24);		
+		if( !myp_send(m,&header,4) || !myp_send(m,buf,psize) ) {
+			p->error = 1;
+			return 0;
+		}
+		buf += psize;
+		size -= psize;
 	}
 	return 1;
 }
 
-void myp_begin_packet( MYSQL_PACKET *p, int id, int minsize ) {
+void myp_begin_packet( MYSQL_PACKET *p, int minsize ) {
 	if( p->mem < minsize ) {
 		free(p->buf);
 		p->buf = (char*)malloc(minsize + 1);
 		p->mem = minsize;
 	}
 	p->error = 0;
-	p->id = id;
 	p->size = 0;
 }
 

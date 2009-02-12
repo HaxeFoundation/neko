@@ -102,6 +102,7 @@ MYSQL *mysql_real_connect( MYSQL *m, const char *host, const char *user, const c
 	PHOST h;
 	char scramble_buf[21];
 	MYSQL_PACKET *p = &m->packet;
+	int pcount = 1;
 	if( socket && *socket ) {
 		error(m,"Unix Socket connections are not supported",NULL);
 		return NULL;
@@ -162,7 +163,7 @@ MYSQL *mysql_real_connect( MYSQL *m, const char *host, const char *user, const c
 			SHA1_DIGEST hpass;
 			char filler[23];
 			flags &= (FL_PROTOCOL_41 | FL_TRANSACTIONS | FL_SECURE_CONNECTION);
-			myp_begin_packet(p,1,128);
+			myp_begin_packet(p,128);
 			if( m->is41 ) {
 				myp_write_int(p,flags);
 				myp_write_int(p,max_packet_size);
@@ -196,7 +197,7 @@ MYSQL *mysql_real_connect( MYSQL *m, const char *host, const char *user, const c
 	}
 	// send connection packet
 send_cnx_packet:
-	if( !myp_send_packet(m,p) ) {
+	if( !myp_send_packet(m,p,&pcount) ) {
 		myp_close(m);
 		error(m,"Failed to send connection packet",NULL);
 		return NULL;
@@ -207,6 +208,8 @@ send_cnx_packet:
 		error(m,"Failed to read packet",NULL);
 		return NULL;
 	}
+	// increase packet counter (because we read one packet)
+	pcount++;
 	// process answer
 	{
 		int code = myp_read_byte(p);
@@ -223,7 +226,7 @@ send_cnx_packet:
 				char hpass[SEED_LENGTH_323 + 1];
 				myp_encrypt_pass_323(pass,scramble_buf,hpass);
 				hpass[SEED_LENGTH_323] = 0;
-				myp_begin_packet(p,3,0);
+				myp_begin_packet(p,0);
 				myp_write(p,hpass,SEED_LENGTH_323 + 1);
 				goto send_cnx_packet;
 			}
@@ -239,10 +242,11 @@ send_cnx_packet:
 
 int mysql_select_db( MYSQL *m, const char *dbname ) {
 	MYSQL_PACKET *p = &m->packet;
-	myp_begin_packet(p,0,0);
+	int pcount = 0;
+	myp_begin_packet(p,0);
 	myp_write_byte(p,COM_INIT_DB);
 	myp_write_string(p,dbname);
-	if( !myp_send_packet(m,p) ) {
+	if( !myp_send_packet(m,p,&pcount) ) {
 		error(m,"Failed to send packet",NULL);
 		return -1;
 	}
@@ -251,13 +255,14 @@ int mysql_select_db( MYSQL *m, const char *dbname ) {
 
 int mysql_real_query( MYSQL *m, const char *query, int qlength ) {
 	MYSQL_PACKET *p = &m->packet;
-	myp_begin_packet(p,0,0);
+	int pcount = 0;
+	myp_begin_packet(p,0);
 	myp_write_byte(p,COM_QUERY);
 	myp_write(p,query,qlength);
 	m->last_field_count = -1;
 	m->affected_rows = -1;
 	m->last_insert_id = -1;
-	if( !myp_send_packet(m,p) ) {
+	if( !myp_send_packet(m,p,&pcount) ) {
 		error(m,"Failed to send packet",NULL);
 		return -1;
 	}

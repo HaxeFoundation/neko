@@ -143,7 +143,7 @@ struct _MYSQL_RES {
 int myp_recv( MYSQL *m, void *buf, int size );
 int myp_send( MYSQL *m, void *buf, int size );
 int myp_read_packet( MYSQL *m, MYSQL_PACKET *p );
-int myp_send_packet( MYSQL *m, MYSQL_PACKET *p );
+int myp_send_packet( MYSQL *m, MYSQL_PACKET *p, int *packet_counter );
 
 // packet read
 int myp_read( MYSQL_PACKET *p, void *buf, int size );
@@ -155,7 +155,7 @@ int myp_read_bin( MYSQL_PACKET *p );
 char *myp_read_bin_str( MYSQL_PACKET *p );
 
 // packet write
-void myp_begin_packet( MYSQL_PACKET *p, int id, int minsize );
+void myp_begin_packet( MYSQL_PACKET *p, int minsize );
 void myp_write( MYSQL_PACKET *p, const void *data, int size );
 void myp_write_byte( MYSQL_PACKET *p, int b );
 void myp_write_ui16( MYSQL_PACKET *p, int b );
