@@ -2531,8 +2531,12 @@ static char *alloc_jit_mem( int size ) {
 	// round to next page
 	size += (4096 - size%4096);
 	p = (int*)mmap(NULL,size,PROT_READ|PROT_WRITE|PROT_EXEC,(MAP_PRIVATE|MAP_ANON),-1,0);
-	if( p == (int*)-1 )
-		val_throw(alloc_string("Failed to allocate JIT memory"));
+	if( p == (int*)-1 ) {
+		buffer b = alloc_buffer("Failed to allocate JIT memory ");
+		val_buffer(b,alloc_int(size>>10));
+		val_buffer(b,alloc_string("KB"));
+		val_throw(alloc_string(buffer_to_string(b)));
+	}
 	*p = size;
 	return (char*)(p + 1);
 }
