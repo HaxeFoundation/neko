@@ -17,6 +17,7 @@
 #include "vm.h"
 #include "neko_mod.h"
 #include "objtable.h"
+#include <malloc.h>
 #include <string.h>
 #include <math.h>
 #include <stdio.h>
@@ -27,8 +28,8 @@
 #	define USE_MMAP
 #endif
 
-#define tmp_alloc		alloc_private
-#define tmp_free(ptr)
+#define tmp_alloc(size) malloc(size)
+#define tmp_free(ptr)	free(ptr)
 
 #if defined(NEKO_X86) && !defined(NEKO_MAC)
 #define JIT_ENABLE
