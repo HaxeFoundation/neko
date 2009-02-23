@@ -54,7 +54,8 @@
 
 typedef struct {
 	char *host;
-	int port;
+	int port_min;
+	int port_max;
 	int max_post_size;
 	int hits;
 } mconfig;
@@ -226,10 +227,13 @@ static int tora_handler( request_rec *r ) {
 	}
 
 	// run protocol
-	if( !protocol_connect(c->p,config.host,config.port) ||
-		!protocol_send_request(c->p) ||
-		!protocol_read_answer(c->p) )
-		log_error(c,protocol_get_error(c->p));
+	{
+		int port = config.port_min + (config.hits % (1 + config.port_max - config.port_min));
+		if( !protocol_connect(c->p,config.host,port) ||
+			!protocol_send_request(c->p) ||
+			!protocol_read_answer(c->p) )
+			log_error(c,protocol_get_error(c->p));
+	}
 
 	// cleanup
 	protocol_free(c->p);
@@ -246,7 +250,8 @@ static void mod_tora_do_init() {
 	init_done = true;
 	memset(&config,0,sizeof(config));
 	config.host = DEFAULT_HOST;
-	config.port = DEFAULT_PORT;
+	config.port_min = DEFAULT_PORT;
+	config.port_max = DEFAULT_PORT;
 	config.max_post_size = DEFAULT_MAX_POST_DATA;
 }
 
@@ -269,7 +274,8 @@ static const char *mod_tora_config( cmd_parms *cmd, MCONFIG mconfig, const char 
 	value = atoi(args);
 	mod_tora_do_init();
 	if( strcmp(code,"HOST") == 0 ) config.host = strdup(args);
-	else if( strcmp(code,"PORT") == 0 ) config.port = value;
+	else if( strcmp(code,"PORT") == 0 ) { config.port_min = value; config.port_max = value; }
+	else if( strcmp(code,"PORT_MAX") == 0 ) config.port_max = value;
 	else if( strcmp(code,"POST_SIZE") == 0 ) config.max_post_size = value;
 	else ap_log_error(__FILE__,__LINE__,APLOG_WARNING,LOG_SUCCESS cmd->server,"Unknown ModTora configuration command '%s'",code);
 	free(code);

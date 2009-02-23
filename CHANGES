@@ -7,6 +7,7 @@
 	mod_tora : use socket fast send to optimize timing
 	mod_tora : fixed bug when .n file does not exists
 	mod_tora : fix for Apache 2.x - does not set the content-type if declined
+	mod_tora : added port range configuration (for random tora server)
 	std, mod_tora : propagate jit mode to created threads
 	nekoc : optimization for debug infos : precompute file table at compile-time
 	threads : added neko_gc_register_thread (but buggy, so not used)
