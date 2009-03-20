@@ -29,3 +29,16 @@ function matched_pos( r : t, n : int ) : (int , int) {
 		$array(s.pos,s.len);
 	");
 }
+
+function split( r, str ) {
+	function rec loop(pos,len) {
+		if !find  r str pos len then
+			[String.sub str pos len]
+		else {
+			var ppos, plen = matched_pos r 0;
+			var tot = ppos - pos + plen;
+			String.sub str pos (ppos - pos) :: loop (pos + tot) (len - tot)
+		}
+	}
+	loop 0 String.length(str)
+}

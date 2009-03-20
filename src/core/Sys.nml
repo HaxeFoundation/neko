@@ -18,6 +18,8 @@ neko("
 	@get_env = $loader.loadprim('std@get_env',1);
 	@get_cwd = $loader.loadprim('std@get_cwd',0);
 	@exe_path = $loader.loadprim('std@sys_exe_path',0);
+	@sys_file_type = $loader.loadprim('std@sys_file_type',1);
+	@sys_read_dir = $loader.loadprim('std@sys_read_dir',1);
 ");
 
 type version {
@@ -89,4 +91,12 @@ var set_cwd : string -> void = neko "$loader.loadprim('std@set_cwd',1)"
 
 function executable_path() : string {
 	neko "@exe_path()"
+}
+
+function is_directory(str:string) : bool {
+	neko "@sys_file_type(str) == 'dir'";
+}
+
+function read_directory(str:string) : string list {
+	neko "@List.@make(@sys_read_dir(str))"
 }

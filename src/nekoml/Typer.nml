@@ -867,7 +867,7 @@ function rec type_expr(ctx,(e,p)) {
 		type_unop ctx op (type_expr ctx e) p
 	| EMatch (e,cl) ->
 		var e = type_expr ctx e;
-		var is_stream = List.all (function((l,_,_)) { List.all (function((p,_)) { match p { PStream _ -> true | _ -> false }}) l}) cl;
+		var is_stream = match cl { [] -> false | _ -> List.all (function((l,_,_)) { List.all (function((p,_)) { match p { PStream _ -> true | _ -> false }}) l}) cl };
 		var partial , m , t = type_match ctx e.etype cl p;
 		if !is_stream && partial then error Custom("This matching is not complete") p;
 		mk TMatch(e,m,is_stream) t p
