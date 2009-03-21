@@ -53,13 +53,10 @@
   <doc_type>string</doc_type> <doc_name>cgi_get_cwd</doc_name><doc_type>()</doc_type> <doc_doc>Return current bytecode file working directory</doc_doc>
 </doc_blk>
 <doc_blk>
-  <doc_type>void</doc_type> <doc_name>cgi_set_main</doc_name><doc_type>(function:0)</doc_type> <doc_doc>Set the main entry point function</doc_doc>
+  <doc_type>void</doc_type> <doc_name>cgi_set_main</doc_name><doc_type>(function:0?)</doc_type> <doc_doc>Set or disable the main entry point function</doc_doc>
 </doc_blk>
 <doc_blk>
   <doc_type>void</doc_type> <doc_name>cgi_flush</doc_name><doc_type>()</doc_type> <doc_doc>Flush the data written so it's immediatly sent to the client</doc_doc>
-</doc_blk>
-<doc_blk>
-  <doc_type>#list</doc_type> <doc_name>cgi_get_cache</doc_name><doc_type>()</doc_type> <doc_doc>Return the list of modules cached by mod_neko</doc_doc>
 </doc_blk>
 <doc_blk>
   <doc_type>object</doc_type> <doc_name>cgi_get_config</doc_name><doc_type>()</doc_type> <doc_doc>Return the current configuration</doc_doc>
@@ -74,4 +71,10 @@
 		<li>cache : returns the current cache</li>
 		</ul>
 	</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>string</doc_type> <doc_name>get_http_method</doc_name><doc_type>()</doc_type> <doc_doc>Returns the http method (GET,POST...) used by the client</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>void</doc_type> <doc_name>log_message</doc_name><doc_type>(string)</doc_type> <doc_doc>Write the message into the apache log</doc_doc>
 </doc_blk>

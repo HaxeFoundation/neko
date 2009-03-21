@@ -34,3 +34,14 @@
 	Setting it to null will cancel the redirection and restore previous printer.
 	</doc_doc>
 </doc_blk>
+<doc_blk>
+  <doc_type>void</doc_type> <doc_name>set_trusted</doc_name><doc_type>(bool)</doc_type> <doc_doc>
+	Change the trusted mode of the VM.
+	This can optimize some operations such as module loading by turning off some checks.
+	</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>bool</doc_type> <doc_name>same_closure</doc_name><doc_type>(any, any)</doc_type> <doc_doc>
+	Compare two functions by checking that they refer to the same implementation and that their environments contains physically equal values.
+	</doc_doc>
+</doc_blk>

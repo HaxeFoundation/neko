@@ -55,3 +55,39 @@
 	Set the value of the TLS for the local thread.
 	</doc_doc>
 </doc_blk>
+<doc_blk>
+  <doc_type>'mutex</doc_type> <doc_name>mutex_create</doc_name><doc_type>()</doc_type> <doc_doc>
+	Creates a mutex, which can be used to acquire a temporary lock to access some ressource.
+	The main difference with a lock is that a mutex must always be released by the owner thread.
+	</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>void</doc_type> <doc_name>mutex_acquire</doc_name><doc_type>('mutex)</doc_type> <doc_doc>
+	The current thread acquire the mutex or wait if not available. The same thread can acquire
+	several times the same mutex but must release it as many times it has been acquired.
+	</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>bool</doc_type> <doc_name>mutex_try</doc_name><doc_type>('mutex)</doc_type> <doc_doc>
+	Try to acquire the mutex, returns true if acquire or false if it's already locked by another
+	thread.
+	</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>void</doc_type> <doc_name>mutex_release</doc_name><doc_type>('mutex)</doc_type> <doc_doc>
+	Release a mutex that has been acquired by the current thread. The behavior is undefined if the
+	current thread does not own the mutex.
+	</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>'deque</doc_type> <doc_name>deque_create</doc_name><doc_type>()</doc_type> <doc_doc>create a message queue for multithread access</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>void</doc_type> <doc_name>deque_add</doc_name><doc_type>('deque, any)</doc_type> <doc_doc>add a message at the end of the queue</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>void</doc_type> <doc_name>deque_push</doc_name><doc_type>('deque, any)</doc_type> <doc_doc>add a message at the head of the queue</doc_doc>
+</doc_blk>
+<doc_blk>
+  <doc_type>any?</doc_type> <doc_name>deque_pop</doc_name><doc_type>('deque, bool)</doc_type> <doc_doc>pop a message from the queue head. Either block until a message is available or return immedialtly with null.</doc_doc>
+</doc_blk>
