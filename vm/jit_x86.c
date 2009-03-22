@@ -2536,7 +2536,7 @@ static char *alloc_jit_mem( int size ) {
 		buffer b = alloc_buffer("Failed to allocate JIT memory ");
 		val_buffer(b,alloc_int(size>>10));
 		val_buffer(b,alloc_string("KB"));
-		val_throw(alloc_string(buffer_to_string(b)));
+		val_throw(buffer_to_string(b));
 	}
 	*p = size;
 	return (char*)(p + 1);
