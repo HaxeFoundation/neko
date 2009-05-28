@@ -123,6 +123,69 @@ static value math_round( value n ) {
 	}
 }
 
+/**
+	math_fceil : number -> number
+	<doc>Return rounded-up float without integer overflow</doc>
+**/
+static value math_fceil( value n ) {
+	switch( val_type(n) ) {
+	case VAL_INT:
+		return n;
+	case VAL_FLOAT:
+		return alloc_float( ceil(val_float(n)) );
+	default:
+		neko_error();
+	}
+}
+
+/**
+	math_ffloor : number -> number
+	<doc>Return rounded-down float without integer overflow</doc>
+**/
+static value math_ffloor( value n ) {
+	switch( val_type(n) ) {
+	case VAL_INT:
+		return n;
+	case VAL_FLOAT:
+		return alloc_float( floor(val_float(n)) );
+	default:
+		neko_error();
+	}
+}
+
+/**
+	math_fround : number -> number
+	<doc>Return rounded float without integer overflow</doc>
+**/
+static value math_fround( value n ) {
+	switch( val_type(n) ) {
+	case VAL_INT:
+		return n;
+	case VAL_FLOAT:
+		return alloc_float( floor(val_float(n) + 0.5) );
+	default:
+		neko_error();
+	}
+}
+
+/**
+	math_int : number -> int
+	<doc>Return integer rounded down towards 0</doc>
+**/
+static value math_int( value n ) {
+	switch( val_type(n) ) {
+	case VAL_INT:
+		return n;
+	case VAL_FLOAT:
+		{
+			tfloat v = val_float(n);
+			return alloc_int( (int)((n < 0) ? ceil(v) : floor(v)) );
+		}
+	default:
+		neko_error();
+	}
+}
+
 #define PI 3.1415926535897932384626433832795
 
 /**
@@ -186,5 +249,9 @@ DEFINE_PRIM(math_abs,1);
 DEFINE_PRIM(math_ceil,1);
 DEFINE_PRIM(math_floor,1);
 DEFINE_PRIM(math_round,1);
+DEFINE_PRIM(math_fceil,1);
+DEFINE_PRIM(math_ffloor,1);
+DEFINE_PRIM(math_fround,1);
+DEFINE_PRIM(math_int,1);
 
 /* ************************************************************************ */

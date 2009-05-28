@@ -373,6 +373,22 @@ static value process_close( value vp ) {
 	return val_null;
 }
 
+/**
+	process_kill : 'process -> void
+	<doc>
+	Terminates a running process.
+	</doc>
+**/
+static value process_kill( value vp ) {
+	val_check_kind(vp,k_process);
+#	ifdef NEKO_WINDOWS
+	TerminateProcess(val_process(vp)->pinf.hProcess,-1);
+#	else
+	kill(val_process(vp)->pid,9);
+#	endif
+	return val_null;
+}
+
 DEFINE_PRIM(process_run,2);
 DEFINE_PRIM(process_stdout_read,4);
 DEFINE_PRIM(process_stderr_read,4);
@@ -381,5 +397,6 @@ DEFINE_PRIM(process_stdin_write,4);
 DEFINE_PRIM(process_exit,1);
 DEFINE_PRIM(process_pid,1);
 DEFINE_PRIM(process_close,1);
+DEFINE_PRIM(process_kill,1);
 
 /* ************************************************************************ */
