@@ -8,9 +8,3 @@
 -neko tora_admin.n
 -main Admin
 
-
---next
-# Stress
--neko stress.n
--main StressTest
-
