@@ -31,6 +31,7 @@ private typedef Queue = {
 
 class ModToraApi extends ModNekoApi {
 
+	public var deprecated : Bool;
 	public var listening : List<Client>;
 
 	public function new(client) {
@@ -128,11 +129,9 @@ class ModToraApi extends ModNekoApi {
 		client.notifyApi = this;
 		client.onNotify = onNotify;
 		var me = this;
-		client.onStop = function() {
-			me.queue_stop(q);
-			if( onStop != null ) onStop();
-		};
+		client.onStop = onStop;
 		client.messageQueue = new neko.vm.Deque();
+		client.removeFromQueue = callback(queue_stop,q);
 		listening.add(client);
 		// add to queue
 		q.lock.acquire();
@@ -154,7 +153,6 @@ class ModToraApi extends ModNekoApi {
 	}
 
 	function queue_stop( q : Queue ) {
-		listening.remove(client);
 		q.lock.acquire();
 		if( !q.clients.remove(client) ) {
 			q.lock.release();
@@ -162,8 +160,8 @@ class ModToraApi extends ModNekoApi {
 		}
 		client.onNotify = null;
 		client.onStop = null;
-		client.sock.close();
 		q.lock.release();
+		listening.remove(client);
 	}
 
 }

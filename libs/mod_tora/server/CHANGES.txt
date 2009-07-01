@@ -3,6 +3,7 @@
 	added tora package + api
 	added Share api
 	added Queue api
+	remove cleanupLoop
 
 2008-09-23 : 1.0
 	mod_tora included in Neko 1.8.0

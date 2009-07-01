@@ -73,6 +73,7 @@ class Client {
 	public var onStop : Void -> Void;
 	public var notifyApi : ModToraApi;
 	public var messageQueue : neko.vm.Deque<Dynamic>;
+	public var removeFromQueue : Void -> Void;
 
 	var key : String;
 
