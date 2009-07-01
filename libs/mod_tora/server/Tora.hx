@@ -16,7 +16,7 @@
 /* ************************************************************************ */
 import neko.net.Socket.SocketHandle;
 import Client.Code;
-import Infos;
+import tora.Infos;
 
 typedef ThreadData = {
 	var id : Int;
@@ -24,6 +24,8 @@ typedef ThreadData = {
 	var client : Client;
 	var time : Float;
 	var hits : Int;
+	var notify : Int;
+	var notifyRetry : Int;
 	var errors : Int;
 	var stopped : Bool;
 }
@@ -33,18 +35,23 @@ typedef FileData = {
 	var filetime : Float;
 	var loads : Int;
 	var cacheHits : Int;
+	var notify : Int;
 	var bytes : Float;
 	var time : Float;
 	var lock : neko.vm.Mutex;
-	var cache : haxe.FastList<ModNekoApi>;
+	var cache : haxe.FastList<ModToraApi>;
 }
 
 class Tora {
 
+	static var STOP : Dynamic = {};
+
 	var clientQueue : neko.vm.Deque<Client>;
+	var notifyQueue : neko.vm.Deque<Client>;
 	var threads : Array<ThreadData>;
 	var startTime : Float;
 	var totalHits : Int;
+	var recentHits : Int;
 	var files : Hash<FileData>;
 	var flock : neko.vm.Mutex;
 	var rootLoader : neko.vm.Loader;
@@ -52,17 +59,18 @@ class Tora {
 	var redirect : Dynamic;
 	var set_trusted : Dynamic;
 	var enable_jit : Bool -> Bool;
-	var set_fast_send : SocketHandle -> Bool -> Void;
 	var running : Bool;
 	var jit : Bool;
 
 	function new() {
 		totalHits = 0;
+		recentHits = 0;
 		running = true;
 		startTime = haxe.Timer.stamp();
 		files = new Hash();
 		flock = new neko.vm.Mutex();
 		clientQueue = new neko.vm.Deque();
+		notifyQueue = new neko.vm.Deque();
 		threads = new Array();
 		rootLoader = neko.vm.Loader.local();
 		modulePath = rootLoader.getPath();
@@ -74,17 +82,19 @@ class Tora {
 		set_trusted = neko.Lib.load("std","set_trusted",1);
 		enable_jit = neko.Lib.load("std","enable_jit",1);
 		jit = (enable_jit(null) == true);
-		set_fast_send = try neko.Lib.load("std","socket_set_fast_send",2) catch( e : Dynamic ) function(s,f) {};
 		neko.vm.Thread.create(callback(startup,nthreads));
 	}
 
 	function startup( nthreads : Int ) {
+		neko.vm.Thread.create(notifyLoop);
 		for( i in 0...nthreads ) {
 			var inf : ThreadData = {
 				id : i,
 				t : null,
 				client : null,
 				hits : 0,
+				notify : 0,
+				notifyRetry : 0,
 				errors : 0,
 				time : haxe.Timer.stamp(),
 				stopped : false,
@@ -101,8 +111,11 @@ class Tora {
 	}
 
 	function cleanupLoop() {
+		var time = 15;
 		while( running ) {
-			neko.Sys.sleep(15);
+			var hits = totalHits, time = neko.Sys.time();
+			neko.Sys.sleep(time);
+			recentHits = Std.int((totalHits - hits) / (neko.Sys.time() - time));
 			flock.acquire();
 			var files = Lambda.array(files);
 			if( files.length == 0 ) {
@@ -131,7 +144,45 @@ class Tora {
 		}
 	}
 
-	function initLoader( api : ModNekoApi ) {
+	function notifyLoop() {
+		var p = new neko.net.Poll(4096);
+		var socks = new Array();
+		var changed = false;
+		while( true ) {
+			// add new waiting clients
+			while( true ) {
+				var client = notifyQueue.pop(socks.length == 0);
+				if( client == null ) break;
+				changed = true;
+				socks.push(client.sock);
+			}
+			if( changed ) {
+				changed = false;
+				p.prepare(socks,new Array());
+			}
+			// check if some clients have been disconnected
+			p.events(1.0);
+			var i = 0;
+			var toremove = null;
+			while( true ) {
+				var idx = p.readIndexes[i++];
+				if( idx == -1 ) break;
+				var client : Client = socks[idx].custom;
+				if( toremove == null ) toremove = new List();
+				toremove.add(client.sock);
+				client.messageQueue.push(STOP);
+				notifyClient(client);
+			}
+			// remove disconnected clients from socket list
+			if( toremove != null ) {
+				for( s in toremove )
+					socks.remove(s);
+				changed = true;
+			}
+		}
+	}
+
+	function initLoader( api : ModToraApi ) {
 		var me = this;
 		var mod_neko = neko.NativeString.ofString("mod_neko@");
 		var mem_size = "std@mem_size";
@@ -175,6 +226,66 @@ class Tora {
 		return try neko.FileSystem.stat(file).mtime.getTime() catch( e : Dynamic ) 0.;
 	}
 
+	function handleNotify( t : ThreadData, client : Client ) {
+		// get the api that we are using for this client
+		var f = files.get(client.file);
+		var api = client.notifyApi;
+		f.lock.acquire();
+		// has the client already been stopped ?
+		if( client.onNotify == null ) {
+			f.lock.release();
+			return;
+		}
+		var it = f.cache.head, prev = null;
+		while( it != null ) {
+			if( it.elt == api )
+				break;
+			prev = it;
+			it = it.next;
+		}
+		// the api must be already in-use somewhere : sleep 50ms and loop
+		if( it == null ) {
+			f.lock.release();
+			neko.Sys.sleep(0.05);
+			t.notifyRetry++;
+			notifyClient(client);
+			return;
+		}
+		// remove the api from the list
+		if( prev == null )
+			f.cache.head = it.next;
+		else
+			prev.next = it.next;
+		f.lock.release();
+		// execute the notify event
+		t.notify++;
+		api.client = client;
+		redirect(api.print);
+		try {
+			var message = client.messageQueue.pop(true);
+			if( message == STOP )
+				client.onStop();
+			else
+				client.onNotify(message);
+		} catch( e : Dynamic ) {
+			var data = try Std.string(e) + haxe.Stack.toString(haxe.Stack.exceptionStack()) catch( _ : Dynamic ) "???";
+			try {
+				client.sendMessage(CError,data);
+			} catch( _ : Dynamic ) {
+				// the socket might be closed soon
+			}
+		}
+		redirect(null);
+		api.client = null;
+		// put back in queue
+		f.lock.acquire();
+		f.notify++;
+		f.cache.add(api);
+		f.lock.release();
+		// cleanup
+		t.client = null;
+	}
+
 	function threadLoop( t : ThreadData ) {
 		set_trusted(true);
 		while( true ) {
@@ -188,6 +299,12 @@ class Tora {
 			t.hits++;
 			t.time = haxe.Timer.stamp();
 			t.client = client;
+			// process notify
+			if( client.notifyApi != null ) {
+				handleNotify(t,client);
+				continue;
+			}
+			// retrieve request
 			try {
 				client.sock.setTimeout(3);
 				while( !client.processMessage() ) {
@@ -218,8 +335,9 @@ class Tora {
 						filetime : 0.,
 						loads : 0,
 						cacheHits : 0,
+						notify : 0,
 						lock : new neko.vm.Mutex(),
-						cache : new haxe.FastList<ModNekoApi>(),
+						cache : new haxe.FastList<ModToraApi>(),
 						bytes : 0.,
 						time : 0.,
 					};
@@ -232,7 +350,7 @@ class Tora {
 			var time = getFileTime(client.file);
 			if( time != f.filetime ) {
 				f.filetime = time;
-				f.cache = new haxe.FastList<ModNekoApi>();
+				f.cache = new haxe.FastList<ModToraApi>();
 			}
 			api = f.cache.pop();
 			if( api == null )
@@ -245,7 +363,7 @@ class Tora {
 			var data = "";
 			try {
 				if( api == null ) {
-					api = new ModNekoApi(client);
+					api = new ModToraApi(client);
 					redirect(api.print);
 					initLoader(api).loadModule(client.file);
 				} else {
@@ -253,6 +371,8 @@ class Tora {
 					redirect(api.print);
 					api.main();
 				}
+				if( client.notifyApi != null )
+					code = CListen;
 			} catch( e : Dynamic ) {
 				code = CError;
 				data = try Std.string(e) + haxe.Stack.toString(haxe.Stack.exceptionStack()) catch( _ : Dynamic ) "??? TORA Error";
@@ -260,13 +380,13 @@ class Tora {
 			// send result
 			try {
 				client.sendHeaders(); // if no data has been printed
-				var s : { private var __s : SocketHandle; } = client.sock;
-				set_fast_send(s.__s,true);
+				client.sock.setFastSend(true);
 				client.sendMessage(code,data);
 			} catch( e : Dynamic ) {
 				log("Error while sending answer ("+Std.string(e)+")");
 				t.errors++;
 				api.main = null; // in case of cache-bug
+				client.onNotify = null;
 			}
 			// save infos
 			f.lock.acquire();
@@ -279,9 +399,18 @@ class Tora {
 			f.lock.release();
 			// cleanup
 			redirect(null);
-			client.sock.close();
 			t.client = null;
+			if( client.notifyApi != null ) {
+				client.sock.custom = client;
+				client.uri = "<notify>";
+				notifyQueue.add(client);
+			} else
+				client.sock.close();
 		}
+	}
+
+	public inline function notifyClient( client : Client ) {
+		clientQueue.add(client);
 	}
 
 	function run( host : String, port : Int ) {
@@ -294,9 +423,9 @@ class Tora {
 		s.listen(100);
 		try {
 			while( running ) {
-				var client = s.accept();
+				var sock = s.accept();
 				totalHits++;
-				clientQueue.add(new Client(client));
+				notifyClient(new Client(sock));
 			}
 		} catch( e : Dynamic ) {
 			log("accept() failure : maybe too much FD opened ?");
@@ -352,9 +481,10 @@ class Tora {
 	public function infos() : Infos {
 		var tinf = new Array();
 		var tot = 0;
+		var notify = 0, notifyRetry = 0;
 		for( t in threads ) {
 			var cur = t.client;
-			var t : ThreadInfos = {
+			var ti : ThreadInfos = {
 				hits : t.hits,
 				errors : t.errors,
 				file : (cur == null) ? null : (cur.file == null ? "???" : cur.file),
@@ -362,7 +492,9 @@ class Tora {
 				time : (haxe.Timer.stamp() - t.time),
 			};
 			tot += t.hits;
-			tinf.push(t);
+			notify += t.notify;
+			notifyRetry += t.notifyRetry;
+			tinf.push(ti);
 		}
 		var finf = new Array();
 		for( f in files ) {
@@ -379,7 +511,10 @@ class Tora {
 		return {
 			threads : tinf,
 			files : finf,
-			hits : totalHits,
+			totalHits : totalHits,
+			recentHits : recentHits,
+			notify : notify,
+			notifyRetry : notifyRetry,
 			queue : totalHits - tot,
 			upTime : haxe.Timer.stamp() - startTime,
 			jit : jit,

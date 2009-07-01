@@ -1,3 +1,4 @@
+package tora;
 
 typedef ThreadInfos = {
 	var hits : Int;
@@ -19,7 +20,10 @@ typedef FileInfos = {
 typedef Infos = {
 	var threads : Array<ThreadInfos>;
 	var files : Array<FileInfos>;
-	var hits : Int;
+	var totalHits : Int;
+	var recentHits : Int;
+	var notify : Int;
+	var notifyRetry : Int;
 	var queue : Int;
 	var upTime : Float;
 	var jit : Bool;

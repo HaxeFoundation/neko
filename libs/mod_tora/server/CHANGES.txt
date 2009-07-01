@@ -1,0 +1,8 @@
+2009-??-?? : 1.1
+	distribute on haxelib
+	added tora package + api
+	added Share api
+	added Queue api
+
+2008-09-23 : 1.0
+	mod_tora included in Neko 1.8.0

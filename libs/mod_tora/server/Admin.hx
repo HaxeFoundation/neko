@@ -14,7 +14,7 @@
 /* Lesser General Public License or the LICENSE file for more details.		*/
 /*																			*/
 /* ************************************************************************ */
-import Infos;
+import tora.Infos;
 
 class Admin {
 
@@ -112,33 +112,50 @@ class Admin {
 
 		title("Tora Admin");
 
-		var command : String -> String -> Void = neko.Lib.load("mod_neko","tora_command",2);
 		var params = neko.Web.getParams();
 		var cmd = params.get("command");
 		if( cmd != null ) {
 			var t = neko.Sys.time();
-			command(cmd,params.get("p"));
+			tora.Api.command(cmd,params.get("p"));
 			w("<p>Command <b>"+cmd+"</b> took "+fmt(neko.Sys.time() - t)+"s to execute</p>");
 		}
 		var mem = neko.vm.Gc.stats();
 		mem.heap >>>= 10;
 		mem.free >>>= 10;
-		var infos : Infos = neko.Lib.load("mod_neko","tora_infos",0)();
+		var memUnit = "KB";
+		if( mem.heap >= 10240 ) {
+			mem.heap >>= 10;
+			mem.free >>= 10;
+			memUnit = "MB";
+		}
+		var infos = tora.Api.getInfos();
 		var busy = 0;
 		var cacheHits = 0;
-		for( t in infos.threads )
+		for( t in infos.threads ) {
 			if( t.file != null )
 				busy++;
+		}
 		for( f in infos.files )
 			cacheHits += f.cacheHits;
 
+		var uptime = DateTools.parse(infos.upTime * 1000.0);
+		var str = "", disp = false;
+		if( uptime.days > 0 ) disp = true;
+		if( disp ) str += uptime.days+"d ";
+		if( uptime.hours > 0 ) disp = true;
+		if( disp ) str += uptime.hours+"h ";
+		if( uptime.minutes > 0 ) disp = true;
+		if( disp ) str += uptime.minutes+"m ";
+		str += uptime.seconds+"s";
 		list([
-			"Uptime : "+fmt(infos.upTime)+"s",
+			"Uptime : "+str,
+			"Hits : "+infos.recentHits+"/sec",
 			"Threads : "+busy+" / "+infos.threads.length,
 			"Queue size : "+infos.queue,
-			"Memory : "+(mem.heap - mem.free)+" / "+mem.heap+" KB",
-			"Total hits : "+infos.hits+" ("+fmt(infos.hits/infos.upTime)+"/sec)",
-			"Cache hits : "+cacheHits+" ("+fmt(cacheHits*100.0/infos.hits)+"%)",
+			"Memory : "+(mem.heap - mem.free)+" / "+mem.heap+" "+memUnit,
+			"Total hits : "+infos.totalHits+" ("+fmt(infos.totalHits/infos.upTime)+"/sec)",
+			"Cache hits : "+cacheHits+" ("+fmt(cacheHits*100.0/infos.totalHits)+"%)",
+			"Notify : "+infos.notify+" ("+fmt(infos.notifyRetry/infos.notify)+" retry)",
 			"JIT : "+(infos.jit?"ON":"OFF"),
 		]);
 

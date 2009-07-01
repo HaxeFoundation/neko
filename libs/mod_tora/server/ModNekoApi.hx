@@ -26,6 +26,8 @@ class ModNekoApi {
 		this.client = client;
 	}
 
+	// mod_neko API
+
 	function cgi_set_main( f : Void -> Void ) {
 		main = f;
 	}
@@ -183,13 +185,7 @@ class ModNekoApi {
 		client.sendMessage(CLog,NativeString.toString(msg));
 	}
 
-	function tora_infos() {
-		return Tora.inst.infos();
-	}
-
-	function tora_command(cmd,param) {
-		return Tora.inst.command(cmd,param);
-	}
+	// internal APIS
 
 	public function print( value : Dynamic ) {
 		var str = NativeString.toString(untyped if( __dollar__typeof(value) == __dollar__tstring ) value else __dollar__string(value));

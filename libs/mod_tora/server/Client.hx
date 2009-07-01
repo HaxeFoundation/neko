@@ -41,6 +41,7 @@ enum Code {
 	CPartData;
 	CPartDone;
 	CTestConnect;
+	CListen;
 }
 
 class Client {
@@ -66,6 +67,12 @@ class Client {
 	public var httpMethod : String;
 	public var headersSent : Bool;
 	public var outputHeaders : List<{ code : Code, str : String }>;
+
+	// queue variables
+	public var onNotify : Dynamic -> Void;
+	public var onStop : Void -> Void;
+	public var notifyApi : ModToraApi;
+	public var messageQueue : neko.vm.Deque<Dynamic>;
 
 	var key : String;
 
