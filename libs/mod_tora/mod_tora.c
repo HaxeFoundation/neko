@@ -94,12 +94,13 @@ static void do_get_params( void *_c ) {
 		protocol_send_raw_params(c->p,c->post_data);
 }
 
-static void do_print( void *_c, const char *buf, int len ) {
+static int do_print( void *_c, const char *buf, int len ) {
 	mcontext *c = (mcontext*)_c;
 	ap_soft_timeout("Client Timeout",c->r);
 	send_headers(c);
 	ap_rwrite(buf,len,c->r);
 	ap_kill_timeout(c->r);
+	return c->r->connection->aborted == 0;
 }
 
 static void do_flush( void *_c ) {

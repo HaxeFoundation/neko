@@ -51,6 +51,7 @@ typedef enum {
 	CODE_PART_DATA,
 	CODE_PART_DONE,
 	CODE_TEST_CONNECT,
+	CODE_LISTEN,
 } proto_code;
 
 #define PARSE_HEADER(start,cursor) \
@@ -389,6 +390,7 @@ bool protocol_read_answer( proto *p ) {
 	int len;
 	char *buf = (char*)malloc(BUFSIZE), *key = NULL;
 	int buflen = BUFSIZE;
+	int listening = 0;
 	while( true ) {
 		if( !proto_read(p,header,4) )
 			ABORT("Connection Closed");
@@ -422,7 +424,10 @@ bool protocol_read_answer( proto *p ) {
 			p->inf.do_log(p->inf.custom,buf,true);
 			goto exit;
 		case CODE_PRINT:
-			p->inf.do_print(p->inf.custom,buf,len);
+			if( !p->inf.do_print(p->inf.custom,buf,len) && listening )
+				goto exit;
+			if( listening )
+				p->inf.do_flush(p->inf.custom);
 			break;
 		case CODE_LOG:
 			p->inf.do_log(p->inf.custom,buf,false);
@@ -449,6 +454,10 @@ bool protocol_read_answer( proto *p ) {
 				free(tmp);
 				proto_send(p,CODE_EXECUTE,"");
 			}
+			break;
+		case CODE_LISTEN:
+			listening = 1;
+			p->inf.do_flush(p->inf.custom);
 			break;
 		default:
 			ABORT("Unexpected code");

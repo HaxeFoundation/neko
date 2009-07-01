@@ -20,7 +20,7 @@
 #include "osdef.h"
 
 typedef void (*pf_callback)( void *custom );
-typedef void (*pf_print)( void *custom, const char *buffer, int size );
+typedef int (*pf_print)( void *custom, const char *buffer, int size );
 typedef void (*pf_set_header)( void *custom, const char *key, const char *value, bool add );
 typedef void (*pf_set_code)( void *custom, int code );
 typedef void (*pf_log)( void *custom, const char *message, bool inner_log );
