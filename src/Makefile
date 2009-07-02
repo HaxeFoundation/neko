@@ -21,7 +21,7 @@ TIME = @c:/progra~1/cygwin/bin/times -f %e make
 all: clean pass1 pass2 pass3
 
 source: clean
-	${NEKOVM1} nekoml -n neko/Main.nml nekoml/Main.nml
+	${NEKOVM1} nekoml -nostd -n neko/Main.nml nekoml/Main.nml
 
 link:
 	${NEKOVM} neko/Main -link nekoc.n neko/Main
