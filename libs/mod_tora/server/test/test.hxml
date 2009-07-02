@@ -1,0 +1,10 @@
+# Neko
+-neko ../index.n
+-main Test
+-lib tora
+
+--next
+# Flash
+-swf9 test.swf
+-main Test
+-cp ..

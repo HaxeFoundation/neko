@@ -15,7 +15,7 @@
 /*																			*/
 /* ************************************************************************ */
 import neko.net.Socket.SocketHandle;
-import Client.Code;
+import tora.Code;
 import tora.Infos;
 
 typedef ThreadData = {
@@ -62,6 +62,8 @@ class Tora {
 	var enable_jit : Bool -> Bool;
 	var running : Bool;
 	var jit : Bool;
+	var hosts : Hash<String>;
+	var ports : Array<Int>;
 
 	function new() {
 		totalHits = 0;
@@ -69,6 +71,8 @@ class Tora {
 		running = true;
 		startTime = haxe.Timer.stamp();
 		files = new Hash();
+		hosts = new Hash();
+		ports = new Array();
 		flock = new neko.vm.Mutex();
 		clientQueue = new neko.vm.Deque();
 		notifyQueue = new neko.vm.Deque();
@@ -135,9 +139,10 @@ class Tora {
 				if( client == null ) break;
 				changed = true;
 				// if we have a stopped client, then we close the socket
-				if( client.onNotify == null && socks.remove(client.sock) )
-					client.sock.close();
-				else {
+				if( client.onNotify == null ) {
+					try client.sock.close() catch( e : Dynamic ) {};
+					socks.remove(client.sock);
+				} else {
 					client.sock.custom = client;
 					socks.push(client.sock);
 				}
@@ -212,6 +217,17 @@ class Tora {
 		return try neko.FileSystem.stat(file).mtime.getTime() catch( e : Dynamic ) 0.;
 	}
 
+	function cleanupApi( api : ModToraApi ) {
+		api.deprecated = true;
+		for( c in api.listening ) {
+			api.client = c;
+			c.removeFromQueue();
+			try c.sendMessage(CExecute,"") catch( e : Dynamic ) {};
+			notifyQueue.add(c);
+		}
+		api.client = null;
+	}
+
 	function handleNotify( t : ThreadData, client : Client ) {
 		// get the api that we are using for this client
 		var f = files.get(client.file);
@@ -231,11 +247,6 @@ class Tora {
 		}
 		// the api must be already in-use somewhere : sleep 50ms and loop
 		if( it == null ) {
-			if( api.deprecated && client.onNotify != null ) {
-				client.removeFromQueue();
-				try client.sendMessage(CExecute,"") catch( e : Dynamic ) {}
-				notifyQueue.add(client);
-			}
 			f.lock.release();
 			neko.Sys.sleep(0.05);
 			t.notifyRetry++;
@@ -281,7 +292,10 @@ class Tora {
 		// put back in queue
 		f.lock.acquire();
 		f.notify++;
-		f.cache.add(api);
+		if( api.deprecated )
+			cleanupApi(api);
+		else
+			f.cache.add(api);
 		f.lock.release();
 		// cleanup
 		t.client = null;
@@ -297,7 +311,6 @@ class Tora {
 				t.stopped = true;
 				break;
 			}
-			t.hits++;
 			t.time = haxe.Timer.stamp();
 			t.client = client;
 			// process notify
@@ -305,6 +318,7 @@ class Tora {
 				handleNotify(t,client);
 				continue;
 			}
+			t.hits++;
 			// retrieve request
 			try {
 				client.sock.setTimeout(3);
@@ -313,7 +327,7 @@ class Tora {
 				if( client.execute && client.file == null )
 					throw "Missing module file";
 			} catch( e : Dynamic ) {
-				log("Error while reading request ("+Std.string(e)+")");
+				if( client.secure ) log("Error while reading request ("+Std.string(e)+")");
 				t.errors++;
 				client.execute = false;
 			}
@@ -351,11 +365,8 @@ class Tora {
 			var time = getFileTime(client.file);
 			if( time != f.filetime ) {
 				f.filetime = time;
-				for( api in f.cache ) {
-					api.deprecated = true;
-					for( c in api.listening )
-						notifyClient(c);
-				}
+				for( api in f.cache )
+					cleanupApi(api);
 				f.cache = new haxe.FastList<ModToraApi>();
 			}
 			api = f.cache.pop();
@@ -389,23 +400,19 @@ class Tora {
 				client.sock.setFastSend(true);
 				client.sendMessage(code,data);
 			} catch( e : Dynamic ) {
-				log("Error while sending answer ("+Std.string(e)+")");
+				if( client.secure ) log("Error while sending answer ("+Std.string(e)+")");
 				t.errors++;
-				api.main = null; // in case of cache-bug
 				client.onNotify = null;
 			}
 			// save infos
 			f.lock.acquire();
 			f.time += haxe.Timer.stamp() - t.time;
 			f.bytes += client.dataBytes;
-			if( api.main != null && f.filetime == time ) {
-				api.client = null;
+			api.client = null;
+			if( api.main != null && f.filetime == time )
 				f.cache.add(api);
-			} else {
-				api.deprecated = true;
-				for( c in api.listening )
-					notifyClient(c);
-			}
+			else
+				cleanupApi(api);
 			f.lock.release();
 			// cleanup
 			redirect(null);
@@ -422,7 +429,7 @@ class Tora {
 		clientQueue.add(client);
 	}
 
-	function run( host : String, port : Int ) {
+	function run( host : String, port : Int, secure : Bool ) {
 		var s = new neko.net.Socket();
 		try {
 			s.bind(new neko.net.Host(host),port);
@@ -430,11 +437,12 @@ class Tora {
 			throw "Failed to bind socket : invalid host or port is busy";
 		}
 		s.listen(100);
+		ports.push(port);
 		try {
 			while( running ) {
 				var sock = s.accept();
 				totalHits++;
-				notifyClient(new Client(sock));
+				notifyClient(new Client(sock,secure));
 			}
 		} catch( e : Dynamic ) {
 			log("accept() failure : maybe too much FD opened ?");
@@ -530,6 +538,52 @@ class Tora {
 		};
 	}
 
+	function loadConfig( cfg : String ) {
+		var vhost = false;
+		var root = null, names = null;
+		// parse the apache configuration to extract virtual hosts
+		for( l in ~/[\r\n]+/g.split(cfg) ) {
+			l = StringTools.trim(l);
+			var lto = l.toLowerCase();
+			if( !vhost ) {
+				if( StringTools.startsWith(lto,"<virtualhost") ) {
+					vhost = true;
+					root = null;
+					names = new Array();
+				}
+			} else if( lto == "</virtualhost>" ) {
+				vhost = false;
+				if( root != null )
+					for( n in names )
+						if( !hosts.exists(n) )
+							hosts.set(n,root);
+			} else {
+				var cmd = ~/[ \t]+/g.split(l);
+				switch( cmd.shift().toLowerCase() ) {
+				case "documentroot": root = cmd.join(" ")+"/index.n";
+				case "servername", "serveralias": names = names.concat(cmd);
+				}
+			}
+		}
+	}
+
+	public function resolveHost( name : String ) {
+		return hosts.get(name);
+	}
+
+	var xmlCache : String;
+	public function getCrossDomainXML() {
+		if( xmlCache != null ) return xmlCache;
+		var buf = new StringBuf();
+		buf.add("<cross-domain-policy>");
+		for( host in hosts.keys() )
+			buf.add('<allow-access-from domain="'+host+'" to-ports="'+ports.join(",")+'"/>');
+		buf.add("</cross-domain-policy>");
+		buf.addChar(0);
+		xmlCache = buf.toString();
+		return xmlCache;
+	}
+
 	public static function log( msg : String ) {
 		neko.io.File.stderr().writeString("["+Date.now().toString()+"] "+msg+"\n");
 	}
@@ -537,19 +591,33 @@ class Tora {
 	public static var inst : Tora;
 
 	static function main() {
+		var host = "127.0.0.1";
+		var port = 6666;
 		var args = neko.Sys.args();
-		var host = args[0];
-		if( host == null ) host = "127.0.0.1";
-		var port = args[1];
-		if( port == null ) port = "6666";
-		var nthreads = args[2];
-		if( nthreads == null ) nthreads = "32";
-		var port = Std.parseInt(port);
-		var nthreads = Std.parseInt(nthreads);
+		var nthreads = 32;
+		var i = 0;
+		var unsafePorts = new List();
 		inst = new Tora();
-		log("Starting Tora server on "+host+":"+port+" with "+nthreads+" threads");
+		while( true ) {
+			var kind = args[i++];
+			var value = function() { var v = args[i++]; if( v == null ) throw "Missing value for '"+kind+"'"; return v; };
+			if( kind == null ) break;
+			switch( kind ) {
+			case "-h","-host": host = value();
+			case "-p","-port": port = Std.parseInt(value());
+			case "-t","-threads": nthreads = Std.parseInt(value());
+			case "-config": inst.loadConfig(neko.io.File.getContent(value()));
+			case "-unsafe": unsafePorts.add(Std.parseInt(value()));
+			default: throw "Unknown argument "+kind;
+			}
+		}
 		inst.init(nthreads);
-		inst.run(host,port);
+		for( port in unsafePorts ) {
+			log("Opening unsafe port on "+host+":"+port);
+			neko.vm.Thread.create(callback(inst.run,host,port,false));
+		}
+		log("Starting Tora server on "+host+":"+port+" with "+nthreads+" threads");
+		inst.run(host,port,true);
 		inst.stop();
 	}
 

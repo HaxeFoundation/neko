@@ -15,7 +15,7 @@
 /*																			*/
 /* ************************************************************************ */
 import neko.NativeString;
-import Client.Code;
+import tora.Code;
 
 class ModNekoApi {
 

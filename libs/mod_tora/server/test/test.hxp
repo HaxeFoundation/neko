@@ -1,0 +1,9 @@
+﻿<haxe selected="1">
+  <output name="Neko" mode="neko" out="../index.n" class="Test" lib="" cmd="" main="True" debug="False">-lib tora</output>
+  <output name="Flash" mode="swf9" out="test.swf" class="Test" lib="" cmd="" main="True" debug="False">-cp ..</output>
+  <files path="/">
+    <file path="..\tora\Code.hx" />
+    <file path="..\tora\Protocol.hx" />
+    <file path="Test.hx" />
+  </files>
+</haxe>

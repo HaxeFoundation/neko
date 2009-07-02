@@ -4,7 +4,9 @@
   <files path="/">
     <dir path="tora">
       <file path="tora\Api.hx" />
+      <file path="tora\Code.hx" />
       <file path="tora\Infos.hx" />
+      <file path="tora\Protocol.hx" />
       <file path="tora\Queue.hx" />
       <file path="tora\Share.hx" />
     </dir>
