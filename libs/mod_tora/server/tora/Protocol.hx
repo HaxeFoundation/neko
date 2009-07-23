@@ -45,6 +45,12 @@ class Protocol {
 		sock.connect(host,port);
 	}
 
+	public function close() {
+		sock.removeEventListener(flash.events.Event.CLOSE,onClose);
+		try sock.close() catch( e : Dynamic ) {};
+		sock = null;
+	}
+
 	function send( code : Code, data : String ) {
 		sock.writeByte(Type.enumIndex(code) + 1);
 		var length = data.length;
