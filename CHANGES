@@ -20,6 +20,7 @@
 	nekoml : don't allow empty match
 	vm : create pthreads in detached mode (prevent leak on osx/linux)
 	std : added math_fceil,math_ffloor,math_fround,math_int,process_kill
+	nekoc : forbidden usage of 'var' outside blocks
 
 2008-09-23 : 1.8.0
 	added mod_tora (neko application server)

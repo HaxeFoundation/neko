@@ -261,25 +261,26 @@ function get_cases_ints(cases) {
 	(l,*max + 1)
 }
 
-function rec scan_labels(ctx,supported,e) {
+function rec scan_labels(ctx,supported,in_block,e) {
 	match fst e {
 	| EFunction (args,e) ->
 		var nargs = List.length args;
 		var traps = ctx.traps;
 		ctx.traps := [];
 		ctx.stack := ctx.stack + nargs;
-		scan_labels ctx supported e;
+		scan_labels ctx supported false e;
 		ctx.stack := ctx.stack - nargs;
 		ctx.traps := traps
 	| EBlock _ ->
 		var old = ctx.stack;
-		Neko.Ast.iter (scan_labels ctx supported) e;
+		Neko.Ast.iter (scan_labels ctx supported true) e;
 		ctx.stack := old
 	| EVars l ->
+		if !in_block then error "Variable declaration must be done inside a block" (snd e);
 		List.iter (function((_,e)) {
 			match e {
 			| None -> ()
-			| Some e -> scan_labels ctx supported e
+			| Some e -> scan_labels ctx supported false e
 			};
 			ctx.stack := ctx.stack + 1
 		}) l
@@ -299,11 +300,11 @@ function rec scan_labels(ctx,supported,e) {
 	| ETry (e,_,e2) ->
 		ctx.stack := ctx.stack + trap_stack_delta;
 		ctx.traps := ctx.stack :: ctx.traps;
-		scan_labels ctx supported e;
+		scan_labels ctx supported false e;
 		ctx.stack := ctx.stack - trap_stack_delta;
 		ctx.traps := match ctx.traps { [] -> assert() | _ :: l -> l };
 		ctx.stack := ctx.stack + 1;
-		scan_labels ctx supported e2;
+		scan_labels ctx supported false e2;
 		ctx.stack := ctx.stack - 1;
 	| EBinop ("=",e1,e2) ->
 		function rec is_extended((e,_)) {
@@ -318,59 +319,61 @@ function rec scan_labels(ctx,supported,e) {
 		};
 		var ext = is_extended e1;
 		if ext then ctx.stack := ctx.stack + 1;
-		scan_labels ctx supported e2;
+		scan_labels ctx supported false e2;
 		ctx.stack := ctx.stack + 1;
-		scan_labels ctx supported e1;
+		scan_labels ctx supported false e1;
 		ctx.stack := ctx.stack - (if ext then 2 else 1);
 	| ECall ((EConst (Builtin x),_),el) when x != "array" && x != "apply" ->
-		Neko.Ast.iter (scan_labels ctx false) e
+		Neko.Ast.iter (scan_labels ctx false false) e
 	| ECall ((EConst (Builtin "array"),_),e :: el)
 	| ECall ((EConst (Builtin "apply"),_),e :: el)
 	| ECall(e,el) ->
 		List.iter (function(e) {
-			scan_labels ctx supported e;
+			scan_labels ctx supported false e;
 			ctx.stack := ctx.stack + 1;
 		}) el;
-		scan_labels ctx supported e;
+		scan_labels ctx supported false e;
 		ctx.stack := ctx.stack - List.length el
 	| EObject fl ->
 		ctx.stack := ctx.stack + 2;
 		List.iter (function((s,e)) {
-			scan_labels ctx supported e
+			scan_labels ctx supported false e
 		}) fl;
 		ctx.stack := ctx.stack - 2;
 	| ESwitch (ee,[(econd,exec)],eo) ->
 		var p = snd e;
-		scan_labels ctx supported (EIf (EBinop "==" ee econd,p) exec eo,p)
+		scan_labels ctx supported false (EIf (EBinop "==" ee econd,p) exec eo,p)
 	| ESwitch (e,cases,eo) ->
-		scan_labels ctx supported e;
+		scan_labels ctx supported false e;
 		var delta = try { ignore(get_cases_ints cases); 0 } catch { Exit -> 1 };
 		ctx.stack := ctx.stack + delta;
 		List.iter (function((e1,e2)) {
 			ctx.stack := ctx.stack + delta;
-			scan_labels ctx supported e1;
+			scan_labels ctx supported false e1;
 			ctx.stack := ctx.stack - delta;
-			scan_labels ctx supported e2;
+			scan_labels ctx supported false e2;
 		}) cases;
 		match eo {
 		| None -> ()
-		| Some e -> scan_labels ctx supported e
+		| Some e -> scan_labels ctx supported false e
 		}
 		ctx.stack := ctx.stack - delta;
+	| ENext (e1,e2) ->
+		scan_labels ctx supported in_block e1;
+		scan_labels ctx supported in_block e2;
 	| EConst _
 	| EContinue
 	| EBreak _
 	| EReturn _
 	| EIf _
 	| EWhile _
-	| EParenthesis _
-	| ENext _ ->
-		Neko.Ast.iter (scan_labels ctx supported) e
+	| EParenthesis _ ->
+		Neko.Ast.iter (scan_labels ctx supported false) e
 	| EBinop (_,_,_)
 	| EArray _
 	| EField _
 		->
-		Neko.Ast.iter (scan_labels ctx false) e
+		Neko.Ast.iter (scan_labels ctx false false) e
 	}
 }
 
@@ -1032,7 +1035,7 @@ function compile(ast) {
 		curpos = (0,0);
 		curfile = "_";
 	};
-	scan_labels ctx true ast;
+	scan_labels ctx true true ast;
 	compile ctx false ast;
 	check_breaks ctx;
 	if g.functions != [] || Hashtbl.length g.gobjects != 0 then {
