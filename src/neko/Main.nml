@@ -24,14 +24,28 @@ function out(file,ext) {
 	}
 }
 
+function is_nxml(str) {
+	var len = String.length str;
+	if len <= 10 || String.sub str 0 6 != "<nxml>" then
+		None
+	else if String.sub str (len - 7) 7 == "</nxml>" then
+		Some (String.sub str 6 (len - 13))
+	else if String.sub str (len - 8) 8 == "</nxml>\n" then
+		Some (String.sub str 6 (len - 14))
+	else if String.sub str (len - 9) 9 == "</nxml>\r\n" then
+		Some (String.sub str 6 (len - 15))
+	else
+		None
+}
+
 function parse_multiformat(file) {
 	var str = IO.file_contents file;
-	var len = String.length str;
-	if len > 10 && String.sub str 0 6 == "<nxml>" && String.sub str (len - 7) 7 == "</nxml>" then
-		Neko.Xml.parse (String.sub str 6 (len - 13)) Lexer.null_pos
-	else if len > 4 && String.sub str 0 4 == Neko.Binast.header then
+	match is_nxml str {
+	| Some nxml ->
+		Neko.Xml.parse nxml Lexer.null_pos
+	| None when String.length str > 4 && String.sub str 0 4 == Neko.Binast.header ->
 		Neko.Binast.parse (IO.read_string str) Lexer.null_pos
-	else {
+	| None ->
 		var i = IO.read_string str;
 		var lex = Lexer.create Buffer.create();
 		Lexer.input lex file i 1 0;
