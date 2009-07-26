@@ -81,7 +81,7 @@
 #	include <stdint.h>
 #endif
 
-#define NEKO_VERSION	180
+#define NEKO_VERSION	181
 
 typedef intptr_t int_val;
 
@@ -422,7 +422,7 @@ C_FUNCTION_BEGIN
 	EXTERN mt_lock *alloc_lock();
 	EXTERN void lock_acquire( mt_lock *l );
 	EXTERN int lock_try( mt_lock *l );
-	EXTERN void lock_release( mt_lock *l );	
+	EXTERN void lock_release( mt_lock *l );
 	EXTERN void free_lock( mt_lock *l );
 
 C_FUNCTION_END
