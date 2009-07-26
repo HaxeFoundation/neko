@@ -75,6 +75,8 @@ function error(m,p) {
 	throw Error(m,p)
 }
 
+Nekoml.Match.error_ref := (function(msg,p) error Custom(msg) p);
+
 var verbose = &false;
 
 var load_module_ref = &(function(_,_,_) { assert() });
