@@ -151,9 +151,16 @@ and write_expr ctx (e,p) =
 		write_expr ctx e;
 		write_string ctx f;
 	| ECall (e,el) ->
-		b ctx 7;
-		write_expr ctx e;
-		b ctx (List.length el);
+		let n = List.length el in
+		if n <= 0xFF then begin
+			b ctx 7;
+			write_expr ctx e;
+			b ctx n;
+		end else begin
+			b ctx 28;
+			write_expr ctx e;
+			write_ui24 ctx n;
+		end;
 		List.iter (write_expr ctx) el;
 	| EArray (e1,e2) ->
 		b ctx 8;

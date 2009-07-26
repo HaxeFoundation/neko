@@ -107,7 +107,7 @@ function rec parse_field(ctx) {
 
 function rec parse_switch(ctx,n) {
 	var e = parse_expr ctx;
-	var l = parse_list ctx (function(ctx) { 
+	var l = parse_list ctx (function(ctx) {
 		var e1 = parse_expr ctx;
 		var e2 = parse_expr ctx;
 		(e1,e2)
@@ -123,7 +123,7 @@ function rec parse_expr_opt(ctx) {
 		Some (parse_expr ctx)
 }
 
-function rec parse_expr(ctx) {	
+function rec parse_expr(ctx) {
 	var n = IO.read_byte ctx.ch;
 	if n < 2 then {
 		var file = if n == 1 then ctx.pos.psource else parse_string ctx;
@@ -141,7 +141,7 @@ function rec parse_expr(ctx) {
 			EBlock (parse_list ctx parse_expr (IO.read_ui24 ctx.ch))
 		| 5 ->
 			EParenthesis (parse_expr ctx)
-		| 6 -> 
+		| 6 ->
 			var e = parse_expr ctx;
 			EField e (parse_string ctx)
 		| 7 ->
@@ -174,7 +174,7 @@ function rec parse_expr(ctx) {
 			var str = parse_string ctx;
 			ETry e1 str (parse_expr ctx)
 		| 14 ->
-			var vars = parse_list ctx parse_string (IO.read_byte ctx.ch);			
+			var vars = parse_list ctx parse_string (IO.read_byte ctx.ch);
 			EFunction vars (parse_expr ctx)
 		| 15 ->
 			var op = parse_op ctx;
@@ -208,6 +208,9 @@ function rec parse_expr(ctx) {
 		| 27 ->
 			var str = IO.read ctx.ch (IO.read_ui24 ctx.ch);
 			fst (*parse_from_string)(str,pos)
+		| 28 ->
+			var e = parse_expr ctx;
+			ECall e (parse_list ctx parse_expr (IO.read_ui24 ctx.ch))
 		| n ->
 			error ("Invalid expr tag : " + n)
 		},pos)
