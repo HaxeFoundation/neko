@@ -66,7 +66,7 @@ ifeq (${OSX_UNIVERSAL}, 1)
 
 export MACOSX_DEPLOYMENT_TARGET_i386=10.4
 export MACOSX_DEPLOYMENT_TARGET_ppc=10.3
-CFLAGS += -arch ppc -arch i386 -L/usr/local/lib
+CFLAGS += -arch ppc -arch i386 -L/usr/local/lib -L/opt/local/lib -I/opt/local/include
 UNIV = libs/include/osx_universal
 #linking to shared lib (.a) explicitly:
 LIBNEKO_DEPS = ${UNIV}/libgc.a  -lSystemStubs

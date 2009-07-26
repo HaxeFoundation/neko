@@ -86,7 +86,7 @@ typedef struct {
 #ifdef NEKO_WINDOWS
 #	define THREAD_FUN DWORD WINAPI
 #else
-#	define THREAD_FUN void*
+#	define THREAD_FUN void *
 #endif
 
 typedef int (*rec)( int, void * );

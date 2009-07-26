@@ -41,10 +41,12 @@
 #	define OS_POSIX
 #endif
 
-#ifdef OS_WINDOWS
+#if defined(OS_WINDOWS)
 #	define LITTLE_ENDIAN 1
 #	define BIG_ENDIAN 2
 #	define BYTE_ORDER LITTLE_ENDIAN
+#elif defined(OS_MAC) || defined(OS_BSD)
+#	include <machine/endian.h>
 #else
 #	include <endian.h>
 #endif

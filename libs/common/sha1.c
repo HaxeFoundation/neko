@@ -26,7 +26,7 @@
 // original code by Steve Reid
 
 #define rol(value, bits) (((value) << (bits)) | ((value) >> (32 - (bits))))
-#if IS_BIG_ENDIAN
+#ifdef IS_BIG_ENDIAN
 #	define blk0(i) block[i]
 #else
 #	define blk0(i) (block[i] = (rol(block[i],24)&0xFF00FF00) \
