@@ -14,6 +14,10 @@
 /* Lesser General Public License or the LICENSE file for more details.		*/
 /*																			*/
 /* ************************************************************************ */
+#ifdef __APPLE__
+// prevent later redefinition of bool
+#	include <dlfcn.h>
+#endif
 #include "vm.h"
 #include <string.h>
 
