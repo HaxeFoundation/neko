@@ -596,6 +596,9 @@ class Tora {
 		var args = neko.Sys.args();
 		var nthreads = 32;
 		var i = 0;
+		// skip first argument for haxelib "run"
+		if( args[0] != null && StringTools.endsWith(args[0],"/") )
+			i++;
 		var unsafePorts = new List();
 		inst = new Tora();
 		while( true ) {
