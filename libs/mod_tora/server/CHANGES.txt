@@ -1,4 +1,4 @@
-2009-??-?? : 1.1
+2009-07-27 : 1.1
 	distribute on haxelib
 	added tora package + api
 	added Share api
