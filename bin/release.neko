@@ -60,7 +60,7 @@ if( $loader.args[0] == "-src" ) {
 	cmd("rm -rf */CVS */.cvsignore */*/CVS */*/.cvsignore */*/*/CVS */*/*/.cvsignore */*/*/*/CVS */*/*/*/.cvsignore");
 	cmd("rm -rf */*.suo */*.ncb */*/*.suo */*/*.ncb");
 	cmd("rm -rf */*.o */*/*.o");
-	cmd("rm -rf src/*.n src/*/*.n src/*.neko src/*/*.neko");
+	cmd("rm -rf src/*.n src/*/*.n"); // DO NOT REMOVE .neko !
 	cmd("rm -rf src/nekoc.exe src/nekoml.exe src/nekotools.exe");
 	cmd("rm -rf */debug */release */*/debug */*/release");
 	cmd("rm -rf libs/include libs/mod_neko/debug2 libs/mod_neko/release2 libs/std/std2.sln");
