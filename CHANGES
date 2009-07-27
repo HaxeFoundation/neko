@@ -1,3 +1,6 @@
+2010-??-?? : 1.8.2
+	vm : use 16 digits (instead of 10) for float display
+
 2009-07-26 : 1.8.1
 	nekoc : small fix in evaluation of using jump tables for switch on integers
 	regexp : use a recursion limit to prevent stack overflows in pcre

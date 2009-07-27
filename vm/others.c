@@ -229,7 +229,7 @@ static void val_buffer_rec( buffer b, value v, vlist *stack ) {
 		buffer_append_sub(b,val_string(v),val_strlen(v));
 		break;
 	case VAL_FLOAT:
-		buffer_append_sub(b,buf,sprintf(buf,"%.10g",val_float(v)));
+		buffer_append_sub(b,buf,sprintf(buf,"%.16g",val_float(v)));
 		break;
 	case VAL_NULL:
 		buffer_append_sub(b,"null",4);
