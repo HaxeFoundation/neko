@@ -59,11 +59,11 @@ EXTERN int val_compare( value a, value b ) {
 	case C(VAL_FLOAT,VAL_FLOAT):
 		return fcmp(val_float(a),val_float(b));
 	case C(VAL_FLOAT,VAL_STRING):
-		return scmp(tmp_buf,sprintf(tmp_buf,"%.10g",val_float(a)),val_string(b),val_strlen(b));
+		return scmp(tmp_buf,sprintf(tmp_buf,"%.16g",val_float(a)),val_string(b),val_strlen(b));
 	case C(VAL_STRING,VAL_INT):
 		return scmp(val_string(a),val_strlen(a),tmp_buf,sprintf(tmp_buf,"%d",val_int(b)));
 	case C(VAL_STRING,VAL_FLOAT):
-		return scmp(val_string(a),val_strlen(a),tmp_buf,sprintf(tmp_buf,"%.10g",val_float(b)));
+		return scmp(val_string(a),val_strlen(a),tmp_buf,sprintf(tmp_buf,"%.16g",val_float(b)));
 	case C(VAL_STRING,VAL_BOOL):
 		return scmp(val_string(a),val_strlen(a),val_bool(b)?"true":"false",val_bool(b)?4:5);
 	case C(VAL_BOOL,VAL_STRING):
