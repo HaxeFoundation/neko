@@ -119,7 +119,7 @@ static void lookup_serialize_field( value data, field id, void *v ) {
 
 static bool write_ref( sbuffer *b, value o, value *serialize ) {
 	odatalist *d = b->refs, *prev = NULL;
-	while( d != NULL ) {		
+	while( d != NULL ) {
 		if( d->data < o ) {
 			prev = d;
 			d = d->left;
@@ -197,7 +197,7 @@ void serialize_rec( sbuffer *b, value o ) {
 	case VAL_OBJECT:
 		{
 			value s;
-			if( !write_ref(b,o,&s) ) {			
+			if( !write_ref(b,o,&s) ) {
 				if( s != NULL ) {
 					// reference was not written
 					if( !val_is_function(s) || (val_fun_nargs(s) != 0 && val_fun_nargs(s) != VAR_ARGS) )
@@ -364,7 +364,7 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 		{
 			int l = read_int(b);
 			value v;
-			if( l < 0 || l >= 0x1000000 )
+			if( l < 0 || l >= 0x20000000 )
 				ERROR();
 			v = alloc_empty_string(l);
 			add_ref(b,v);
@@ -409,7 +409,7 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 			int n = read_int(b);
 			value o;
 			value *t;
-			if( n < 0 || n >= 0x100000 )
+			if( n < 0 || n >= 0x20000000 )
 				ERROR();
 			o = alloc_array(n);
 			t = val_array_ptr(o);
