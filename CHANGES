@@ -1,5 +1,6 @@
 2010-??-?? : 1.8.2
 	vm : use 16 digits (instead of 10) for float display
+	std : allow up to 512MB array/string size in serialize (instead of 1MB)
 
 2009-07-26 : 1.8.1
 	nekoc : small fix in evaluation of using jump tables for switch on integers
