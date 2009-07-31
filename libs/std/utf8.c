@@ -332,7 +332,7 @@ static value utf8_get( value str, value pos ) {
 			if( l < 0 )
 				neko_error();
 			if( p-- == 0 )
-				return alloc_int(((c & 0x0F) << 18) | (((*s) & 0x7F) << 12) | ((s[1] << 6) & 0x7F) | (s[2] & 0x7F));
+				return alloc_int(((c & 0x0F) << 18) | (((*s) & 0x7F) << 12) | ((s[1] & 0x7F) << 6) | (s[2] & 0x7F));
 			s += 3;
 		}
 	}
@@ -373,7 +373,7 @@ static value utf8_iter( value str, value f ) {
 			l -= 3;
 			if( l < 0 )
 				neko_error();
-			val_call1(f,alloc_int(((c & 0x0F) << 18) | (((*s) & 0x7F) << 12) | ((s[1] << 6) & 0x7F) | (s[2] & 0x7F)));
+			val_call1(f,alloc_int(((c & 0x0F) << 18) | (((*s) & 0x7F) << 12) | ((s[1] & 0x7F) << 6) | (s[2] & 0x7F)));
 			s += 3;
 		}
 	}
