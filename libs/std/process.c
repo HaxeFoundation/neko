@@ -80,6 +80,7 @@ static void free_process( value vp ) {
 	do_close(p->oread);
 	do_close(p->iwrite);
 #	endif
+	free_kdata(vp);
 }
 
 /**
@@ -113,7 +114,7 @@ static value process_run( value cmd, value vargs ) {
 			buffer_append_char(b,'"');
 		}
 		sargs = buffer_to_string(b);
-		p = (vprocess*)alloc_private(sizeof(vprocess));
+		p = (vprocess*)alloc_kdata_priv(sizeof(vprocess));
 		// startup process
 		sattr.nLength = sizeof(sattr);
 		sattr.bInheritHandle = TRUE;
@@ -150,7 +151,7 @@ static value process_run( value cmd, value vargs ) {
 	int input[2], output[2], error[2];
 	if( pipe(input) || pipe(output) || pipe(error) )
 		neko_error();
-	p = (vprocess*)alloc_private(sizeof(vprocess));
+	p = (vprocess*)alloc_kdata_priv(sizeof(vprocess));
 	p->pid = fork();
 	if( p->pid == -1 ) {
 		do_close(input[0]);

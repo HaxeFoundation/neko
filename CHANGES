@@ -2,6 +2,7 @@
 	vm : use 16 digits (instead of 10) for float display
 	std : allow up to 512MB array/string size in serialize (instead of 1MB)
 	std : bugfix in utf8 (with 4 bytes codes)
+	vm : added alloc_kdata(priv)/free_kdata to fix finalizers bug on Windows
 
 2009-07-26 : 1.8.1
 	nekoc : small fix in evaluation of using jump tables for switch on integers

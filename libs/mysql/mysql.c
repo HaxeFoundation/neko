@@ -78,6 +78,7 @@ typedef struct {
 static void free_result( value o ) {
 	result *r = RESULT(o);
 	mysql_free_result(r->r);
+	free_kdata(o);
 }
 
 /**
@@ -304,7 +305,7 @@ static CONV convert_type( enum enum_field_types t, unsigned int length ) {
 }
 
 static value alloc_result( MYSQL_RES *r ) {
-	result *res = (result*)alloc(sizeof(result));
+	result *res = (result*)alloc_kdata(sizeof(result));
 	value o = alloc_abstract(k_result,res);
 	int num_fields = mysql_num_fields(r);
 	int i,j;
