@@ -119,6 +119,7 @@ void neko_gc_init() {
 	GC_use_DllMain(); // needed to auto-detect threads created by Apache
 #	endif
 #endif
+	GC_java_finalization = 1;
 	GC_init();
 	GC_no_dls = 1;
 #ifdef LOW_MEM

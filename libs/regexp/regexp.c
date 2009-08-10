@@ -45,7 +45,6 @@ static pcre_extra limit;
 
 static void free_regexp( value p ) {	
 	pcre_free( PCRE(p)->r );
-	free_kdata(p);
 }
 
 static int do_exec( pcredata *d, const char *str, int len, int pos ) {
@@ -110,7 +109,7 @@ static value regexp_new_options( value s, value opt ) {
 			val_buffer(b,s);
 			bfailure(b);
 		}
-		v = alloc_abstract(k_regexp,alloc_kdata(sizeof(pcredata)));
+		v = alloc_abstract(k_regexp,alloc(sizeof(pcredata)));
 		pdata = PCRE(v);
 		pdata->r = p;
 		pdata->str = val_null;

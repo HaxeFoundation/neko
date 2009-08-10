@@ -197,11 +197,10 @@ static vthread *neko_thread_current() {
 static void free_thread( value v ) {
 	vthread *t = val_thread(v);
 	_deque_destroy(&t->q);
-	free_kdata(v);
 }
 
 static vthread *alloc_thread() {
-	vthread *t = (vthread*)alloc_kdata(sizeof(vthread));
+	vthread *t = (vthread*)alloc(sizeof(vthread));
 	memset(t,0,sizeof(vthread));
 #ifdef NEKO_WINDOWS
 	t->tid = GetCurrentThreadId();
@@ -308,7 +307,6 @@ static void free_lock( value l ) {
 #	else
 	pthread_cond_destroy( &val_lock(l)->cond );
 	pthread_mutex_destroy( &val_lock(l)->lock );
-	free_kdata(l);
 #	endif
 }
 
@@ -324,7 +322,7 @@ static value lock_create() {
 	if( l == NULL )
 		neko_error();
 #	else
-	l = (vlock)alloc_kdata_priv(sizeof(struct _vlock));
+	l = (vlock)alloc_private(sizeof(struct _vlock));
 	l->counter = 0;
 	if( pthread_mutex_init(&l->lock,NULL) != 0 || pthread_cond_init(&l->cond,NULL) != 0 )
 		neko_error();
@@ -563,7 +561,6 @@ static value mutex_release( value m ) {
 
 static void free_deque( value v ) {	
 	_deque_destroy(val_deque(v));
-	free_kdata(v);
 }
 
 /**
@@ -571,7 +568,7 @@ static void free_deque( value v ) {
 	<doc>create a message queue for multithread access</doc>
 **/
 static value deque_create() {
-	vdeque *q = (vdeque*)alloc_kdata(sizeof(vdeque));
+	vdeque *q = (vdeque*)alloc(sizeof(vdeque));
 	value v = alloc_abstract(k_deque,q);
 	val_gc(v,free_deque);
 	_deque_init(q);

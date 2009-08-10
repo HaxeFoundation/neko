@@ -353,18 +353,6 @@ typedef struct _mt_lock mt_lock;
 #define lock_release		neko_lock_release
 #define free_lock			neko_free_lock
 
-#ifdef NEKO_WINDOWS
-// on Windows GC, data allocated inside abstracts with finalizers might be
-// free before the finalizer is called. It is then necessary to protect it.
-#	define alloc_kdata(size)		alloc_root((size+sizeof(int_val)-1) / sizeof(int_val))
-#	define alloc_kdata_priv			alloc_kdata
-#	define free_kdata(v)			free_root((value*)val_data(v))
-#else
-#	define alloc_kdata		alloc
-#	define alloc_kdata_priv	alloc_private
-#	define free_kdata(v)
-#endif
-
 C_FUNCTION_BEGIN
 
 	VEXTERN vkind k_int32;

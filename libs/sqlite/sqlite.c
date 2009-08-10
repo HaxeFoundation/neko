@@ -79,7 +79,6 @@ static void free_db( value v ) {
 	if( sqlite3_close(db->db) != SQLITE_OK ) {
 		// No exception : we shouldn't alloc memory in a finalizer anyway
 	}
-	free_kdata(v);
 }
 
 /**
@@ -88,7 +87,7 @@ static void free_db( value v ) {
 **/
 static value connect( value filename ) {
 	int err;
-	database *db = (database*)alloc_kdata(sizeof(database));
+	database *db = (database*)alloc(sizeof(database));
 	value v;
 	val_check(filename,string);
 	db->last = NULL;
