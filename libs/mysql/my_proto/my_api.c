@@ -124,7 +124,6 @@ MYSQL *mysql_real_connect( MYSQL *m, const char *host, const char *user, const c
 		error(m,"Failed to connect on host '%s'",host);
 		return NULL;
 	}
-	psock_set_timeout(m->s,18000); // 5 hours
 	if( !myp_read_packet(m,p) ) {
 		myp_close(m);
 		error(m,"Failed to read handshake packet",NULL);
@@ -238,6 +237,8 @@ send_cnx_packet:
 			return NULL;
 		}
 	}
+	// we are connected, setup a longer timeout
+	psock_set_timeout(m->s,18000);
 	return m;
 }
 
