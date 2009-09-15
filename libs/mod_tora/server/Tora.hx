@@ -602,7 +602,7 @@ class Tora {
 		// skip first argument for haxelib "run"
 		if( args[0] != null && StringTools.endsWith(args[0],"/") )
 			i++;
-		var unsafePorts = new List();
+		var unsafe = new List();
 		inst = new Tora();
 		while( true ) {
 			var kind = args[i++];
@@ -613,14 +613,17 @@ class Tora {
 			case "-p","-port": port = Std.parseInt(value());
 			case "-t","-threads": nthreads = Std.parseInt(value());
 			case "-config": inst.loadConfig(neko.io.File.getContent(value()));
-			case "-unsafe": unsafePorts.add(Std.parseInt(value()));
+			case "-unsafe":
+				var hp = value().split(":");
+				if( hp.length != 2 ) throw "Unsafe format should be host:port";
+				unsafe.add({ host : hp[0], port : Std.parseInt(hp[1]) });
 			default: throw "Unknown argument "+kind;
 			}
 		}
 		inst.init(nthreads);
-		for( port in unsafePorts ) {
-			log("Opening unsafe port on "+host+":"+port);
-			neko.vm.Thread.create(callback(inst.run,host,port,false));
+		for( u in unsafe ) {
+			log("Opening unsafe port on "+u.host+":"+u.port);
+			neko.vm.Thread.create(callback(inst.run,u.host,u.port,false));
 		}
 		log("Starting Tora server on "+host+":"+port+" with "+nthreads+" threads");
 		inst.run(host,port,true);
