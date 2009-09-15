@@ -490,6 +490,9 @@ class Tora {
 			for( f in files.keys() )
 				files.remove(f);
 			flock.release();
+		case "hosts":
+			for( h in hosts.keys() )
+				neko.Lib.println("Host '"+h+"', Root '"+hosts.get(h)+"'<br>");
 		default:
 			throw "No such command '"+cmd+"'";
 		}
