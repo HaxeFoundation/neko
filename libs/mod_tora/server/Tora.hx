@@ -563,7 +563,11 @@ class Tora {
 			} else {
 				var cmd = ~/[ \t]+/g.split(l);
 				switch( cmd.shift().toLowerCase() ) {
-				case "documentroot": root = cmd.join(" ")+"/index.n";
+				case "documentroot":
+					var path = cmd.join(" ");
+					if( path.length > 0 && path.charAt(path.length-1) != "/" && path.charAt(path.length-1) != "\\" )
+						path += "/";
+					root = path+"index.n";
 				case "servername", "serveralias": names = names.concat(cmd);
 				}
 			}
