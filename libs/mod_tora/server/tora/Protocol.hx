@@ -3,7 +3,7 @@ import tora.Code;
 
 class Protocol {
 
-	var sock : flash.net.Socket;
+	var sock : #if neko neko.net.Socket #else flash.net.Socket #end;
 	var headers : Array<{ key : String, value : String }>;
 	var params : Array<{ key : String, value : String }>;
 	var uri : String;
@@ -36,6 +36,7 @@ class Protocol {
 	}
 
 	public function connect() {
+		#if flash
 		sock = new flash.net.Socket();
 		sock.addEventListener(flash.events.Event.CONNECT,onConnect);
 		sock.addEventListener(flash.events.Event.CLOSE,onClose);
@@ -43,21 +44,39 @@ class Protocol {
         sock.addEventListener(flash.events.SecurityErrorEvent.SECURITY_ERROR, onClose);
 		sock.addEventListener(flash.events.ProgressEvent.SOCKET_DATA,onSocketData);
 		sock.connect(host,port);
+		#elseif neko
+		sock = new neko.net.Socket();
+		sock.connect(new neko.net.Host(host),port);
+		onConnect(null);
+		onSocketData(null);
+		#end
 	}
 
 	public function close() {
+		#if flash
 		sock.removeEventListener(flash.events.Event.CLOSE,onClose);
+		#end
 		try sock.close() catch( e : Dynamic ) {};
 		sock = null;
 	}
 
 	function send( code : Code, data : String ) {
+		#if flash
 		sock.writeByte(Type.enumIndex(code) + 1);
 		var length = data.length;
 		sock.writeByte(length & 0xFF);
 		sock.writeByte((length >> 8) & 0xFF);
 		sock.writeByte(length >> 16);
 		sock.writeUTFBytes(data);
+		#elseif neko
+		var i = sock.output;
+		i.writeByte(Type.enumIndex(code) + 1);
+		var length = data.length;
+		i.writeByte(length & 0xFF);
+		i.writeByte((length >> 8) & 0xFF);
+		i.writeByte(length >> 16);
+		i.writeString(data);
+		#end
 	}
 
 	function onConnect(_) {
@@ -77,12 +96,15 @@ class Protocol {
 		}
 		send(CGetParams,get);
 		send(CExecute,"");
+		#if flash
 		sock.flush();
+		#end
 	}
 
 	function onSocketData(_) {
 		if( sock == null ) return;
 		while( true ) {
+			#if flash
 			if( lastMessage == null ) {
 				if( sock.bytesAvailable < 4 ) return;
 				var code = sock.readUnsignedByte() - 1;
@@ -100,6 +122,20 @@ class Protocol {
 				return;
 			var bytes = new flash.utils.ByteArray();
 			var data = sock.readBytes(bytes,0,dataLength);
+			#elseif neko
+			var i = sock.input;
+			var code = i.readByte() - 1;
+			lastMessage = CODES[code];
+			if( lastMessage == null ) {
+				error("Unknown Code #"+code);
+				return;
+			}
+			var d1 = i.readByte();
+			var d2 = i.readByte();
+			var d3 = i.readByte();
+			dataLength = d1 | (d2 << 8) | (d3 << 16);
+			var bytes = i.read(dataLength);
+			#end
 			var msg = lastMessage;
 			lastMessage = null;
 			switch( msg ) {
@@ -108,7 +144,11 @@ class Protocol {
 			case CError:
 				error(bytes.toString());
 				return;
-			case CListen, CExecute:
+			case CListen:
+			case CExecute:
+				#if neko
+				break;
+				#end
 			default:
 				error("Can't handle "+msg);
 				return;
@@ -122,11 +162,13 @@ class Protocol {
 		onError(msg);
 	}
 
+	#if flash
 	function onClose( e : flash.events.Event ) {
 		try sock.close() catch( e : Dynamic ) {};
 		sock = null;
 		onDisconnect();
 	}
+	#end
 
 	public dynamic function onError( msg : String ) {
 		throw msg;
