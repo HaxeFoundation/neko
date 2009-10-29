@@ -8,7 +8,7 @@ MAKESO = $(CC) -shared -WBsymbolic
 LIBNEKO_NAME = libneko.so
 LIBNEKO_LIBS = -ldl -lgc -lm
 NEKOVM_FLAGS = -Lbin -lneko
-STD_NDLL_FLAGS = ${NEKOVM_FLAGS}
+STD_NDLL_FLAGS = ${NEKOVM_FLAGS} -lrt
 INSTALL_FLAGS =
 
 NEKO_EXEC = LD_LIBRARY_PATH=../bin:${LD_LIBRARY_PATH} NEKOPATH=../boot:../bin ../bin/neko
