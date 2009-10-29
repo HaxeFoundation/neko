@@ -426,6 +426,25 @@ static value sys_cpu_time() {
 }
 
 /**
+	sys_thread_cpu_time : void -> float
+	<doc>Return the most accurate CPU time spent in user mode in the current thread (in seconds)</doc>
+**/
+static value sys_thread_cpu_time() {
+#ifdef NEKO_WINDOWS
+	FILETIME unused;
+	FILETIME utime;
+	if( !GetThreadTimes(GetCurrentThread(),&unused,&unused,&unused,&utime) )
+		neko_error();
+	return alloc_float( ((tfloat)utime.dwHighDateTime) * 65.536 * 6.5536 + (((tfloat)utime.dwLowDateTime) / 10000000) );
+#else
+	struct timespec t;
+	if( clock_gettime(CLOCK_THREAD_CPUTIME_ID,&t) )
+		neko_error();
+	return alloc_float( t.tv_sec + t.tv_nsec * 1e-9 );
+#endif
+}
+
+/**
 	sys_read_dir : string -> string list
 	<doc>Return the content of a directory</doc>
 **/
@@ -646,5 +665,6 @@ DEFINE_PRIM(sys_exe_path,0);
 DEFINE_PRIM(sys_file_type,1);
 DEFINE_PRIM(sys_getch,1);
 DEFINE_PRIM(sys_get_pid,0);
+DEFINE_PRIM(sys_thread_cpu_time,0);
 
 /* ************************************************************************ */

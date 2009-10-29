@@ -3,6 +3,7 @@
 	std : allow up to 512MB array/string size in serialize (instead of 1MB)
 	std : bugfix in utf8 (with 4 bytes codes)
 	vm : finalizers bugfix on Windows
+	std : added sys_thread_cpu_time()
 
 2009-07-26 : 1.8.1
 	nekoc : small fix in evaluation of using jump tables for switch on integers
