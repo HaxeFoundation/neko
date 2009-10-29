@@ -15,6 +15,7 @@
 /*																			*/
 /* ************************************************************************ */
 import tora.Code;
+import ModToraApi.Queue;
 
 class Client {
 
@@ -45,8 +46,7 @@ class Client {
 	public var onNotify : Dynamic -> Void;
 	public var onStop : Void -> Void;
 	public var notifyApi : ModToraApi;
-	public var messageQueue : neko.vm.Deque<Dynamic>;
-	public var removeFromQueue : Void -> Void;
+	public var notifyQueue : Queue;
 
 	var key : String;
 

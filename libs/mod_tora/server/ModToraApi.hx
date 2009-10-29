@@ -15,14 +15,14 @@
 /*																			*/
 /* ************************************************************************ */
 
-private typedef Share = {
+typedef Share = {
 	var name : String;
 	var data : Dynamic;
 	var lock : neko.vm.Mutex;
 	var owner : Client;
 }
 
-private typedef Queue = {
+typedef Queue = {
 	var name : String;
 	var lock : neko.vm.Mutex;
 	var clients : List<Client>;
@@ -31,12 +31,14 @@ private typedef Queue = {
 
 class ModToraApi extends ModNekoApi {
 
-	public var deprecated : Bool;
+	// keep a list of clients in case the module is updated
 	public var listening : List<Client>;
+	public var lock : neko.vm.Mutex;
 
 	public function new(client) {
 		super(client);
 		listening = new List();
+		lock = new neko.vm.Mutex();
 	}
 
 	// tora-specific
@@ -127,24 +129,30 @@ class ModToraApi extends ModNekoApi {
 		if( this.main == null )
 			throw neko.NativeString.ofString("Can't listen on not cached module");
 		client.notifyApi = this;
+		client.notifyQueue = q;
 		client.onNotify = onNotify;
 		var me = this;
 		client.onStop = onStop;
-		client.messageQueue = new neko.vm.Deque();
-		client.removeFromQueue = callback(queue_stop,q);
-		listening.add(client);
 		// add to queue
 		q.lock.acquire();
 		q.clients.add(client);
 		q.lock.release();
+		// add to listeners
+		lock.acquire();
+		listening.add(client);
+		lock.release();
 	}
 
 	function queue_notify( q : Queue, message : Dynamic ) {
 		q.lock.acquire();
+		var old = this.client, oldapi = client.notifyApi;
+		client.notifyApi = this;
 		for( c in q.clients ) {
-			c.messageQueue.add(message);
-			Tora.inst.notifyClient(c);
+			client = c;
+			Tora.inst.handleNotify(c,message);
 		}
+		client = old;
+		client.notifyApi = oldapi;
 		q.lock.release();
 	}
 
@@ -153,15 +161,20 @@ class ModToraApi extends ModNekoApi {
 	}
 
 	function queue_stop( q : Queue ) {
-		q.lock.acquire();
-		if( !q.clients.remove(client) ) {
-			q.lock.release();
+		// we might be in a closure on another api, so let's fetch our real client
+		var client = Tora.inst.getCurrentClient().notifyApi.client;
+		if( client.notifyQueue != q )
 			throw neko.NativeString.ofString("You can't stop on a queue you're not waiting");
-		}
+		q.lock.acquire(); // we should already have it, but in case...
+		q.clients.remove(client);
 		client.onNotify = null;
 		client.onStop = null;
 		q.lock.release();
-		listening.remove(client);
+		// the api might be different than 'this'
+		var api = client.notifyApi;
+		api.lock.acquire();
+		api.listening.remove(client);
+		api.lock.release();
 	}
 
 }

@@ -22,8 +22,6 @@ typedef Infos = {
 	var files : Array<FileInfos>;
 	var totalHits : Int;
 	var recentHits : Int;
-	var notify : Int;
-	var notifyRetry : Int;
 	var queue : Int;
 	var upTime : Float;
 	var jit : Bool;

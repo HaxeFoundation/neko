@@ -155,7 +155,6 @@ class Admin {
 			"Memory : "+(mem.heap - mem.free)+" / "+mem.heap+" "+memUnit,
 			"Total hits : "+infos.totalHits+" ("+fmt(infos.totalHits/infos.upTime)+"/sec)",
 			"Cache hits : "+cacheHits+" ("+fmt(cacheHits*100.0/infos.totalHits)+"%)",
-			"Notify : "+infos.notify+" ("+fmt(infos.notifyRetry/infos.notify)+" retry)",
 			"JIT : "+(infos.jit?"ON":"OFF"),
 		]);
 
