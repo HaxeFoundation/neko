@@ -179,6 +179,7 @@ class Tora {
 					api.lock.acquire();
 					api.listening.remove(c);
 					api.lock.release();
+					c.sock.close();
 				}
 				changed = true;
 			}
