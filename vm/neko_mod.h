@@ -49,8 +49,8 @@ typedef struct {
 
 C_FUNCTION_BEGIN
 
-EXTERN field neko_id_module;
-EXTERN vkind neko_kind_module;
+VEXTERN field neko_id_module;
+VEXTERN vkind neko_kind_module;
 EXTERN neko_module *neko_read_module( reader r, readp p, value loader );
 EXTERN int neko_file_reader( readp p, void *buf, int size ); // FILE *
 EXTERN int neko_string_reader( readp p, void *buf, int size ); // string_pos *
