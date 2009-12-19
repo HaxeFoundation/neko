@@ -42,6 +42,10 @@
 #	include <sys/syslimits.h>
 #	include <limits.h>
 #	include <mach-o/dyld.h>
+#	include <mach/mach.h>
+#	include <mach/clock.h>
+#	include <mach/mach_time.h>
+#	include <sched.h>
 #endif
 
 #ifndef CLK_TCK
@@ -430,12 +434,26 @@ static value sys_cpu_time() {
 	<doc>Return the most accurate CPU time spent in user mode in the current thread (in seconds)</doc>
 **/
 static value sys_thread_cpu_time() {
-#ifdef NEKO_WINDOWS
+#if defined(NEKO_WINDOWS)
 	FILETIME unused;
 	FILETIME utime;
 	if( !GetThreadTimes(GetCurrentThread(),&unused,&unused,&unused,&utime) )
 		neko_error();
 	return alloc_float( ((tfloat)utime.dwHighDateTime) * 65.536 * 6.5536 + (((tfloat)utime.dwLowDateTime) / 10000000) );
+#elif defined(NEKO_MAC)
+	// there is no clock_gettime on OSX
+	// using emulation from http://le-depotoir.googlecode.com/svn/trunk/misc/clock_gettime_stub.c
+	uint64_t tstart;
+	uint64_t tend;
+	uint64_t tdelta;
+	uint64_t nano;
+	static mach_timebase_info_data_t cprec;
+	tstart = mach_absolute_time();
+	sched_yield();
+	tend = mach_absolute_time();
+	if( cprec.denom == 0 )
+		mach_timebase_info(&cprec);		
+	return alloc_float( ((tend - tstart) * cprec.numer * 1e-9) / cprec.denom );
 #else
 	struct timespec t;
 	if( clock_gettime(CLOCK_THREAD_CPUTIME_ID,&t) )
