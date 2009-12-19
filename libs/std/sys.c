@@ -39,6 +39,9 @@
 #endif
 
 #ifdef NEKO_MAC
+#	undef lock_acquire
+#	undef lock_release
+#	undef lock_try
 #	include <sys/syslimits.h>
 #	include <limits.h>
 #	include <mach-o/dyld.h>
@@ -443,11 +446,9 @@ static value sys_thread_cpu_time() {
 #elif defined(NEKO_MAC)
 	// there is no clock_gettime on OSX
 	// using emulation from http://le-depotoir.googlecode.com/svn/trunk/misc/clock_gettime_stub.c
+	static mach_timebase_info_data_t cprec = { 0, 0 };
 	uint64_t tstart;
 	uint64_t tend;
-	uint64_t tdelta;
-	uint64_t nano;
-	static mach_timebase_info_data_t cprec;
 	tstart = mach_absolute_time();
 	sched_yield();
 	tend = mach_absolute_time();
