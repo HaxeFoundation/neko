@@ -39,16 +39,9 @@
 #endif
 
 #ifdef NEKO_MAC
-#	undef lock_acquire
-#	undef lock_release
-#	undef lock_try
 #	include <sys/syslimits.h>
 #	include <limits.h>
 #	include <mach-o/dyld.h>
-#	include <mach/mach.h>
-#	include <mach/clock.h>
-#	include <mach/mach_time.h>
-#	include <sched.h>
 #endif
 
 #ifndef CLK_TCK
@@ -444,17 +437,8 @@ static value sys_thread_cpu_time() {
 		neko_error();
 	return alloc_float( ((tfloat)utime.dwHighDateTime) * 65.536 * 6.5536 + (((tfloat)utime.dwLowDateTime) / 10000000) );
 #elif defined(NEKO_MAC)
-	// there is no clock_gettime on OSX
-	// using emulation from http://le-depotoir.googlecode.com/svn/trunk/misc/clock_gettime_stub.c
-	static mach_timebase_info_data_t cprec = { 0, 0 };
-	uint64_t tstart;
-	uint64_t tend;
-	tstart = mach_absolute_time();
-	sched_yield();
-	tend = mach_absolute_time();
-	if( cprec.denom == 0 )
-		mach_timebase_info(&cprec);		
-	return alloc_float( ((tend - tstart) * cprec.numer * 1e-9) / cprec.denom );
+	val_throw(alloc_string("sys_thread_cpu_time not implmented on OSX"));
+	return val_null;
 #else
 	struct timespec t;
 	if( clock_gettime(CLOCK_THREAD_CPUTIME_ID,&t) )
