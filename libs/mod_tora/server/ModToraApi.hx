@@ -80,9 +80,12 @@ class ModToraApi extends ModNekoApi {
 	}
 
 	function share_get( s : Share, lock : Bool ) {
-		if( lock ) {
+		if( lock && s.owner != client ) {
 			s.lock.acquire();
 			s.owner = client;
+			if( client.lockedShares == null )
+				client.lockedShares = new List();
+			client.lockedShares.add(s);
 		}
 		return s.data;
 	}
@@ -95,6 +98,7 @@ class ModToraApi extends ModNekoApi {
 		if( s.owner != client ) throw neko.NativeString.ofString("Can't commit a not locked share");
 		s.owner = null;
 		s.lock.release();
+		client.lockedShares.remove(s);
 	}
 
 	function share_free( s : Share ) {

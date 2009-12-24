@@ -16,6 +16,7 @@
 /* ************************************************************************ */
 import tora.Code;
 import ModToraApi.Queue;
+import ModToraApi.Share;
 
 class Client {
 
@@ -47,6 +48,7 @@ class Client {
 	public var onStop : Void -> Void;
 	public var notifyApi : ModToraApi;
 	public var notifyQueue : Queue;
+	public var lockedShares : List<Share>;
 
 	var key : String;
 

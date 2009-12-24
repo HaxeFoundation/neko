@@ -182,7 +182,9 @@ class ModNekoApi {
 	}
 
 	function log_message( msg : NativeString ) {
-		client.sendMessage(CLog,NativeString.toString(msg));
+		var str = NativeString.toString(msg);
+		client.sendMessage(CLog,str);
+		Tora.log(str);
 	}
 
 	// internal APIS

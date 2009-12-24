@@ -395,6 +395,11 @@ class Tora {
 			// cleanup
 			redirect(null);
 			t.client = null;
+			if( client.lockedShares != null )
+				for( s in client.lockedShares ) {
+					s.owner = null;
+					s.lock.release();
+				}
 			if( client.onNotify != null ) {
 				// start monitoring the socket
 				client.uri = "<"+client.notifyQueue.name+">";

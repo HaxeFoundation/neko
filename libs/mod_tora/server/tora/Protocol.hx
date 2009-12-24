@@ -139,7 +139,7 @@ class Protocol {
 			var msg = lastMessage;
 			lastMessage = null;
 			switch( msg ) {
-			case CHeaderKey, CHeaderValue, CHeaderAddValue:
+			case CHeaderKey, CHeaderValue, CHeaderAddValue, CLog:
 			case CPrint: onData(bytes.toString());
 			case CError:
 				error(bytes.toString());
