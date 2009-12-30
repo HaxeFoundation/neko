@@ -2,6 +2,9 @@
 	need to specify a host in -unsafe
 	fixed load config
 	changed queue notification implementation
+	automaticaly unlock Share after request
+	added tora.Persist, allow Share + Persist behavior
+	added tora.Api.call, tora.Api.unsafeRequest
 
 2009-07-27 : 1.1
 	distribute on haxelib

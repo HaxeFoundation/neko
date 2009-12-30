@@ -44,7 +44,7 @@ class Tora {
 	static var STOP : Dynamic = {};
 	static var MODIFIED : Dynamic = {};
 
-	var clientQueue : neko.vm.Deque<Client>;
+	public var clientQueue : neko.vm.Deque<Client>;
 	var notifyQueue : neko.vm.Deque<Client>;
 	var threads : Array<ThreadData>;
 	var startTime : Float;
@@ -62,6 +62,9 @@ class Tora {
 	var hosts : Hash<String>;
 	var ports : Array<Int>;
 	var tls : neko.vm.Tls<ThreadData>;
+	var delayQueue : List<{ t : Float, f : Void -> Void }>;
+	var delayWait : neko.vm.Lock;
+	var delayLock : neko.vm.Mutex;
 
 	function new() {
 		totalHits = 0;
@@ -78,6 +81,9 @@ class Tora {
 		threads = new Array();
 		rootLoader = neko.vm.Loader.local();
 		modulePath = rootLoader.getPath();
+		delayQueue = new List();
+		delayWait = new neko.vm.Lock();
+		delayLock = new neko.vm.Mutex();
 	}
 
 	function init( nthreads : Int ) {
@@ -88,7 +94,7 @@ class Tora {
 		jit = (enable_jit(null) == true);
 		neko.vm.Thread.create(callback(startup,nthreads));
 		neko.vm.Thread.create(notifyLoop);
-		neko.vm.Thread.create(speedLoop);
+		neko.vm.Thread.create(speedDelayLoop);
 	}
 
 	function startup( nthreads : Int ) {
@@ -115,12 +121,43 @@ class Tora {
 		}
 	}
 
-	// measuring speed
-	function speedLoop() {
+	// measuring speed and processing delayed events
+	function speedDelayLoop() {
+		var nextDelay = null;
+		var lastTime = neko.Sys.time(), lastHits = totalHits;
 		while( true ) {
-			var hits = totalHits, time = neko.Sys.time();
-			neko.Sys.sleep(1.0);
-			recentHits = Std.int((totalHits - hits) / (neko.Sys.time() - time));
+			var time = neko.Sys.time();
+			delayWait.wait((nextDelay == null) ? 1.0 : nextDelay);
+			delayLock.acquire();
+			var dt = neko.Sys.time() - time;
+			var toExecute = null;
+			nextDelay = null;
+			for( d in delayQueue ) {
+				var t = d.t - dt;
+				if( t < 0 ) {
+					if( toExecute == null ) toExecute = new List();
+					toExecute.add(d.f);
+					delayQueue.remove(d);
+				} else {
+					d.t = t;
+					if( nextDelay == null || nextDelay > t )
+						nextDelay = t;
+				}
+			}
+			delayLock.release();
+			if( toExecute != null )
+				for( f in toExecute )
+					try {
+						f();
+					} catch( e : Dynamic ) {
+						log(Std.string(e)+haxe.Stack.toString(haxe.Stack.exceptionStack()));
+					}
+			dt = neko.Sys.time() - lastTime;
+			if( dt > 1 ) {
+				recentHits = Std.int((totalHits - lastHits) / dt);
+				lastTime += dt;
+				lastHits = totalHits;
+			}
 		}
 	}
 
@@ -282,6 +319,13 @@ class Tora {
 	public function getCurrentClient() {
 		var t = tls.value;
 		return (t == null) ? null : t.client;
+	}
+
+	public function delay( t : Float, f ) {
+		delayLock.acquire();
+		delayQueue.add({ t : t, f : f });
+		delayLock.release();
+		delayWait.release(); // signal
 	}
 
 	function threadLoop( t : ThreadData ) {

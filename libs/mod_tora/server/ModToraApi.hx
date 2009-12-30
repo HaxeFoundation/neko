@@ -28,6 +28,39 @@ typedef Queue = {
 	var clients : List<Client>;
 }
 
+class NullClient extends Client {
+
+	public var buffer : StringBuf;
+
+	public function new( file : String, host : String, uri : String ) {
+		super(cast { setTimeout : function(_) {}, setFastSend : function(_) {}, close : function() {} },true);
+		this.file = file;
+		this.hostName = host;
+		this.uri = uri;
+		ip = "127.0.0.1";
+		getParams = "";
+		httpMethod = "CALL";
+		buffer = new StringBuf();
+		execute = true;
+	}
+
+	override public function processMessage() {
+		return true;
+	}
+
+	override public function sendMessage( code : tora.Code, msg ) {
+		switch( code ) {
+		case CPrint: buffer.add(msg);
+		case CError, CExecute: onExecute();
+		default:
+		}
+	}
+
+	public dynamic function onExecute() {
+	}
+
+}
+
 
 class ModToraApi extends ModNekoApi {
 
@@ -51,12 +84,34 @@ class ModToraApi extends ModNekoApi {
 		return Tora.inst.command(cmd,param);
 	}
 
+	function tora_unsafe() {
+		return !client.secure;
+	}
+
+	function tora_call( url : neko.NativeString, ?delay : Float ) {
+		var c = new NullClient(client.file,client.hostName,neko.NativeString.toString(url));
+		if( delay != null ) {
+			Tora.inst.delay(delay,function() Tora.inst.clientQueue.push(c));
+			return null;
+		}
+		var lock = new neko.vm.Lock();
+		var data = null;
+		c.onExecute = function() {
+			data = c.buffer.toString();
+			lock.release();
+		};
+		Tora.inst.clientQueue.push(c);
+		lock.wait();
+		return neko.NativeString.ofString(data);
+	}
+
 	// shares
 
 	static var shares = new Hash<Share>();
 	static var shares_lock = new neko.vm.Mutex();
 
-	function share_init( name : String, ?make : Void -> Dynamic ) : Share {
+	function share_init( name : neko.NativeString, ?make : Void -> Dynamic ) : Share {
+		var name = neko.NativeString.toString(name);
 		var s = shares.get(name);
 		if( s == null ) {
 			shares_lock.acquire();
@@ -112,7 +167,8 @@ class ModToraApi extends ModNekoApi {
 	static var queues = new Hash<Queue>();
 	static var queues_lock = new neko.vm.Mutex();
 
-	function queue_init( name : String ) : Queue {
+	function queue_init( name : neko.NativeString ) : Queue {
+		var name = neko.NativeString.toString(name);
 		queues_lock.acquire();
 		var q = queues.get(name);
 		if( q == null ) {
