@@ -183,17 +183,21 @@ class ModNekoApi {
 
 	function log_message( msg : NativeString ) {
 		var str = NativeString.toString(msg);
-		client.sendMessage(CLog,str);
 		Tora.log(str);
+		if( client.secure ) client.sendMessage(CLog,str);
 	}
 
 	// internal APIS
 
 	public function print( value : Dynamic ) {
 		var str = NativeString.toString(untyped if( __dollar__typeof(value) == __dollar__tstring ) value else __dollar__string(value));
-		client.sendHeaders();
-		client.dataBytes += str.length;
-		client.sendMessage(CPrint,str);
+		try {
+			client.sendHeaders();
+			client.dataBytes += str.length;
+			client.sendMessage(CPrint,str);
+		} catch( e : Dynamic ) {
+			// never abort a print, this might cause side effects on the program
+		}
 	}
 
 	function addHeader( msg : String, c : Code, str : String ) {
