@@ -1,5 +1,5 @@
 <project name="tora" url="http://nekovm.org" license="LGPL">
 	<user name="ncannasse"/>
 	<description>A multithreaded Neko application server</description>
-	<version name="1.1">See CHANGES.txt</version>
+	<version name="1.2">See CHANGES.txt</version>
 </project>

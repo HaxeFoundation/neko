@@ -1,4 +1,4 @@
-2009-??-?? : 1.2
+2010-01-05 : 1.2
 	need to specify a host in -unsafe
 	fixed load config
 	changed queue notification implementation
