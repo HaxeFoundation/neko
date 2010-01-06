@@ -5,6 +5,7 @@
 	vm : finalizers bugfix on Windows
 	std : added sys_thread_cpu_time()
 	vm : use VEXTERN for neko_kind_module and neko_id_module
+	std : hide process console in process_run
 
 2009-07-26 : 1.8.1
 	nekoc : small fix in evaluation of using jump tables for switch on integers

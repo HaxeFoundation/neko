@@ -121,7 +121,7 @@ static value process_run( value cmd, value vargs ) {
 		memset(&sinf,0,sizeof(sinf));
 		sinf.cb = sizeof(sinf);
 		sinf.dwFlags = STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
-		sinf.wShowWindow = SW_NORMAL;
+		sinf.wShowWindow = SW_HIDE;
 		CreatePipe(&oread,&sinf.hStdOutput,&sattr,0);
 		CreatePipe(&eread,&sinf.hStdError,&sattr,0);
 		CreatePipe(&sinf.hStdInput,&iwrite,&sattr,0);
