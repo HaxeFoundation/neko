@@ -114,7 +114,7 @@ class Persist<T> {
 		};
 	}
 
-	public function makePersistant( v : T ) : Dynamic {
+	public function makePersistent( v : T ) : Dynamic {
 		return unwrap(v,schema);
 	}
 

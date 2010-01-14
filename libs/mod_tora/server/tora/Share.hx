@@ -33,7 +33,8 @@ class Share<T> {
 			}
 		}
 		this.name = name;
-		s = share_init(untyped name.__s,makeData);
+		var p = p;
+		s = share_init(untyped name.__s,if( p == null ) makeData else function() return p.makePersistent(makeData()));
 	}
 
 	public function get( lock : Bool ) : T {
@@ -43,7 +44,7 @@ class Share<T> {
 	}
 
 	public function set( data : T ) {
-		if( p != null ) data = p.makePersistant(data);
+		if( p != null ) data = p.makePersistent(data);
 		share_set(s,data);
 	}
 
