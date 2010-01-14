@@ -25,6 +25,8 @@ private enum PType {
 	PArray( t : PType );
 	PBytes;
 	PNativeArray( t : PType );
+	PListRaw;
+	PList( t : PType );
 }
 
 class Persist<T> {
@@ -66,7 +68,11 @@ class Persist<T> {
 	function processType( c : haxe.rtti.CType ) {
 		return switch( c ) {
 			case CUnknown: throw "Unsupported Unknown";
-			case CEnum(e,_): throw "Unsupported enum "+e;
+			case CEnum(e,_):
+				switch( e ) {
+				case "Bool": PRaw;
+				default: throw "Unsupported enum "+e;
+				}
 			case CDynamic(_): throw "Unsupported Dynamic";
 			case CFunction(_,_): throw "Unsupported function";
 			case CClass(c,pl):
@@ -77,6 +83,12 @@ class Persist<T> {
 						PArrayRaw;
 					else
 						PArray(t);
+				case "List":
+					var t = processType(pl.first());
+					if( t == PRaw )
+						PListRaw;
+					else
+						PList(t);
 				case "String": PString;
 				case "Date": PDate;
 				case "Int", "Float", "neko.NativeString": PRaw;
@@ -109,6 +121,7 @@ class Persist<T> {
 						throw "Unsupported type "+t;
 					}
 				} else switch( t ) {
+				case "Null": processType(pl.first());
 				default: throw "Unsupported type "+t;
 				}
 		};
@@ -152,6 +165,18 @@ class Persist<T> {
 				}
 				dst;
 			}
+			case PListRaw: if( v == null ) null else untyped __dollar__array(v.h,v.q,v.length);
+			case PList(t):
+				var max : Int = v.length;
+				var cursor : neko.NativeArray<Dynamic> = v.h;
+				var a = neko.NativeArray.alloc(max);
+				var i = 0;
+				while( i < max ) {
+					a[i] = unwrap(cursor,t);
+					cursor = cursor[1];
+					i++;
+				}
+				a;
 		};
 	}
 
@@ -208,6 +233,22 @@ class Persist<T> {
 				}
 				dst;
 			}
+			case PListRaw:
+				var l = new List();
+				untyped l.h = v[0];
+				untyped l.q = v[1];
+				untyped l.length = v[2];
+				l;
+			case PList(t):
+				var l = new List();
+				var src : neko.NativeArray<Dynamic> = v;
+				var max = neko.NativeArray.length(src);
+				var i = 0;
+				while( i < max ) {
+					l.push(wrap(src[i],t));
+					i++;
+				}
+				l;
 		};
 	}
 
