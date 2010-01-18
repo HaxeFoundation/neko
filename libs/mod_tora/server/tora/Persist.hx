@@ -167,15 +167,11 @@ class Persist<T> {
 			}
 			case PListRaw: if( v == null ) null else untyped __dollar__array(v.h,v.q,v.length);
 			case PList(t):
-				var max : Int = v.length;
-				var cursor : neko.NativeArray<Dynamic> = v.h;
-				var a = neko.NativeArray.alloc(max);
+				var v : List<Dynamic> = v;
+				var a = neko.NativeArray.alloc(v.length);
 				var i = 0;
-				while( i < max ) {
-					a[i] = unwrap(cursor,t);
-					cursor = cursor[1];
-					i++;
-				}
+				for( x in v )
+					a[i++] = unwrap(x,t);
 				a;
 		};
 	}
