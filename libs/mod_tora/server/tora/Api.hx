@@ -30,11 +30,11 @@ class Api {
 		return neko.Lib.load("mod_neko","tora_unsafe",0)();
 	}
 
-	public static function call( uri : String, ?delay : Float ) : String {
-		var r = tora_call(neko.NativeString.ofString(uri),delay);
+	public static function call( uri : String, ?delay : Float, ?needResult : String ) : String {
+		var r = tora_call(neko.NativeString.ofString(uri),delay,neko.NativeString.ofString(needResult));
 		return (r == null) ? null : neko.NativeString.toString(r);
 	}
 
-	static var tora_call = neko.Lib.loadLazy("mod_neko","tora_call",2);
+	static var tora_call = neko.Lib.loadLazy("mod_neko","tora_call",3);
 
 }

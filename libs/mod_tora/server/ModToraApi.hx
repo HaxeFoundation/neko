@@ -88,9 +88,19 @@ class ModToraApi extends ModNekoApi {
 		return !client.secure;
 	}
 
-	function tora_call( url : neko.NativeString, ?delay : Float ) {
-		var c = new NullClient(client.file,client.hostName,neko.NativeString.toString(url));
+	function tora_call( url : neko.NativeString, ?delay : Float, ?result : neko.NativeString ) {
+		var url = neko.NativeString.toString(url);
+		var c = new NullClient(client.file,client.hostName,url);
 		if( delay != null ) {
+			if( result != null )
+				c.onExecute = function() {
+					var data = c.buffer.toString();
+					if( data != neko.NativeString.toString(result) ) {
+						Tora.log("RETRY "+c.hostName+url);
+						c.buffer = new StringBuf();
+						Tora.inst.delay(0.5,function() Tora.inst.clientQueue.push(c));
+					}
+				};
 			Tora.inst.delay(delay,function() Tora.inst.clientQueue.push(c));
 			return null;
 		}
