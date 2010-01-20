@@ -22,13 +22,13 @@ class Share<T> {
 	var p : Persist<T>;
 	public var name(default,null) : String;
 
-	public function new( name : String, ?makeData : Void -> T, ?persist : Class<T> ) {
+	public function new( name : String, ?makeData : Void -> T, ?persist : Class<T>, ?transactional : Bool ) {
 		init();
 		if( makeData == null ) makeData = function() return null;
 		if( persist != null ) {
 			p = untyped persist.__persist;
 			if( p == null ) {
-				p = new Persist(persist);
+				p = new Persist(persist,transactional);
 				untyped persist.__persist = p;
 			}
 		}

@@ -24,6 +24,7 @@ private enum PType {
 	PArrayRaw;
 	PArray( t : PType );
 	PBytes;
+	PBytesCopy;
 	PNativeArray( t : PType );
 	PListRaw;
 	PList( t : PType );
@@ -33,11 +34,13 @@ class Persist<T> {
 
 	var cl : Class<T>;
 	var schema : PType;
+	var stm : Bool;
 
-	public function new( c : Class<T> ) {
-		cl = c;
-		var rtti : String = untyped c.__rtti;
-		if( rtti == null ) throw "Class "+Type.getClassName(c)+" needs RTTI";
+	public function new( cl : Class<T>, stm : Bool ) {
+		this.cl = cl;
+		this.stm = stm;
+		var rtti : String = untyped cl.__rtti;
+		if( rtti == null ) throw "Class "+Type.getClassName(cl)+" needs RTTI";
 		var t = new haxe.rtti.XmlParser().processElement(Xml.parse(rtti).firstElement());
 		switch( t ) {
 		case TClassdecl(cc):
@@ -50,7 +53,7 @@ class Persist<T> {
 				try {
 					fields.push({ name : f.name, t : processType(f.type) });
 				} catch( err : String ) {
-					neko.Lib.rethrow(err+" in "+Type.getClassName(c)+"."+f.name);
+					neko.Lib.rethrow(err+" in "+Type.getClassName(cl)+"."+f.name);
 				}
 			}
 			schema = PAnon(fields,emptyObj(fields));
@@ -79,23 +82,23 @@ class Persist<T> {
 				switch( c ) {
 				case "Array":
 					var t = processType(pl.first());
-					if( t == PRaw )
+					if( t == PRaw && !stm )
 						PArrayRaw;
 					else
 						PArray(t);
 				case "List":
 					var t = processType(pl.first());
-					if( t == PRaw )
+					if( t == PRaw && !stm )
 						PListRaw;
 					else
 						PList(t);
 				case "String": PString;
 				case "Date": PDate;
 				case "Int", "Float", "neko.NativeString": PRaw;
-				case "haxe.io.Bytes": PBytes;
+				case "haxe.io.Bytes": if( stm ) PBytesCopy else PBytes;
 				case "neko.NativeArray":
 					var t = processType(pl.first());
-					if( t == PRaw )
+					if( t == PRaw && !stm )
 						PRaw;
 					else
 						PNativeArray(t);
@@ -103,7 +106,7 @@ class Persist<T> {
 				}
 			case CAnonymous(a):
 				var fields = new Array();
-				var raw = true;
+				var raw = !stm;
 				for( f in a ) {
 					var t = processType(f.t);
 					if( t != PRaw ) raw = false;
@@ -154,7 +157,7 @@ class Persist<T> {
 					Reflect.setField(dst,f.name,unwrap(Reflect.field(v,f.name),f.t));
 				dst;
 			}
-			case PBytes: if( v == null ) null else v.b;
+			case PBytes, PBytesCopy: if( v == null ) null else v.b;
 			case PNativeArray(t): if( v == null ) null else {
 				var max = neko.NativeArray.length(v);
 				var dst = neko.NativeArray.alloc(max);
@@ -218,6 +221,7 @@ class Persist<T> {
 				dst;
 			}
 			case PBytes: if( v == null ) null else haxe.io.Bytes.ofData(v);
+			case PBytesCopy: if( v == null ) null else haxe.io.Bytes.ofData(untyped __dollar__acopy(v));
 			case PNativeArray(t): if( v == null ) null else {
 				var src : neko.NativeArray<Dynamic> = v;
 				var max = neko.NativeArray.length(src);
@@ -241,7 +245,7 @@ class Persist<T> {
 				var max = neko.NativeArray.length(src);
 				var i = 0;
 				while( i < max ) {
-					l.push(wrap(src[i],t));
+					l.add(wrap(src[i],t));
 					i++;
 				}
 				l;
