@@ -17,8 +17,8 @@ function _load(name,nargs) : 'a {
 	neko("return $loader.loadprim('std@math_'+name,nargs)");
 }
 
-var atan2 : float -> float = _load("atan2",1)
-var pow : float -> float = _load("pow",1);
+var atan2 : float -> float -> float = _load("atan2",2);
+var pow : float -> float -> float = _load("pow",2);
 var abs : float -> float = _load("abs",1);
 var iabs : int -> int = _load("abs",1);
 
