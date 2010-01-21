@@ -1,0 +1,44 @@
+/*
+ *  NekoML Standard Library
+ *  Copyright (c)2005-2010 Motion-Twin
+ *
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Lesser General Public
+ *  License as published by the Free Software Foundation; either
+ *  version 2.1 of the License, or (at your option) any later version.
+ *
+ *  This library is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Lesser General Public License or the LICENSE file for more details.
+ */
+
+function _load(name,nargs) : 'a {
+	neko("return $loader.loadprim('std@math_'+name,nargs)");
+}
+
+var atan2 : float -> float = _load("atan2",1)
+var pow : float -> float = _load("pow",1);
+var abs : float -> float = _load("abs",1);
+var iabs : int -> int = _load("abs",1);
+
+var ceil : float -> int = _load("ceil",1);
+var floor : float -> int = _load("floor",1);
+var round : float -> int = _load("round",1);
+
+var fceil : float -> float = _load("fceil",1);
+var ffloor : float -> float = _load("ffloor",1);
+var fround : float -> float = _load("fround",1);
+var fint : float -> int = _load("int",1);
+
+var pi : float = neko "$loader.loadprim('std@math_pi',0)()";
+
+var sqrt : float -> float = _load("sqrt",1);
+var atan : float -> float = _load("atan",1);
+var cos : float -> float = _load("cos",1);
+var sin : float -> float = _load("sin",1);
+var tan : float -> float = _load("tan",1);
+var log : float -> float = _load("log",1);
+var exp : float -> float = _load("exp",1);
+var acos : float -> float = _load("acos",1);
+var asin : float -> float = _load("asin",1);
