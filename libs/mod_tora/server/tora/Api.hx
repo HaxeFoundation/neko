@@ -31,7 +31,8 @@ class Api {
 	}
 
 	public static function call( uri : String, ?delay : Float, ?needResult : String ) : String {
-		var r = tora_call(neko.NativeString.ofString(uri),delay,neko.NativeString.ofString(needResult));
+		var res = needResult == null ? null : neko.NativeString.ofString(needResult);
+		var r = tora_call(neko.NativeString.ofString(uri),delay,res);
 		return (r == null) ? null : neko.NativeString.toString(r);
 	}
 
