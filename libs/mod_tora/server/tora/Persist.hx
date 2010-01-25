@@ -169,13 +169,14 @@ class Persist<T> {
 				dst;
 			}
 			case PListRaw: if( v == null ) null else untyped __dollar__array(v.h,v.q,v.length);
-			case PList(t):
+			case PList(t): if( v == null ) null else {
 				var v : List<Dynamic> = v;
 				var a = neko.NativeArray.alloc(v.length);
 				var i = 0;
 				for( x in v )
 					a[i++] = unwrap(x,t);
 				a;
+			}
 		};
 	}
 
@@ -233,13 +234,14 @@ class Persist<T> {
 				}
 				dst;
 			}
-			case PListRaw:
+			case PListRaw: if( v == null ) null else {
 				var l = new List();
 				untyped l.h = v[0];
 				untyped l.q = v[1];
 				untyped l.length = v[2];
 				l;
-			case PList(t):
+			}
+			case PList(t): if( v == null ) null else {
 				var l = new List();
 				var src : neko.NativeArray<Dynamic> = v;
 				var max = neko.NativeArray.length(src);
@@ -249,6 +251,7 @@ class Persist<T> {
 					i++;
 				}
 				l;
+			}
 		};
 	}
 
