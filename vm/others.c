@@ -21,6 +21,7 @@
 #include "vm.h"
 
 #define C(x,y)	((x << 8) | y)
+#define FLOAT_FMT	"%.15g"
 
 DEFINE_KIND(k_int32);
 DEFINE_KIND(k_hash);
@@ -59,11 +60,11 @@ EXTERN int val_compare( value a, value b ) {
 	case C(VAL_FLOAT,VAL_FLOAT):
 		return fcmp(val_float(a),val_float(b));
 	case C(VAL_FLOAT,VAL_STRING):
-		return scmp(tmp_buf,sprintf(tmp_buf,"%.16g",val_float(a)),val_string(b),val_strlen(b));
+		return scmp(tmp_buf,sprintf(tmp_buf,FLOAT_FMT,val_float(a)),val_string(b),val_strlen(b));
 	case C(VAL_STRING,VAL_INT):
 		return scmp(val_string(a),val_strlen(a),tmp_buf,sprintf(tmp_buf,"%d",val_int(b)));
 	case C(VAL_STRING,VAL_FLOAT):
-		return scmp(val_string(a),val_strlen(a),tmp_buf,sprintf(tmp_buf,"%.16g",val_float(b)));
+		return scmp(val_string(a),val_strlen(a),tmp_buf,sprintf(tmp_buf,FLOAT_FMT,val_float(b)));
 	case C(VAL_STRING,VAL_BOOL):
 		return scmp(val_string(a),val_strlen(a),val_bool(b)?"true":"false",val_bool(b)?4:5);
 	case C(VAL_BOOL,VAL_STRING):
@@ -229,7 +230,7 @@ static void val_buffer_rec( buffer b, value v, vlist *stack ) {
 		buffer_append_sub(b,val_string(v),val_strlen(v));
 		break;
 	case VAL_FLOAT:
-		buffer_append_sub(b,buf,sprintf(buf,"%.16g",val_float(v)));
+		buffer_append_sub(b,buf,sprintf(buf,FLOAT_FMT,val_float(v)));
 		break;
 	case VAL_NULL:
 		buffer_append_sub(b,"null",4);
