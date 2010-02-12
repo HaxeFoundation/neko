@@ -91,7 +91,7 @@ DEFINE_KIND(k_poll);
 static value block_error() {
 #ifdef NEKO_WINDOWS
 	int err = WSAGetLastError();
-	if( err == WSAEWOULDBLOCK || err == WSAEALREADY )
+	if( err == WSAEWOULDBLOCK || err == WSAEALREADY || err == WSAETIMEDOUT )
 #else
 	if( errno == EAGAIN || errno == EWOULDBLOCK || errno == EINPROGRESS || errno == EALREADY )
 #endif
