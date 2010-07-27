@@ -58,12 +58,15 @@ typedef struct {
 	int port_max;
 	int max_post_size;
 	int hits;
+	bool proxy_mode;
 } mconfig;
 
 typedef struct {
 	request_rec *r;
 	proto *p;
 	char *post_data;
+	char *xff;
+	char *client_ip;
 	int post_data_size;
 	bool headers_sent;
 	bool is_multipart;
@@ -77,7 +80,10 @@ static int get_client_header( void *_c, const char *key, const char *val ) {
 	mcontext *c = (mcontext*)_c;
 	if( key == NULL || val == NULL )
 		return 1;
-	protocol_send_header(c->p,key,val);
+	if( config.proxy_mode && strcmp(key,"X-Forwarded-For") == 0 )
+		protocol_send_header(c->p,key,c->xff);
+	else
+		protocol_send_header(c->p,key,val);
 	return 1;
 }
 
@@ -170,6 +176,8 @@ static int tora_handler( request_rec *r ) {
 	c->headers_sent = false;
 	c->r = r;
 	c->post_data = NULL;
+	c->xff = NULL;
+	c->client_ip = NULL;
 	c->p = NULL;
 	c->r->content_type = "text/html";
 	config.hits++;
@@ -210,7 +218,26 @@ static int tora_handler( request_rec *r ) {
 		infos.script = r->filename;
 		infos.uri = first->uri;
 		infos.hostname = r->hostname ? r->hostname : "";
-		infos.client_ip = r->connection->remote_ip;
+		if( config.proxy_mode ) {
+			const char *xff = ap_table_get(r->headers_in,"X-Forwarded-For");
+			if( xff == NULL )
+				infos.client_ip = r->connection->remote_ip;
+			else {
+				char tmp;
+				char *xend = (char*)xff + strlen(xff) - 1;
+				while( xend > xff && *xend != ' ' && *xend != ',' )
+					xend--;
+				c->client_ip = strdup(xend);
+				infos.client_ip = c->client_ip;
+				if( xend > xff && *xend == ' ' && xend[-1] == ',' )
+					xend--;
+				tmp = *xend;
+				*xend = 0;
+				c->xff = strdup(xff);
+				*xend = tmp;
+			}
+		} else
+			infos.client_ip = r->connection->remote_ip;
 		infos.http_method = r->method;
 		infos.get_data = r->args;
 		infos.post_data = c->post_data;
@@ -238,6 +265,8 @@ static int tora_handler( request_rec *r ) {
 
 	// cleanup
 	protocol_free(c->p);
+	free(c->xff);
+	free(c->client_ip);
 	free(c->post_data);
 	send_headers(c); // in case...
 	if( c->need_discard )
@@ -278,6 +307,7 @@ static const char *mod_tora_config( cmd_parms *cmd, MCONFIG mconfig, const char 
 	else if( strcmp(code,"PORT") == 0 ) { config.port_min = value; config.port_max = value; }
 	else if( strcmp(code,"PORT_MAX") == 0 ) config.port_max = value;
 	else if( strcmp(code,"POST_SIZE") == 0 ) config.max_post_size = value;
+	else if( strcmp(code,"PROXY_MODE") == 0 ) config.proxy_mode = value;
 	else ap_log_error(__FILE__,__LINE__,APLOG_WARNING,LOG_SUCCESS cmd->server,"Unknown ModTora configuration command '%s'",code);
 	free(code);
 	return NULL;
