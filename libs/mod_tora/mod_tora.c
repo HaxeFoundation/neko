@@ -80,7 +80,7 @@ static int get_client_header( void *_c, const char *key, const char *val ) {
 	mcontext *c = (mcontext*)_c;
 	if( key == NULL || val == NULL )
 		return 1;
-	if( config.proxy_mode && strcmp(key,"X-Forwarded-For") == 0 )
+	if( config.proxy_mode && strcmpi(key,"X-Forwarded-For") == 0 )
 		protocol_send_header(c->p,key,c->xff);
 	else
 		protocol_send_header(c->p,key,val);
