@@ -9,6 +9,7 @@
 	nekoml : added Math core module
 	std : fixed timeout error for sockets on Windows
 	mod_tora : added PROXY_MODE configuration
+	std : fixed timeout error for sockets on Linux
 
 2009-07-26 : 1.8.1
 	nekoc : small fix in evaluation of using jump tables for switch on integers

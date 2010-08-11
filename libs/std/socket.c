@@ -465,7 +465,7 @@ static value make_array_result( value a, fd_set *tmp ) {
 }
 
 static void init_timeval( tfloat f, struct timeval *t ) {
-	t->tv_usec = ((int)(f*1000000)) % 1000000;
+	t->tv_usec = (int)((f - (int)f) * 1000000);
 	t->tv_sec = (int)f;
 }
 

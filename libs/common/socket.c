@@ -155,7 +155,7 @@ SERR psock_set_timeout( PSOCK s, double t ) {
 	int time = (int)(t * 1000);
 #else
 	struct timeval time;
-	time.tv_usec = ((int)(t*1000000)) % 1000000;
+	time.tv_usec = (int)((t - (int)t)*1000000);
 	time.tv_sec = (int)t;
 #endif
 	if( setsockopt(s,SOL_SOCKET,SO_SNDTIMEO,(char*)&time,sizeof(time)) != 0 )
