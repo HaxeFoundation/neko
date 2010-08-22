@@ -121,7 +121,7 @@ static value builtin_asub( value a, value p, value l ) {
 }
 
 /**
-	$ablit : dst:array -> dst_pos:int -> src:array -> src_pos:int -> len:int -> array
+	$ablit : dst:array -> dst_pos:int -> src:array -> src_pos:int -> len:int -> void
 	<doc>
 	Copy [len] elements from [src_pos] of [src] to [dst_pos] of [dst].
 	An error occurs if out of arrays bounds.
@@ -140,7 +140,7 @@ static value builtin_ablit( value dst, value dp, value src, value sp, value l ) 
 	if( dpp < 0 || spp < 0 || ll < 0 || dpp + ll < 0 || spp + ll  < 0 || dpp + ll > val_array_size(dst) || spp + ll > val_array_size(src) )
 		neko_error();
 	memmove(val_array_ptr(dst)+dpp,val_array_ptr(src)+spp,ll * sizeof(value));
-	return val_true;
+	return val_null;
 }
 
 /**
@@ -288,11 +288,11 @@ static value builtin_sblit( value dst, value dp, value src, value sp, value l ) 
 	if( dpp < 0 || spp < 0 || ll < 0 || dpp + ll < 0 || spp + ll  < 0 || dpp + ll > val_strlen(dst) || spp + ll > val_strlen(src) )
 		neko_error();
 	memmove(val_string(dst)+dpp,val_string(src)+spp,ll);
-	return val_true;
+	return val_null;
 }
 
 /**
-	$sfind : src:string -> pos:int -> pat:string -> int
+	$sfind : src:string -> pos:int -> pat:string -> int?
 	<doc>
 	Return the first position starting at [pos] in [src] where [pat] was found.
 	Return null if not found. Error if [pos] is outside [src] bounds.
@@ -506,7 +506,7 @@ static value closure_callback( value *args, int nargs ) {
 }
 
 /**
-	$closure : function -> any* -> function
+	$closure : function -> object -> any* -> function
 	<doc>Build a closure by applying a given number of arguments to a function</doc>
 **/
 static value builtin_closure( value *args, int nargs ) {
