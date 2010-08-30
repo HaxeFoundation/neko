@@ -43,7 +43,7 @@ function set(s : string, n : int, c : char) : void {
 }
 
 function blit(dst : string, p : int, src : string, p2 : int, l : int ) : void {
-	if neko("$sblit(dst,p,src,p2,l) == null") then invalid_arg();
+	if neko("try { $sblit(dst,p,src,p2,l); false; } catch e true") then invalid_arg();
 }
 
 function sub(s : string, p : int, l : int ) : string {

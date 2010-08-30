@@ -435,7 +435,7 @@ static value builtin_objsetproto( value o, value p ) {
 		val_check(p,object);
 		((vobject*)o)->proto = (vobject*)p;
 	}
-	return val_true;
+	return val_null;
 }
 
 /**
@@ -798,7 +798,7 @@ static value builtin_hresize( value vh, value size ) {
 		add_rec(cc,nsize,h->cells[i]);
 	h->cells = cc;
 	h->ncells = nsize;
-	return val_true;
+	return val_null;
 }
 
 /**
@@ -985,7 +985,7 @@ static value builtin_hadd( value vh, value key, value val ) {
 	c->next = h->cells[hkey];
 	h->cells[hkey] = c;
 	h->nitems++;
-	return val_true;
+	return val_null;
 }
 
 /**
