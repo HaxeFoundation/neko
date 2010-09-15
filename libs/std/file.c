@@ -74,7 +74,7 @@ static value file_close( value o ) {
 	f = val_file(o);
 	fclose(f->io);
 	val_kind(o) = NULL;
-	return val_true;
+	return val_null;
 }
 
 /**
@@ -174,7 +174,7 @@ static value file_write_char( value o, value c ) {
 		HANDLE_FINTR(f->io,write_char_again);
 		file_error("file_write_char",f);
 	}
-	return val_true;
+	return val_null;
 }
 
 /**
@@ -206,7 +206,7 @@ static value file_seek( value o, value pos, value kind ) {
 	f = val_file(o);
 	if( fseek(f->io,val_int(pos),val_int(kind)) != 0 )
 		file_error("file_seek",f);
-	return val_true;
+	return val_null;
 }
 
 /**
