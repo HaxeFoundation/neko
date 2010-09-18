@@ -679,9 +679,10 @@ static value builtin_int( value f ) {
 		return alloc_int((unsigned int)fmod(val_float(f),4294967296.0));
 #endif
 	case VAL_STRING: {
-		char *c = val_string(f);
+		char *c = val_string(f), *end;
+		int h;
 		if( val_strlen(f) >= 2 && c[0] == '0' && c[1] == 'x' ) {
-			int h = 0;
+			h = 0;
 			c += 2;
 			while( *c ) {
 				char k = *c++;
@@ -696,7 +697,8 @@ static value builtin_int( value f ) {
 			}
 			return alloc_int(h);
 		}
-		return alloc_int( atoi(val_string(f)) );
+		h = strtol(c,&end,10);
+		return ( c == end ) ? val_null : alloc_int(h);
 		}
 	case VAL_INT:
 		return f;
@@ -709,8 +711,11 @@ static value builtin_int( value f ) {
 	<doc>Convert the value to the corresponding float or return [null]</doc>
 **/
 static value builtin_float( value f ) {
-	if( val_is_string(f) )
-		return alloc_float( atof(val_string(f)) );
+	if( val_is_string(f) ) {
+		char *c = val_string(f), *end;
+		tfloat f = (tfloat)strtod(c,&end);
+		return (c == end) ? val_null : alloc_float(f);
+	}
 	if( val_is_number(f) )
 		return alloc_float( val_number(f) );
 	return val_null;
