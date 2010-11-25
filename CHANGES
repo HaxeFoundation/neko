@@ -11,6 +11,7 @@
 	mod_tora : added PROXY_MODE configuration
 	std : fixed timeout error for sockets on Linux
 	vm : fixed $int and $float - return null on invalid strings
+	mysql : added result_get_fields_names
 
 2009-07-26 : 1.8.1
 	nekoc : small fix in evaluation of using jump tables for switch on integers

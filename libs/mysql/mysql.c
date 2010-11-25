@@ -115,6 +115,24 @@ static value result_get_nfields( value o ) {
 }
 
 /**
+	result_get_fields_names : 'result -> string array
+	<doc>Return the fields names corresponding results columns</doc>
+**/
+static value result_get_fields_names( value o ) {
+	result *r;
+	value a;
+	int k;
+	MYSQL_FIELD *fields;
+	val_check_kind(o,k_result);
+	r = RESULT(o);
+	fields = mysql_fetch_fields(r->r);
+	a = alloc_array(r->nfields);
+	for(k=0;k<r->nfields;k++)
+		val_array_ptr(a)[k] = alloc_string(fields[k].name);
+	return a;
+}
+
+/**
 	result_next : 'result -> object?
 	<doc>
 	Return the next row if available. A row is represented
@@ -460,6 +478,7 @@ DEFINE_PRIM(escape,2);
 
 DEFINE_PRIM(result_get_length,1);
 DEFINE_PRIM(result_get_nfields,1);
+DEFINE_PRIM(result_get_fields_names,1);
 DEFINE_PRIM(result_next,1);
 DEFINE_PRIM(result_get,2);
 DEFINE_PRIM(result_get_int,2);
