@@ -681,7 +681,7 @@ static value builtin_int( value f ) {
 	case VAL_STRING: {
 		char *c = val_string(f), *end;
 		int h;
-		if( val_strlen(f) >= 2 && c[0] == '0' && c[1] == 'x' ) {
+		if( val_strlen(f) >= 2 && c[0] == '0' && (c[1] == 'x' || c[1] == 'X') ) {
 			h = 0;
 			c += 2;
 			while( *c ) {
