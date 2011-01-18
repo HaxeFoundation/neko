@@ -108,6 +108,7 @@ static void null_warn_proc( char *msg, int arg ) {
 }
 
 void neko_gc_init() {
+	GC_set_warn_proc((GC_warn_proc)(void*)null_warn_proc);
 #	ifndef NEKO_WINDOWS
 	// we can't set this on windows with old GC since
 	// it's already initialized through its own DllMain
@@ -126,7 +127,6 @@ void neko_gc_init() {
 	GC_dont_expand = 1;
 #endif
 	GC_clear_roots();
-	GC_set_warn_proc((GC_warn_proc)(void*)null_warn_proc);
 #if defined(GC_LOG) && defined(NEKO_POSIX)
 	{
 		struct sigaction act;
