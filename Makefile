@@ -2,7 +2,7 @@
 
 INSTALL_PREFIX = /usr/local
 
-CFLAGS = -Wall -O3 -fPIC -fomit-frame-pointer -I vm -D_GNU_SOURCE
+CFLAGS = -Wall -O3 -fPIC -fomit-frame-pointer -I vm -D_GNU_SOURCE -msse2 -mfpmath=sse
 EXTFLAGS = -pthread
 MAKESO = $(CC) -shared -WBsymbolic
 LIBNEKO_NAME = libneko.so
@@ -37,7 +37,7 @@ NEKO_EXEC = LD_LIBRARY_PATH=../bin:${LD_LIBRARY_PATH} NEKOPATH=../boot:../bin ..
 # For MINGW/MSYS
 
 ifeq (${WIN32}, 1)
-CFLAGS = -g -Wall -O3 -momit-leaf-frame-pointer -I vm -I /usr/local/include
+CFLAGS = -g -Wall -O3 -momit-leaf-frame-pointer -I vm -I /usr/local/include -msse2 -mfpmath=sse
 EXTFLAGS =
 MAKESO = $(CC) -O -shared
 LIBNEKO_NAME = neko.dll

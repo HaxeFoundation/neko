@@ -13,6 +13,7 @@
 	vm : fixed $int and $float - return null on invalid strings
 	mysql : added result_get_fields_names
 	gc : prevent issues with AV softs / GoogleDesktop which inject threads
+	vm : use sse2 for fp calculus on gcc (double precision, same as msvc/flash)
 
 2009-07-26 : 1.8.1
 	nekoc : small fix in evaluation of using jump tables for switch on integers
