@@ -17,6 +17,10 @@ function _load(name,nargs) : 'a {
 	neko("return $loader.loadprim('std@math_'+name,nargs)");
 }
 
+function _lload(name,nargs) : 'a {
+	neko("return try $loader.loadprim('std@math_'+name,nargs) catch e function(_) $throw(e)");
+}
+
 var atan2 : float -> float -> float = _load("atan2",2);
 var pow : float -> float -> float = _load("pow",2);
 var abs : float -> float = _load("abs",1);
@@ -26,10 +30,10 @@ var ceil : float -> int = _load("ceil",1);
 var floor : float -> int = _load("floor",1);
 var round : float -> int = _load("round",1);
 
-var fceil : float -> float = _load("fceil",1);
-var ffloor : float -> float = _load("ffloor",1);
-var fround : float -> float = _load("fround",1);
-var fint : float -> int = _load("int",1);
+var fceil : float -> float = _lload("fceil",1);
+var ffloor : float -> float = _lload("ffloor",1);
+var fround : float -> float = _lload("fround",1);
+var fint : float -> int = _lload("int",1);
 
 var pi : float = neko "$loader.loadprim('std@math_pi',0)()";
 
