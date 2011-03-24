@@ -73,6 +73,8 @@ typedef struct {
 	field *fields_ids;
 	MYSQL_ROW current;
 	value conv_date;
+	value conv_string;
+	value conv_bytes;
 } result;
 
 static void free_result( value o ) {
@@ -91,6 +93,34 @@ static value result_set_conv_date( value o, value c ) {
 		return val_true;
 	val_check_kind(o,k_result);
 	RESULT(o)->conv_date = c;
+	return val_true;
+}
+
+/**
+	result_set_conv_string : 'result -> function:1 -> void
+	<doc>Set the function that will convert any string value
+	to the corresponding neko value.</doc>
+**/
+static value result_set_conv_string( value o, value c ) {
+	val_check_function(c,1);
+	if( val_is_int(o) )
+		return val_true;
+	val_check_kind(o,k_result);
+	RESULT(o)->conv_string = c;
+	return val_true;
+}
+
+/**
+	result_set_conv_bytes : 'result -> function:1 -> void
+	<doc>Set the function that will convert any binary value
+	to the corresponding neko value.</doc>
+**/
+static value result_set_conv_bytes( value o, value c ) {
+	val_check_function(c,1);
+	if( val_is_int(o) )
+		return val_true;
+	val_check_kind(o,k_result);
+	RESULT(o)->conv_bytes = c;
 	return val_true;
 }
 
@@ -166,6 +196,8 @@ static value result_next( value o ) {
 					break;
 				case CONV_STRING:
 					v = alloc_string(row[i]);
+					if( r->conv_string != NULL )
+						v = val_call1(r->conv_string,v);
 					break;
 				case CONV_BOOL:
 					v = alloc_bool( *row[i] != '0' );
@@ -180,6 +212,8 @@ static value result_next( value o ) {
 							val_throw(alloc_string("mysql_fetch_lengths"));
 					}
 					v = copy_string(row[i],lengths[i]);
+					if( r->conv_bytes != NULL )
+						v = val_call1(r->conv_bytes,v);
 					break;
 				case CONV_DATE:
 					if( r->conv_date == NULL )
@@ -329,6 +363,8 @@ static value alloc_result( MYSQL_RES *r ) {
 	MYSQL_FIELD *fields = mysql_fetch_fields(r);
 	res->r = r;
 	res->conv_date = NULL;
+	res->conv_bytes = NULL;
+	res->conv_string = NULL;
 	res->current = NULL;
 	res->nfields = num_fields;
 	res->fields_ids = (field*)alloc_private(sizeof(field)*num_fields);
@@ -484,5 +520,7 @@ DEFINE_PRIM(result_get,2);
 DEFINE_PRIM(result_get_int,2);
 DEFINE_PRIM(result_get_float,2);
 DEFINE_PRIM(result_set_conv_date,2);
+DEFINE_PRIM(result_set_conv_bytes,2);
+DEFINE_PRIM(result_set_conv_string,2);
 
 /* ************************************************************************ */
