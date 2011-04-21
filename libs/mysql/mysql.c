@@ -315,7 +315,7 @@ static value result_get_float( value o, value n ) {
 	return alloc_float( s?atof(s):0 );
 }
 
-static CONV convert_type( enum enum_field_types t, unsigned int length ) {
+static CONV convert_type( enum enum_field_types t, int flags, unsigned int length ) {
 	// FIELD_TYPE_TIMESTAMP
 	// FIELD_TYPE_TIME
 	// FIELD_TYPE_YEAR
@@ -351,6 +351,8 @@ static CONV convert_type( enum enum_field_types t, unsigned int length ) {
 	//case FIELD_TYPE_GEOMETRY:
 	// 5.0 MYSQL_TYPE_VARCHAR
 	default:
+		if( (flags & (BLOB_FLAG | BINARY_FLAG)) != 0 )
+			return CONV_BINARY;
 		return CONV_STRING;
 	}
 }
@@ -390,7 +392,7 @@ static value alloc_result( MYSQL_RES *r ) {
 				}
 		}
 		res->fields_ids[i] = id;
-		res->fields_convs[i] = convert_type(fields[i].type,fields[i].length);
+		res->fields_convs[i] = convert_type(fields[i].type,fields[i].flags,fields[i].length);
 	}
 	val_gc(o,free_result);
 	return o;

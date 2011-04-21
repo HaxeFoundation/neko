@@ -57,6 +57,22 @@ typedef enum enum_field_types {
 	FIELD_TYPE_GEOMETRY = 0xFF
 } FIELD_TYPE;
 
+typedef enum {
+	NOT_NULL_FLAG =	1,
+	PRI_KEY_FLAG = 2,
+	UNIQUE_KEY_FLAG = 4,
+	MULTIPLE_KEY_FLAG = 8,
+	BLOB_FLAG = 16,
+	UNSIGNED_FLAG = 32,
+	ZEROFILL_FLAG = 64,
+	BINARY_FLAG	= 128,
+	ENUM_FLAG = 256,
+	AUTO_INCREMENT_FLAG = 512,
+	TIMESTAMP_FLAG = 1024,
+	SET_FLAG = 2048,
+	NUM_FLAG = 32768,
+} __FIELD_FLAG;
+
 typedef struct {
 	char *catalog;
 	char *db;
