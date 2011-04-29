@@ -711,8 +711,12 @@ void GC_suspend(GC_thread t)
 #     endif
       return;
     }
-    if (SuspendThread(t -> handle) == (DWORD)-1)
-      ABORT("SuspendThread failed");
+    if (SuspendThread(t -> handle) == (DWORD)-1) {
+	    // ABORT("SuspendThread failed");
+		t->stack_base = 0;
+		GC_delete_gc_thread(t);
+		return;
+	}
 # endif
    t -> suspended = TRUE;
 }
@@ -834,8 +838,10 @@ void GC_push_stack_for(GC_thread thread)
       } else {
         CONTEXT context;
         context.ContextFlags = CONTEXT_INTEGER|CONTEXT_CONTROL;
-        if (!GetThreadContext(thread -> handle, &context))
-	  ABORT("GetThreadContext failed");
+		if (!GetThreadContext(thread -> handle, &context)) {
+		  //ABORT("GetThreadContext failed");
+			return;
+		}
 
         /* Push all registers that might point into the heap.  Frame	*/
         /* pointer registers are included in case client code was	*/
@@ -1451,6 +1457,7 @@ GC_API BOOL WINAPI DllMain(HINSTANCE inst, ULONG reason, LPVOID reserved)
 #       ifdef THREAD_LOCAL_ALLOC
 	  ABORT("Cannot initialize thread local cache from DllMain");
 #       endif
+	  if( sb.mem_base )
 	GC_register_my_thread_inner(&sb, thread_id);
     } /* o.w. we already did it during GC_thr_init(), called by GC_init() */
     break;
