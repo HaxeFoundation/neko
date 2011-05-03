@@ -413,9 +413,11 @@ static int_val jit_run( neko_vm *vm, vfunction *acc ) {
 			ACC_RESTORE \
 			err; \
 		} else { \
+			PushInfos(); \
 			BeginCall(); \
 			acc = (int_val)val_callEx(_o,_f,&_arg,1,NULL); \
 			EndCall(); \
+			PopInfos(false); \
 		} \
 	}
 
