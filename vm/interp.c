@@ -487,9 +487,12 @@ static value neko_flush_stack( int_val *cspup, int_val *csp, value old ) {
 		m = (neko_module*)csp[4];
 		if( m ) {
 			if( m->dbgidxs ) {
-				int ppc = (int)((((int_val**)csp)[1]-2) - m->code);
-				int idx = m->dbgidxs[ppc>>5].base + bitcount(m->dbgidxs[ppc>>5].bits >> (31 - (ppc & 31)));
-				*st = val_array_ptr(m->dbgtbl)[idx];
+				unsigned int ppc = (unsigned int)((((int_val**)csp)[1]-2) - m->code);
+				if( ppc < m->codesize ) {
+					int idx =m->dbgidxs[ppc>>5].base + bitcount(m->dbgidxs[ppc>>5].bits >> (31 - (ppc & 31)));
+					*st = val_array_ptr(m->dbgtbl)[idx];
+				} else
+					*st = m->name;
 			} else
 				*st = m->name;
 		} else

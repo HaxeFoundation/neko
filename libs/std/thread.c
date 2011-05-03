@@ -60,6 +60,7 @@ typedef struct {
 #	endif
 	value v;
 	vdeque q;
+	neko_vm *vm;
 } vthread;
 
 DECLARE_KIND(k_thread);
@@ -199,7 +200,7 @@ static void free_thread( value v ) {
 	_deque_destroy(&t->q);
 }
 
-static vthread *alloc_thread() {
+static vthread *alloc_thread( neko_vm *vm ) {
 	vthread *t = (vthread*)alloc(sizeof(vthread));
 	memset(t,0,sizeof(vthread));
 #ifdef NEKO_WINDOWS
@@ -208,6 +209,7 @@ static vthread *alloc_thread() {
 	t->phandle = pthread_self();
 #endif
 	t->v = alloc_abstract(k_thread,t);
+	t->vm = vm;
 	_deque_init(&t->q);
 	val_gc(t->v,free_thread);
 	return t;
@@ -216,9 +218,9 @@ static vthread *alloc_thread() {
 static void thread_init( void *_p ) {
 	tparams *p = (tparams*)_p;
 	neko_vm *vm;
-	p->t = alloc_thread();
 	// init the VM and set current thread
 	vm = neko_vm_alloc(NULL);
+	p->t = alloc_thread(vm);
 	neko_vm_jit(vm,p->jit);
 	neko_vm_select(vm);
 	neko_vm_set_custom(vm,k_thread,p->t);
@@ -238,6 +240,7 @@ static void thread_loop( void *_p ) {
 	// cleanup
 	neko_vm_select(NULL);
 	p->t->v = val_null;
+	p->t->vm = NULL;
 }
 
 /**
@@ -264,8 +267,9 @@ static value thread_current() {
 	vthread *t = neko_thread_current();
 	// should only occur for main thread !
 	if( t == NULL ) {
-		t = alloc_thread();
-		neko_vm_set_custom(neko_vm_current(),k_thread,t);
+		neko_vm *vm = neko_vm_current();
+		t = alloc_thread(vm);
+		neko_vm_set_custom(vm,k_thread,t);
 	}
 	return t->v;
 }
@@ -299,6 +303,20 @@ static value thread_read_message( value block ) {
 	t = val_thread(v);
 	val_check(block,bool);
 	return _deque_pop( &t->q, val_bool(block) );
+}
+
+/**
+	thread_stack : 'thread -> array
+	<doc>
+	Get the thread current call stack. Might crash if the thread currently manipulate the stack, so mostly used to debug infinite loops.
+	</doc>
+**/
+static value thread_stack( value vt ) {
+	vthread *t;
+	val_check_kind(vt,k_thread);
+	t = val_thread(vt);
+	if( t->vm == NULL ) neko_error();
+	return neko_call_stack(t->vm);
 }
 
 static void free_lock( value l ) {
@@ -609,6 +627,7 @@ DEFINE_PRIM(thread_create,2);
 DEFINE_PRIM(thread_current,0);
 DEFINE_PRIM(thread_send,2);
 DEFINE_PRIM(thread_read_message,1);
+DEFINE_PRIM(thread_stack,1);
 
 DEFINE_PRIM(lock_create,0);
 DEFINE_PRIM(lock_wait,2);
