@@ -415,6 +415,23 @@ static value builtin_hash( value f ) {
 }
 
 /**
+	$fasthash : string -> int
+	<doc>Return the hashed value of a field name, without accessing the cache</doc>
+**/
+static value builtin_fasthash( value f ) {
+	value acc = alloc_int(0);
+	unsigned char *name;
+	val_check(f,string);
+	name = (unsigned char *)val_string(f);
+	while( *name ) {
+		acc = alloc_int(223 * val_int(acc) + *name);
+		name++;
+	}
+	return acc;
+}
+
+
+/**
 	$field : int -> string
 	<doc>Reverse the hashed value of a field name. Return [null] on failure</doc>
 **/
@@ -1234,6 +1251,7 @@ void neko_init_builtins() {
 	BUILTIN(objremove,2);
 	BUILTIN(objfields,1);
 	BUILTIN(hash,1);
+	BUILTIN(fasthash,1);
 	BUILTIN(field,1);
 	BUILTIN(objsetproto,2);
 	BUILTIN(objgetproto,1);
