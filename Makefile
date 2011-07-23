@@ -61,12 +61,13 @@ LIBNEKO_INSTALL = -install_name @executable_path/${LIBNEKO_NAME}
 LIBNEKO_LIBS = -ldl -lgc -lm -dynamiclib -single_module ${LIBNEKO_INSTALL}
 NEKOVM_FLAGS = -L${PWD}/bin -lneko
 STD_NDLL_FLAGS = -bundle -undefined dynamic_lookup ${NEKOVM_FLAGS}
+CFLAGS += -L/usr/local/lib -L/opt/local/lib -I/opt/local/include
 
 ifeq (${OSX_UNIVERSAL}, 1)
 
 export MACOSX_DEPLOYMENT_TARGET_i386=10.4
 export MACOSX_DEPLOYMENT_TARGET_ppc=10.3
-CFLAGS += -arch ppc -arch i386 -L/usr/local/lib -L/opt/local/lib -I/opt/local/include
+CFLAGS += -arch ppc -arch i386
 UNIV = libs/include/osx_universal
 #linking to shared lib (.a) explicitly:
 LIBNEKO_DEPS = ${UNIV}/libgc.a  -lSystemStubs
