@@ -94,7 +94,7 @@ typedef struct {
 	unsigned char proto_version;
 	char *server_version;
 	unsigned int thread_id;
-	unsigned short server_flags;
+	unsigned int server_flags;
 	unsigned char server_charset;
 	unsigned short server_status;
 } MYSQL_INFOS;

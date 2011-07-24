@@ -132,6 +132,7 @@ MYSQL *mysql_real_connect( MYSQL *m, const char *host, const char *user, const c
 	// process handshake packet
 	{
 		char filler[13];
+		unsigned int len;
 		m->infos.proto_version = myp_read_byte(p);
 		// this seems like an error packet
 		if( m->infos.proto_version == 0xFF ) {
@@ -146,12 +147,16 @@ MYSQL *mysql_real_connect( MYSQL *m, const char *host, const char *user, const c
 		m->infos.server_flags = myp_read_ui16(p);
 		m->infos.server_charset = myp_read_byte(p);
 		m->infos.server_status = myp_read_ui16(p);
-		myp_read(p,filler,13);
+		m->infos.server_flags |= myp_read_ui16(p) << 16;
+		len = myp_read_byte(p);
+		myp_read(p,filler,10);
 		// try to disable 41
 		m->is41 = (m->infos.server_flags & FL_PROTOCOL_41) != 0;
 		if( !p->error && m->is41 )
 			myp_read(p,scramble_buf + 8,13);
-		if( p->error || p->pos != p->size ) {
+		if( p->pos != p->size )
+			myp_read_string(p); // 5.5+
+		if( p->error ) {
 			myp_close(m);
 			error(m,"Failed to decode server handshake",NULL);
 			return NULL;
