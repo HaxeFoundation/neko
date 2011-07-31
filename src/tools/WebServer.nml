@@ -554,7 +554,7 @@ function client_msg(c) {
 			mod_neko c r file
 		} else {
 			// directly send the file content
-			IO.write c.out "HTTP/1.x 200 OK\r\n";
+			IO.write c.out "HTTP/1.1 200 OK\r\n";
 			var ctype = try { List.assoc ext mime } catch { Not_found -> "unknown/unknown" };
 			var file_size : int = neko "$loader.loadprim('std@sys_stat',1)(file).size";
 			IO.write c.out ("Content-Type: " + ctype + "\r\n");
