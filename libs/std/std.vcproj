@@ -19,7 +19,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../vm;../include"
+				AdditionalIncludeDirectories="../../vm;../include;../common"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;STD_EXPORTS"
 				MinimalRebuild="TRUE"
 				BasicRuntimeChecks="3"
@@ -69,7 +69,7 @@
 			CharacterSet="2">
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../../vm;../include"
+				AdditionalIncludeDirectories="../../vm;../include;../common"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;STD_EXPORTS"
 				RuntimeLibrary="2"
 				BufferSecurityCheck="FALSE"
@@ -154,6 +154,12 @@
 		</File>
 		<File
 			RelativePath=".\serialize.c">
+		</File>
+		<File
+			RelativePath="..\common\sha1.c">
+		</File>
+		<File
+			RelativePath="..\common\sha1.h">
 		</File>
 		<File
 			RelativePath=".\socket.c">

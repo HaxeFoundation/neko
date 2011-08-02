@@ -16,6 +16,7 @@
 /* ************************************************************************ */
 #include <neko.h>
 #include <string.h>
+#include "sha1.h"
 
 /**
 	<doc>
@@ -358,6 +359,28 @@ static value make_md5( value v ) {
 	return out;
 }
 
+/**
+	make_sha1 : string -> pos:int -> len:int -> string
+	<doc>Build a SHA1 digest for the given substring</doc>
+**/
+static value make_sha1( value s, value p, value l ) {
+	SHA1_CTX ctx;
+	SHA1_DIGEST result;
+	int pp , ll;
+	val_check(s,string);
+	val_check(p,int);
+	val_check(l,int);
+	pp = val_int(p);
+	ll = val_int(l);
+	if( pp < 0 || ll < 0 || pp + ll < 0 || pp + ll > val_strlen(s) )
+		neko_error();
+	sha1_init(&ctx);
+	sha1_update(&ctx,val_string(l)+pp,ll);
+	sha1_final(&ctx,result);
+	return copy_string( result, sizeof(SHA1_DIGEST) );
+}
+
 DEFINE_PRIM(make_md5,1);
+DEFINE_PRIM(make_sha1,3);
 
 /* ************************************************************************ */

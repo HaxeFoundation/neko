@@ -41,9 +41,9 @@
 #define R3(v,w,x,y,z,i) z+=(((w|x)&y)|(w&x))+blk(i)+0x8F1BBCDC+rol(v,5);w=rol(w,30);
 #define R4(v,w,x,y,z,i) z+=(w^x^y)+blk(i)+0xCA62C1D6+rol(v,5);w=rol(w,30);
 
-static void sha1_transform( unsigned long state[5], unsigned char buffer[64] ) {
-	unsigned long a, b, c, d, e;
-	unsigned long block[16];
+static void sha1_transform( unsigned int state[5], unsigned char buffer[64] ) {
+	unsigned int a, b, c, d, e;
+	unsigned int block[16];
 	memcpy(block, buffer, 64);
 	/* Copy context->state[] to working vars */
 	a = state[0];
@@ -107,7 +107,7 @@ void sha1_update( SHA1_CTX *context, const unsigned char *data, unsigned int len
 }
 
 void sha1_final( SHA1_CTX *context, unsigned char digest[SHA1_SIZE] ) {
-	unsigned long i;
+	unsigned int i;
 	unsigned char finalcount[8];
 	for (i = 0; i < 8; i++) {
 		finalcount[i] = (unsigned char)((context->count[(i >= 4 ? 0 : 1)]
