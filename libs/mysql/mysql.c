@@ -35,8 +35,15 @@ typedef int SOCKET;
 	</doc>
 **/
 
-#define MYSQLDATA(o)	((MYSQL*)val_data(o))
+#define CNX(o)			((connection*)val_data(o))
 #define RESULT(o)		((result*)val_data(o))
+
+typedef struct {
+	MYSQL *m;
+	value conv_date;
+	value conv_bytes;
+	value conv_string;
+} connection;
 
 DEFINE_KIND(k_connection);
 DEFINE_KIND(k_result);
@@ -93,34 +100,6 @@ static value result_set_conv_date( value o, value c ) {
 		return val_true;
 	val_check_kind(o,k_result);
 	RESULT(o)->conv_date = c;
-	return val_true;
-}
-
-/**
-	result_set_conv_string : 'result -> function:1 -> void
-	<doc>Set the function that will convert any string value
-	to the corresponding neko value.</doc>
-**/
-static value result_set_conv_string( value o, value c ) {
-	val_check_function(c,1);
-	if( val_is_int(o) )
-		return val_true;
-	val_check_kind(o,k_result);
-	RESULT(o)->conv_string = c;
-	return val_true;
-}
-
-/**
-	result_set_conv_bytes : 'result -> function:1 -> void
-	<doc>Set the function that will convert any binary value
-	to the corresponding neko value.</doc>
-**/
-static value result_set_conv_bytes( value o, value c ) {
-	val_check_function(c,1);
-	if( val_is_int(o) )
-		return val_true;
-	val_check_kind(o,k_result);
-	RESULT(o)->conv_bytes = c;
 	return val_true;
 }
 
@@ -357,20 +336,20 @@ static CONV convert_type( enum enum_field_types t, int flags, unsigned int lengt
 	}
 }
 
-static value alloc_result( MYSQL_RES *r ) {
+static value alloc_result( connection *c, MYSQL_RES *r ) {
 	result *res = (result*)alloc(sizeof(result));
 	value o = alloc_abstract(k_result,res);
 	int num_fields = mysql_num_fields(r);
 	int i,j;
 	MYSQL_FIELD *fields = mysql_fetch_fields(r);
 	res->r = r;
-	res->conv_date = NULL;
-	res->conv_bytes = NULL;
-	res->conv_string = NULL;
+	res->conv_date = c->conv_date;
+	res->conv_bytes = c->conv_bytes;
+	res->conv_string = c->conv_string;
 	res->current = NULL;
 	res->nfields = num_fields;
 	res->fields_ids = (field*)alloc_private(sizeof(field)*num_fields);
-	res->fields_convs = (CONV*)alloc_private(sizeof(CONV)*num_fields);
+	res->fields_convs = (CONV*)alloc_private(sizeof(CONV)*num_fields);	
 	for(i=0;i<num_fields;i++) {
 		field id;
 		if( strchr(fields[i].name,'(') )
@@ -409,7 +388,7 @@ static value alloc_result( MYSQL_RES *r ) {
 **/
 static value close( value o ) {
 	val_check_kind(o,k_connection);
-	mysql_close(MYSQLDATA(o));
+	mysql_close(CNX(o)->m);
 	val_data(o) = NULL;
 	val_kind(o) = NULL;
 	val_gc(o,NULL);
@@ -423,8 +402,8 @@ static value close( value o ) {
 static value select_db( value o, value db ) {
 	val_check_kind(o,k_connection);
 	val_check(db,string);
-	if( mysql_select_db(MYSQLDATA(o),val_string(db)) != 0 )
-		error(MYSQLDATA(o),"Failed to select database :");
+	if( mysql_select_db(CNX(o)->m,val_string(db)) != 0 )
+		error(CNX(o)->m,"Failed to select database :");
 	return val_true;
 }
 
@@ -434,22 +413,24 @@ static value select_db( value o, value db ) {
 **/
 static value request( value o, value r )  {
 	MYSQL_RES *res;
+	connection *c;
 	val_check_kind(o,k_connection);
 	val_check(r,string);
-	if( mysql_real_query(MYSQLDATA(o),val_string(r),val_strlen(r)) != 0 )
-		error(MYSQLDATA(o),val_string(r));
-	res = mysql_store_result(MYSQLDATA(o));
+	c = CNX(o);
+	if( mysql_real_query(c->m,val_string(r),val_strlen(r)) != 0 )
+		error(c->m,val_string(r));
+	res = mysql_store_result(c->m);
 	if( res == NULL ) {
-		if( mysql_field_count(MYSQLDATA(o)) == 0 )
-			return alloc_int( (int)mysql_affected_rows(MYSQLDATA(o)) );
+		if( mysql_field_count(c->m) == 0 )
+			return alloc_int( (int)mysql_affected_rows(c->m) );
 		else
-			error(MYSQLDATA(o),val_string(r));
+			error(c->m,val_string(r));
 	}
-	return alloc_result(res);
+	return alloc_result(c,res);
 }
 
 /**
-	escape : string -> string
+	escape : 'connection -> string -> string
 	<doc>Escape the string for inserting into a SQL request</doc>
 **/
 static value escape( value o, value s ) {
@@ -459,9 +440,24 @@ static value escape( value o, value s ) {
 	val_check(s,string);
 	len = val_strlen(s) * 2;
 	sout = alloc_empty_string(len);
-	len = mysql_real_escape_string(MYSQLDATA(o),val_string(sout),val_string(s),val_strlen(s));
+	len = mysql_real_escape_string(CNX(o)->m,val_string(sout),val_string(s),val_strlen(s));
 	val_set_length(sout,len);
 	return sout;
+}
+
+/**
+	set_conv_funs : 'connection -> function:1 -> function:1 -> function:1 -> void
+	<doc>Set three wrapper methods to be be called when creating a string, a date, and binary data in results</doc>
+**/
+static value set_conv_funs( value o, value fstring, value fdate, value fbytes ) {
+	val_check_kind(o,k_connection);
+	val_check_function(fstring,1);
+	val_check_function(fdate,1);
+	val_check_function(fbytes,1);
+	CNX(o)->conv_string = fstring;
+	CNX(o)->conv_date = fdate;
+	CNX(o)->conv_bytes = fbytes;
+	return val_null;
 }
 
 // ---------------------------------------------------------------
@@ -469,7 +465,7 @@ static value escape( value o, value s ) {
 
 
 static void free_connection( value o ) {
-	mysql_close(MYSQLDATA(o));
+	mysql_close(CNX(o)->m);
 }
 
 /**
@@ -491,15 +487,19 @@ static value connect( value params  ) {
 	if( !val_is_string(socket) && !val_is_null(socket) )
 		neko_error();
 	{
-		MYSQL *m = mysql_init(NULL);
+		connection *c = (connection*)alloc(sizeof(connection));		
 		value v;
-		if( mysql_real_connect(m,val_string(host),val_string(user),val_string(pass),NULL,val_int(port),val_is_null(socket)?NULL:val_string(socket),0) == NULL ) {
+		c->m = mysql_init(NULL);
+		c->conv_string = NULL;
+		c->conv_date = NULL;
+		c->conv_bytes = NULL;
+		if( mysql_real_connect(c->m,val_string(host),val_string(user),val_string(pass),NULL,val_int(port),val_is_null(socket)?NULL:val_string(socket),0) == NULL ) {
 			buffer b = alloc_buffer("Failed to connect to mysql server : ");
-			buffer_append(b,mysql_error(m));
-			mysql_close(m);
+			buffer_append(b,mysql_error(c->m));
+			mysql_close(c->m);
 			bfailure(b);
 		}
-		v = alloc_abstract(k_connection,m);
+		v = alloc_abstract(k_connection,c);
 		val_gc(v,free_connection);
 		return v;
 	}
@@ -522,7 +522,7 @@ DEFINE_PRIM(result_get,2);
 DEFINE_PRIM(result_get_int,2);
 DEFINE_PRIM(result_get_float,2);
 DEFINE_PRIM(result_set_conv_date,2);
-DEFINE_PRIM(result_set_conv_bytes,2);
-DEFINE_PRIM(result_set_conv_string,2);
+
+DEFINE_PRIM(set_conv_funs,4);
 
 /* ************************************************************************ */

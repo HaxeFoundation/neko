@@ -14,7 +14,6 @@
 	mysql : added result_get_fields_names
 	gc : prevent issues with AV softs / GoogleDesktop which inject threads
 	vm : use sse2 for fp calculus on gcc (double precision, same as msvc/flash)
-	mysql : added result_set_conv_string/result_set_conv_bytes
 	mysql : added support for BINARY(size) type
 	vm : keep stack infos for object/array ops (interp)
 	std : added thread_stack
@@ -22,6 +21,7 @@
 	mysql5 : fixed 5.5 protocol change
 	std : fixed sha1 for 64-bits (also fix mysql5 auth)
 	std : added make_sha1
+	mysql : added set_conv_funs for string + bytes wrapping support
 
 2009-07-26 : 1.8.1
 	nekoc : small fix in evaluation of using jump tables for switch on integers
