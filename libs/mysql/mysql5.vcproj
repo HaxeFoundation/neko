@@ -132,7 +132,7 @@
 				RelativePath=".\my_proto\mysql.h">
 			</File>
 			<File
-				RelativePath="..\common\os.h">
+				RelativePath="..\common\osdef.h">
 			</File>
 			<File
 				RelativePath="..\common\sha1.c">

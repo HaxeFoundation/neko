@@ -318,7 +318,9 @@ static CONV convert_type( enum enum_field_types t, int flags, unsigned int lengt
 	case FIELD_TYPE_TINY_BLOB:
 	case FIELD_TYPE_MEDIUM_BLOB:
 	case FIELD_TYPE_LONG_BLOB:
-		return CONV_BINARY;
+		if( (flags & (BLOB_FLAG | BINARY_FLAG)) != 0 )
+			return CONV_BINARY;
+		return CONV_STRING;
 	case FIELD_TYPE_DATETIME:
 		return CONV_DATETIME;
 	case FIELD_TYPE_DATE:
