@@ -318,7 +318,7 @@ static CONV convert_type( enum enum_field_types t, int flags, unsigned int lengt
 	case FIELD_TYPE_TINY_BLOB:
 	case FIELD_TYPE_MEDIUM_BLOB:
 	case FIELD_TYPE_LONG_BLOB:
-		if( (flags & (BLOB_FLAG | BINARY_FLAG)) != 0 )
+		if( (flags & BINARY_FLAG) != 0 )
 			return CONV_BINARY;
 		return CONV_STRING;
 	case FIELD_TYPE_DATETIME:
@@ -332,7 +332,7 @@ static CONV convert_type( enum enum_field_types t, int flags, unsigned int lengt
 	//case FIELD_TYPE_GEOMETRY:
 	// 5.0 MYSQL_TYPE_VARCHAR
 	default:
-		if( (flags & (BLOB_FLAG | BINARY_FLAG)) != 0 )
+		if( (flags & BINARY_FLAG) != 0 )
 			return CONV_BINARY;
 		return CONV_STRING;
 	}
