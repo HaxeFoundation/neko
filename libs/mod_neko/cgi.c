@@ -123,7 +123,7 @@ static value get_host_name() {
 	<doc>Get the connected client IP</doc>
 **/
 static value get_client_ip() {
-	return alloc_string( CONTEXT()->r->connection->remote_ip );
+	return alloc_string( inet_ntoa(REMOTE_ADDR(CONTEXT()->r->connection)) );
 }
 
 /**

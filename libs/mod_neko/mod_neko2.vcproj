@@ -32,7 +32,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="../include/apache2/libhttpd.lib ../include/apache2/libapr-1.lib ../../bin/neko.lib"
+				AdditionalDependencies="../include/apache2/libhttpd.lib ../include/apache2/libapr-1.lib ../../bin/neko.lib ws2_32.lib"
 				OutputFile="../../bin/mod_neko2.ndll"
 				LinkIncremental="2"
 				GenerateDebugInformation="TRUE"
@@ -81,7 +81,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="../include/apache2/libhttpd.lib ../include/apache2/libapr-1.lib ../../bin/neko.lib msvcrt60.lib"
+				AdditionalDependencies="../include/apache2/libhttpd.lib ../include/apache2/libapr-1.lib ../../bin/neko.lib msvcrt60.lib ws2_32.lib"
 				OutputFile="../../bin/mod_neko2.ndll"
 				LinkIncremental="1"
 				IgnoreDefaultLibraryNames="MSVCRT"

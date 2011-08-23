@@ -44,8 +44,10 @@
 #	define ap_palloc		apr_palloc
 #	define LOG_SUCCESS		APR_SUCCESS,
 #	define REDIRECT			HTTP_MOVED_TEMPORARILY
+#	define REMOTE_ADDR(c)	c->remote_addr->sa.sin.sin_addr
 #else
 #	define LOG_SUCCESS
+#	define REMOTE_ADDR(c)	c->remote_addr.sin_addr
 #endif
 
 #define DEFAULT_HOST			"127.0.0.1"
@@ -237,7 +239,7 @@ static int tora_handler( request_rec *r ) {
 				*xend = tmp;
 			}
 		} else
-			infos.client_ip = r->connection->remote_ip;
+			infos.client_ip = inet_ntoa(REMOTE_ADDR(r->connection));
 		infos.http_method = r->method;
 		infos.get_data = r->args;
 		infos.post_data = c->post_data;

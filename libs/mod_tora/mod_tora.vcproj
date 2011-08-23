@@ -120,7 +120,7 @@
 			RelativePath=".\mod_tora.c">
 		</File>
 		<File
-			RelativePath="..\common\os.h">
+			RelativePath="..\common\osdef.h">
 		</File>
 		<File
 			RelativePath=".\protocol.c">

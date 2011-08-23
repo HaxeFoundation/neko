@@ -52,6 +52,9 @@ DECLARE_KIND(k_mod_neko)
 
 #ifdef STANDARD20_MODULE_STUFF
 #	define APACHE_2_X
+#	define REMOTE_ADDR(c)	c->remote_addr->sa.sin.sin_addr
+#else
+#	define REMOTE_ADDR(c)	c->remote_addr.sin_addr
 #endif
 
 extern mconfig *mod_neko_get_config();
