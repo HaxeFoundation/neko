@@ -147,6 +147,7 @@ search_includes = function(isap2) {
 		"/usr/include/gtk-2.0",
 		"/opt/local/include",
 		"/opt/local/include/mysql",
+		"/opt/local/include/mysql5",
 		"/Developer/Headers/FlatCarbon",
 	);
 	var inc2;
@@ -171,6 +172,7 @@ search_includes = function(isap2) {
 			"/usr/include/apache-1.3",
 			"/usr/include/httpd",
 			"/opt/local/include/apache",
+			"/opt/local/include/httpd",
 			"/usr/local/apache/include"
 		);
 	return $aconcat($array(inc1,inc2));
