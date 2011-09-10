@@ -147,7 +147,7 @@ search_includes = function(isap2) {
 		"/usr/include/gtk-2.0",
 		"/opt/local/include",
 		"/opt/local/include/mysql",
-		"/opt/local/include/mysql5",
+		"/opt/local/include/mysql5/mysql",
 		"/Developer/Headers/FlatCarbon",
 	);
 	var inc2;
@@ -188,6 +188,7 @@ libraries = $array(
 	"/usr/local/lib/mysql",
 	"/opt/local/lib",
 	"/opt/local/lib/mysql",
+	"/opt/local/lib/mysql5/mysql",
 );
 
 exec = function(cmd) {
