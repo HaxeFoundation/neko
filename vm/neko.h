@@ -81,7 +81,7 @@
 #	include <stdint.h>
 #endif
 
-#define NEKO_VERSION	181
+#define NEKO_VERSION	182
 
 typedef intptr_t int_val;
 

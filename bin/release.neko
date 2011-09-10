@@ -62,7 +62,7 @@ if( $loader.args[0] == "-src" ) {
 	cmd("rm -rf */*.o */*/*.o");
 	cmd("rm -rf src/*.n src/*/*.n src/*.neko src/neko/*.neko src/nekoml/*.neko");
 	cmd("rm -rf src/nekoc.exe src/nekoml.exe src/nekotools.exe");
-	cmd("rm -rf */debug */release */*/debug */*/release");
+	cmd("rm -rf */debug */release */*/debug */*/release */.svn */*/.svn */*/*/.svn");
 	cmd("rm -rf libs/include libs/mod_neko/debug2 libs/mod_neko/release2 libs/std/std2.sln");
 	cmd("rm -rf libs/mysql/debug5 libs/mysql/release5");
 	cmd("rm -rf libs/mod_tora/debug2 libs/mod_tora/release2 libs/mod_tora/server/CVS libs/mod_tora/server/.cvsignore libs/mod_tora/server/*.n");
