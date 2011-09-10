@@ -1,4 +1,4 @@
-2010-??-?? : 1.8.2
+2011-09-10 : 1.8.2
 	vm : use 15 digits (instead of 10) for float display
 	std : allow up to 512MB array/string size in serialize (instead of 1MB)
 	std : bugfix in utf8 (with 4 bytes codes)
