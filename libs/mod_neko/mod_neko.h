@@ -26,6 +26,9 @@
 #undef NOERROR
 #undef INLINE
 #include <neko_vm.h>
+#ifndef NEKO_WINDOWS
+#	include <arpa/inet.h>
+#endif
 
 typedef struct {
 	request_rec *r;

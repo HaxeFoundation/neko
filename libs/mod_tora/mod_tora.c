@@ -20,6 +20,9 @@
 #include <http_log.h>
 #include <http_main.h>
 #include <http_protocol.h>
+#ifndef NEKO_WINDOWS
+#	include <arpa/inet.h>
+#endif
 #include "protocol.h"
 
 #ifndef OS_WINDOWS
