@@ -120,16 +120,19 @@ linkoptions = switch system {
 };
 nekovm = switch system { "Windows" => "..\\bin\\neko" default => "../bin/neko" };
 
-if( osx_universal ) {
+if( system == "Mac" ) {
 	var dir = "../libs/include/osx_universal/";
-	cflags += " -arch ppc -arch i386";
-	linkoptions += " -arch ppc -arch i386";
 	libs.regexp.lparams = null;
 	libs.regexp.lib = dir + "libpcre.a";
 	libs.zlib.lparams = null;
 	libs.zlib.lib = dir + "libz.a";
 	libs.mysql.lparams = null;
 	libs.mysql.lib = dir + "libmysqlclient.a";
+}
+
+if( osx_universal ) {
+	cflags += " -arch ppc -arch i386";
+	linkoptions += " -arch ppc -arch i386";
 }
 
 // COMMANDS
