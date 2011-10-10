@@ -295,7 +295,6 @@ static value result_get_float( value o, value n ) {
 }
 
 static CONV convert_type( enum enum_field_types t, int flags, unsigned int length ) {
-	// FIELD_TYPE_TIMESTAMP
 	// FIELD_TYPE_TIME
 	// FIELD_TYPE_YEAR
 	// FIELD_TYPE_NEWDATE
@@ -322,6 +321,7 @@ static CONV convert_type( enum enum_field_types t, int flags, unsigned int lengt
 			return CONV_BINARY;
 		return CONV_STRING;
 	case FIELD_TYPE_DATETIME:
+	case FIELD_TYPE_TIMESTAMP:
 		return CONV_DATETIME;
 	case FIELD_TYPE_DATE:
 		return CONV_DATE;

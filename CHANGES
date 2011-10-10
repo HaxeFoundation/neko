@@ -1,5 +1,6 @@
 2012-??-?? : 1.8.3
 	mod_neko+mod_tora : fixed issue with get_client_ip in 64 bits mode /gcc
+	mysql : added support for timestamp to date conversion
 
 2011-09-10 : 1.8.2
 	vm : use 15 digits (instead of 10) for float display
