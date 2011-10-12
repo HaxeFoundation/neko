@@ -127,6 +127,9 @@ var http_request_method = Lexer.build [
 	("PUT", function(l) { MethodCustom "PUT" });
 	("HEAD", function(l) { MethodCustom "HEAD" });
 	("DELETE", function(l) { MethodCustom "DELETE" });
+	("TRACE",function(l) { MethodCustom "TRACE" });
+	("CONNECT",function(l) { MethodCustom "CONNECT" });
+	("OPTIONS",function(l) { MethodCustom "OPTIONS" });
 ] invalid_char;
 
 var http_request_url = Lexer.build [
