@@ -18,6 +18,7 @@
 	mysql : added result_get_fields_names
 	gc : prevent issues with AV softs / GoogleDesktop which inject threads
 	vm : use sse2 for fp calculus on gcc (double precision, same as msvc/flash)
+		removed in updated build (some CPU are not compatible)
 	mysql : added support for BINARY(size) type
 	vm : keep stack infos for object/array ops (interp)
 	std : added thread_stack
