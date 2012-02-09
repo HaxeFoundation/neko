@@ -307,9 +307,9 @@ link = function(files,target,params1,params2) {
 	var opt = linkoptions;
 	if( target != "mod_tora" && target != "mod_tora2" )
 		opt += " "+linkneko;
-	var cmd = linkcmd+" "+opt+" "+make("-L",libraries);
+	var cmd = linkcmd+" "+make("-L",libraries);
 	var out = " -o ../../bin/"+target+".ndll ";
-	exec(cmd+out+params1+files+params2);
+	exec(cmd+out+files+params1+params2+" "+opt);
 }
 
 // COMPILATION
