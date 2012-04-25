@@ -147,12 +147,7 @@ static value regexp_match( value o, value s, value p, value len ) {
 	if( pp < 0 || ll < 0 || pp > val_strlen(s) || pp + ll > val_strlen(s) )
 		neko_error();
 	d = PCRE(o);
-	if( do_exec(d,val_string(s)+pp,ll,0) ) {
-		if( pp > 0 ) {
-			int i;
-			for(i=0;i<d->nmatchs * 3;i++)
-				d->matchs[i] += pp;
-		}
+	if( do_exec(d,val_string(s),ll+pp,pp) ) {
 		d->str = s;
 		return val_true;
 	} else {
