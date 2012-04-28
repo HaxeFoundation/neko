@@ -578,16 +578,17 @@ function client_msg(c) {
 			IO.close_in fin
 		}
 	}
-	IO.close_out c.out;
 }
 
 function client_msg_safe(c) {
 	try {
 		client_msg(c);
 	} catch {
+		| Invalid_char -> printf "Invalid char reveived\n" ();
 		| IO.Eof -> printf "Connection aborted\n" ();
 		| Neko_error e when Reflect.value e == Reflect.VString "std@socket_send" -> printf "Sending file aborted\n" ();
 	}
+	Net.socket_close c.sock;
 	neko "$loader.loadprim('std@run_gc',1)(true)";
 	false
 }

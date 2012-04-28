@@ -4,6 +4,7 @@
 	std : added merge_sort native implementation
 	std : added mem_local_size
 	regexp : fix in regexp_match, ^ no longer match if pos > 0
+	tools : don't abort server on invalid http request
 
 2011-09-10 : 1.8.2
 	vm : use 15 digits (instead of 10) for float display
