@@ -121,7 +121,7 @@ linkoptions = switch system {
 };
 nekovm = switch system { "Windows" => "..\\bin\\neko" default => "../bin/neko" };
 
-if( system == "Mac" && !is64 ) {
+if( system == "Mac" && $not(is64) ) {
 	var dir = "../libs/include/osx_universal/";
 	libs.regexp.lparams = null;
 	libs.regexp.lib = dir + "libpcre.a";
