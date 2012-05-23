@@ -20,6 +20,7 @@ osx_universal = $loader.args[0] == "-osx-universal";
 // PRIMITIVES
 
 system = $loader.loadprim("std@sys_string",0)();
+is64 = $loader.loadprim("std@sys_is64",0)();
 chdir = $loader.loadprim("std@set_cwd",1);
 readdir = $loader.loadprim("std@sys_read_dir",1);
 stdin = $loader.loadprim("std@file_stdin",0)();
@@ -120,7 +121,7 @@ linkoptions = switch system {
 };
 nekovm = switch system { "Windows" => "..\\bin\\neko" default => "../bin/neko" };
 
-if( system == "Mac" ) {
+if( system == "Mac" && !is64 ) {
 	var dir = "../libs/include/osx_universal/";
 	libs.regexp.lparams = null;
 	libs.regexp.lib = dir + "libpcre.a";
