@@ -35,6 +35,7 @@
 #	include <termios.h>
 #	include <sys/time.h>
 #	include <sys/times.h>
+#	include <sys/wait.h>
 #	include <xlocale.h>
 #endif
 
@@ -221,7 +222,12 @@ static value sys_command( value cmd ) {
 	val_check(cmd,string);
 	if( val_strlen(cmd) == 0 )
 		return alloc_int(-1);
+#ifdef NEKO_WINDOWS
 	return alloc_int( system(val_string(cmd)) );
+#else
+	int status = system(val_string(cmd));
+	return alloc_int( WEXITSTATUS(status) | (WTERMSIG(status) << 8) );
+#endif
 }
 
 /**
