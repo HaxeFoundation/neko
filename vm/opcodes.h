@@ -87,7 +87,9 @@ OPBEGIN
 	OP(AccIndex1),
 	OP(PhysCompare),
 	OP(TailCall),
+	OP(Loop),
 
+	OP(MakeArray2),
 	OP(Last),
 OPEND
 
@@ -157,6 +159,8 @@ static int parameter_table[] = {
 	0, // AccIndex1
 	0, // PhysCompare
 	1, // TailCall
+	0, // Loop
+	1, // MakeArray2
 };
 #endif
 
@@ -228,7 +232,8 @@ static int stack_table[] = {
 	0, // AccIndex1
 	-1, // PhysCompare
 	0, // TailCall
-
+	0, // Loop
+	-P, // MakeArray2
 	0, // Last
 };
 #endif

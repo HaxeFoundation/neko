@@ -47,7 +47,9 @@ function compile(ctx,m,e) {
 	var path, deps, idents = module_infos m;
 	var file = Nekoml.Type.file_name path ".n";
 	if *verbose then printf "Compiling %s\n" file;
-	var code = Neko.Compile.compile (Nekoml.Neko.generate ctx e deps idents path);
+	/* don't use version 1+ since this will use left-to-right evaluation for $array,
+	   leading to too much stack used with big chained lists */
+	var code = Neko.Compile.compile 0 (Nekoml.Neko.generate ctx e deps idents path);
 	var ch = IO.write_file file true;
 	Neko.Bytecode.write ch code;
 	IO.close_out ch
@@ -68,7 +70,7 @@ exception FileNotFound : string;
 
 try {
 	var v = Sys.version;
-	var head = "NekoML Compiler v" + v.maj + "." + v.min + "." + v.build + " - (c)2005-2007 Motion-Twin\n Usage : nekoml [options] files...";
+	var head = "NekoML Compiler v" + v.maj + "." + v.min + "." + v.build + " - (c)2005-2012 Motion-Twin\n Usage : nekoml [options] files...";
 	var path = &[""];
 	var files = &[];
 	var neko = &false;

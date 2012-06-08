@@ -46,6 +46,7 @@ type globals {
 
 type context {
 	g : globals;
+	version : int;
 	mutable ops : opcode array;
 	mutable locals : (string,int) Map.t;
 	mutable env : (string,int) Map.t;
@@ -106,6 +107,7 @@ function stack_delta(o) {
 	| AccStack1
 	| AccIndex0
 	| AccIndex1
+	| Loop
 		-> 0
 	| Add
 	| Sub
@@ -323,9 +325,24 @@ function rec scan_labels(ctx,supported,in_block,e) {
 		ctx.stack := ctx.stack + 1;
 		scan_labels ctx supported false e1;
 		ctx.stack := ctx.stack - (if ext then 2 else 1);
-	| ECall ((EConst (Builtin x),_),el) when x != "array" && x != "apply" ->
+	| ECall ((EConst (Builtin "array"),_),e :: el) ->
+		if ctx.version > 0 then {
+			scan_labels ctx supported false e;
+			List.iter (function(e) {
+				ctx.stack := ctx.stack + 1;
+				scan_labels ctx supported false e;
+			}) el;
+			ctx.stack := ctx.stack - List.length el
+		} else {
+			List.iter (function(e) {
+				scan_labels ctx supported false e;
+				ctx.stack := ctx.stack + 1;
+			}) el;
+			scan_labels ctx supported false e;
+			ctx.stack := ctx.stack - List.length el
+		}
+	| ECall ((EConst (Builtin x),_),el) when x != "apply" ->
 		Neko.Ast.iter (scan_labels ctx false false) e
-	| ECall ((EConst (Builtin "array"),_),e :: el)
 	| ECall ((EConst (Builtin "apply"),_),e :: el)
 	| ECall(e,el) ->
 		List.iter (function(e) {
@@ -600,6 +617,7 @@ function rec compile_function(main,params,e) {
 		traps = [];
 		limit = main.stack;
 		// dup
+		version = main.version;
 		stack = main.stack;
 		locals = main.locals;
 		loop_limit = main.loop_limit;
@@ -718,6 +736,13 @@ function rec compile_builtin(ctx,tail,b,el,p) {
 			}
 			var arr = make_array p (List.map make_array(p) (loop (e :: el) [] 0));
 			compile_builtin ctx tail "aconcat" [arr] p;
+		} else if ctx.version > 0 then {
+			compile ctx false e;
+			List.iter (function(e) {
+				write ctx Push;
+				compile ctx false e;
+			}) el;
+			write ctx (MakeArray count);
 		} else {
 			List.iter (function(e) {
 				compile ctx false e;
@@ -832,6 +857,7 @@ function rec compile(ctx,tail,(e,p)) {
 		}) vl
 	| EWhile (econd,e,NormalWhile) ->
 		var start = pos ctx;
+		if ctx.version > 0 then write ctx Loop;
 		compile ctx false econd;
 		var jend = cjmp false ctx;
 		var save = save_breaks ctx;
@@ -842,6 +868,7 @@ function rec compile(ctx,tail,(e,p)) {
 		jend();
 	| EWhile (econd,e,DoWhile) ->
 		var start = pos ctx;
+		if ctx.version > 0 then write ctx Loop;
 		var save = save_breaks ctx;
 		compile ctx false e;
 		process_continues save;
@@ -1009,7 +1036,7 @@ function rec compile(ctx,tail,(e,p)) {
 	}
 }
 
-function compile(ast) {
+function compile(version,ast) {
 	var g = {
 		globals = Hashtbl.create();
 		gobjects = Hashtbl.create();
@@ -1021,6 +1048,7 @@ function compile(ast) {
 	};
 	var ctx = {
 		g = g;
+		version = version;
 		stack = 0;
 		loop_limit = 0;
 		limit = -1;
@@ -1035,6 +1063,7 @@ function compile(ast) {
 		curpos = (0,0);
 		curfile = "_";
 	};
+	if version > 0 then Array.add g.gtable (GlobalVersion version);
 	scan_labels ctx true true ast;
 	compile ctx false ast;
 	check_breaks ctx;

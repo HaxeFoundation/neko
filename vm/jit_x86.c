@@ -2212,6 +2212,39 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 			*loop = (int)(start - buf.c);
 		}
 		break;
+	case MakeArray2:
+		stack_pad(3);
+		XPush_r(ACC);
+		XPush_c(p + 1);
+		XCall_m(alloc_array);
+		XMov_rp(TMP,Esp,FIELD(1)); // tmp = saved acc
+		XMov_pr(ACC,FIELD(p+1),TMP); // val_array_ptr(acc)[p] = tmp
+		stack_pop_pad(2,3);
+		if( p < 6 ) {
+			i = 0;
+			while( p > 0 ) {
+				p--;
+				i++;
+				XMov_rp(TMP,SP,FIELD(p));
+				XMov_pr(ACC,FIELD(i),TMP);
+				XMov_pc(SP,FIELD(p),0);
+			}
+			stack_pop(SP,i);
+		} else {
+			char *start;
+			int *loop;
+			XMov_rc(TMP2,p);
+			start = buf.c;
+			XMov_rp(TMP,SP,FIELD(0));
+			XMov_pc(SP,FIELD(0),0);
+			XMov_xr(ACC,TMP2,4,TMP);
+			stack_pop(SP,1);
+			XSub_rc(TMP2,1);
+			XCmp_rc(TMP2,0);
+			XJump(JNeq,loop);
+			*loop = (int)(start - buf.c);
+		}
+		break;
 	case MakeEnv:
 		XPush_c(GET_PC());
 		if( p >= MAX_ENV ) {
@@ -2483,6 +2516,9 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 
 		break;
 		}
+	case Loop:
+		// nothing
+		break;
 	default:
 		ERROR;
 	}

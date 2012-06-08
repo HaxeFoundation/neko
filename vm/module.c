@@ -339,6 +339,7 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 	unsigned short stmp;
 	register char *tmp = NULL;
 	int entry;
+	unsigned char version = 0;
 	register neko_module *m = (neko_module*)alloc(sizeof(neko_module));
 	neko_vm *vm = NEKO_VM();
 	READ_LONG(itmp);
@@ -392,6 +393,10 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 			}
 			m->globals[i] = val_null;
 			break;
+		case 6:
+			READ(&version,1);
+			m->globals[i] = val_null;
+			break;
 		default:
 			ERROR();
 			break;
@@ -430,9 +435,15 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 			break;
 		case 2:
 			m->code[i++] = (t >> 2);
-			READ(&t,1);
-			tmp[i] = 0;
-			m->code[i++] = t;
+			if( t == 2 ) {
+				// extra opcodes
+				READ(&t,1);
+				m->code[i-1] = t;
+			} else {
+				READ(&t,1);
+				tmp[i] = 0;
+				m->code[i++] = t;
+			}
 			break;
 		case 3:
 			m->code[i++] = (t >> 2);
@@ -522,6 +533,8 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 		case MakeArray:
 			if( itmp > 0x10000 )
 				failure("Too much big array");
+			if( version >= 1 )
+				m->code[i] = MakeArray2;
 			break;
 		case JumpTable:
 			if( itmp > 0xff || i + 1 + itmp * 2 >= m->codesize )

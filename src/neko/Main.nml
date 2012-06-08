@@ -53,10 +53,10 @@ function parse_multiformat(file) {
 	}
 }
 
-function compile(file) {
+function compile(version,file) {
 	if *verbose then printf "Compiling %s\n" file;
 	var ast = parse_multiformat file;
-	var code = Neko.Compile.compile ast;
+	var code = Neko.Compile.compile version ast;
 	var o = IO.write_file out(file,".n") true;
 	Neko.Bytecode.write o code;
 	IO.close_out o
@@ -128,22 +128,24 @@ function complete(dir) {
 
 try {
 	var v = Sys.version;
-	var head = "Neko Compiler v" + v.maj + "." + v.min + "." + v.build + " - (c)2005-2007 Motion-Twin\n Usage : neko [options] files...";
+	var head = "Neko Compiler v" + v.maj + "." + v.min + "." + v.build + " - (c)2005-2012 Motion-Twin\n Usage : neko [options] files...";
 	var link = &None;
 	var links = &[];
+	var version = &0;
 	var decl = [
 		("-d", Args.String (function(f) { dump f }) , "<file> : dump bytecode");
 		("-z", Args.String (function(f) { release f }), "<file> : make bytecode release");
 		("-p", Args.String (function(f) { print_ast f }), "<file> : parse and print neko source");
 		("-doc", Args.String (function(f) { documentation f }) , "<file> : make documentation");
 		("-o", Args.String (function(f) { dir := Some (complete f) }),"<dir> : set output directory");
-		("-console", Args.Void (function() { Neko.Console.run() }),": run the console");
+		("-console", Args.Void (function() { Neko.Console.run(*version) }),": run the console");
 		("-link", Args.String (function(f) { link := Some f }),"<file> : link bytecodes files");
 		("-v", Args.Void (function() { verbose := true }) , ": verbose mode");
+		("-version", Args.Int (function(v) version := v), ": set the bytecode version");
 	];
 	Args.parse head decl (function(f) {
 		match *link {
-		| None -> compile f
+		| None -> compile (*version) f
 		| Some _ -> links := f :: *links
 		}
 	});

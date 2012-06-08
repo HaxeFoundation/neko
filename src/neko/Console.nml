@@ -34,7 +34,7 @@ function report(msg,p) {
 	IO.printf IO.stderr "%s(%d): %s\n" (Lexer.source p,Lexer.line p,msg);
 }
 
-function run() {
+function run(version) {
 	var ctx = Hashtbl.create();
 	function loop() {
 		// read input
@@ -57,7 +57,7 @@ function run() {
 			var lex = Lexer.create Buffer.create();
 			Lexer.input lex "@console" input 1 0;
 			var ast = Neko.Parser.parse lex;
-			var bytecode = Neko.Compile.compile ast;
+			var bytecode = Neko.Compile.compile version ast;
 			var output , str = IO.write_string();
 			Neko.Bytecode.write output bytecode;
 			(bytecode , str())

@@ -908,6 +908,24 @@ int_val neko_interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_val
 			acc = (int_val)arr;
 		}
 		Next;
+	Instr(MakeArray2)
+		{
+			// similar to MakeArray but will keep a correct evaluation order
+			int n = (int)*pc++;
+			ACC_BACKUP
+			value arr = alloc_array(n+1);
+			ACC_RESTORE;
+			if( n == 2 ) {
+				n += 0;
+			}
+			val_array_ptr(arr)[n] = (value)acc;
+			while( n ) {
+				val_array_ptr(arr)[--n] = (value)*sp;
+				*sp++ = ERASE;
+			}
+			acc = (int_val)arr;
+		}
+		Next;
 	Instr(Bool)
 		acc = (acc == (int_val)val_false || acc == (int_val)val_null || acc == 1)?(int_val)val_false:(int_val)val_true;
 		Next;
@@ -1053,6 +1071,9 @@ int_val neko_interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_val
 			pc += acc;
 		else
 			pc += *pc + 1;
+		Next;
+	Instr(Loop)
+		// space for GC/Debug
 		Next;
 	Instr(Last)
 		goto end;

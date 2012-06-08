@@ -20,6 +20,7 @@ type context {
 	debug : (int, int) array;
 	debug_files : string array;
 	loaded : (string, int option) Hashtbl.t;
+	mutable version : int option;
 	mutable have_debug : bool;
 }
 
@@ -45,6 +46,7 @@ function rec do_link(ctx,module) {
 	IO.close_in ch;
 	var debug = &None;
 	var funcs = &[];
+	var version = &0;
 	var gtbl = Array.map (function(g) {
 		match g {
 		| GlobalVar _ ->
@@ -70,8 +72,21 @@ function rec do_link(ctx,module) {
 			ctx.have_debug := true;
 			debug := Some (files,inf);
 			-1
+		| GlobalVersion v ->
+			if ctx.version == None then {
+				ctx.version := Some v;
+				Array.add ctx.globals GlobalVersion(v);
+			}
+			version := v;
+			-1
 		}
 	}) globals;
+	match ctx.version {
+	| None ->
+		ctx.version := Some (*version);
+	| Some v2 ->
+		if v2 != (*version) then throw Error("Linking modules with different version");
+	}
 	var mid = Array.length ctx.globals;
 	var module_fid = Array.length ctx.debug_files;
 	Array.add ctx.debug_files module;
@@ -182,6 +197,7 @@ function link(output,modules) {
 		debug_files = Array.create();
 		loaded = Hashtbl.create();
 		have_debug = false;
+		version = None;
 	};
 	List.iter (function(m) { ignore(do_link ctx m) }) modules;
 	if ctx.have_debug then Array.add ctx.globals (GlobalDebug ctx.debug_files ctx.debug);

@@ -6,6 +6,8 @@
 	regexp : fix in regexp_match, ^ no longer match if pos > 0
 	tools : don't abort server on invalid http request
 	std : fixed sys_command error code (was <<8 on Linux/OSX)
+	nekoc : added -version which adds Loop opcode and ensure correct $array evaluation order
+	vm : support for bytecode version and new Loop/MakeArray2 opcodes
 
 2011-09-10 : 1.8.2
 	vm : use 15 digits (instead of 10) for float display

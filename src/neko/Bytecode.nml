@@ -82,7 +82,8 @@ type opcode {
 	AccIndex0;
 	AccIndex1;
 	PhysCompare;
-	TailCall : (int, int);	
+	TailCall : (int, int);
+	Loop;
 };
 
 type global {
@@ -91,10 +92,12 @@ type global {
 	GlobalString : string;
 	GlobalFloat : string;
 	GlobalDebug : (string array, (int, int) array);
+	GlobalVersion : int;
 }
 
 exception Invalid_file;
 
+var last_version = 1
 var trap_stack_delta = 6
 var inull : int = neko("null")
 
@@ -169,6 +172,7 @@ function op_param(x) {
 	| AccIndex0
 	| AccIndex1
 	| PhysCompare
+	| Loop
 		-> false
 	}
 }
@@ -273,6 +277,7 @@ function write(ch,(globals,ops)) {
 		| GlobalString s -> IO.write_byte ch 3; IO.write_ui16 ch (String.length s); IO.write ch s
 		| GlobalFloat s -> IO.write_byte ch 4; IO.write ch s; IO.write_char ch '\000'
 		| GlobalDebug (files,inf) -> IO.write_byte ch 5; write_debug_infos ch files inf;
+		| GlobalVersion v -> IO.write_byte ch 6; IO.write_byte ch v
 		}
 	}) globals;
 	Hashtbl.iter (function(_,s) {
@@ -346,6 +351,7 @@ function write(ch,(globals,ops)) {
 			| AccIndex1 -> 61
 			| PhysCompare -> 62
 			| TailCall (args,st) -> pop := (args or (st << 3)); 63
+			| Loop -> pop := 64; 0
 		});
 		var n = *pop;
 		if n == inull then
@@ -457,6 +463,8 @@ function read(ch) {
 			| 5 ->
 				var files, inf = read_debug_infos ch;
 				GlobalDebug files inf
+			| 6 ->
+				GlobalVersion(IO.read_byte ch)
 			| _ ->
 				throw Invalid_file
 			}
@@ -488,7 +496,7 @@ function read(ch) {
 			var op , p = match code and 3 {
 				| 0 -> (code >> 2 , inull)
 				| 1 -> (code >> 3 , ((code >> 2) and 1))
-				| 2 -> (code >> 2 , IO.read_byte ch)
+				| 2 -> if code == 2 then (IO.read_byte ch, inull) else (code >> 2 , IO.read_byte ch)
 				| 3 -> (code >> 2 , IO.read_i32 ch)
 				| _ -> assert()
 			};
@@ -557,6 +565,7 @@ function read(ch) {
 				| 61 -> AccIndex1
 				| 62 -> PhysCompare
 				| 63 -> TailCall (p and 7) (p >> 3)
+				| 64 -> Loop
 				| _ -> throw Invalid_file
 			};
 			pos.[*cpos] := Array.length ops;
@@ -612,6 +621,8 @@ function dump(ch,(globals,ops)) {
 				var ch, buf = IO.write_string();
 				write_debug_infos ch files inf;
 				sprintf "debug %d ops %d bytes" (Array.length inf,String.length buf())
+			| GlobalVersion v ->
+				"version " + string v
 			})
 	}) globals;
 	IO.printf ch "FIELDS =\n" ();
