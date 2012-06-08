@@ -97,7 +97,6 @@ type global {
 
 exception Invalid_file;
 
-var last_version = 1
 var trap_stack_delta = 6
 var inull : int = neko("null")
 

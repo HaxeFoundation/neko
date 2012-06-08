@@ -339,7 +339,7 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 	unsigned short stmp;
 	register char *tmp = NULL;
 	int entry;
-	unsigned char version = 0;
+	unsigned char version = 1;
 	register neko_module *m = (neko_module*)alloc(sizeof(neko_module));
 	neko_vm *vm = NEKO_VM();
 	READ_LONG(itmp);
@@ -533,7 +533,7 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 		case MakeArray:
 			if( itmp > 0x10000 )
 				failure("Too much big array");
-			if( version >= 1 )
+			if( version >= 2 )
 				m->code[i] = MakeArray2;
 			break;
 		case JumpTable:
