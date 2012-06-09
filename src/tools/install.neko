@@ -103,6 +103,15 @@ libs = {
 	},
 }
 
+if( $loader.args[0] == "-static" ) {
+	libs.regexp.lparams = null;
+	libs.regexp.lib = "libpcre.a";
+	libs.zlib.lparams = null;
+	libs.zlib.lib = "libz.a";
+	libs.mysql.lparams = null;
+	libs.mysql.lib = "libmysqlclient.a";
+}
+
 // PLATFORM
 
 cflags = "-O3 -fPIC";
