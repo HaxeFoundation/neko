@@ -13,10 +13,6 @@
  *  Lesser General Public License or the LICENSE file for more details.
  */
 
-// CONFIG
-
-osx_universal = $loader.args[0] == "-osx-universal";
-
 // PRIMITIVES
 
 system = $loader.loadprim("std@sys_string",0)();
@@ -120,21 +116,6 @@ linkoptions = switch system {
 	default => "-shared -L../../bin -pthread"
 };
 nekovm = switch system { "Windows" => "..\\bin\\neko" default => "../bin/neko" };
-
-if( system == "Mac" && $not(is64) ) {
-	var dir = "../libs/include/osx_universal/";
-	libs.regexp.lparams = null;
-	libs.regexp.lib = dir + "libpcre.a";
-	libs.zlib.lparams = null;
-	libs.zlib.lib = dir + "libz.a";
-	libs.mysql.lparams = null;
-	libs.mysql.lib = dir + "libmysqlclient.a";
-}
-
-if( osx_universal ) {
-	cflags += " -arch ppc -arch i386";
-	linkoptions += " -arch ppc -arch i386";
-}
 
 // COMMANDS
 

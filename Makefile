@@ -9,18 +9,12 @@ LIBNEKO_NAME = libneko.so
 LIBNEKO_LIBS = -ldl -lgc -lm
 NEKOVM_FLAGS = -Lbin -lneko
 STD_NDLL_FLAGS = ${NEKOVM_FLAGS} -lrt
-INSTALL_FLAGS =
 
 NEKO_EXEC = LD_LIBRARY_PATH=../bin:${LD_LIBRARY_PATH} NEKOPATH=../boot:../bin ../bin/neko
 
 # For OSX
 #
 # MACOSX = 1
-
-# For OSX Universal Binaries
-#
-# OSX_UNIVERSAL = 1
-
 
 # For 64 bit
 #
@@ -47,11 +41,6 @@ endif
 
 ### OSX SPECIFIC
 
-ifeq (${UNIVERSAL},1)
-MACOSX=1
-OSX_UNIVERSAL=1
-endif
-
 ifeq (${MACOSX}, 1)
 export MACOSX_DEPLOYMENT_TARGET=10.4
 EXTFLAGS =
@@ -63,21 +52,6 @@ NEKOVM_FLAGS = -L${PWD}/bin -lneko
 STD_NDLL_FLAGS = -bundle -undefined dynamic_lookup ${NEKOVM_FLAGS}
 CFLAGS += -L/usr/local/lib -L/opt/local/lib -I/opt/local/include
 
-ifeq (${OSX_UNIVERSAL}, 1)
-
-export MACOSX_DEPLOYMENT_TARGET_i386=10.4
-export MACOSX_DEPLOYMENT_TARGET_ppc=10.3
-CFLAGS += -arch ppc -arch i386
-UNIV = libs/include/osx_universal
-#linking to shared lib (.a) explicitly:
-LIBNEKO_DEPS = ${UNIV}/libgc.a  -lSystemStubs
-LIBNEKO_LIBS = ${LIBNEKO_DEPS} -dynamiclib -single_module ${LIBNEKO_INSTALL} ${CFLAGS}
-NEKOVM_FLAGS = -L${PWD}/bin -lneko
-STD_NDLL_FLAGS = -bundle ${NEKOVM_FLAGS} ${CFLAGS}
-INSTALL_FLAGS = -osx-universal
-
-endif
-
 endif
 
 ### MAKE
@@ -87,9 +61,6 @@ STD_OBJECTS = libs/std/buffer.o libs/std/date.o libs/std/file.o libs/std/init.o 
 LIBNEKO_OBJECTS = vm/alloc.o vm/builtins.o vm/callback.o vm/interp.o vm/load.o vm/objtable.o vm/others.o vm/hash.o vm/module.o vm/jit_x86.o vm/threads.o
 
 all: createbin libneko neko std compiler libs
-
-universal:
-	make MACOSX=1 OSX_UNIVERSAL=1
 
 createbin:
 	-mkdir bin 2>/dev/null
