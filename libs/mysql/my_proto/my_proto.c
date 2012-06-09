@@ -20,6 +20,7 @@
 /* ************************************************************************ */
 #include <math.h>
 #include <string.h>
+#include <stdlib.h>
 #include "my_proto.h"
 
 #define MAX_PACKET_LENGTH 0xFFFFFF
@@ -161,8 +162,8 @@ int myp_send_packet( MYSQL *m, MYSQL_PACKET *p, int *packet_counter ) {
 		else {
 			psize = size;
 			next = 0;
-		}		
-		header = psize | (((*packet_counter)++) << 24);		
+		}
+		header = psize | (((*packet_counter)++) << 24);
 		if( !myp_send(m,&header,4) || !myp_send(m,buf,psize) ) {
 			p->error = 1;
 			return 0;
