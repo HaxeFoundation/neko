@@ -15,6 +15,7 @@
 /*																			*/
 /* ************************************************************************ */
 #include <string.h>
+#include <stdlib.h>
 #include "protocol.h"
 #include "socket.h"
 
