@@ -59,7 +59,7 @@
 #	define NEKO_PPC
 #endif
 
-#if defined(_64BITS)
+#if defined(_64BITS) || defined(__x86_64__)
 #	define NEKO_64BITS
 #endif
 
