@@ -73,6 +73,7 @@ typedef struct {
 	int post_data_size;
 	bool headers_sent;
 	bool is_multipart;
+	bool is_form_post;
 	bool need_discard;
 } mcontext;
 
@@ -99,7 +100,7 @@ static void do_get_params( void *_c ) {
 	mcontext *c = (mcontext*)_c;
 	if( c->r->args )
 		protocol_send_raw_params(c->p,c->r->args);
-	if( c->post_data )
+	if( c->post_data && c->is_form_post )
 		protocol_send_raw_params(c->p,c->post_data);
 }
 
@@ -177,6 +178,7 @@ static int tora_handler( request_rec *r ) {
 	c->need_discard = false;
 	c->is_multipart = false;
 	c->headers_sent = false;
+	c->is_form_post = false;
 	c->r = r;
 	c->post_data = NULL;
 	c->xff = NULL;
@@ -208,6 +210,7 @@ static int tora_handler( request_rec *r ) {
 			}
 			c->post_data[tlen] = 0;
 			c->post_data_size = tlen;
+			c->is_form_post = ctype == NULL || (strstr(ctype,"urlencoded") != NULL);
 		}
 	}
 

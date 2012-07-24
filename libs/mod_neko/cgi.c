@@ -449,8 +449,11 @@ static value get_params() {
 		parse_get(&p,args);
 
 	// PARSE "POST" PARAMS
-	if( c->post_data != NULL )
-		parse_get(&p,val_string(c->post_data));
+	if( c->post_data != NULL ) {
+		const char *ctype = ap_table_get(c->r->headers_in,"Content-Type");
+		if( ctype == NULL || strstr(ctype,"urlencoded") != NULL )
+			parse_get(&p,val_string(c->post_data));
+	}
 
 	return p;
 }
