@@ -172,6 +172,8 @@ void myp_encrypt_password( const char *pass, const char *seed, SHA1_DIGEST out )
 void myp_encrypt_pass_323( const char *pass, const char seed[SEED_LENGTH_323], char out[SEED_LENGTH_323] );
 
 // escaping
+int myp_supported_charset( int charset );
+const char *myp_charset_name( int charset );
 int myp_escape_string( int charset, char *sout, const char *sin, int length );
 int myp_escape_quotes( int charset, char *sout, const char *sin, int length );
 

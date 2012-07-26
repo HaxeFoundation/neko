@@ -318,8 +318,40 @@ void myp_encrypt_pass_323( const char *password, const char seed[SEED_LENGTH_323
 		*(to_start++) ^= extra;
 }
 
+// defined in mysql/strings/ctype-*.c
+const char *myp_charset_name( int charset ) {
+	switch( charset ) {
+	case 8:
+	case 31:
+	case 47:
+		return "latin1";
+	case 63:
+		return "binary";
+	// 101+ : utf16
+	// 160+ : utf32
+	case 33:
+	case 83:
+	case 223:
+	case 254:
+		return "utf8";
+	case 45:
+	case 46:
+		return "utf8mb4"; // superset of utf8 with up to 4 bytes per-char
+	default:
+		if( charset >= 192 && charset <= 211 )
+			return "utf8";
+		if( charset >= 224 && charset <= 243 )
+			return "utf8mb4";
+	}
+	return NULL;
+}
+
+int myp_supported_charset( int charset ) {
+	return myp_charset_name(charset) != NULL;
+}
+
 int myp_escape_string( int charset, char *sout, const char *sin, int length ) {
-	// !! we don't handle UTF-8 chars here !!
+	// this is safe for UTF8 as well since mysql protects against invalid UTF8 char injection
 	const char *send = sin + length;
 	char *sbegin = sout;
 	while( sin != send ) {

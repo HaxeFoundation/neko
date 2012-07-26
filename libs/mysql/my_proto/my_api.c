@@ -411,7 +411,19 @@ int mysql_escape_string( MYSQL *m, char *sout, const char *sin, int length ) {
 	return myp_escape_string(m->infos.server_charset,sout,sin,length);
 }
 
+const char *mysql_character_set_name( MYSQL *m ) {
+	const char *name = myp_charset_name(m->infos.server_charset);
+	if( name == NULL ) {
+		static char tmp[512];
+		sprintf(tmp,"#%d",m->infos.server_charset);
+		return tmp;
+	}
+	return name;
+}
+
 int mysql_real_escape_string( MYSQL *m, char *sout, const char *sin, int length ) {
+	if( !myp_supported_charset(m->infos.server_charset) )
+		return -1;
 	if( m->infos.server_status & SERVER_STATUS_NO_BACKSLASH_ESCAPES )
 		return myp_escape_quotes(m->infos.server_charset,sout,sin,length);
 	return myp_escape_string(m->infos.server_charset,sout,sin,length);
