@@ -537,7 +537,7 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 				m->code[i] = MakeArray2;
 			break;
 		case JumpTable:
-			if( itmp > 0xff || i + 1 + itmp * 2 >= m->codesize )
+			if( itmp > 512 || i + 1 + itmp * 2 >= m->codesize )
 				ERROR();
 			m->code[i+1] <<= 1;
 			break;

@@ -155,9 +155,9 @@ function set_pos(ctx,p) {
 	} else if p == Lexer.null_pos then {
 		// nothing
 	} else {
-		var fid = try 
-			Hashtbl.find ctx.g.hfiles p.psource 
-		catch { Not_found -> 
+		var fid = try
+			Hashtbl.find ctx.g.hfiles p.psource
+		catch { Not_found ->
 			var fid = Array.length ctx.g.files;
 			Array.add ctx.g.files p.psource;
 			Hashtbl.add ctx.g.hfiles p.psource fid;
@@ -260,6 +260,7 @@ function get_cases_ints(cases) {
 	var nmatches = List.length l;
 	if nmatches < 3 then throw Exit;
 	if *max >= 16 && (nmatches * 100) / (*max + 1) < 10 then throw Exit;
+	if *max > 512 then throw Exit;
 	(l,*max + 1)
 }
 
