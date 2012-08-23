@@ -392,7 +392,7 @@ function init_mod_neko() {
 		Net.host_to_string fst(Net.socket_host client().sock);
 	});
 	no_param "get_client_ip" (function() {
-		Net.host_to_string fst(Net.socket_host client().sock);
+		Net.host_to_string fst(Net.socket_peer client().sock);
 	});
 	no_param "get_uri" (function() {
 		var r = request();
