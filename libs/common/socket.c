@@ -27,11 +27,6 @@
 #	define POSIX_LABEL(x)
 #	define HANDLE_EINTR(x)
 
-#	ifdef _MSC_VER
-	long _ftol( double f );
-	long _ftol2( double f) { return _ftol(f); };
-#	endif
-
 #else
 #	include <sys/types.h>
 #	include <sys/socket.h>

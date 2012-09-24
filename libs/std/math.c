@@ -27,11 +27,6 @@
 	</doc>
 **/
 
-#if defined(NEKO_VCC) && !defined(NEKO_STANDALONE)
-	long _ftol( double f );
-	long _ftol2( double f) { return _ftol(f); };
-#endif
-
 #define MATH_PRIM(f) \
 	value math_##f( value n ) { \
 		val_check(n,number); \

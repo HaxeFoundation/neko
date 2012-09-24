@@ -32,6 +32,17 @@
 				ReBuildCommandLine="make clean nekoml"
 				CleanCommandLine="make clean"/>
 		</Configuration>
+		<Configuration
+			Name="ReleaseCrt60|Win32"
+			OutputDirectory="$(ConfigurationName)"
+			IntermediateDirectory="$(ConfigurationName)"
+			ConfigurationType="0">
+			<Tool
+				Name="VCNMakeTool"
+				BuildCommandLine="make nekoml"
+				ReBuildCommandLine="make clean nekoml"
+				CleanCommandLine="make clean"/>
+		</Configuration>
 	</Configurations>
 	<References>
 	</References>

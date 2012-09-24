@@ -26,11 +26,6 @@
 #	define setjmp _setjmp
 #endif
 
-#ifdef NEKO_VCC
-	long _ftol( double f );
-	long _ftol2( double f) { return _ftol(f); };
-#endif
-
 extern value *neko_builtins;
 
 DEFINE_KIND(neko_k_kind);
