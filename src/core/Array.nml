@@ -187,6 +187,12 @@ function sub( a : 'a array, p : int, l : int ) : 'a array {
 	");
 }
 
+function blit( dst : 'a array, pdst : int, src : 'a array, psrc : int, len : int ) {
+	neko("
+		$ablit(dst[0],pdst,src[0],psrc,len)
+	");
+}
+
 function index( a : 'a array, it : 'a ) : int {
 	neko("
 		var al = a[2];
