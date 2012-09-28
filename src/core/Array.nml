@@ -34,6 +34,7 @@ neko("
 	@make = function(a) {
 		$array(a,string,$asize(a));
 	};
+	@merge_sort = $loader.loadprim('std@merge_sort',3);
 	$exports.@make = @make;
 ");
 
@@ -131,26 +132,7 @@ function map( f : 'a -> 'b, a : 'a array ) : 'b array {
 
 function sort( f : 'a -> 'a -> int, a : 'a array ) : void {
 	neko("
-		var l = a[2];
-		var i = 0;
-		a = a[0];
-		while( i < l ) {
-			var swap = false;
-			var j = 0;
-			var max = l - i - 1;
-			while( j < max ) {
-				if( f(a[j],a[j+1]) > 0 ) {
-					var tmp = a[j+1];
-					a[j+1] = a[j];
-					a[j] = tmp;
-					swap = true;
-				}
-				j = j + 1;
-			}
-			if( $not(swap) )
-				break;
-			i = i + 1;
-		}
+		@merge_sort(a[0],a[2],f)
 	");
 }
 
