@@ -1082,7 +1082,10 @@ function compile(version,ast) {
 			Array.append fpos pos;
 		}) (List.rev g.functions);
 		Array.set ops 0 (Jump (Array.length ops));
-		Hashtbl.iter (function(fl,g) {
+		var objects = Array.create();
+		Hashtbl.iter (function(fl,g) Array.add objects (fl,g)) g.gobjects;
+		Array.sort (function((_,g1),(_,g2)) g1 - g2) objects;
+		Array.iter (function((fl,g)) {
 			write ctx AccNull;
 			write ctx New;
 			write ctx (SetGlobal g);
@@ -1091,7 +1094,7 @@ function compile(version,ast) {
 				write ctx Push;
 				write ctx (SetField f);
 			}) fl
-		}) g.gobjects;
+		}) objects;
 		Array.append ctxpos pos;
 		Array.append ctxops ops;
 	};
