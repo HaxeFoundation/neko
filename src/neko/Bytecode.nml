@@ -178,6 +178,7 @@ function op_param(x) {
 
 function code_tables(ops) {
 	var ids = Hashtbl.create();
+	var fids = Array.create();
 	Array.iter (function(x) {
 		match x {
 		| AccField s
@@ -187,7 +188,7 @@ function code_tables(ops) {
 			try
 				var f = Hashtbl.find ids id;
 				if f != s then error("Field hashing conflict " + s + " and " + f);
-			catch { Not_found -> Hashtbl.add ids id s }
+			catch { Not_found -> Hashtbl.add ids id s; Array.add fids s }
 		| _ -> ()
 		}
 	}) ops;
@@ -198,7 +199,7 @@ function code_tables(ops) {
 		p := *p + (if op_param op then 2 else 1);
 	}) ops;
 	pos.[Array.length ops] := *p;
-	(ids , pos , *p)
+	(fids , pos , *p)
 }
 
 function write_debug_infos(ch,files,inf) {
@@ -267,7 +268,7 @@ function write(ch,(globals,ops)) {
 	IO.write ch "NEKO";
 	var ids , pos , csize = code_tables ops;
 	IO.write_i32 ch (Array.length globals);
-	IO.write_i32 ch (Hashtbl.length ids);
+	IO.write_i32 ch (Array.length ids);
 	IO.write_i32 ch csize;
 	Array.iter (function(x) {
 		match x {
@@ -279,7 +280,7 @@ function write(ch,(globals,ops)) {
 		| GlobalVersion v -> IO.write_byte ch 6; IO.write_byte ch v
 		}
 	}) globals;
-	Hashtbl.iter (function(_,s) {
+	Array.iter (function(s) {
 		IO.write ch s;
 		IO.write_char ch '\000';
 	}) ids;
@@ -603,7 +604,7 @@ function read(ch) {
 function dump(ch,(globals,ops)) {
 	var ids, pos , csize = code_tables ops;
 	IO.printf ch "nglobals : %d\n" (Array.length globals);
-	IO.printf ch "nfields : %d\n" (Hashtbl.length ids);
+	IO.printf ch "nfields : %d\n" (Array.length ids);
 	IO.printf ch "codesize : %d ops , %d total\n" (Array.length ops,csize);
 	IO.printf ch "GLOBALS =\n" ();
 	var marks = Array.make csize false;
@@ -625,8 +626,8 @@ function dump(ch,(globals,ops)) {
 			})
 	}) globals;
 	IO.printf ch "FIELDS =\n" ();
-	Hashtbl.iter (function(h,f) {
-		IO.printf ch "  %s%s%.8X\n" (f , if String.length(f) >= 24 then " " else String.make (24 - String.length f) ' ', h);
+	Array.iter (function(f) {
+		IO.printf ch "  %s%s%.8X\n" (f , if String.length(f) >= 24 then " " else String.make (24 - String.length f) ' ', hash_field f);
 	}) ids;
 	IO.printf ch "CODE =\n" ();
 	function str(s,i) { s + " " + string i };
