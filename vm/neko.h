@@ -45,6 +45,8 @@
 
 #if defined(_MSC_VER)
 #	define NEKO_VCC
+// remove deprecated C API usage warnings
+#	pragma warning( disable : 4996 )
 #endif
 
 #if defined(__MINGW32__)
