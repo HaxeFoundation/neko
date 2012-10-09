@@ -116,6 +116,7 @@ int mysql_escape_string( MYSQL *m, char *sout, const char *sin, int length );
 int mysql_real_escape_string( MYSQL *m, char *sout, const char *sin, int length );
 void mysql_close( MYSQL *m );
 const char *mysql_error( MYSQL *m );
+const char *mysql_character_set_name( MYSQL *m );
 
 unsigned int mysql_num_rows( MYSQL_RES *r );
 int mysql_num_fields( MYSQL_RES *r );
