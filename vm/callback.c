@@ -91,7 +91,7 @@ EXTERN value val_callEx( value vthis, value f, value *args, int nargs, value *ex
 			val_throw(alloc_string("Invalid call"));		
 		if( ret == NULL )
 			val_throw( (value)((vfunction*)f)->module );		
-	} else if( (val_tag(f)&7) == VAL_FUNCTION ) {
+	} else if( val_short_tag(f) == VAL_FUNCTION ) {
 		if( nargs == ((vfunction*)f)->nargs )  {
 			int n;
 			if( vm->csp + 4 >= vm->sp - nargs && !neko_stack_expand(vm->sp,vm->csp,vm) ) {

@@ -74,7 +74,8 @@ value NEKO_TYPEOF[] = {
 	alloc_int(5),
 	alloc_int(6),
 	alloc_int(7),
-	alloc_int(8)
+	alloc_int(8),
+	alloc_int(1),
 };
 
 static void default_printer( const char *s, int len, void *out ) {
@@ -944,7 +945,7 @@ int_val neko_interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_val
 		else if( acc & 1 ) {
 			if( val_tag(*sp) == VAL_FLOAT )
 				acc = (int_val)alloc_float(val_float(*sp) + val_int(acc));
-			else if( (val_tag(*sp)&7) == VAL_STRING  )
+			else if( val_short_tag(*sp) == VAL_STRING  )
 				acc = (int_val)neko_append_int(vm,(value)*sp,val_int(acc),true);
 			else if( val_tag(*sp) == VAL_OBJECT )
 				ObjectOp(*sp,acc,id_add)
@@ -953,7 +954,7 @@ int_val neko_interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_val
 		} else if( *sp & 1 ) {
 			if( val_tag(acc) == VAL_FLOAT )
 				acc = (int_val)alloc_float(val_int(*sp) + val_float(acc));
-			else if( (val_tag(acc)&7) == VAL_STRING )
+			else if( val_short_tag(acc) == VAL_STRING )
 				acc = (int_val)neko_append_int(vm,(value)acc,val_int(*sp),false);
 			else if( val_tag(acc) == VAL_OBJECT )
 				ObjectOp(acc,*sp,id_radd)
@@ -961,7 +962,7 @@ int_val neko_interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_val
 				RuntimeError("+",false);
 		} else if( val_tag(acc) == VAL_FLOAT && val_tag(*sp) == VAL_FLOAT )
 			acc = (int_val)alloc_float(val_float(*sp) + val_float(acc));
-		else if( (val_tag(acc)&7) == VAL_STRING && (val_tag(*sp)&7) == VAL_STRING )
+		else if( val_short_tag(acc) == VAL_STRING && val_short_tag(*sp) == VAL_STRING )
 			acc = (int_val)neko_append_strings((value)*sp,(value)acc);
 		else if( val_tag(*sp) == VAL_OBJECT )
 			ObjectOpGen(*sp,acc,id_add,goto add_2)
@@ -971,7 +972,7 @@ int_val neko_interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_val
 				ObjectOpGen(acc,*sp,id_radd,goto add_3)
 			else {
 				add_3:
-				if( (val_tag(acc)&7) == VAL_STRING || (val_tag(*sp)&7) == VAL_STRING ) {
+				if( val_short_tag(acc) == VAL_STRING || val_short_tag(*sp) == VAL_STRING ) {
 					ACC_BACKUP
 					buffer b = alloc_buffer(NULL);
 					BeginCall();
@@ -1042,7 +1043,7 @@ int_val neko_interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_val
 	Instr(Gte)
 		Test(>=)
 	Instr(TypeOf)
-		acc = (int_val)(val_is_int(acc) ? alloc_int(1) : NEKO_TYPEOF[val_tag(acc)&7]);
+		acc = (int_val)(val_is_int(acc) ? alloc_int(1) : NEKO_TYPEOF[val_short_tag(acc)]);
 		Next;
 	Instr(Compare)
 		BeginCall();

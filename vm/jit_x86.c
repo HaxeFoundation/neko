@@ -44,6 +44,8 @@
 #define STACK_ALIGN_DEBUG
 #endif
 
+#define TAG_MASK		((1<<TAG_BITS)-1)
+
 //#define JIT_DEBUG
 
 #ifdef JIT_ENABLE
@@ -1301,7 +1303,7 @@ static void jit_add( jit_ctx *ctx, int _ ) {
 
 	// is_int(acc) && is_string(sp) -> prepare args for append_int(vm,sp,val_int(acc),true)
 	PATCH_JUMP(jnext);
-	XAnd_rc(TMP2,7);
+	XAnd_rc(TMP2,TAG_MASK);
 	XCmp_rb(TMP2,VAL_STRING);
 	XJump(JNeq,jsp_object1);
 	stack_pad(3);
@@ -1346,14 +1348,14 @@ static void jit_add( jit_ctx *ctx, int _ ) {
 
 	// is_float(acc) && is_string(sp) -> BUFADD
 	PATCH_JUMP(jnext);
-	XAnd_rc(TMP2,7);
+	XAnd_rc(TMP2,TAG_MASK);
 	XCmp_rb(TMP2,VAL_STRING);
 	XJump(JEq,jbadd1);
 	XJump(JAlways,jsp_object2);
 
 	// is_string(acc)
 	PATCH_JUMP(jnot_float);
-	XAnd_rc(TMP2,7);
+	XAnd_rc(TMP2,TAG_MASK);
 	XCmp_rb(TMP2,VAL_STRING);
 	XJump(JNeq,jnot_string);
 
@@ -1374,7 +1376,7 @@ static void jit_add( jit_ctx *ctx, int _ ) {
 	// is_string(acc) && is_string(sp) -> append_strings(sp,acc)
 	PATCH_JUMP(jnext);
 	XMov_rp(TMP2,TMP,FIELD(0));
-	XAnd_rc(TMP2,7);
+	XAnd_rc(TMP2,TAG_MASK);
 	XCmp_rb(TMP2,VAL_STRING);
 	XJump(JNeq,jnext);
 	stack_pad(1);
@@ -1411,7 +1413,7 @@ static void jit_add( jit_ctx *ctx, int _ ) {
 	PATCH_JUMP(jnot_object);
 	is_int(TMP,true,jerr1);
 	XMov_rp(TMP2,TMP,FIELD(0));
-	XAnd_rc(TMP2,7);
+	XAnd_rc(TMP2,TAG_MASK);
 	XCmp_rb(TMP2,VAL_STRING);
 	XJump(JEq,jbadd3);
 
@@ -1479,12 +1481,12 @@ static void jit_array_access( jit_ctx *ctx, int n ) {
 	is_int(ACC,true,jerr1);
 	XMov_rp(TMP,ACC,0);
 	XMov_rr(TMP2,TMP);
-	XAnd_rc(TMP2,7);
+	XAnd_rc(TMP2,TAG_MASK);
 	XCmp_rb(TMP2,VAL_ARRAY);
 
 	XJump(JNeq,jnot_array);
 	if( n > 0 ) {
-		XUShr_rc(TMP,3);
+		XUShr_rc(TMP,TAG_BITS);
 		XCmp_rc(TMP,n);
 		XJump(JLte,jbounds);
 	}
@@ -1711,7 +1713,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 	case AccEnv:
 		get_var_r(TMP,VEnv);
 		XMov_rp(TMP2,TMP,FIELD(0));
-		XCmp_rc(TMP2,(p << 3) | VAL_ARRAY);
+		XCmp_rc(TMP2,(p << TAG_BITS) | VAL_ARRAY);
 		XJump(JGt,jok);
 		runtime_error(1,false); // Reading Outside Env
 		PATCH_JUMP(jok);
@@ -1726,7 +1728,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		pop(1);
 		is_int(TMP,true,jerr1);
 		XMov_rp(TMP2,TMP,FIELD(0));
-		XAnd_rc(TMP2,7);
+		XAnd_rc(TMP2,TAG_MASK);
 		XCmp_rb(TMP2,VAL_ARRAY);
 		XJump(JNeq,jnot_array);
 		is_int(ACC,false,jerr2);
@@ -1734,7 +1736,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		// check bounds & access array
 		XShr_rc(ACC,1);
 		XMov_rp(TMP2,TMP,FIELD(0));
-		XUShr_rc(TMP2,3);
+		XUShr_rc(TMP2,TAG_BITS);
 		XCmp_rr(ACC,TMP2);
 		XJump(JGte,jbounds);
 		XAdd_rc(ACC,1);			  // acc = val_array_ptr(tmp)[acc]
@@ -1842,7 +1844,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 	case SetEnv:
 		get_var_r(TMP,VEnv);
 		XMov_rp(TMP2,TMP,FIELD(0));
-		XCmp_rc(TMP2,(p << 3) | VAL_ARRAY);
+		XCmp_rc(TMP2,(p << TAG_BITS) | VAL_ARRAY);
 		XJump(JGt,jok);
 		runtime_error(2,false); // Writing Outside Env
 		PATCH_JUMP(jok);
@@ -1885,7 +1887,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		XMov_rp(TMP,SP,FIELD(0)); // sp[0] : array/object
 		is_int(TMP,true,jerr1);
 		XMov_rp(TMP2,TMP,FIELD(0));
-		XAnd_rc(TMP2,7);
+		XAnd_rc(TMP2,TAG_MASK);
 		XCmp_rb(TMP2,VAL_ARRAY);
 		XJump(JNeq,jnot_array);
 
@@ -1894,7 +1896,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 
 		XMov_rp(TMP,TMP,FIELD(0)); // tmp = tmp->type
 		XShr_rc(TMP2,1);
-		XUShr_rc(TMP,3);
+		XUShr_rc(TMP,TAG_BITS);
 		XCmp_rr(TMP2,TMP);
 		XJump(JGte,jend1);
 
@@ -1932,12 +1934,12 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		pop(1);
 		is_int(TMP,true,jerr1);
 		XMov_rp(TMP2,TMP,FIELD(0));
-		XAnd_rc(TMP2,7);
+		XAnd_rc(TMP2,TAG_MASK);
 		XCmp_rb(TMP2,VAL_ARRAY);
 		XJump(JNeq,jnot_array);
 
 		XMov_rp(TMP2,TMP,FIELD(0));
-		XCmp_rc(TMP2,(p << 3) | VAL_ARRAY); // fake header
+		XCmp_rc(TMP2,(p << TAG_BITS) | VAL_ARRAY); // fake header
 		XJump(JLte,jend1);
 		XMov_pr(TMP,FIELD(p + 1),ACC);
 		XJump_near(jend2);
@@ -2263,7 +2265,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		char *jend, *start;
 		is_int(ACC,true,jerr1);
 		XMov_rp(TMP,ACC,FIELD(0));
-		XAnd_rc(TMP,7);
+		XAnd_rc(TMP,TAG_MASK);
 		XCmp_rb(TMP,VAL_FUNCTION);
 		XJump(JNeq,jerr2);
 		XMov_rp(TMP,ACC,FUNFIELD(nargs));
@@ -2407,7 +2409,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		XJump_near(jend);
 		PATCH_JUMP(jnot_int);
 		XMov_rp(TMP,ACC,FIELD(0));
-		XAnd_rc(TMP,7);
+		XAnd_rc(TMP,TAG_MASK);
 		XMov_rc(TMP2,CONST(NEKO_TYPEOF));
 		XMov_rx(ACC,TMP2,TMP,4);
 		PATCH_JUMP(jend);
@@ -2460,7 +2462,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		char *jend;
 		is_int(ACC,true,jerr1);
 		XMov_rp(TMP,ACC,FIELD(0));
-		XAnd_rc(TMP,7);
+		XAnd_rc(TMP,TAG_MASK);
 		XCmp_rb(TMP,VAL_STRING);
 		XJump(JNeq,jerr2);
 		begin_call();

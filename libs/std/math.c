@@ -66,6 +66,8 @@ static value math_abs( value n ) {
 	switch( val_type(n) ) {
 	case VAL_INT:
 		return alloc_int( abs(val_int(n)) );
+	case VAL_INT32:
+		return alloc_int32( abs(val_int32(n)) );
 	case VAL_FLOAT:
 		return alloc_float( fabs(val_float(n)) ); 
 	default:
@@ -80,6 +82,7 @@ static value math_abs( value n ) {
 static value math_ceil( value n ) {
 	switch( val_type(n) ) {
 	case VAL_INT:
+	case VAL_INT32:
 		return n;
 	case VAL_FLOAT:
 		return alloc_int( (int)ceil(val_float(n)) );
@@ -95,6 +98,7 @@ static value math_ceil( value n ) {
 static value math_floor( value n ) {
 	switch( val_type(n) ) {
 	case VAL_INT:
+	case VAL_INT32:
 		return n;
 	case VAL_FLOAT:
 		return alloc_int( (int)floor(val_float(n)) );
@@ -110,6 +114,7 @@ static value math_floor( value n ) {
 static value math_round( value n ) {
 	switch( val_type(n) ) {
 	case VAL_INT:
+	case VAL_INT32:
 		return n;
 	case VAL_FLOAT:
 		return alloc_int( (int)floor(val_float(n) + 0.5) );
@@ -125,6 +130,7 @@ static value math_round( value n ) {
 static value math_fceil( value n ) {
 	switch( val_type(n) ) {
 	case VAL_INT:
+	case VAL_INT32:
 		return n;
 	case VAL_FLOAT:
 		return alloc_float( ceil(val_float(n)) );
@@ -140,6 +146,7 @@ static value math_fceil( value n ) {
 static value math_ffloor( value n ) {
 	switch( val_type(n) ) {
 	case VAL_INT:
+	case VAL_INT32:
 		return n;
 	case VAL_FLOAT:
 		return alloc_float( floor(val_float(n)) );
@@ -155,6 +162,7 @@ static value math_ffloor( value n ) {
 static value math_fround( value n ) {
 	switch( val_type(n) ) {
 	case VAL_INT:
+	case VAL_INT32:
 		return n;
 	case VAL_FLOAT:
 		return alloc_float( floor(val_float(n) + 0.5) );
@@ -170,6 +178,7 @@ static value math_fround( value n ) {
 static value math_int( value n ) {
 	switch( val_type(n) ) {
 	case VAL_INT:
+	case VAL_INT32:
 		return n;
 	case VAL_FLOAT:
 		{

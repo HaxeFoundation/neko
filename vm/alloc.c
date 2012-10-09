@@ -171,7 +171,7 @@ EXTERN value alloc_empty_string( unsigned int size ) {
 	if( size > max_string_size )
 		failure("max_string_size reached");
 	s = (vstring*)gc_alloc_private_big(size+sizeof(vstring));
-	s->t = VAL_STRING | (size << 3);
+	s->t = VAL_STRING | (size << TAG_BITS);
 	(&s->c)[size] = 0;
 	return (value)s;
 }
@@ -189,6 +189,13 @@ EXTERN value alloc_float( tfloat f ) {
 	return (value)v;
 }
 
+EXTERN value alloc_int32( int i ) {
+	vint32 *v = (vint32*)gc_alloc_private(sizeof(vint32));
+	v->t = VAL_INT32;
+	v->i = i;
+	return (value)v;
+}
+
 EXTERN value alloc_array( unsigned int n ) {
 	value v;
 	if( n == 0 )
@@ -196,7 +203,7 @@ EXTERN value alloc_array( unsigned int n ) {
 	if( n > max_array_size )
 		failure("max_array_size reached");
 	v = (value)gc_alloc_big(sizeof(varray)+(n - 1)*sizeof(value));
-	v->t = VAL_ARRAY | (n << 3);
+	v->t = VAL_ARRAY | (n << TAG_BITS);
 	return v;
 }
 

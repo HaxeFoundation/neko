@@ -23,7 +23,6 @@
 #define C(x,y)	((x << 8) | y)
 #define FLOAT_FMT	"%.15g"
 
-DEFINE_KIND(k_int32);
 DEFINE_KIND(k_hash);
 
 extern mt_lock *neko_fields_lock;
@@ -51,18 +50,32 @@ EXTERN int val_compare( value a, value b ) {
 	switch( C(val_type(a),val_type(b)) ) {
 	case C(VAL_INT,VAL_INT):
 		return icmp(val_int(a),val_int(b));
+	case C(VAL_INT32,VAL_INT):
+		return icmp(val_int32(a),val_int(b));
+	case C(VAL_INT,VAL_INT32):
+		return icmp(val_int(a),val_int32(b));
+	case C(VAL_INT32,VAL_INT32):
+		return icmp(val_int32(a),val_int32(b));
 	case C(VAL_INT,VAL_FLOAT):
 		return fcmp(val_int(a),val_float(b));
+	case C(VAL_INT32,VAL_FLOAT):
+		return fcmp(val_int32(a),val_float(b));
 	case C(VAL_INT,VAL_STRING):
 		return scmp(tmp_buf,sprintf(tmp_buf,"%d",val_int(a)),val_string(b),val_strlen(b));
+	case C(VAL_INT32,VAL_STRING):
+		return scmp(tmp_buf,sprintf(tmp_buf,"%d",val_int32(a)),val_string(b),val_strlen(b));
 	case C(VAL_FLOAT,VAL_INT):
 		return fcmp(val_float(a),val_int(b));
+	case C(VAL_FLOAT,VAL_INT32):
+		return fcmp(val_float(a),val_int32(b));
 	case C(VAL_FLOAT,VAL_FLOAT):
 		return fcmp(val_float(a),val_float(b));
 	case C(VAL_FLOAT,VAL_STRING):
 		return scmp(tmp_buf,sprintf(tmp_buf,FLOAT_FMT,val_float(a)),val_string(b),val_strlen(b));
 	case C(VAL_STRING,VAL_INT):
 		return scmp(val_string(a),val_strlen(a),tmp_buf,sprintf(tmp_buf,"%d",val_int(b)));
+	case C(VAL_STRING,VAL_INT32):
+		return scmp(val_string(a),val_strlen(a),tmp_buf,sprintf(tmp_buf,"%d",val_int32(b)));
 	case C(VAL_STRING,VAL_FLOAT):
 		return scmp(val_string(a),val_strlen(a),tmp_buf,sprintf(tmp_buf,FLOAT_FMT,val_float(b)));
 	case C(VAL_STRING,VAL_BOOL):
@@ -282,11 +295,11 @@ static void val_buffer_rec( buffer b, value v, vlist *stack ) {
 		}
 		buffer_append_sub(b,"]",1);
 		break;
+	case VAL_INT32:
+		buffer_append_sub(b,buf,sprintf(buf,"%d",val_int32(v)));
+		break;
 	case VAL_ABSTRACT:
-		if( val_is_kind(v,k_int32) )
-			buffer_append_sub(b,buf,sprintf(buf,"%d",val_int32(v)));
-		else
-			buffer_append_sub(b,"#abstract",9);
+		buffer_append_sub(b,"#abstract",9);
 		break;
 	default:
 		buffer_append_sub(b,"#unknown",8);

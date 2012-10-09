@@ -37,6 +37,9 @@ static void hash_rec( value v, int *h, vlist *l ) {
 	case VAL_INT:
 		HBIG(val_int(v));
 		break;
+	case VAL_INT32:
+		HBIG(val_int32(v));
+		break;
 	case VAL_NULL:
 		HSMALL(0);
 		break;

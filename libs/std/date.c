@@ -152,7 +152,7 @@ static value date_set_hour( value o, value h, value m, value s ) {
 	d = mktime(&t);
 	if( d == -1 )
 		neko_error();
-	return alloc_int32(d);
+	return alloc_int32((int)d);
 }
 
 /**
@@ -175,7 +175,7 @@ static value date_set_day( value o, value y, value m, value d ) {
 	date = mktime(&t);
 	if( date == -1 )
 		neko_error();
-	return alloc_int32(date);
+	return alloc_int32((int)date);
 }
 
 /**

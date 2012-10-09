@@ -255,12 +255,12 @@ void serialize_rec( sbuffer *b, value o ) {
 			serialize_rec(b,((vfunction*)o)->env);
 		}
 		break;
+	case VAL_INT32:
+		write_char(b,'I');
+		write_int(b,val_int32(o));
+		break;
 	case VAL_ABSTRACT:
-		if( val_is_kind(o,k_int32) ) {
-			write_char(b,'I');
-			write_int(b,val_int32(o));
-			break;
-		} else if( val_is_kind(o,k_hash) ) {
+		if( val_is_kind(o,k_hash) ) {
 			int i;
 			vhash *h = val_hdata(o);
 			write_char(b,'h');
@@ -364,7 +364,7 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 		{
 			int l = read_int(b);
 			value v;
-			if( l < 0 || l >= 0x20000000 )
+			if( l < 0 || l > max_string_size )
 				ERROR();
 			v = alloc_empty_string(l);
 			add_ref(b,v);
@@ -409,7 +409,7 @@ static value unserialize_rec( sbuffer *b, value loader ) {
 			int n = read_int(b);
 			value o;
 			value *t;
-			if( n < 0 || n >= 0x20000000 )
+			if( n < 0 || n > max_array_size )
 				ERROR();
 			o = alloc_array(n);
 			t = val_array_ptr(o);

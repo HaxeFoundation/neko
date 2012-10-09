@@ -282,7 +282,7 @@ static value sys_rename( value path, value newname ) {
 }
 
 #define STATF(f) alloc_field(o,val_id(#f),alloc_int(s.st_##f))
-#define STATF32(f) alloc_field(o,val_id(#f),alloc_int32(s.st_##f))
+#define STATF32(f) alloc_field(o,val_id(#f),alloc_int32((int)s.st_##f))
 
 /**
 	sys_stat : string -> {

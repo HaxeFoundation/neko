@@ -83,7 +83,7 @@
 #	include <stdint.h>
 #endif
 
-#define NEKO_VERSION	182
+#define NEKO_VERSION	200
 
 typedef intptr_t int_val;
 
@@ -97,8 +97,9 @@ typedef enum {
 	VAL_ARRAY		= 5,
 	VAL_FUNCTION	= 6,
 	VAL_ABSTRACT	= 7,
-	VAL_PRIMITIVE	= 6 | 8,
-	VAL_JITFUN		= 6 | 16,
+	VAL_INT32		= 8,
+	VAL_PRIMITIVE	= 6 | 16,
+	VAL_JITFUN		= 6 | 32,
 	VAL_32_BITS		= 0xFFFFFFFF
 } val_type;
 
@@ -132,6 +133,11 @@ typedef struct {
 	val_type t;
 	tfloat f;
 } vfloat;
+
+typedef struct {
+	val_type t;
+	int i;
+} vint32;
 #pragma pack()
 
 typedef struct _vobject {
@@ -182,16 +188,21 @@ struct _mt_lock;
 typedef struct _mt_local mt_local;
 typedef struct _mt_lock mt_lock;
 
+#define TAG_BITS			4
+
 #define val_tag(v)			(*(val_type*)(v))
+#define val_short_tag(v)	(val_tag(v)&((1<<TAG_BITS) - 1))
 #define val_is_null(v)		((v) == val_null)
 #define val_is_int(v)		((((int)(int_val)(v)) & 1) != 0)
+#define val_is_any_int(v)	(val_is_int(v) || val_tag(v) == VAL_INT32)
 #define val_is_bool(v)		((v) == val_true || (v) == val_false)
-#define val_is_number(v)	(val_is_int(v) || val_tag(v) == VAL_FLOAT)
+#define val_is_number(v)	(val_is_int(v) || val_tag(v) == VAL_FLOAT || val_tag(v) == VAL_INT32)
 #define val_is_float(v)		(!val_is_int(v) && val_tag(v) == VAL_FLOAT)
-#define val_is_string(v)	(!val_is_int(v) && (val_tag(v)&7) == VAL_STRING)
-#define val_is_function(v)	(!val_is_int(v) && (val_tag(v)&7) == VAL_FUNCTION)
+#define val_is_int32(v)		(!val_is_int(v) && val_tag(v) == VAL_INT32)
+#define val_is_string(v)	(!val_is_int(v) && val_short_tag(v) == VAL_STRING)
+#define val_is_function(v)	(!val_is_int(v) && val_short_tag(v) == VAL_FUNCTION)
 #define val_is_object(v)	(!val_is_int(v) && val_tag(v) == VAL_OBJECT)
-#define val_is_array(v)		(!val_is_int(v) && (val_tag(v)&7) == VAL_ARRAY)
+#define val_is_array(v)		(!val_is_int(v) && val_short_tag(v) == VAL_ARRAY)
 #define val_is_abstract(v)  (!val_is_int(v) && val_tag(v) == VAL_ABSTRACT)
 #define val_is_kind(v,t)	(val_is_abstract(v) && val_kind(v) == (t))
 #define val_check_kind(v,t)	if( !val_is_kind(v,t) ) neko_error();
@@ -200,25 +211,27 @@ typedef struct _mt_lock mt_lock;
 #define val_data(v)			((vabstract*)(v))->data
 #define val_kind(v)			((vabstract*)(v))->kind
 
-#define val_type(v)			(val_is_int(v) ? VAL_INT : (val_tag(v)&7))
+#define val_type(v)			(val_is_int(v) ? VAL_INT : val_short_tag(v))
 #define val_int(v)			(((int)(int_val)(v)) >> 1)
 #define val_float(v)		(CONV_FLOAT ((vfloat*)(v))->f)
+#define val_int32(v)		(((vint32*)(v))->i)
+#define val_any_int(v)		(val_is_int(v)?val_int(v):val_int32(v))
 #define val_bool(v)			((v) == val_true)
-#define val_number(v)		(val_is_int(v)?val_int(v):val_float(v))
+#define val_number(v)		(val_is_int(v)?val_int(v):((val_tag(v)==VAL_FLOAT)?val_float(v):val_int32(v)))
 #define val_hdata(v)		((vhash*)val_data(v))
 #define val_string(v)		(&((vstring*)(v))->c)
-#define val_strlen(v)		(val_tag(v) >> 3)
-#define val_set_length(v,l) val_tag(v) = (val_tag(v)&7) | ((l) << 3)
+#define val_strlen(v)		(val_tag(v) >> TAG_BITS)
+#define val_set_length(v,l) val_tag(v) = val_short_tag(v) | ((l) << TAG_BITS)
 #define val_set_size		val_set_length
 
-#define val_array_size(v)	(val_tag(v) >> 3)
+#define val_array_size(v)	(val_tag(v) >> TAG_BITS)
 #define val_array_ptr(v)	(&((varray*)(v))->ptr)
 #define val_fun_nargs(v)	((vfunction*)(v))->nargs
 #define alloc_int(v)		((value)(int_val)((((int)(v)) << 1) | 1))
 #define alloc_bool(b)		((b)?val_true:val_false)
 
-#define max_array_size		((1 << 29) - 1)
-#define max_string_size		((1 << 29) - 1)
+#define max_array_size		((1 << (32 - TAG_BITS)) - 1)
+#define max_string_size		((1 << (32 - TAG_BITS)) - 1)
 #define invalid_comparison	0xFE
 
 #undef EXTERN
@@ -255,12 +268,9 @@ typedef struct _mt_lock mt_lock;
 #	endif
 #endif
 
-#define alloc_int32(i) alloc_abstract(k_int32, (value)(int_val)(i))
 // the two upper bits must be either 00 or 11
 #define need_32_bits(i) ( ((((unsigned int)i) >> 30) + 1) & 2 )
 #define alloc_best_int(i) (need_32_bits(i) ? alloc_int32(i) : alloc_int(i))
-#define val_int32(v) (val_is_int(v)?val_int(v):(int)(int_val)val_data(v))
-#define val_is_int32(v) (val_is_int(v) || val_is_kind(v,k_int32))
 
 #define neko_error()		return NULL
 #define failure(msg)		_neko_failure(alloc_string(msg),__FILE__,__LINE__)
@@ -301,6 +311,7 @@ typedef struct _mt_lock mt_lock;
 #define DECLARE_PRIM(func,nargs) C_FUNCTION_BEGIN H_EXTERN void *func##__##nargs(); C_FUNCTION_END
 #define DECLARE_KIND(name) C_FUNCTION_BEGIN H_EXTERN extern vkind name; C_FUNCTION_END
 
+#define alloc_int32			neko_alloc_int32
 #define alloc_float			neko_alloc_float
 #define alloc_string		neko_alloc_string
 #define alloc_empty_string	neko_alloc_empty_string
@@ -341,7 +352,6 @@ typedef struct _mt_lock mt_lock;
 #define val_iter_fields		neko_val_iter_fields
 #define val_field_name		neko_val_field_name
 #define val_hash			neko_val_hash
-#define k_int32				neko_k_int32
 #define k_hash				neko_k_hash
 #define kind_share			neko_kind_share
 
@@ -357,7 +367,6 @@ typedef struct _mt_lock mt_lock;
 
 C_FUNCTION_BEGIN
 
-	VEXTERN vkind k_int32;
 	VEXTERN vkind k_hash;
 
 	VEXTERN value val_null;
@@ -365,6 +374,7 @@ C_FUNCTION_BEGIN
 	VEXTERN value val_false;
 
 	EXTERN value alloc_float( tfloat t );
+	EXTERN value alloc_int32( int i );
 
 	EXTERN value alloc_string( const char *str );
 	EXTERN value alloc_empty_string( unsigned int size );

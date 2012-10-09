@@ -29,6 +29,7 @@
 extern value *neko_builtins;
 
 DEFINE_KIND(neko_k_kind);
+DEFINE_KIND(k_old_int32);
 
 /**
 	<doc>
@@ -605,7 +606,7 @@ static value builtin_varargs( value f ) {
 	<doc>Add two integers</doc>
 **/
 static value builtin_iadd( value a, value b ) {
-	return alloc_int( val_int(a) + val_int(b) );
+	return alloc_best_int( val_any_int(a) + val_any_int(b) );
 }
 
 /**
@@ -613,7 +614,7 @@ static value builtin_iadd( value a, value b ) {
 	<doc>Subtract two integers</doc>
 **/
 static value builtin_isub( value a, value b ) {
-	return alloc_int( val_int(a) - val_int(b) );
+	return alloc_best_int( val_any_int(a) - val_any_int(b) );
 }
 
 /**
@@ -621,7 +622,7 @@ static value builtin_isub( value a, value b ) {
 	<doc>Multiply two integers</doc>
 **/
 static value builtin_imult( value a, value b ) {
-	return alloc_int( val_int(a) * val_int(b) );
+	return alloc_best_int( val_any_int(a) * val_any_int(b) );
 }
 
 /**
@@ -629,9 +630,9 @@ static value builtin_imult( value a, value b ) {
 	<doc>Divide two integers. An error occurs if division by 0</doc>
 **/
 static value builtin_idiv( value a, value b ) {
-	if( b == (value)1 )
+	if( val_any_int(b) == 0 )
 		neko_error();
-	return alloc_int( val_int(a) / val_int(b) );
+	return alloc_best_int( val_any_int(a) / val_any_int(b) );
 }
 
 typedef union {
@@ -684,7 +685,7 @@ static value builtin_int( value f ) {
 	switch( val_type(f) ) {
 	case VAL_FLOAT:
 #ifdef	NEKO_WINDOWS
-		return alloc_int((int)val_float(f));
+		return alloc_best_int((int)val_float(f));
 #else
 		// in case of overflow, the result is unspecified by ISO
 		// so we have to make a module 2^32 before casting to int
@@ -705,14 +706,15 @@ static value builtin_int( value f ) {
 				else if( k >= 'a' && k <= 'f' )
 					h = (h << 4) | ((k - 'a') + 10);
 				else
-					return alloc_int(0);
+					return val_null;
 			}
-			return alloc_int(h);
+			return alloc_best_int(h);
 		}
 		h = strtol(c,&end,10);
-		return ( c == end ) ? val_null : alloc_int(h);
+		return ( c == end ) ? val_null : alloc_best_int(h);
 		}
 	case VAL_INT:
+	case VAL_INT32:
 		return f;
 	}
 	return val_null;
@@ -740,6 +742,8 @@ static value builtin_float( value f ) {
 	<doc>Returns the kind value of the abstract</doc>
 **/
 static value builtin_getkind( value v ) {
+	if( val_is_int32(v) )
+		return alloc_abstract(neko_k_kind,k_old_int32);
 	val_check(v,abstract);
 	return alloc_abstract(neko_k_kind,val_kind(v));
 }
@@ -750,7 +754,7 @@ static value builtin_getkind( value v ) {
 **/
 static value builtin_iskind( value v, value k ) {
 	val_check_kind(k,neko_k_kind);
-	return val_is_abstract(v) ? alloc_bool(val_kind(v) == (vkind)val_data(k)) : val_false;
+	return val_is_abstract(v) ? alloc_bool(val_kind(v) == (vkind)val_data(k)) : (val_data(k) == k_old_int32 ? alloc_bool(val_is_int32(v)) : val_false);
 }
 
 /** <doc><h2>Hashtable Builtins</h2></doc> **/
@@ -1118,6 +1122,7 @@ static value builtin_not( value f ) {
 static value builtin_typeof( value v ) {
 	switch( val_type(v) ) {
 	case VAL_INT:
+	case VAL_INT32:
 		return alloc_int(1);
 	case VAL_NULL:
 		return alloc_int(0);

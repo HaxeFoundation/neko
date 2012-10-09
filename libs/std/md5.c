@@ -290,6 +290,9 @@ static void make_md5_rec( md5_context *m, value v, stack *cur ) {
 	case VAL_INT:
 		md5_uint(m,(uint32)(int_val)v);
 		break;
+	case VAL_INT32:
+		md5_uint(m,(uint32)val_int32(v));
+		break;
 	case VAL_BOOL:
 		md5_uint(m,val_bool(v)?8:16);
 		break;

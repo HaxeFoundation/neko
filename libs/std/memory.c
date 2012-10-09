@@ -77,6 +77,10 @@ static int mem_size_rec( value v,  vtree **l ) {
 		if( mem_cache(v,l) )
 			return 0;
 		return sizeof(vfloat);
+	case VAL_INT32:
+		if( mem_cache(v,l) )
+			return 0;
+		return sizeof(vint32);
 	case VAL_STRING:
 		if( mem_cache(v,l) )
 			return 0;

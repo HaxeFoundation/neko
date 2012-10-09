@@ -1,4 +1,4 @@
-2012-??-?? : 1.8.3
+2012-??-?? : 2.0.0
 	mod_neko+mod_tora : fixed issue with get_client_ip in 64 bits mode /gcc
 	mysql : added support for timestamp to date conversion
 	std : added merge_sort native implementation
@@ -11,6 +11,9 @@
 	mod_neko/tora : only mix POST with GET params if content-type contains 'urlencoded'
 	mysql5 : added charset support check for escape()
 	nekoc : fixed bug with switch tables where max >= 256
+	neko : int32 is now a first class value
+	std : md5 and hashing now takes the int32 value into account
+	neko : max array/string size is now 256MB instead of 512MB
 
 2011-09-10 : 1.8.2
 	vm : use 15 digits (instead of 10) for float display
