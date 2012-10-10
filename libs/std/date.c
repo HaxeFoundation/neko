@@ -121,11 +121,11 @@ static value date_format( value o, value fmt ) {
 	char buf[128];
 	struct tm t;
 	time_t d;
-	val_check(o,int32);
+	val_check(o,any_int);
 	if( val_is_null(fmt) )
 		fmt = alloc_string("%Y-%m-%d %H:%M:%S");
 	val_check(fmt,string);
-	d = val_int32(o);
+	d = val_any_int(o);
 	if( localtime_r(&d,&t) == NULL )
 		neko_error();
 	strftime(buf,127,val_string(fmt),&t);
@@ -139,11 +139,11 @@ static value date_format( value o, value fmt ) {
 static value date_set_hour( value o, value h, value m, value s ) {
 	struct tm t;
 	time_t d;
-	val_check(o,int32);
+	val_check(o,any_int);
 	val_check(h,int);
 	val_check(m,int);
 	val_check(s,int);
-	d = val_int32(o);
+	d = val_any_int(o);
 	if( localtime_r(&d,&t) == NULL )
 		neko_error();
 	t.tm_hour = val_int(h);
@@ -162,11 +162,11 @@ static value date_set_hour( value o, value h, value m, value s ) {
 static value date_set_day( value o, value y, value m, value d ) {
 	struct tm t;
 	time_t date;
-	val_check(o,int32);
+	val_check(o,any_int);
 	val_check(y,int);
 	val_check(m,int);
 	val_check(d,int);
-	date = val_int32(o);
+	date = val_any_int(o);
 	if( localtime_r(&date,&t) == NULL )
 		neko_error();
 	t.tm_year = val_int(y) - 1900;
@@ -186,8 +186,8 @@ static value date_get_day( value o ) {
 	value r;
 	struct tm t;
 	time_t d;
-	val_check(o,int32);
-	d = val_int32(o);
+	val_check(o,any_int);
+	d = val_any_int(o);
 	if( localtime_r(&d,&t) == NULL )
 		neko_error();
 	r = alloc_object(NULL);
@@ -205,8 +205,8 @@ static value date_get_hour( value o ) {
 	value r;
 	struct tm t;
 	time_t d;
-	val_check(o,int32);
-	d = val_int32(o);
+	val_check(o,any_int);
+	d = val_any_int(o);
 	if( localtime_r(&d,&t) == NULL )
 		neko_error();
 	r = alloc_object(NULL);
