@@ -114,8 +114,8 @@
 		</Configuration>
 		<Configuration
 			Name="ReleaseCrt60|Win32"
-			OutputDirectory="Release"
-			IntermediateDirectory="Release"
+			OutputDirectory="Release5"
+			IntermediateDirectory="Release5"
 			ConfigurationType="2"
 			CharacterSet="2">
 			<Tool
