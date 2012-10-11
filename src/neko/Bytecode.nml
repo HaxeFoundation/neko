@@ -217,7 +217,7 @@ function write_debug_infos(ch,files,inf) {
 	} else
 		invalid_arg();
 	Array.iter (function(s) { IO.write ch s; IO.write_char ch '\000' }) files;
-    IO.write_i32 ch (Array.length inf);
+	IO.write_i32 ch (Array.length inf);
 	var curfile = &0;
 	var curpos = &0;
 	var rcount = &0;
@@ -386,7 +386,7 @@ function read_debug_infos(ch) {
 	var nfiles = IO.read_byte ch;
 	// see comments in read_debug_infos
 	var lot_of_files = &false;
-	var nfiles = if nfiles < 0x80 then 
+	var nfiles = if nfiles < 0x80 then
 			nfiles
 		else {
 			lot_of_files := true;
