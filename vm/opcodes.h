@@ -90,6 +90,7 @@ OPBEGIN
 	OP(Loop),
 
 	OP(MakeArray2),
+	OP(AccInt32),
 	OP(Last),
 OPEND
 
@@ -161,6 +162,7 @@ static int parameter_table[] = {
 	1, // TailCall
 	0, // Loop
 	1, // MakeArray2
+	1, // AccInt32
 };
 #endif
 
@@ -234,6 +236,7 @@ static int stack_table[] = {
 	0, // TailCall
 	0, // Loop
 	-P, // MakeArray2
+	0, // AccInt32
 	0, // Last
 };
 #endif

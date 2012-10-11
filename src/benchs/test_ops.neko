@@ -1,0 +1,40 @@
+
+eq = function(a,b) {
+	if( a != b ) $print(a," should be ",b,"\n") else $print(".")
+}
+eq($string(1),"1");
+eq($string(0xFFFFFFFF),"-1");
+
+o = $new(null);
+o.__add = function(x) return x + 66;
+o.__radd = function(x) return x + 77;
+
+var small = 0x7FFF;
+var med = 0x7FFF0000;
+var less = 0x80000000;
+
+var spe1 = 0xC0000000;
+
+eq($string(small),"32767");
+eq($string(med),"2147418112");
+eq($string(less),"-2147483648");
+eq($string(spe1),"-1073741824");
+
+$print("\n");
+
+eq(small<<16,med);
+eq(small<<17,-131072);
+eq(med+0x10000,less);
+var low = 0xC000;
+eq(low<<16,spe1);
+
+var low = 0xA000;
+eq(low<<16,0xA0000000);
+
+eq(small*small,1073676289);
+eq(small*small*small,1073840127);
+eq(small*small*small*med,65536);
+eq(med+med,-131072);
+
+eq(o + 1, 67);
+eq(1 + o, 78);

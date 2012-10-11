@@ -484,7 +484,10 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 			m->code[i+1] = (int_val)(m->code + itmp);
 			break;
 		case AccInt:
-			m->code[i+1] = (int_val)alloc_int((int)itmp);
+			if( need_32_bits((int)itmp) )
+				m->code[i] = AccInt32;
+			else
+				m->code[i+1] = (int_val)alloc_int((int)itmp);
 			break;
 		case AccIndex:
 			m->code[i+1] += 2;

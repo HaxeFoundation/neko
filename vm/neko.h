@@ -269,7 +269,7 @@ typedef struct _mt_lock mt_lock;
 #endif
 
 // the two upper bits must be either 00 or 11
-#define need_32_bits(i) ( ((((unsigned int)i) >> 30) + 1) & 2 )
+#define need_32_bits(i) ( (((unsigned int)(i)) + 0x40000000) & 0x80000000 )
 #define alloc_best_int(i) (need_32_bits(i) ? alloc_int32(i) : alloc_int(i))
 
 #define neko_error()		return NULL
