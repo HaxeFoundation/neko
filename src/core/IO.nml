@@ -226,22 +226,7 @@ function read_i32(i) : int {
 	var ch2 = read_byte i;
 	var ch3 = read_byte i;
 	var ch4 = read_byte i;
-	if ch4 and 128 != 0 then {
-		if (ch4 and 64 == 0) then throw Overflow("read_i32");
-		ch1 or (ch2 << 8) or (ch3 << 16) or ((ch4 and 127) << 24)
-	} else {
-		if (ch4 and 64 != 0) then throw Overflow("read_i32");
-		ch1 or (ch2 << 8) or (ch3 << 16) or (ch4 << 24)
-	}
-}
-
-function read_real_i32(i) : int32 {
-	var ch1 = read_byte i;
-	var ch2 = read_byte i;
-	var ch3 = read_byte i;
-	var base = Int32.of_int (ch1 or (ch2 << 8) or (ch3 << 16));
-	var big = Int32.shl Int32.of_int(read_byte(i)) 24;
-	Int32.bor base big
+	ch1 or (ch2 << 8) or (ch3 << 16) or (ch4 << 24)
 }
 
 function read_ui16(i) {
@@ -322,15 +307,6 @@ function write_i32(o : output, x : int) : void {
 	write_byte o (x >> 8);
 	write_byte o (x >> 16);
 	write_byte o (x >>> 24)
-}
-
-function write_real_i32(o : output, x : int32) : void {
-	var base = Int32.to_int (Int32.band x (Int32.of_int 0xFFFFFF));
-	var big = Int32.to_int (Int32.ushr x 24);
-	write_byte o base;
-	write_byte o (base >> 8);
-	write_byte o (base >> 16);
-	write_byte o big
 }
 
 function write_ui16(o : output, x : int) : void {
