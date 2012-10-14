@@ -96,6 +96,7 @@ static value date_new( value s ) {
 			break;
 		case 10:
 			sscanf(val_string(s),"%4d-%2d-%2d",&t.tm_year,&t.tm_mon,&t.tm_mday);
+			t.tm_isdst = -1;
 			break;
 		default:
 			{

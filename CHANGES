@@ -14,7 +14,8 @@
 	neko : int32 is now a first class value
 	std : md5 and hashing now takes the int32 value into account
 	neko : max array/string size is now 256MB instead of 512MB
-
+	std : date_new("YYYY-MM-DD") now uses localtime instead of UTC (same as Y-M-D H:M:S)
+	
 2011-09-10 : 1.8.2
 	vm : use 15 digits (instead of 10) for float display
 	std : allow up to 512MB array/string size in serialize (instead of 1MB)
