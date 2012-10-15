@@ -686,6 +686,8 @@ int_val neko_interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_val
 				acc = (int_val)val_array_ptr(*sp)[k];
 		} else if( val_is_object(*sp) )
 			ObjectOp(*sp,acc,id_get)
+		else if( val_is_int32(acc) && val_is_array(*sp) )
+			acc = (int_val)val_null;
 		else
 			RuntimeError("Invalid array access",false);
 		*sp++ = ERASE;
@@ -757,10 +759,14 @@ int_val neko_interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_val
 			value f = val_field((value)*sp,id_set);
 			if( f == val_null )
 				RuntimeError("Unsupported operation",false);
+			PushInfos();
 			BeginCall();
 			val_callEx((value)*sp,f,args,2,NULL);
 			EndCall();
+			PopInfos(false);
 			acc = (int_val)args[1];
+		} else if( val_is_int32(sp[1]) && val_is_array(*sp) ) {
+			// out range
 		} else
 			RuntimeError("Invalid array access",false);
 		*sp++ = ERASE;
@@ -775,9 +781,11 @@ int_val neko_interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_val
 			value f = val_field((value)*sp,id_set);
 			if( f == val_null )
 				RuntimeError("Unsupported operation",true);
+			PushInfos();
 			BeginCall();
 			val_callEx((value)*sp,f,args,2,NULL);
 			EndCall();
+			PopInfos(false);
 			acc = (int_val)args[1];
 		} else
 			RuntimeError("Invalid array access",true);

@@ -1720,8 +1720,8 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		XMov_rp(ACC,TMP,FIELD(p + 1)); // acc = val_array_ptr(env)[p]
 		break;
 	case AccArray: {
-		int *jerr1, *jerr2, *jerr3, *jnot_array, *jbounds;
-		char *jend1, *jend2, *jend3;
+		int *jerr1, *jerr2, *jerr3, *jerr4, *jnot_array, *jbounds;
+		char *jend1, *jend2, *jend3, *jend4;
 
 		// check array & int
 		XMov_rp(TMP,SP,FIELD(0));
@@ -1757,13 +1757,22 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		stack_pop(Esp,1);
 		XJump_near(jend3);
 
-		PATCH_JUMP(jerr1);
+		// check int32 index (with array)
 		PATCH_JUMP(jerr2);
+		XMov_rp(TMP2,ACC,FIELD(0));
+		XCmp_rb(TMP2,VAL_INT32);
+		XJump(JNeq,jerr4);
+		XMov_rc(ACC,CONST(val_null));
+		XJump_near(jend4);
+
+		PATCH_JUMP(jerr1);
 		PATCH_JUMP(jerr3);
+		PATCH_JUMP(jerr4);
 		runtime_error(4,false); // Invalid array access
 		PATCH_JUMP(jend1);
 		PATCH_JUMP(jend2);
 		PATCH_JUMP(jend3);
+		PATCH_JUMP(jend4);
 		break;
 		}
 	case AccIndex:
@@ -1882,7 +1891,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		break;
 		}
 	case SetArray: {
-		int *jerr1, *jerr2, *jerr3, *jnot_array, *jend1;
+		int *jerr1, *jerr2, *jerr3, *jnot_array, *jend1, *jend4;
 		char *jend2, *jend3;
 		XMov_rp(TMP,SP,FIELD(0)); // sp[0] : array/object
 		is_int(TMP,true,jerr1);
@@ -1916,14 +1925,20 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		stack_pop(Esp,2);
 		XJump_near(jend3);
 
-		PATCH_JUMP(jerr1);
+		// check int32 index (with array)
 		PATCH_JUMP(jerr2);
+		XMov_rp(TMP2,TMP2,FIELD(0));
+		XCmp_rb(TMP2,VAL_INT32);
+		XJump(JEq,jend4);
+
+		PATCH_JUMP(jerr1);
 		PATCH_JUMP(jerr3);
 		runtime_error(4,false);
 
 		PATCH_JUMP(jend1);
 		PATCH_JUMP(jend2);
 		PATCH_JUMP(jend3);
+		PATCH_JUMP(jend4);
 		pop(2);
 		break;
 		}
