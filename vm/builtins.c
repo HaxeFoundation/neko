@@ -1091,7 +1091,7 @@ static value builtin_rethrow( value v ) {
 	<doc>Return true if [v] is not [false], not [null] and not 0</doc>
 **/
 static value builtin_istrue( value f ) {
-	return alloc_bool(f != val_false && f != val_null && f != alloc_int(0));
+	return alloc_bool(f != val_false && f != val_null && f != alloc_int(0) && (val_is_int(f) || val_tag(f) != VAL_INT32 || val_int32(f) != 0));
 }
 
 /**
@@ -1099,7 +1099,7 @@ static value builtin_istrue( value f ) {
 	<doc>Return true if [v] is [false] or [null] or [0]</doc>
 **/
 static value builtin_not( value f ) {
-	return alloc_bool(f == val_false || f == val_null || f == alloc_int(0));
+	return alloc_bool(f == val_false || f == val_null || f == alloc_int(0) || (!val_is_int(f) && val_tag(f) == VAL_INT32 && val_int32(f) == 0));
 }
 
 /**

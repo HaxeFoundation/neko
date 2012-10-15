@@ -124,8 +124,8 @@ static value random_new() {
 **/
 static value random_set_seed( value o, value v ) {
 	val_check_kind(o,k_random);
-	val_check(v,int);
-	rnd_set_seed(val_rnd(o),val_int(v));
+	val_check(v,any_int);
+	rnd_set_seed(val_rnd(o),val_any_int(v));
 	return val_true;
 }
 

@@ -53,8 +53,8 @@ static value math_pow( value a, value b ) {
 	val_check(a,number);
 	val_check(b,number);
 	r = (tfloat)pow(val_number(a),val_number(b));
-	if( (int)r == r && fabs(r) < (1 << 30) )
-		return alloc_int((int)r);
+	if( (int)r == r && fabs(r) < (1 << 31) )
+		return alloc_best_int((int)r);
 	return alloc_float(r);
 }
 
@@ -85,7 +85,7 @@ static value math_ceil( value n ) {
 	case VAL_INT32:
 		return n;
 	case VAL_FLOAT:
-		return alloc_int( (int)ceil(val_float(n)) );
+		return alloc_best_int( (int)ceil(val_float(n)) );
 	default:
 		neko_error();
 	}
@@ -101,7 +101,7 @@ static value math_floor( value n ) {
 	case VAL_INT32:
 		return n;
 	case VAL_FLOAT:
-		return alloc_int( (int)floor(val_float(n)) );
+		return alloc_best_int( (int)floor(val_float(n)) );
 	default:
 		neko_error();
 	}
@@ -117,7 +117,7 @@ static value math_round( value n ) {
 	case VAL_INT32:
 		return n;
 	case VAL_FLOAT:
-		return alloc_int( (int)floor(val_float(n) + 0.5) );
+		return alloc_best_int( (int)floor(val_float(n) + 0.5) );
 	default:
 		neko_error();
 	}
@@ -183,7 +183,7 @@ static value math_int( value n ) {
 	case VAL_FLOAT:
 		{
 			tfloat v = val_float(n);
-			return alloc_int( (int)((n < 0) ? ceil(v) : floor(v)) );
+			return alloc_best_int( (int)((n < 0) ? ceil(v) : floor(v)) );
 		}
 	default:
 		neko_error();
