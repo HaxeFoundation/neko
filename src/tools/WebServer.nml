@@ -175,9 +175,9 @@ function header(name,headers) {
 	}
 }
 
-function parse_http_request(in) {
+function parse_http_request(c) {
 	var l = Lexer.create();
-	Lexer.input l "http-stream" in 1 0;
+	Lexer.input l "http-stream" c.in 1 0;
 	var meth = Lexer.token l http_request_method;
 	var url = Lexer.token l http_request_url;
 	var version = Lexer.token l http_request_version;
@@ -186,7 +186,13 @@ function parse_http_request(in) {
 	var ctype = header "Content-Type" headers;
 	var post_data, params = if meth == MethodPost && ctype != Some "multipart/form-data" then {
 		var len = match header "Content-Length" headers { None -> 0 | Some len -> int len };
-		if len >= (1 << 18) then error "max post data exceeded";
+		if len >= (1 << 18) then {
+			IO.write c.out "HTTP/1.1 200 OK\r\n";
+			IO.write c.out "\n\n";
+			IO.write c.out "Max post data exceeded";
+			printf "Max post data exceeded (%d bytes)\n" len;
+			throw IO.Eof;
+		}
 		var b = Buffer.create();
 		var i = &0;
 		while *i < len {
@@ -539,7 +545,7 @@ function config(c,r) {
 }
 
 function client_msg(c) {
-	var r = parse_http_request c.in;
+	var r = parse_http_request c;
 	cur_client := Some c;
 	if r.res == "/server:config" then
 		config(c,r)
