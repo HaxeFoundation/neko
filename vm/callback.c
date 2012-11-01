@@ -56,7 +56,7 @@ EXTERN value val_callEx( value vthis, value f, value *args, int nargs, value *ex
 		}
 		neko_setup_trap(vm);
 	}
-	if( (unsigned)((int_val)&vm) < (unsigned)(int_val)vm->c_stack_max )
+	if( (uintptr_t)&vm < (uintptr_t)vm->c_stack_max )
 		val_throw(alloc_string("C Stack Overflow"));
 	if( val_is_int(f) )
 		val_throw(alloc_string("Invalid call"));
