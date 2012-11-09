@@ -648,6 +648,18 @@ static value sys_get_pid() {
 #	endif
 }
 
+/**
+	win_env_changed : void -> void
+	<doc>Tell that the windows envionment variables were changed in the registry</doc>
+**/
+static value win_env_changed() {
+#	ifdef NEKO_WINDOWS
+	DWORD unused;
+	SendMessageTimeout(HWND_BROADCAST,WM_SETTINGCHANGE, 0, (LPARAM)"Environment", SMTO_ABORTIFHUNG, 5000, &unused );
+#	endif
+	return val_null;
+}
+
 DEFINE_PRIM(get_env,1);
 DEFINE_PRIM(put_env,2);
 DEFINE_PRIM(set_time_locale,1);
@@ -675,5 +687,7 @@ DEFINE_PRIM(sys_file_type,1);
 DEFINE_PRIM(sys_getch,1);
 DEFINE_PRIM(sys_get_pid,0);
 DEFINE_PRIM(sys_thread_cpu_time,0);
+
+DEFINE_PRIM(win_env_changed,0);
 
 /* ************************************************************************ */
