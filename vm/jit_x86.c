@@ -552,21 +552,10 @@ static const char *cstrings[] = {
 	"Invalid array access", // 4
 	"Invalid field access", // 5
 	"Invalid environment", // 6
-	"Invalid operation (+)", // 7
-	"Invalid operation (-)", // 8
-	"Invalid operation (*)", // 9
-	"Invalid operation (/)", // 10
-	"Invalid operation (%)", // 11
-	"Invalid operation (<<)", // 12
-	"Invalid operation (>>)", // 13
-	"Invalid operation (>>>)", // 14
-	"Invalid operation (&)", // 15
-	"Invalid operation (|)", // 16
-	"Invalid operation (^)", // 17
-	"$apply", // 18
-	"Invalid End Trap", // 19
-	"$hash", // 20
-	"Unsupported operation", // 21
+	"Invalid operation (%)", // 7
+	"$apply", // 8
+	"Invalid End Trap", // 9
+	"$hash", // 10
 };
 
 #define DEFINE_PROC(p,arg) ctx->buf = buf; jit_##p(ctx,arg); buf = ctx->buf
@@ -1307,7 +1296,7 @@ static void jit_number_op( jit_ctx *ctx, enum Operation op ) {
 	case OP_MOD:
 		XCmp_rc(TMP,0);
 		XJump(JNeq,jmod0);
-		runtime_error(7 + op,false);
+		runtime_error(7,false);
 		PATCH_JUMP(jmod0);
 		XCdq();
 		XIDiv_r(TMP);
@@ -1678,7 +1667,7 @@ static void jit_object_op_gen( jit_ctx *ctx, enum Operation op, int right ) {
 	XCmp_rc(ACC,CONST(val_null));
 	XJump(JNeq,next);
 	stack_pop(Esp,(op == OP_SET)?7:6);
-	runtime_error(21,true); // Unsupported operation
+	runtime_error(11,true); // Unsupported operation
 	PATCH_JUMP(next);
 	XPop_r(TMP);
 	stack_pop(Esp,1);
@@ -2282,7 +2271,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 
 		PATCH_JUMP(jerr1);
 		PATCH_JUMP(jerr2);
-		runtime_error(18,false); // $apply
+		runtime_error(8,false); // $apply
 
 		// build the apply
 		PATCH_JUMP(jnext);
@@ -2384,7 +2373,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		XSub_rr(TMP,TMP2);
 		XCmp_rr(TMP,SP);
 		XJump(JEq,jok);
-		runtime_error(19,false); // Invalid End Trap
+		runtime_error(9,false); // Invalid End Trap
 		PATCH_JUMP(jok);
 
 		// restore VM jmp_buf
@@ -2478,7 +2467,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		XJump_near(jend);
 		PATCH_JUMP(jerr1);
 		PATCH_JUMP(jerr2);
-		runtime_error(20,false); // $hash
+		runtime_error(10,false); // $hash
 		PATCH_JUMP(jend);
 		break;
 		}
