@@ -531,8 +531,6 @@ typedef struct {
 	char *call_tail_fun[NARGS];
 	char *make_env[MAX_ENV];
 	char *make_env_n;
-	char *number_op[OP_LAST];
-	char *int_op[IOP_LAST];
 	char *oo_get;
 	char *oo_set;
 	char *handle_trap;
@@ -1372,9 +1370,32 @@ static void jit_number_op( jit_ctx *ctx, enum Operation op ) {
 	PATCH_JUMP(jnot_float1);
 	PATCH_JUMP(jnot_float2);
 	PATCH_JUMP(jnot_int2);
-	XPush_c(GET_PC());
-	label(code->number_op[op]);
-	stack_pop(Esp,1);
+
+	begin_call();
+	XPush_c(GET_PC());	
+	XPush_r(ACC);
+	XPush_r(TMP);
+	XPush_r(VM);
+	switch( op ) {
+	case OP_ADD:
+		XCall_m(generic_add);
+		break;
+	case OP_SUB:
+		XCall_m(generic_sub);
+		break;
+	case OP_DIV:
+		XCall_m(generic_div);
+		break;
+	case OP_MUL:
+		XCall_m(generic_mult);
+		break;
+	case OP_MOD:
+		XCall_m(generic_mod);
+		break;
+	}
+	stack_pop(Esp,4);
+	end_call();
+
 	PATCH_JUMP(jend);
 	PATCH_JUMP(jend2);
 	pop(1);
@@ -1421,49 +1442,9 @@ static void jit_int_op( jit_ctx *ctx, enum IOperation op ) {
 
 	PATCH_JUMP(jerr1);
 	PATCH_JUMP(jerr2);
+
+	begin_call();
 	XPush_c(GET_PC());
-	label(code->int_op[op]);
-	stack_pop(Esp,1);
-	PATCH_JUMP(jend);
-	pop(1);
-
-	END_BUFFER;
-}
-
-static void jit_generic_op( jit_ctx *ctx, int op ) {
-	INIT_BUFFER;
-	begin_call();
-	// XPush_c(GET_PC()); -- already on stack
-	XPush_r(ACC); // acc and tmp are reversed in jit_number_op
-	XPush_r(TMP); //
-	XPush_r(VM);
-	switch( op ) {
-	case OP_ADD:
-		XCall_m(generic_add);
-		break;
-	case OP_SUB:
-		XCall_m(generic_sub);
-		break;
-	case OP_DIV:
-		XCall_m(generic_div);
-		break;
-	case OP_MUL:
-		XCall_m(generic_mult);
-		break;
-	case OP_MOD:
-		XCall_m(generic_mod);
-		break;
-	}
-	stack_pop(Esp,3);
-	end_call();
-	XRet();
-	END_BUFFER;
-}
-
-static void jit_generic_iop( jit_ctx *ctx, int op ) {
-	INIT_BUFFER;
-	begin_call();
-	// XPush_c(GET_PC()); -- already on stack
 	XPush_r(ACC); // acc and tmp are reversed in jit_number_op
 	XPush_r(TMP); //
 	XPush_r(VM);
@@ -1487,12 +1468,14 @@ static void jit_generic_iop( jit_ctx *ctx, int op ) {
 		XCall_m(generic_xor);
 		break;
 	}
-	stack_pop(Esp,3);
+	stack_pop(Esp,4);
 	end_call();
-	XRet();
+	
+	PATCH_JUMP(jend);
+	pop(1);
+
 	END_BUFFER;
 }
-
 
 static void jit_array_access( jit_ctx *ctx, int n ) {
 	INIT_BUFFER;
@@ -2588,10 +2571,6 @@ void neko_init_jit() {
 	FILL_BUFFER(jit_stack_expand,0,stack_expand);
 	FILL_BUFFER(jit_runtime_error,0,runtime_error);
 	FILL_BUFFER(jit_invalid_access,0,invalid_access);
-	for(i=0;i<OP_LAST;i++)
-		FILL_BUFFER(jit_generic_op,i,number_op[i]);
-	for(i=0;i<IOP_LAST;i++)
-		FILL_BUFFER(jit_generic_iop,i,int_op[i]);
 	FILL_BUFFER(jit_object_get,0,oo_get);
 	FILL_BUFFER(jit_object_set,0,oo_set);
 	for(i=0;i<NARGS;i++) {
