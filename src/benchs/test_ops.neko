@@ -8,6 +8,8 @@ eq($string(0xFFFFFFFF),"-1");
 o = $new(null);
 o.__add = function(x) return x + 66;
 o.__radd = function(x) return x + 77;
+o.__sub = function(x) return x - 66;
+o.__rsub = function(x) return x - 77;
 
 var small = 0x7FFF;
 var med = 0x7FFF0000;
@@ -38,3 +40,20 @@ eq(med+med,-131072);
 
 eq(o + 1, 67);
 eq(1 + o, 78);
+
+eq(o + "x", "x66");
+eq("x" + o, "x77");
+
+eq( med + 1.1, 2147418113.1 );
+eq( 1.1 + med, 2147418113.1 );
+
+eq( 1 - 1.25, -0.25 );
+eq( 1.25 - 1, 0.25 );
+eq( med - 1, 2147418111 );
+eq( 1 - med, -2147418111 );
+
+eq( med - 1.25, 2147418110.75 );
+eq( 1.25 - med, -2147418110.75 );
+
+eq( o - 1, -65 );
+eq( 1 - o, -76 );

@@ -385,13 +385,15 @@ static int_val jit_run( neko_vm *vm, vfunction *acc ) {
 		} else \
 			CallFailure();
 
+#define OpError(op) RuntimeError("Invalid operation (" ## op ## ")", false)
+
 #define IntOp(op) \
 		if( (acc & 1) && (*sp & 1) ) \
 			acc = (int_val)alloc_best_int(val_int(*sp) op val_int(acc)); \
 		else if( val_is_any_int(acc) && val_is_any_int(*sp) ) \
 			acc = (int_val)alloc_best_int(val_any_int(*sp) op val_any_int(acc)); \
 		else \
-			RuntimeError(#op,false); \
+			OpError(#op); \
 		*sp++ = ERASE; \
 		Next
 
@@ -437,7 +439,7 @@ static int_val jit_run( neko_vm *vm, vfunction *acc ) {
 			else if( val_tag(*sp) == VAL_OBJECT ) \
 			    ObjectOp(*sp,acc,id_op) \
 			else \
-				RuntimeError(#op,false); \
+				OpError(#op); \
 		} else if( *sp & 1 ) { \
 			if( val_tag(acc) == VAL_FLOAT ) \
 				acc = (int_val)alloc_float(fop(val_int(*sp),val_float(acc))); \
@@ -446,19 +448,32 @@ static int_val jit_run( neko_vm *vm, vfunction *acc ) {
 			else if( val_tag(acc) == VAL_OBJECT ) \
 				ObjectOp(acc,*sp,id_rop) \
 			else \
-				RuntimeError(#op,false); \
-		} else if( val_tag(acc) == VAL_FLOAT && val_tag(*sp) == VAL_FLOAT ) \
-			acc = (int_val)alloc_float(fop(val_float(*sp),val_float(acc))); \
-		else if( val_tag(acc) == VAL_INT32 && val_tag(*sp) == VAL_INT32 ) \
-			acc = (int_val)alloc_best_int(val_int32(*sp) op val_int32(acc)); \
-		else if( val_tag(*sp) == VAL_OBJECT ) \
-			ObjectOpGen(*sp,acc,id_op,goto id_op##_next) \
-		else { \
-			id_op##_next: \
-			if( val_tag(acc) == VAL_OBJECT ) \
-				ObjectOp(acc,*sp,id_rop) \
+				OpError(#op); \
+		} else if( val_tag(acc) == VAL_FLOAT ) { \
+			if( val_tag(*sp) == VAL_FLOAT ) \
+				acc = (int_val)alloc_float(fop(val_float(*sp),val_float(acc))); \
+			else if( val_tag(*sp) == VAL_INT32 ) \
+				acc = (int_val)alloc_float(fop(val_int32(*sp),val_float(acc))); \
 			else \
-				RuntimeError(#op,false); \
+				goto id_op##_next; \
+		} else if( val_tag(acc) == VAL_INT32 ) {\
+			if( val_tag(*sp) == VAL_INT32 ) \
+				acc = (int_val)alloc_best_int(val_int32(*sp) op val_int32(acc)); \
+			else if( val_tag(*sp) == VAL_FLOAT ) \
+				acc = (int_val)alloc_float(fop(val_float(*sp),val_int32(acc))); \
+			else \
+				goto id_op##_next; \
+		} else { \
+			id_op##_next: \
+			if( val_tag(*sp) == VAL_OBJECT ) \
+				ObjectOpGen(*sp,acc,id_op,goto id_op##_next2) \
+			else { \
+				id_op##_next2: \
+				if( val_tag(acc) == VAL_OBJECT ) \
+					ObjectOp(acc,*sp,id_rop) \
+				else \
+					OpError(#op); \
+			} \
 		} \
 		*sp++ = ERASE; \
 		Next;
@@ -971,7 +986,7 @@ int_val neko_interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_val
 			else if( val_tag(*sp) == VAL_OBJECT )
 				ObjectOp(*sp,acc,id_add)
 			else
-				RuntimeError("+",false);
+				OpError("+");
 		} else if( *sp & 1 ) {
 			if( val_tag(acc) == VAL_FLOAT )
 				acc = (int_val)alloc_float(val_int(*sp) + val_float(acc));
@@ -982,32 +997,43 @@ int_val neko_interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_val
 			else if( val_tag(acc) == VAL_OBJECT )
 				ObjectOp(acc,*sp,id_radd)
 			else
-				RuntimeError("+",false);
-		} else if( val_tag(acc) == VAL_FLOAT && val_tag(*sp) == VAL_FLOAT )
-			acc = (int_val)alloc_float(val_float(*sp) + val_float(acc));
-		else if( val_tag(acc) == VAL_INT32 && val_tag(*sp) == VAL_INT32 )
-			acc = (int_val)alloc_best_int(val_int32(*sp) + val_int32(acc));
-		else if( val_short_tag(acc) == VAL_STRING && val_short_tag(*sp) == VAL_STRING )
-			acc = (int_val)neko_append_strings((value)*sp,(value)acc);
-		else if( val_tag(*sp) == VAL_OBJECT )
-			ObjectOpGen(*sp,acc,id_add,goto add_2)
-		else {
-			add_2:
-			if( val_tag(acc) == VAL_OBJECT )
-				ObjectOpGen(acc,*sp,id_radd,goto add_3)
+				OpError("+");
+		} else if( val_tag(acc) == VAL_FLOAT ) {
+			if( val_tag(*sp) == VAL_FLOAT )
+				acc = (int_val)alloc_float(val_float(*sp) + val_float(acc));
+			else if( val_tag(*sp) == VAL_INT32 )
+				acc = (int_val)alloc_float(val_int32(*sp) + val_float(acc));
+			else
+				goto add_next;
+		} else if( val_tag(acc) == VAL_INT32 ) {
+			if( val_tag(*sp) == VAL_INT32 )
+				acc = (int_val)alloc_best_int(val_int32(*sp) + val_int32(acc));
+			else if( val_tag(*sp) == VAL_FLOAT )
+				acc = (int_val)alloc_float(val_float(*sp) + val_int32(acc));
+			else
+				goto add_next;
+		} else {
+		add_next:
+			if( val_tag(*sp) == VAL_OBJECT )
+				ObjectOpGen(*sp,acc,id_add,goto add_2)
 			else {
-				add_3:
-				if( val_short_tag(acc) == VAL_STRING || val_short_tag(*sp) == VAL_STRING ) {
-					ACC_BACKUP
-					buffer b = alloc_buffer(NULL);
-					BeginCall();
-					val_buffer(b,(value)*sp);
-					ACC_RESTORE;
-					val_buffer(b,(value)acc);
-					EndCall();
-					acc = (int_val)buffer_to_string(b);
-				} else
-					RuntimeError("+",false);
+				add_2:
+				if( val_tag(acc) == VAL_OBJECT )
+					ObjectOpGen(acc,*sp,id_radd,goto add_3)
+				else {
+					add_3:
+					if( val_short_tag(acc) == VAL_STRING || val_short_tag(*sp) == VAL_STRING ) {
+						ACC_BACKUP
+						buffer b = alloc_buffer(NULL);
+						BeginCall();
+						val_buffer(b,(value)*sp);
+						ACC_RESTORE;
+						val_buffer(b,(value)acc);
+						EndCall();
+						acc = (int_val)buffer_to_string(b);
+					} else
+						OpError("+");
+				}
 			}
 		}
 		*sp++ = ERASE;
@@ -1026,13 +1052,13 @@ int_val neko_interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_val
 			if( val_is_object(acc) )
 				ObjectOp(acc,*sp,id_rdiv)
 			else
-				RuntimeError("/",false);
+				OpError("/");
 		}
 		*sp++ = ERASE;
 		Next;
 	Instr(Mod)
 		if( (acc == 1 || (val_is_int32(acc) && val_int32(acc)==0)) && val_is_any_int(*sp) )
-			RuntimeError("%",false);
+			OpError("%");
 		NumberOp(%,fmod,id_mod,id_rmod);
 	Instr(Shl)
 		IntOp(<<);
@@ -1044,7 +1070,7 @@ int_val neko_interp_loop( neko_vm *VM_ARG, neko_module *m, int_val _acc, int_val
 		else if( val_is_any_int(acc) && val_is_any_int(*sp) )
 			acc = (int_val)alloc_best_int(((unsigned int)val_any_int(*sp)) >> val_any_int(acc));
 		else
-			RuntimeError(">>>",false);
+			OpError(">>>");
 		*sp++ = ERASE;
 		Next;
 	Instr(Or)

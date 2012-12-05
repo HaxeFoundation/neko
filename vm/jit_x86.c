@@ -552,17 +552,17 @@ static const char *cstrings[] = {
 	"Invalid array access", // 4
 	"Invalid field access", // 5
 	"Invalid environment", // 6
-	"+", // 7
-	"-", // 8
-	"*", // 9
-	"/", // 10
-	"%", // 11
-	"<<", // 12
-	">>", // 13
-	">>>", // 14
-	"&", // 15
-	"|", // 16
-	"^", // 17
+	"Invalid operation (+)", // 7
+	"Invalid operation (-)", // 8
+	"Invalid operation (*)", // 9
+	"Invalid operation (/)", // 10
+	"Invalid operation (%)", // 11
+	"Invalid operation (<<)", // 12
+	"Invalid operation (>>)", // 13
+	"Invalid operation (>>>)", // 14
+	"Invalid operation (&)", // 15
+	"Invalid operation (|)", // 16
+	"Invalid operation (^)", // 17
 	"$apply", // 18
 	"Invalid End Trap", // 19
 	"$hash", // 20
@@ -1105,6 +1105,8 @@ static void jit_call_fun( jit_ctx *ctx, int nargs, int mode ) {
 
 #define ObjectOp(obj,param,id) ObjectOpGen(obj,param,id,RuntimeError("Unsupported operation"))
 
+#define OpError(op) RuntimeError("Invalid operation (" ## op ## ")")
+
 static int_val generic_add( neko_vm *vm, int_val acc, int_val sp, int pc ) {
 	if( acc & 1 ) {
 		if( val_tag(sp) == VAL_FLOAT )
@@ -1116,7 +1118,7 @@ static int_val generic_add( neko_vm *vm, int_val acc, int_val sp, int pc ) {
 		else if( val_tag(sp) == VAL_OBJECT )
 			ObjectOp(sp,acc,id_add)
 		else
-			RuntimeError("+");
+			OpError("+");
 	} else if( sp & 1 ) {
 		if( val_tag(acc) == VAL_FLOAT )
 			acc = (int_val)alloc_float(val_int(sp) + val_float(acc));
@@ -1127,30 +1129,43 @@ static int_val generic_add( neko_vm *vm, int_val acc, int_val sp, int pc ) {
 		else if( val_tag(acc) == VAL_OBJECT )
 			ObjectOp(acc,sp,id_radd)
 		else
-			RuntimeError("+");
-	} else if( val_tag(acc) == VAL_INT32 && val_tag(sp) == VAL_INT32 )
-		acc = (int_val)alloc_best_int(val_int32(sp) + val_int32(acc));
-	else if( val_short_tag(acc) == VAL_STRING && val_short_tag(sp) == VAL_STRING )
-		acc = (int_val)neko_append_strings((value)sp,(value)acc);
-	else if( val_tag(sp) == VAL_OBJECT )
-		ObjectOpGen(sp,acc,id_add,goto add_2)
-	else {
-		add_2:
-		if( val_tag(acc) == VAL_OBJECT )
-			ObjectOpGen(acc,sp,id_radd,goto add_3)
+			OpError("+");
+	} else if( val_tag(acc) == VAL_FLOAT ) {
+		if( val_tag(sp) == VAL_FLOAT )
+			acc = (int_val)alloc_float(val_float(sp) + val_float(acc));
+		else if( val_tag(sp) == VAL_INT32 )
+			acc = (int_val)alloc_float(val_int32(sp) + val_float(acc));
+		else
+			goto add_next;
+	} else if( val_tag(acc) == VAL_INT32 ) {
+		if( val_tag(sp) == VAL_INT32 )
+			acc = (int_val)alloc_best_int(val_int32(sp) + val_int32(acc));
+		else if( val_tag(sp) == VAL_FLOAT )
+			acc = (int_val)alloc_float(val_float(sp) + val_int32(acc));
+		else
+			goto add_next;
+	} else {
+	add_next:
+		if( val_tag(sp) == VAL_OBJECT )
+			ObjectOpGen(sp,acc,id_add,goto add_2)
 		else {
-			add_3:
-			if( val_short_tag(acc) == VAL_STRING || val_short_tag(sp) == VAL_STRING ) {
-				ACC_BACKUP
-				buffer b = alloc_buffer(NULL);
-				BeginCall();
-				val_buffer(b,(value)sp);
-				ACC_RESTORE;
-				val_buffer(b,(value)acc);
-				EndCall();
-				acc = (int_val)buffer_to_string(b);
-			} else
-				RuntimeError("+");
+			add_2:
+			if( val_tag(acc) == VAL_OBJECT )
+				ObjectOpGen(acc,sp,id_radd,goto add_3)
+			else {
+				add_3:
+				if( val_short_tag(acc) == VAL_STRING || val_short_tag(sp) == VAL_STRING ) {
+					ACC_BACKUP
+					buffer b = alloc_buffer(NULL);
+					BeginCall();
+					val_buffer(b,(value)sp);
+					ACC_RESTORE;
+					val_buffer(b,(value)acc);
+					EndCall();
+					acc = (int_val)buffer_to_string(b);
+				} else
+					OpError("+");
+			}
 		}
 	}
 	return acc;
@@ -1165,7 +1180,7 @@ static int_val generic_add( neko_vm *vm, int_val acc, int_val sp, int pc ) {
 			else if( val_tag(sp) == VAL_OBJECT ) \
 			    ObjectOp(sp,acc,id_op) \
 			else \
-				RuntimeError(#op); \
+				OpError(#op); \
 		} else if( sp & 1 ) { \
 			if( val_tag(acc) == VAL_FLOAT ) \
 				acc = (int_val)alloc_float(fop(val_int(sp),val_float(acc))); \
@@ -1174,17 +1189,32 @@ static int_val generic_add( neko_vm *vm, int_val acc, int_val sp, int pc ) {
 			else if( val_tag(acc) == VAL_OBJECT ) \
 				ObjectOp(acc,sp,id_rop) \
 			else \
-				RuntimeError(#op); \
-		} else if( val_tag(acc) == VAL_INT32 && val_tag(sp) == VAL_INT32 ) \
-			acc = (int_val)alloc_best_int(val_int32(sp) op val_int32(acc)); \
-		else if( val_tag(sp) == VAL_OBJECT ) \
-			ObjectOpGen(sp,acc,id_op,goto id_op##_next) \
-		else { \
-			id_op##_next: \
-			if( val_tag(acc) == VAL_OBJECT ) \
-				ObjectOp(acc,sp,id_rop) \
+				OpError(#op); \
+		} else if( val_tag(acc) == VAL_FLOAT ) { \
+			if( val_tag(sp) == VAL_FLOAT ) \
+				acc = (int_val)alloc_float(fop(val_float(sp),val_float(acc))); \
+			else if( val_tag(sp) == VAL_INT32 ) \
+				acc = (int_val)alloc_float(fop(val_int32(sp),val_float(acc))); \
 			else \
-				RuntimeError(#op); \
+				goto id_op##_next; \
+		} else if( val_tag(acc) == VAL_INT32 ) {\
+			if( val_tag(sp) == VAL_INT32 ) \
+				acc = (int_val)alloc_best_int(val_int32(sp) op val_int32(acc)); \
+			else if( val_tag(sp) == VAL_FLOAT ) \
+				acc = (int_val)alloc_float(fop(val_float(sp),val_int32(acc))); \
+			else \
+				goto id_op##_next; \
+		} else { \
+			id_op##_next: \
+			if( val_tag(sp) == VAL_OBJECT ) \
+				ObjectOpGen(sp,acc,id_op,goto id_op##_next2) \
+			else { \
+				id_op##_next2: \
+				if( val_tag(acc) == VAL_OBJECT ) \
+					ObjectOp(acc,sp,id_rop) \
+				else \
+					OpError(#op); \
+			} \
 		}
 
 #define SUB(x,y) ((x) - (y))
@@ -1210,14 +1240,14 @@ static int_val generic_div( neko_vm *vm, int_val acc, int_val sp, int pc ) {
 		if( val_is_object(acc) )
 			ObjectOp(acc,sp,id_rdiv)
 		else
-			RuntimeError("/");
+			OpError("/");
 	}
 	return acc;
 }
 
 static int_val generic_mod( neko_vm *vm, int_val acc, int_val sp, int pc ) {
 	if( (acc == 1 || (val_is_int32(acc) && val_int32(acc)==0)) && val_is_any_int(sp) )
-		RuntimeError("%");
+		OpError("%");
 	NumberOp(%,fmod,id_mod,id_rmod);
 	return acc;
 }
@@ -1227,7 +1257,7 @@ static int_val generic_mod( neko_vm *vm, int_val acc, int_val sp, int pc ) {
 		if( val_is_any_int(acc) && val_is_any_int(sp) ) \
 			acc = (int_val)alloc_best_int(val_any_int(sp) op val_any_int(acc)); \
 		else \
-			RuntimeError(#op); \
+			OpError(#op); \
 		return acc; \
 	}
 
@@ -1241,7 +1271,7 @@ static int_val generic_ushr( neko_vm *vm, int_val acc, int_val sp, int pc ) {
 	if( val_is_any_int(acc) && val_is_any_int(sp) )
 		acc = (int_val)alloc_best_int( ((unsigned int)val_any_int(sp)) >> val_any_int(acc));
 	else
-		RuntimeError(">>>");
+		OpError(">>>");
 	return acc;
 }
 
