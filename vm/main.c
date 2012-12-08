@@ -222,6 +222,12 @@ int main( int argc, char *argv[] ) {
 				neko_stats_measure(vm,"total",1);
 				continue;
 			}
+			if( strcmp(argv[1],"-version") == 0 ) {
+				argc--;
+				argv++;
+				printf("%d.%d.%d",NEKO_VERSION/100,(NEKO_VERSION/10)%10,NEKO_VERSION%10);
+				return 0;
+			}
 			break;
 		}
 #		ifdef NEKO_POSIX
