@@ -1092,7 +1092,7 @@ static void jit_call_fun( jit_ctx *ctx, int nargs, int mode ) {
 
 #define ObjectOp(obj,param,id) ObjectOpGen(obj,param,id,RuntimeError("Unsupported operation"))
 
-#define OpError(op) RuntimeError("Invalid operation (" ## op ## ")")
+#define OpError(op) RuntimeError("Invalid operation (" op ")")
 
 static int_val generic_add( neko_vm *vm, int_val acc, int_val sp, int pc ) {
 	if( acc & 1 ) {

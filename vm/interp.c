@@ -385,7 +385,7 @@ static int_val jit_run( neko_vm *vm, vfunction *acc ) {
 		} else \
 			CallFailure();
 
-#define OpError(op) RuntimeError("Invalid operation (" ## op ## ")", false)
+#define OpError(op) RuntimeError("Invalid operation (" op ")", false)
 
 #define IntOp(op) \
 		if( (acc & 1) && (*sp & 1) ) \
