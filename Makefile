@@ -1,3 +1,13 @@
+# This Makefile works by default for Linux
+# You can active other OS support by compiling with the following options
+#
+# For OSX
+#   make os=osx
+#
+# For MingW/MSys
+#   make os=mingw
+#
+
 ## CONFIG
 
 INSTALL_PREFIX = /usr/local
@@ -13,14 +23,6 @@ INSTALL_FLAGS =
 
 NEKO_EXEC = LD_LIBRARY_PATH=../bin:${LD_LIBRARY_PATH} NEKOPATH=../boot:../bin ../bin/neko
 
-# For OSX
-#
-# MACOSX = 1
-
-# For 64 bit
-#
-# CFLAGS += -D_64BITS
-
 # For profiling VM
 #
 # CFLAGS += -DNEKO_PROF
@@ -29,10 +31,10 @@ NEKO_EXEC = LD_LIBRARY_PATH=../bin:${LD_LIBRARY_PATH} NEKOPATH=../boot:../bin ..
 #
 # CFLAGS += -DLOW_MEM
 
-# For MINGW/MSYS
+## MINGW SPECIFIC
 
-ifeq (${WIN32}, 1)
-CFLAGS = -g -Wall -O3 -momit-leaf-frame-pointer -I vm -I /usr/local/include -msse2 -mfpmath=sse -I libs/common
+ifeq (${os}, mingw)
+CFLAGS = -g -Wall -O3 -momit-leaf-frame-pointer -I vm -I /usr/local/include -I libs/common
 EXTFLAGS =
 MAKESO = $(CC) -O -shared
 LIBNEKO_NAME = neko.dll
@@ -42,7 +44,7 @@ endif
 
 ### OSX SPECIFIC
 
-ifeq (${MACOSX}, 1)
+ifeq (${os}, osx)
 export MACOSX_DEPLOYMENT_TARGET=10.4
 EXTFLAGS =
 MAKESO = ${CC}
