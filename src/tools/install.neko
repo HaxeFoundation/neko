@@ -110,6 +110,8 @@ if( $loader.args[0] == "-static" ) {
 	libs.zlib.lib = "libz.a";
 }
 
+if( $loader.args[0] == "-nolibs" ) libs = $new(null);
+
 // PLATFORM
 
 cflags = "-O3 -fPIC";
@@ -396,7 +398,7 @@ while( i < $asize(liblist) ) {
 // rebuild nekoml.std (needs zlib)
 
 chdir("../src");
-if( libs.zlib.built )
+if( libs.zlib != null && libs.zlib.built )
 	exec(nekovm+" nekoml -nostd neko/Main.nml nekoml/Main.nml core/*.nml -pack ../bin/nekoml.std");
 
 // END

@@ -75,6 +75,10 @@ libs:
 	(cd src; ${NEKO_EXEC} nekoc tools/install.neko)
 	(cd src; ${NEKO_EXEC} tools/install ${INSTALL_FLAGS})
 
+tools:
+	(cd src; ${NEKO_EXEC} nekoc tools/install.neko)
+	(cd src; ${NEKO_EXEC} tools/install -nolibs)
+	
 doc:
 	(cd src; ${NEKO_EXEC} nekoc tools/makedoc.neko)
 	(cd src; ${NEKO_EXEC} tools/makedoc)
