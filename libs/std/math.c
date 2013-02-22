@@ -58,6 +58,10 @@ static value math_pow( value a, value b ) {
 	return alloc_float(r);
 }
 
+static int float_to_int( tfloat f ) {
+	return (int)(unsigned int)fmod(f,4294967296.);
+}
+
 /**
 	math_abs : number -> number
 	<doc>Return absolute value of a number</doc>
@@ -85,7 +89,7 @@ static value math_ceil( value n ) {
 	case VAL_INT32:
 		return n;
 	case VAL_FLOAT:
-		return alloc_best_int( (int)ceil(val_float(n)) );
+		return alloc_best_int( float_to_int(ceil(val_float(n))) );
 	default:
 		neko_error();
 	}
@@ -101,7 +105,7 @@ static value math_floor( value n ) {
 	case VAL_INT32:
 		return n;
 	case VAL_FLOAT:
-		return alloc_best_int( (int)floor(val_float(n)) );
+		return alloc_best_int( float_to_int(floor(val_float(n))) );
 	default:
 		neko_error();
 	}
@@ -117,7 +121,7 @@ static value math_round( value n ) {
 	case VAL_INT32:
 		return n;
 	case VAL_FLOAT:
-		return alloc_best_int( (int)floor(val_float(n) + 0.5) );
+		return alloc_best_int( float_to_int(floor(val_float(n) + 0.5)) );
 	default:
 		neko_error();
 	}
@@ -183,7 +187,7 @@ static value math_int( value n ) {
 	case VAL_FLOAT:
 		{
 			tfloat v = val_float(n);
-			return alloc_best_int( (int)((n < 0) ? ceil(v) : floor(v)) );
+			return alloc_best_int( float_to_int((n < 0) ? ceil(v) : floor(v)) );
 		}
 	default:
 		neko_error();
