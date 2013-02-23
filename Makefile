@@ -14,7 +14,7 @@ INSTALL_PREFIX = /usr/local
 
 CFLAGS = -Wall -O3 -fPIC -fomit-frame-pointer -I vm -D_GNU_SOURCE -I libs/common
 EXTFLAGS = -pthread
-MAKESO = $(CC) -shared -WBsymbolic
+MAKESO = $(CC) -shared -Wl,-Bsymbolic
 LIBNEKO_NAME = libneko.so
 LIBNEKO_LIBS = -ldl -lgc -lm
 NEKOVM_FLAGS = -Lbin -lneko
