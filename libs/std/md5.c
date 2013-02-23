@@ -383,9 +383,9 @@ static value make_sha1( value s, value p, value l ) {
 	if( pp < 0 || ll < 0 || pp + ll < 0 || pp + ll > val_strlen(s) )
 		neko_error();
 	sha1_init(&ctx);
-	sha1_update(&ctx,val_string(l)+pp,ll);
+	sha1_update(&ctx,(unsigned char*)val_string(l)+pp,ll);
 	sha1_final(&ctx,result);
-	return copy_string( result, sizeof(SHA1_DIGEST) );
+	return copy_string( (char*)result, sizeof(SHA1_DIGEST) );
 }
 
 DEFINE_PRIM(make_md5,1);
