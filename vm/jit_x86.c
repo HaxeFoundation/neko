@@ -1276,7 +1276,7 @@ static int_val generic_ushr( neko_vm *vm, int_val acc, int_val sp, int pc ) {
 static void jit_number_op( jit_ctx *ctx, enum Operation op ) {
 	INIT_BUFFER;
 	int *jnot_int, *jnot_int2, *jint, *jnot_float1, *jnot_float2, *jmod0;
-	char *jend, *jend2, *jdiv;
+	char *jend, *jend2, *jdiv = NULL;
 	// tmp = acc
 	XMov_rr(TMP,ACC);
 	// acc = *sp
@@ -1397,6 +1397,11 @@ static void jit_number_op( jit_ctx *ctx, enum Operation op ) {
 	case OP_MOD:
 		XCall_m(generic_mod);
 		break;
+	case OP_GET:
+	case OP_SET:
+	case OP_LAST:
+		// not used here
+		break;
 	}
 	stack_pop(Esp,4);
 	end_call();
@@ -1471,6 +1476,9 @@ static void jit_int_op( jit_ctx *ctx, enum IOperation op ) {
 		break;
 	case IOP_XOR:
 		XCall_m(generic_xor);
+		break;
+	case IOP_LAST:
+		// nothing
 		break;
 	}
 	stack_pop(Esp,4);
