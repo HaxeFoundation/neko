@@ -86,8 +86,7 @@ int neko_has_embedded_module( neko_vm *vm ) {
 	if( self == NULL )
 		return 0;
 	fseek(self,-8,SEEK_END);
-	fread(id,1,8,self);
-	if( id[0] != 'N' || id[1] != 'E' || id[2] != 'K' || id[3] != 'O' ) {
+	if( fread(id,1,8,self) != 8 || id[0] != 'N' || id[1] != 'E' || id[2] != 'K' || id[3] != 'O' ) {
 		fclose(self);
 		return 0;
 	}

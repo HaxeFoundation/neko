@@ -1166,8 +1166,10 @@ value neko_interp( neko_vm *vm, void *_m, int_val acc, int_val *pc ) {
 
 		// if uncaught or outside init stack, reraise
 		if( vm->trap == 0 || vm->trap <= init_sp ) {
+			char **tmp;
 			memcpy(&vm->start,&old,sizeof(jmp_buf));
-			if( *(char**)vm->start == jit_handle_trap )
+			tmp = (char**)vm->start;
+			if( *tmp == jit_handle_trap )
 				((jit_handle)jit_handle_trap)(vm);
 			else
 				longjmp(vm->start,1);

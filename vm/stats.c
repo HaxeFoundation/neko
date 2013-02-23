@@ -136,12 +136,11 @@ static int cmp( statinfos *a, statinfos *b ) {
 	return delta;
 }
 static statinfos *sort( statinfos *list ) {
-    statinfos *p, *q, *e, *tail, *oldhead;
+    statinfos *p, *q, *e, *tail;
     int insize, nmerges, psize, qsize, i;
     insize = 1;
     while( list ) {
 		p = list;
-		oldhead = list;
 		list = NULL;
 		tail = NULL;
 		nmerges = 0;
