@@ -343,7 +343,6 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 	unsigned char t;
 	unsigned short stmp;
 	register char *tmp = NULL;
-	int entry;
 	unsigned char version = 1;
 	register neko_module *m = (neko_module*)alloc(sizeof(neko_module));
 	neko_vm *vm = NEKO_VM();
@@ -460,7 +459,6 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 	}
 	tmp[i] = 1;
 	m->code[i] = Last;
-	entry = (int)m->code[1];
 	if( vm->fstats ) {
 		vm->fstats(vm,"neko_read_module_code",0);
 		vm->fstats(vm,"neko_read_module_check",1);
