@@ -110,14 +110,23 @@ libs = {
 	},
 }
 
-if( $loader.args[0] == "-static" ) {
-	libs.regexp.lparams = null;
-	libs.regexp.lib = "libpcre.a";
-	libs.zlib.lparams = null;
-	libs.zlib.lib = "libz.a";
+var silent = false;
+var i = 0;
+while( i < $asize($loader.args) ) {
+	switch $loader.args[i] {
+	"-silent" =>
+		silent = true
+	"-static" => {
+		libs.regexp.lparams = null;
+		libs.regexp.lib = "libpcre.a";
+		libs.zlib.lparams = null;
+		libs.zlib.lib = "libz.a";
+	}
+	"-nolibs" =>
+		libs = $new(null)
+	}
+	i = i + 1;
 }
-
-if( $loader.args[0] == "-nolibs" ) libs = $new(null);
 
 // PLATFORM
 
@@ -315,6 +324,10 @@ link = function(files,target,params1,params2) {
 loop_include = function(data,i,incl) {
 	var dir;
 	while( (dir = find_file(data.inc[i],incl)) == null ) {
+		if( silent ) {
+			$print("Include file "+data.inc[i]+" not found, skipping "+data.incname+" library compilation\n");
+			return null;
+		}
 		$print("The file "+data.inc[i]+" provided when installing "+data.incname+" was not found\n");
 		$print("Please enter a valid include path to look for it\n");
 		$print("Or 's' to skip this library\n");
