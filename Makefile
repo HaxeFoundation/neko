@@ -10,7 +10,7 @@
 
 ## CONFIG
 
-INSTALL_PREFIX = /usr/local
+INSTALL_PREFIX = /usr
 
 CFLAGS = -Wall -O3 -fPIC -fomit-frame-pointer -I vm -D_GNU_SOURCE -I libs/common
 EXTFLAGS = -pthread
