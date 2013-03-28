@@ -114,16 +114,20 @@ clean:
 	rm -rf bin/mtypes bin/tools
 
 install:
+	chmod o+rx g+rw bin/neko bin/nekoc bin/nekotools bin/nekoml bin/${LIBNEKO_NAME}
+	chmod o+r g+r bin/nekoml.std
 	cp bin/${LIBNEKO_NAME} ${INSTALL_PREFIX}/lib
 	cp bin/neko bin/nekoc bin/nekotools bin/nekoml bin/nekoml.std ${INSTALL_PREFIX}/bin
 	-mkdir ${INSTALL_PREFIX}/lib/neko
 	cp bin/*.ndll ${INSTALL_PREFIX}/lib/neko
 	-mkdir ${INSTALL_PREFIX}/include
 	cp vm/neko*.h ${INSTALL_PREFIX}/include
+	chmod o+r g+r ${INSTALL_PREFIX}/include/*.h
 
 uninstall:
 	rm -rf ${INSTALL_PREFIX}/lib/${LIBNEKO_NAME}
-	rm -rf ${INSTALL_PREFIX}/bin/neko ${INSTALL_PREFIX}/bin/nekoc ${INSTALL_PREFIX}/bin/nekotools
+	rm -rf ${INSTALL_PREFIX}/bin/neko ${INSTALL_PREFIX}/bin/nekoc ${INSTALL_PREFIX}/bin/nekotools 
+	rm -rf ${INSTALL_PREFIX}/bin/nekoml ${INSTALL_PREFIX}/bin/nekoml.std
 	rm -rf ${INSTALL_PREFIX}/lib/neko
 
 .SUFFIXES : .c .o
