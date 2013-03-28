@@ -248,7 +248,7 @@ static int tora_handler( request_rec *r ) {
 				*xend = tmp;
 			}
 		} else
-			infos.client_ip = inet_ntoa(REMOTE_ADDR(r->connection));
+			infos.client_ip = r->connection->remote_ip;
 		infos.http_method = r->method;
 		infos.get_data = r->args;
 		infos.post_data = c->post_data;

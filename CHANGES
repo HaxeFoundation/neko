@@ -1,3 +1,8 @@
+2013-??-?? :
+	all : silent libs compilation by default
+	all : installation by default in /usr instead of /usr/local + some rights fixes
+	mod_neko/tora : use remote_ip (fixes Apache 2.2 returning 0.0.0.0 in 64 bits ?)
+
 2013-02-23 : 2.0.0
 	all : changed license to MIT
 	mod_neko+mod_tora : fixed issue with get_client_ip in 64 bits mode /gcc
