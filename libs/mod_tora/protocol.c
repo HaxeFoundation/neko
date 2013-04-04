@@ -402,7 +402,7 @@ bool protocol_read_answer( proto *p ) {
 			ABORT("Connection Closed");
 		len = header[1] | (header[2] << 8) | (header[3] << 16);
 		if( buflen <= len ) {
-			while( buflen < len )
+			while( buflen <= len )
 				buflen <<= 1;
 			free(buf);
 			buf = (char*)malloc(buflen);
