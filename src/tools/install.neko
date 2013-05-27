@@ -316,7 +316,11 @@ link = function(files,target,params1,params2) {
 		opt += " "+linkneko;
 	var cmd = linkcmd+" "+make("-L",libraries);
 	var out = " -o ../../bin/"+target+".ndll ";
-	exec(cmd+out+files+params1+params2+" "+opt);
+	try {
+		exec(cmd+out+files+params1+params2+" "+opt);
+	} catch e {
+		$print("Link failure ",e,"\n");
+	}
 }
 
 // COMPILATION
@@ -399,6 +403,17 @@ exec(nekovm+" nekoc tools/nekoboot.neko");
 exec(nekovm+" nekoml -nostd -p tools Tools.nml");
 exec(nekovm+" nekoc -link tools/nekotools.n Tools");
 copy("tools/nekotools.n",base);
+
+// build nekoml.std
+var cmd = nekovm+" nekoml -nostd neko/Main.nml nekoml/Main.nml";
+var core_files = readdir("core");
+while( core_files != null ) {
+	var f = core_files[0];
+	if( $ssize(f) > 4 && $ssub(f,$ssize(f)-4,4) == ".nml" )
+		cmd += " core/"+f;
+	core_files = core_files[1];
+}
+exec(cmd + " -pack "+base+"/nekoml.std");
 
 nekoboot(base+"/nekoc.n");
 nekoboot(base+"/nekoml.n");
