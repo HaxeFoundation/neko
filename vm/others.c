@@ -42,6 +42,7 @@ static INLINE int icmp( int a, int b ) {
 }
 
 static INLINE int fcmp( tfloat a, tfloat b ) {
+	if(a != a || b != b) return invalid_comparison;
 	return (a == b)?0:((a < b)?-1:1);
 }
 
