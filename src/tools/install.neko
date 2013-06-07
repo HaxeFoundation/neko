@@ -404,17 +404,6 @@ exec(nekovm+" nekoml -nostd -p tools Tools.nml");
 exec(nekovm+" nekoc -link tools/nekotools.n Tools");
 copy("tools/nekotools.n",base);
 
-// build nekoml.std
-var cmd = nekovm+" nekoml -nostd neko/Main.nml nekoml/Main.nml";
-var core_files = readdir("core");
-while( core_files != null ) {
-	var f = core_files[0];
-	if( $ssize(f) > 4 && $ssub(f,$ssize(f)-4,4) == ".nml" )
-		cmd += " core/"+f;
-	core_files = core_files[1];
-}
-exec(cmd + " -pack "+base+"/nekoml.std");
-
 nekoboot(base+"/nekoc.n");
 nekoboot(base+"/nekoml.n");
 nekoboot(base+"/nekotools.n");
@@ -433,8 +422,17 @@ while( i < $asize(liblist) ) {
 // rebuild nekoml.std (needs zlib)
 
 chdir("../src");
-if( libs.zlib != null && libs.zlib.built )
-	exec(nekovm+" nekoml -nostd neko/Main.nml nekoml/Main.nml core/*.nml -pack ../bin/nekoml.std");
+if( (libs.zlib != null && libs.zlib.built) || exists("../bin/zlib.ndll") ) {
+	var cmd = nekovm+" nekoml -nostd neko/Main.nml nekoml/Main.nml";
+	var core_files = readdir("core");
+	while( core_files != null ) {
+		var f = core_files[0];
+		if( $ssize(f) > 4 && $ssub(f,$ssize(f)-4,4) == ".nml" )
+			cmd += " core/"+f;
+		core_files = core_files[1];
+	}
+	exec(cmd + " -pack "+base+"/nekoml.std");
+}
 
 // END
 $print("Install done, all files are available in /bin directory\n");
