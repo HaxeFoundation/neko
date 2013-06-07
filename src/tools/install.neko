@@ -404,6 +404,11 @@ exec(nekovm+" nekoml -nostd -p tools Tools.nml");
 exec(nekovm+" nekoc -link tools/nekotools.n Tools");
 copy("tools/nekotools.n",base);
 
+// build zlib, as nekoml.std depends on it it
+chdir("../libs");
+compile_lib("zlib", libs.zlib);
+chdir("../src");
+
 // build nekoml.std
 var cmd = nekovm+" nekoml -nostd neko/Main.nml nekoml/Main.nml";
 var core_files = readdir("core");
