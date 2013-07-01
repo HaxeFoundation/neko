@@ -159,6 +159,7 @@ search_includes = function(isap2) {
 		"/opt/local/include/mysql",
 		"/opt/local/include/mysql5/mysql",
 		"/Developer/Headers/FlatCarbon",
+		"/System/Library/Frameworks/Carbon.framework/Versions/A/Headers/",
 	);
 	var inc2;
 	if( isap2 )
