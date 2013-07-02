@@ -450,6 +450,7 @@ static value escape( value o, value s ) {
 		bfailure(b);
 	}
 	val_set_length(sout,len);
+	val_string(sout)[len] = 0;
 	return sout;
 }
 

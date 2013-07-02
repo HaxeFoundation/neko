@@ -14,3 +14,6 @@ Release2
 Release5
 *.dll
 *.n
+*.ipch
+*.opensdf
+

@@ -130,6 +130,7 @@ static value utf8_buf_content( value buf ) {
 	val_check_kind(buf,k_ubuf);
 	b = (ubuf*)val_data(buf);
 	val_set_length(b->buf,b->pos);
+	val_string(b->buf)[b->pos] = 0;
 	return b->buf;
 }
 
