@@ -20,6 +20,7 @@ LIBNEKO_LIBS = -ldl -lgc -lm
 NEKOVM_FLAGS = -Lbin -lneko
 STD_NDLL_FLAGS = ${NEKOVM_FLAGS} -lrt
 INSTALL_FLAGS =
+LIB_PREFIX = /opt/local
 
 NEKO_EXEC = LD_LIBRARY_PATH=../bin:${LD_LIBRARY_PATH} NEKOPATH=../boot:../bin ../bin/neko
 
@@ -50,10 +51,10 @@ EXTFLAGS =
 MAKESO = ${CC}
 LIBNEKO_NAME = libneko.dylib
 LIBNEKO_INSTALL = -install_name @executable_path/${LIBNEKO_NAME}
-LIBNEKO_LIBS = -ldl /opt/local/lib/libgc.a -lm -dynamiclib -single_module ${LIBNEKO_INSTALL}
+LIBNEKO_LIBS = -ldl ${LIB_PREFIX}/lib/libgc.a -lm -dynamiclib -single_module ${LIBNEKO_INSTALL}
 NEKOVM_FLAGS = -L${CURDIR}/bin -lneko
 STD_NDLL_FLAGS = -bundle -undefined dynamic_lookup ${NEKOVM_FLAGS}
-CFLAGS += -L/usr/local/lib -L/opt/local/lib -I/opt/local/include
+CFLAGS += -L/usr/local/lib -L${LIB_PREFIX}/lib -I${LIB_PREFIX}/include
 INSTALL_FLAGS = -static
 
 endif
