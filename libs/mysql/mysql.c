@@ -172,7 +172,7 @@ static value result_next( value o ) {
 				value v;
 				switch( r->fields_convs[i] ) {
 				case CONV_INT:
-					v = alloc_int(atoi(row[i]));
+					v = alloc_best_int(atoi(row[i]));
 					break;
 				case CONV_STRING:
 					v = alloc_string(row[i]);
