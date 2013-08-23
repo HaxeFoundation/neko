@@ -340,6 +340,7 @@ static void *read_debug_infos( reader r, readp p, char *tmp, neko_module *m  ) {
 neko_module *neko_read_module( reader r, readp p, value loader ) {
 	register unsigned int i;
 	unsigned int itmp;
+	unsigned int nargs;
 	unsigned char t;
 	unsigned short stmp;
 	register char *tmp = NULL;
@@ -352,8 +353,9 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 	READ_LONG(m->nglobals);
 	READ_LONG(m->nfields);
 	READ_LONG(m->codesize);
-	if( m->nglobals < 0 || m->nglobals > 0xFFFF || m->nfields < 0 || m->nfields > 0xFFFF || m->codesize < 0 || m->codesize > 0xFFFFF )
+	if( m->nglobals < 0 || m->nglobals > 0xFFFF || m->nfields < 0 || m->nfields > 0xFFFF ) {
 		ERROR();
+	}
 	tmp = (char*)malloc(sizeof(char)*(((m->codesize+1)>MAXSIZE)?(m->codesize+1):MAXSIZE));
 	m->jit = NULL;
 	m->jit_gc = NULL;
@@ -376,9 +378,15 @@ neko_module *neko_read_module( reader r, readp p, value loader ) {
 			break;
 		case 2:
 			READ_LONG(itmp);
-			if( (itmp & 0xFFFFFF) >= m->codesize )
+			if( version >= 3 ) {
+				READ_LONG(nargs);
+			} else {
+				nargs = itmp >> 24;
+				itmp &= 0xFFFFFF;
+			}
+			if( itmp >= m->codesize )
 				ERROR();
-			m->globals[i] = neko_alloc_module_function(m,(itmp&0xFFFFFF),(itmp >> 24));
+			m->globals[i] = neko_alloc_module_function(m,itmp,nargs);
 			break;
 		case 3:
 			READ_SHORT(stmp);
