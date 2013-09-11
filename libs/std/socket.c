@@ -849,6 +849,48 @@ static value socket_set_fast_send( value s, value f ) {
 	return val_null;
 }
 
+/**
+	socket_set_keepalive : 'socket -> interval:int? -> void
+	<doc>
+	Enable TCP_KEEPALIVE option. Send first probe after interval in seconds.
+	Consider the socket in error after one more interval in seconds without getting a reply.
+	Disable TCP_KEEPALIVE if interval is [null].
+	</doc>
+**/
+static value socket_set_keepalive( value o, value i ) {
+	int val;
+	val_check_kind(o,k_socket);
+
+	if( val_is_null(i) ) {
+		val = 0;
+		if( setsockopt(val_sock(o), SOL_SOCKET, SO_KEEPALIVE, &val, sizeof(val)) != 0 )
+			neko_error();
+	} else {
+		val_check(i,int);
+		val = 1;
+		if( setsockopt(val_sock(o), SOL_SOCKET, SO_KEEPALIVE, &val, sizeof(val)) != 0 )
+			neko_error();
+	
+		#ifndef NEKO_WINDOWS
+		val = val_int(i);
+		if( setsockopt(val_sock(o), IPPROTO_TCP, TCP_KEEPIDLE, &val, sizeof(val)) != 0 )
+			neko_error();
+
+		val = val/3;
+		if( val == 0 ) val = 1;
+		if( setsockopt(val_sock(o), IPPROTO_TCP, TCP_KEEPINTVL, &val, sizeof(val)) != 0 )
+			neko_error();
+
+		val = 3;
+		if( setsockopt(val_sock(o), IPPROTO_TCP, TCP_KEEPCNT, &val, sizeof(val)) != 0 )
+			neko_error();
+		#endif
+	}
+
+
+	return val_true;
+}
+
 DEFINE_PRIM(socket_init,0);
 DEFINE_PRIM(socket_new,1);
 DEFINE_PRIM(socket_send,4);
@@ -869,6 +911,7 @@ DEFINE_PRIM(socket_set_timeout,2);
 DEFINE_PRIM(socket_shutdown,3);
 DEFINE_PRIM(socket_set_blocking,2);
 DEFINE_PRIM(socket_set_fast_send,2);
+DEFINE_PRIM(socket_set_keepalive,2);
 
 DEFINE_PRIM(socket_poll_alloc,1);
 DEFINE_PRIM(socket_poll,3);
