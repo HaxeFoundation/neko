@@ -850,40 +850,46 @@ static value socket_set_fast_send( value s, value f ) {
 }
 
 /**
-	socket_set_keepalive : 'socket -> interval:int? -> void
+	socket_set_keepalive : 'socket -> bool -> time:int? -> interval:int? -> probes:int? -> void
 	<doc>
-	Enable TCP_KEEPALIVE option. Send first probe after interval in seconds.
-	Consider the socket in error after one more interval in seconds without getting a reply.
-	Disable TCP_KEEPALIVE if interval is [null].
+	Enable or disable TCP_KEEPALIVE flag for the socket and define custom delays and probes.
 	</doc>
 **/
-static value socket_set_keepalive( value o, value i ) {
+static value socket_set_keepalive( value o, value b, value time, value interval, value probes ) {
 	int val;
 	val_check_kind(o,k_socket);
+	val_check(b,bool);
 
-	if( val_is_null(i) ) {
+	if( !val_bool(b) ) {
 		val = 0;
 		if( setsockopt(val_sock(o), SOL_SOCKET, SO_KEEPALIVE, &val, sizeof(val)) != 0 )
 			neko_error();
 	} else {
-		val_check(i,int);
 		val = 1;
 		if( setsockopt(val_sock(o), SOL_SOCKET, SO_KEEPALIVE, &val, sizeof(val)) != 0 )
 			neko_error();
 	
 		#ifndef NEKO_WINDOWS
-		val = val_int(i);
-		if( setsockopt(val_sock(o), IPPROTO_TCP, TCP_KEEPIDLE, &val, sizeof(val)) != 0 )
-			neko_error();
+		if( !val_is_null(time) ) {
+			val_check(time,int);
+			val = val_int(time);
+			if( setsockopt(val_sock(o), IPPROTO_TCP, TCP_KEEPIDLE, &val, sizeof(val)) != 0 )
+				neko_error();
+		}
 
-		val = val/3;
-		if( val == 0 ) val = 1;
-		if( setsockopt(val_sock(o), IPPROTO_TCP, TCP_KEEPINTVL, &val, sizeof(val)) != 0 )
-			neko_error();
+		if( !val_is_null(interval) ) {
+			val_check(interval,int);
+			val = val_int(interval);
+			if( setsockopt(val_sock(o), IPPROTO_TCP, TCP_KEEPINTVL, &val, sizeof(val)) != 0 )
+				neko_error();
+		}
 
-		val = 3;
-		if( setsockopt(val_sock(o), IPPROTO_TCP, TCP_KEEPCNT, &val, sizeof(val)) != 0 )
-			neko_error();
+		if( !val_is_null(probes) ) {
+			val_check(probes,int);
+			val = val_int(probes);
+			if( setsockopt(val_sock(o), IPPROTO_TCP, TCP_KEEPCNT, &val, sizeof(val)) != 0 )
+				neko_error();
+		}
 		#endif
 	}
 
@@ -911,7 +917,7 @@ DEFINE_PRIM(socket_set_timeout,2);
 DEFINE_PRIM(socket_shutdown,3);
 DEFINE_PRIM(socket_set_blocking,2);
 DEFINE_PRIM(socket_set_fast_send,2);
-DEFINE_PRIM(socket_set_keepalive,2);
+DEFINE_PRIM(socket_set_keepalive,5);
 
 DEFINE_PRIM(socket_poll_alloc,1);
 DEFINE_PRIM(socket_poll,3);
