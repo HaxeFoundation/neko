@@ -32,6 +32,12 @@ NEKO_EXEC = LD_LIBRARY_PATH=../bin:${LD_LIBRARY_PATH} NEKOPATH=../boot:../bin ..
 #
 # CFLAGS += -DLOW_MEM
 
+# 32-bit SPECIFIC
+LBITS := $(shell getconf LONG_BIT)
+ifeq ($(LBITS),32)
+CFLAGS +=  -mincoming-stack-boundary=2
+endif
+
 ## MINGW SPECIFIC
 
 ifeq (${os}, mingw)
