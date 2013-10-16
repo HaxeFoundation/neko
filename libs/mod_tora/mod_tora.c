@@ -56,6 +56,12 @@
 #	define REMOTE_ADDR(c)	c->remote_addr.sin_addr
 #endif
 
+#if AP_SERVER_MAJORVERSION_NUMBER >= 2 && AP_SERVER_MINORVERSION_NUMBER >= 4
+#       define REMOTE_IP(r) r->useragent_ip
+#else
+#       define REMOTE_IP(r) r->connection->remote_ip
+#endif
+
 #define DEFAULT_HOST			"127.0.0.1"
 #define DEFAULT_PORT			6666
 #define DEFAULT_MAX_POST_DATA	(1 << 18) // 256 K
@@ -148,7 +154,7 @@ static void do_log( void *_c, const char *msg, bool user_log ) {
 		do_print(c,"Error : ",8);
 		do_print(c,msg,(int)strlen(msg));
 	} else
-		ap_log_rerror(__FILE__, __LINE__, APLOG_WARNING, LOG_SUCCESS c->r, "[mod_tora] %s", msg);
+		ap_log_rerror(APLOG_MARK, APLOG_WARNING, LOG_SUCCESS c->r, "[mod_tora] %s", msg);
 }
 
 static void log_error( mcontext *c, const char *msg ) {
@@ -232,7 +238,7 @@ static int tora_handler( request_rec *r ) {
 		if( config.proxy_mode ) {
 			const char *xff = ap_table_get(r->headers_in,"X-Forwarded-For");
 			if( xff == NULL )
-				infos.client_ip = r->connection->remote_ip;
+			    infos.client_ip = REMOTE_IP(r);
 			else {
 				char tmp;
 				char *xend = (char*)xff + strlen(xff) - 1;
@@ -248,7 +254,7 @@ static int tora_handler( request_rec *r ) {
 				*xend = tmp;
 			}
 		} else
-			infos.client_ip = r->connection->remote_ip;
+		    infos.client_ip = REMOTE_IP(r);
 		infos.http_method = r->method;
 		infos.get_data = r->args;
 		infos.post_data = c->post_data;
@@ -319,7 +325,7 @@ static const char *mod_tora_config( cmd_parms *cmd, MCONFIG mconfig, const char 
 	else if( strcmp(code,"PORT_MAX") == 0 ) config.port_max = value;
 	else if( strcmp(code,"POST_SIZE") == 0 ) config.max_post_size = value;
 	else if( strcmp(code,"PROXY_MODE") == 0 ) config.proxy_mode = value;
-	else ap_log_error(__FILE__,__LINE__,APLOG_WARNING,LOG_SUCCESS cmd->server,"Unknown ModTora configuration command '%s'",code);
+	else ap_log_error(APLOG_MARK,APLOG_WARNING,LOG_SUCCESS cmd->server,"Unknown ModTora configuration command '%s'",code);
 	free(code);
 	return NULL;
 }
