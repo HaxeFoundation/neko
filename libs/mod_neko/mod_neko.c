@@ -320,17 +320,20 @@ static int neko_handler( request_rec *r ) {
 
 static void mod_neko_do_init() {
 	int tmp = 0;
+	char *s;
 	if( init_done ) return;
 	init_done = 1;
 	memset(&config,0,sizeof(config));
 	config.use_cache = 1;
 	config.gc_period = 1;
 	config.max_post_size = MOD_NEKO_POST_SIZE;
+	if (0 != 
 #	ifdef APACHE_2_X
-	putenv(strdup("MOD_NEKO=2"));
+	    putenv(s = strdup("MOD_NEKO=2"))
 #	else
-	putenv(strdup("MOD_NEKO=1"));
+	    putenv(s = strdup("MOD_NEKO=1"))
 #	endif
+	    ) free(s);
 	neko_global_init();
 	cache_root = alloc_local();
 }
