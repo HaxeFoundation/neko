@@ -128,7 +128,11 @@ static value get_host_name() {
 	<doc>Get the connected client IP</doc>
 **/
 static value get_client_ip() {
+#if AP_SERVER_MAJORVERSION_NUMBER >= 2 && AP_SERVER_MINORVERSION_NUMBER >= 4
+	return alloc_string( CONTEXT()->r->useragent_ip );
+#else
 	return alloc_string( CONTEXT()->r->connection->remote_ip );
+#endif
 }
 
 /**
@@ -572,9 +576,9 @@ static value log_message( value message ) {
 	mcontext *c = CONTEXT();
 	val_check(message, string);
 #ifdef APACHE_2_X
-	ap_log_rerror(__FILE__, __LINE__, APLOG_NOTICE, APR_SUCCESS, c->r, "[mod_neko] %s", val_string(message));
+	ap_log_rerror(APLOG_MARK, APLOG_NOTICE, APR_SUCCESS, c->r, "[mod_neko] %s", val_string(message));
 #else
-	ap_log_rerror(__FILE__, __LINE__, APLOG_NOTICE, c->r, "[mod_neko] %s", val_string(message));
+	ap_log_rerror(APLOG_MARK, APLOG_NOTICE, c->r, "[mod_neko] %s", val_string(message));
 #endif
 	return val_null;
 }

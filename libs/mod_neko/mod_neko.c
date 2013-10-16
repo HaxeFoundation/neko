@@ -44,7 +44,7 @@ typedef time_t aptime;
 
 #define apache_error(level,request,message)	\
 	ap_rprintf(request,"<b>Error</b> : %s",message); \
-	ap_log_rerror(__FILE__, __LINE__, level, LOG_SUCCESS request, "[mod_neko error] %s", message)
+	ap_log_rerror(APLOG_MARK, level, LOG_SUCCESS request, "[mod_neko error] %s", message)
 
 typedef struct cache {
 	value file;
@@ -385,7 +385,7 @@ static void preload_module( const char *name, server_rec *serv ) {
 	if( exc ) {
 		buffer b = alloc_buffer(NULL);
 		val_buffer(b,exc);
-		ap_log_error(__FILE__,__LINE__,APLOG_WARNING,LOG_SUCCESS serv,"Failed to preload module '%s' : %s",name,val_string(buffer_to_string(b)));
+		ap_log_error(APLOG_MARK,APLOG_WARNING,LOG_SUCCESS serv,"Failed to preload module '%s' : %s",name,val_string(buffer_to_string(b)));
 	}
 	neko_vm_select(NULL);
 }
@@ -415,7 +415,7 @@ static const char *mod_neko_config( cmd_parms *cmd, MCONFIG mconfig, const char 
 	else if( strcmp(code,"STATS") == 0 ) config.use_stats = value;
 	else if( strcmp(code,"PRIM_STATS") == 0 ) config.use_prim_stats = value;
 	else if( strcmp(code,"PRELOAD") == 0 ) preload_module(args,cmd->server);
-	else ap_log_error(__FILE__,__LINE__,APLOG_WARNING,LOG_SUCCESS cmd->server,"Unknown ModNeko configuration command '%s'",code);
+	else ap_log_error(APLOG_MARK,APLOG_WARNING,LOG_SUCCESS cmd->server,"Unknown ModNeko configuration command '%s'",code);
 	free(code);
 	return NULL;
 }
