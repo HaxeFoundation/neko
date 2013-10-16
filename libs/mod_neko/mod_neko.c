@@ -327,13 +327,16 @@ static void mod_neko_do_init() {
 	config.use_cache = 1;
 	config.gc_period = 1;
 	config.max_post_size = MOD_NEKO_POST_SIZE;
-	if (0 != 
 #	ifdef APACHE_2_X
-	    putenv(s = strdup("MOD_NEKO=2"))
+	s = strdup("MOD_NEKO=2");
 #	else
-	    putenv(s = strdup("MOD_NEKO=1"))
+	s = strdup("MOD_NEKO=1");
 #	endif
-	    ) free(s);
+	if (s != NULL) {
+	    if (0 != putenv(s)) {
+		free(s);
+	    }
+	}
 	neko_global_init();
 	cache_root = alloc_local();
 }
