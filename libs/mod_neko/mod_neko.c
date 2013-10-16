@@ -333,9 +333,9 @@ static void mod_neko_do_init() {
 	s = strdup("MOD_NEKO=1");
 #	endif
 	if (s != NULL) {
-	    if (0 != putenv(s)) {
-		free(s);
-	    }
+	        if (0 != putenv(s)) {
+		        free(s);
+		}
 	}
 	neko_global_init();
 	cache_root = alloc_local();
