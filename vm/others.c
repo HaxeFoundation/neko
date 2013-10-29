@@ -202,6 +202,10 @@ EXTERN value buffer_to_string( buffer b ) {
 	return v;
 }
 
+EXTERN int buffer_length( buffer b ) {
+	return b->totlen;
+}
+
 typedef struct vlist {
 	value v;
 	struct vlist *next;
