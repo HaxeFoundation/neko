@@ -364,6 +364,10 @@ compile_lib = function(name,data) {
 		linklib = "";
 	else {
 		while( (dir = find_file(linklib,libraries)) == null ) {
+			if( silent ) {
+				$print("The file "+linklib+" not found, skipping "+data.incname+" library compilation\n");
+				return;
+			}
 			$print("The file "+linklib+" provided when installing "+data.incname+" was not found\n");
 			$print("Please enter a valid include path to look for it\n");
 			$print("Or 's' to skip this library\n");
