@@ -84,6 +84,9 @@ DEFINE_KIND(k_poll);
 #define val_sock(o)		((SOCKET)(int_val)val_data(o))
 #define val_poll(o)		((polldata*)val_data(o))
 
+static field f_host;
+static field f_port;
+
 /**
 	<doc>
 	<h1>Socket</h1>
@@ -119,6 +122,8 @@ static value socket_init() {
 		init_done = true;
 	}
 #endif
+	f_host = val_id("host");
+	f_port = val_id("port");
 	return val_true;
 }
 
@@ -849,6 +854,83 @@ static value socket_set_fast_send( value s, value f ) {
 	return val_null;
 }
 
+/**
+	socket_send_to : 'socket -> buf:string -> pos:int -> length:int -> addr:{host:'int32,port:int} -> int
+	<doc>
+	Send data from an unconnected UDP socket to the given address.
+	</doc>
+**/
+static value socket_send_to( value o, value data, value pos, value len, value vaddr ) {
+	int p,l,dlen;
+	value host, port;
+	struct sockaddr_in addr;
+	val_check_kind(o,k_socket);
+	val_check(data,string);
+	val_check(pos,int);
+	val_check(len,int);
+	val_check(vaddr,object);
+	host = val_field(vaddr, f_host);
+	port = val_field(vaddr, f_port);
+	val_check(host,int32);
+	val_check(port,int);
+	p = val_int(pos);
+	l = val_int(len);
+	dlen = val_strlen(data);
+	memset(&addr,0,sizeof(addr));
+	addr.sin_family = AF_INET;
+	addr.sin_port = htons(val_int(port));
+	*(int*)&addr.sin_addr.s_addr = val_int32(host);
+	if( p < 0 || l < 0 || p > dlen || p + l > dlen )
+		neko_error();
+	POSIX_LABEL(send_again);
+	dlen = sendto(val_sock(o), val_string(data) + p , l, MSG_NOSIGNAL, (struct sockaddr*)&addr, sizeof(addr));
+	if( dlen == SOCKET_ERROR ) {
+		HANDLE_EINTR(send_again);
+		return block_error();
+	}
+	return alloc_int(dlen);
+}
+
+/**
+	socket_recv_from : 'socket -> buf:string -> pos:int -> length:int -> addr:{host:'int32,port:int} -> int
+	<doc>
+	Read data from an unconnected UDP socket, store the address from which we received data in addr.
+	</doc>
+**/
+static value socket_recv_from( value o, value data, value pos, value len, value addr ) {
+	int p,l,dlen,ret;
+	int retry = 0;
+	struct sockaddr_in saddr;
+	int slen = sizeof(saddr);
+	val_check_kind(o,k_socket);
+	val_check(data,string);
+	val_check(pos,int);
+	val_check(len,int);
+	val_check(addr,object);
+	p = val_int(pos);
+	l = val_int(len);
+	dlen = val_strlen(data);
+	if( p < 0 || l < 0 || p > dlen || p + l > dlen )
+		neko_error();
+	POSIX_LABEL(recv_from_again);
+	if( retry++ > NRETRYS ) {
+		sock_tmp t;
+		t.sock = val_sock(o);
+		t.buf = val_string(data) + p;
+		t.size = l;
+		neko_thread_blocking(tmp_recv,&t);
+		ret = t.ret;
+	} else
+		ret = recvfrom(val_sock(o), val_string(data) + p , l, MSG_NOSIGNAL, (struct sockaddr*)&saddr, &slen);
+	if( ret == SOCKET_ERROR ) {
+		HANDLE_EINTR(recv_from_again);
+		return block_error();
+	}
+	alloc_field(addr,f_host,alloc_int32(*(int*)&saddr.sin_addr));
+	alloc_field(addr,f_port,alloc_int(ntohs(saddr.sin_port)));
+	return alloc_int(ret);
+}
+
 DEFINE_PRIM(socket_init,0);
 DEFINE_PRIM(socket_new,1);
 DEFINE_PRIM(socket_send,4);
@@ -869,6 +951,9 @@ DEFINE_PRIM(socket_set_timeout,2);
 DEFINE_PRIM(socket_shutdown,3);
 DEFINE_PRIM(socket_set_blocking,2);
 DEFINE_PRIM(socket_set_fast_send,2);
+
+DEFINE_PRIM(socket_send_to,5);
+DEFINE_PRIM(socket_recv_from,5);
 
 DEFINE_PRIM(socket_poll_alloc,1);
 DEFINE_PRIM(socket_poll,3);
