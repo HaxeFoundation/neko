@@ -924,6 +924,11 @@ static value socket_recv_from( value o, value data, value pos, value len, value 
 		ret = recvfrom(val_sock(o), val_string(data) + p , l, MSG_NOSIGNAL, (struct sockaddr*)&saddr, &slen);
 	if( ret == SOCKET_ERROR ) {
 		HANDLE_EINTR(recv_from_again);
+#ifdef	NEKO_WINDOWS
+		if( WSAGetLastError() == WSAECONNRESET )
+			ret = 0;
+		else
+#endif
 		return block_error();
 	}
 	alloc_field(addr,f_host,alloc_int32(*(int*)&saddr.sin_addr));
