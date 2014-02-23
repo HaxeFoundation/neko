@@ -402,7 +402,7 @@ static value utf8_compare( value str1, value str2 ) {
 	l = (l1 < l2)?l1:l2;
 	while( l-- ) {
 		unsigned char c1 = *s1++;
-		unsigned char c2 = *s1++;
+		unsigned char c2 = *s2++;
 		if( c1 != c2 )
 			return alloc_int((c1 > c2)?-1:1);
 		if( c1 < 0x7F )
