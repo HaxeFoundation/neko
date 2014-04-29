@@ -1,0 +1,15 @@
+clone_folder: C:\projects\neko
+
+
+environment:
+  VisualStudioVersion: 10.0
+
+install:
+  - cd libs/include/make
+  - unzip make.zip
+  - cd ../../..
+
+build_script:
+  - set PATH=%PATH%;C:\projects\neko\libs/include/make/make
+  - msbuild neko_vc10.sln /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
+  - msbuild libs/libs_vc10.sln /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
