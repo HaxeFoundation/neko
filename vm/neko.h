@@ -347,6 +347,7 @@ typedef struct _mt_lock mt_lock;
 #define buffer_append		neko_buffer_append
 #define buffer_append_sub	neko_buffer_append_sub
 #define buffer_append_char	neko_buffer_append_char
+#define buffer_length		neko_buffer_length
 #define buffer_to_string	neko_buffer_to_string
 #define val_buffer			neko_val_buffer
 #define val_compare			neko_val_compare
@@ -418,6 +419,7 @@ C_FUNCTION_BEGIN
 	EXTERN void buffer_append_sub( buffer b, const char *s, int_val len );
 	EXTERN void buffer_append_char( buffer b, char c );
 	EXTERN value buffer_to_string( buffer b );
+	EXTERN int buffer_length( buffer b );
 	EXTERN void val_buffer( buffer b, value v );
 
 	EXTERN int val_compare( value a, value b );

@@ -102,11 +102,21 @@ static value buffer_reset( value b ) {
 	return val_true;
 }
 
+/**
+	buffer_get_length : 'buffer -> int
+	<doc>Return the number of bytes currently stored into the buffer</doc>
+**/
+static value buffer_get_length( value b ) {
+	val_check_kind(b,k_buffer);
+	return alloc_best_int(buffer_length((buffer)val_data(b)));
+}
+
 DEFINE_PRIM(buffer_new,0);
 DEFINE_PRIM(buffer_add,2);
 DEFINE_PRIM(buffer_add_char,2);
 DEFINE_PRIM(buffer_add_sub,4);
 DEFINE_PRIM(buffer_string,1);
 DEFINE_PRIM(buffer_reset,1);
+DEFINE_PRIM(buffer_get_length,1);
 
 /* ************************************************************************ */

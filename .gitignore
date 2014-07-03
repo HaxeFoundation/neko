@@ -1,5 +1,9 @@
 /bin/*.ndll
 /bin/nekoml.std
+/bin/neko
+/bin/nekoc
+/bin/nekoml
+/bin/nekotools
 *.dll
 *.exe
 *.user
@@ -16,4 +20,8 @@ Release5
 *.n
 *.ipch
 *.opensdf
+*.o
+*.so
+*~
+*.bak
 

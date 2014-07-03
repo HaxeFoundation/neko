@@ -2,6 +2,11 @@
 	all : silent libs compilation by default
 	all : installation by default in /usr instead of /usr/local + some rights fixes
 	mod_neko/tora : use remote_ip (fixes Apache 2.2 returning 0.0.0.0 in 64 bits ?)
+	std : added buffer_get_length
+	std : added socket_send_to and socket_recv_from for UDP
+	all : increased max codesize from 65K opcodes to 1M
+	nekoc : allow break/continue in try/catch
+	std : bugfix in utf8_compare
 
 2013-02-23 : 2.0.0
 	all : changed license to MIT
