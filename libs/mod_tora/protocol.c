@@ -355,7 +355,7 @@ static bool send_multipart_data( proto *p, char *buf, int bufsize ) {
 		while( true ) {
 			const char *boundary;
 			// recall buffer
-			memcpy(buf,buf+pos,len - pos);
+			memmove(buf,buf+pos,len - pos);
 			len -= pos;
 			pos = 0;
 			len = fill_buffer(p,buf,bufsize,len);
@@ -377,7 +377,7 @@ static bool send_multipart_data( proto *p, char *buf, int bufsize ) {
 				pos = (int)(boundary - buf);
 				proto_send_size(p,CODE_PART_DATA,buf,pos - 2);
 				// recall
-				memcpy(buf,buf+pos,len - pos);
+				memmove(buf,buf+pos,len - pos);
 				len -= pos;
 				break;
 			}
