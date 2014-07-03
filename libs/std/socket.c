@@ -864,6 +864,10 @@ static value socket_set_keepalive( value o, value b, value time, value interval,
 	int val;
 	val_check_kind(o,k_socket);
 	val_check(b,bool);
+	if( !val_is_null(time) ) val_check(time,int);
+	if( !val_is_null(interval) ) val_check(interval,int);
+	if( !val_is_null(probes) ) val_check(probes,int);
+
 
 	if( !val_bool(b) ) {
 		val = 0;
@@ -876,21 +880,18 @@ static value socket_set_keepalive( value o, value b, value time, value interval,
 	
 		#ifndef NEKO_WINDOWS
 		if( !val_is_null(time) ) {
-			val_check(time,int);
 			val = val_int(time);
 			if( setsockopt(val_sock(o), IPPROTO_TCP, TCP_KEEPIDLE, &val, sizeof(val)) != 0 )
 				neko_error();
 		}
 
 		if( !val_is_null(interval) ) {
-			val_check(interval,int);
 			val = val_int(interval);
 			if( setsockopt(val_sock(o), IPPROTO_TCP, TCP_KEEPINTVL, &val, sizeof(val)) != 0 )
 				neko_error();
 		}
 
 		if( !val_is_null(probes) ) {
-			val_check(probes,int);
 			val = val_int(probes);
 			if( setsockopt(val_sock(o), IPPROTO_TCP, TCP_KEEPCNT, &val, sizeof(val)) != 0 )
 				neko_error();
