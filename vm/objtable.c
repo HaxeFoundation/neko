@@ -39,7 +39,7 @@ int otable_remove( objtable *t, field id ) {
 			max = mid;
 		else {
 			t->count--;
-            memmove(&c[mid], &c[mid + 1], (void*)&c[t->count] - (void*)&c[mid]);
+            memmove(&c[mid], &c[mid + 1], (t->count - mid) * sizeof(objcell));
             c[t->count].v = val_null;
 			return 1;
 		}
@@ -81,11 +81,12 @@ void otable_replace( objtable *t, field id, value data ) {
 		}
 	}
 	mid = (min + max) >> 1;
-	c = (objcell*)alloc(sizeof(objcell) * (t->count + 1));
-    memcpy(c, t->cells, (void*)&c[mid] - (void*)c);
+    const size_t objcell_size = sizeof(objcell);
+	c = (objcell*)alloc(objcell_size * (t->count + 1));
+    memcpy(c, t->cells, mid * objcell_size);
     c[mid].id = id;
     c[mid].v = data;
-    memcpy(&c[mid + 1], &t->cells[mid], (void*)&c[t->count] - (void*)&c[mid]);
+    memcpy(&c[mid + 1], &t->cells[mid], (t->count - mid) * objcell_size);
 	t->cells = c;
 	t->count++;
 }
