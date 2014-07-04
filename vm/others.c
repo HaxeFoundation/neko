@@ -145,7 +145,7 @@ static void buffer_append_new( buffer b, const char *s, int len ) {
 	it->size = size;
 	it->len = len;
 	it->next = b->data;
-	b->data = it;	
+	b->data = it;
 }
 
 EXTERN void buffer_append_sub( buffer b, const char *s, int_val _len ) {
@@ -182,7 +182,7 @@ EXTERN void buffer_append_char( buffer b, char c ) {
 	b->totlen++;
 	it = b->data;
 	if( it && it->len != it->size ) {
-		it->str[it->len++] = c;		
+		it->str[it->len++] = c;
 		return;
 	}
 	buffer_append_new(b,&c,1);
@@ -418,19 +418,11 @@ EXTERN field val_id( const char *name ) {
 			objcell *c2 = (objcell*)alloc(sizeof(objcell)*(t->count+1));
 
 			// copy the whole table
-			mid = (min + max) >> 1;
-			min = 0;
-			while( min < mid ) {
-				c2[min] = c[min];
-				min++;
-			}
-			c2[min].id = f;
-			c2[min].v = copy_string(oname,name - oname);
-			max = t->count;
-			while( min < max ) {
-				c2[min+1] = c[min];
-				min++;
-			}
+            mid = (min + max) >> 1;
+            memcpy(c2, c, (void*)&c[mid] - (void*)c);
+			c2[mid].id = f;
+			c2[mid].v = copy_string(oname,name - oname);
+            memcpy(&c2[mid + 1], &c[mid], (void*)&c[t->count] - (void*)&c[mid]);
 
 			// update
 			t->cells = c2;
