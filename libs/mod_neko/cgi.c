@@ -342,7 +342,7 @@ static value parse_multipart_data( value onpart, value ondata ) {
 		while( true ) {
 			const char *boundary;
 			// recall buffer
-			memcpy(val_string(buf),val_string(buf)+pos,len - pos);
+			memmove(val_string(buf),val_string(buf)+pos,len - pos);
 			len -= pos;
 			pos = 0;
 			fill_buffer(c,buf,&len);
@@ -362,7 +362,7 @@ static value parse_multipart_data( value onpart, value ondata ) {
 				pos = (int)(boundary - val_string(buf));
 				val_call3(ondata,buf,alloc_int(0),alloc_int(pos-2));
 				// recall
-				memcpy(val_string(buf),val_string(buf)+pos,len - pos);
+				memmove(val_string(buf),val_string(buf)+pos,len - pos);
 				len -= pos;
 				break;
 			}
