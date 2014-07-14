@@ -415,15 +415,15 @@ EXTERN field val_id( const char *name ) {
 		}
 		// in case we found it, it means that it's been inserted by another thread
 		if( fdata == val_null ) {
-            const size_t objcell_size = sizeof(objcell);
+			const size_t objcell_size = sizeof(objcell);
 			objcell *c2 = (objcell*)alloc(objcell_size * (t->count + 1));
 
 			// copy the whole table
-            mid = (min + max) >> 1;
-            memcpy(c2, c, mid * objcell_size);
+			mid = (min + max) >> 1;
+			memcpy(c2, c, mid * objcell_size);
 			c2[mid].id = f;
 			c2[mid].v = copy_string(oname,name - oname);
-            memcpy(&c2[mid + 1], &c[mid], (t->count - mid) * objcell_size);
+			memcpy(&c2[mid + 1], &c[mid], (t->count - mid) * objcell_size);
 
 			// update
 			t->cells = c2;
