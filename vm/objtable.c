@@ -92,10 +92,10 @@ void otable_replace( objtable *t, field id, value data ) {
 }
 
 void otable_copy( objtable *t, objtable *target ) {
-    target->count = t->count;
-    const size_t size = sizeof(objcell) * t->count;
-    target->cells = (objcell*)alloc(size);
-    memcpy(target->cells,t->cells,size);
+	target->count = t->count;
+	const size_t size = sizeof(objcell) * t->count;
+	target->cells = (objcell*)alloc(size);
+	memcpy(target->cells,t->cells,size);
 }
 
 void otable_iter(objtable *t, void f( value data, field id, void *), void *p ) {
