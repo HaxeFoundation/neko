@@ -7,6 +7,7 @@
 	all : increased max codesize from 65K opcodes to 1M
 	nekoc : allow break/continue in try/catch
 	std : bugfix in utf8_compare
+	vm : added $sget16/$sgetf/$sgetd and $sset16/$ssetf/$ssetd
 
 2013-02-23 : 2.0.0
 	all : changed license to MIT

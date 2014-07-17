@@ -269,6 +269,160 @@ static value builtin_sset( value s, value p, value c ) {
 	return alloc_int(cc);
 }
 
+#ifdef NEKO_BIG_ENDIAN
+#	define TO_BE(v)	v != val_true
+#else
+#	define TO_BE(v) v == val_true
+#endif
+
+/**
+	$sget16 : string -> n:int -> bigEndian:bool -> int?
+	<doc>Return the 16 bit unsigned value at position [n] or [null] if out of bounds</doc>
+**/
+static value builtin_sget16( value s, value p, value endian ) {
+	int pp;
+	unsigned short v;
+	val_check(s,string);
+	val_check(p,int);
+	pp = val_int(p);
+	if( pp < 0 || pp+2 > val_strlen(s) )
+		return val_null;
+	v = *(unsigned short*)(val_string(s)+pp);
+	if( TO_BE(endian) )
+		v = ((v&0xFF) << 8) | (v>>8);
+	return alloc_int(v);
+}
+
+/**
+	$sset16 : s:string -> n:int -> bigEndian:bool -> val:int -> void
+	<doc>Set the 16 bit unsigned value at position [n] of string [s]</doc>
+**/
+static value builtin_sset16( value s, value p, value endian, value val ) {
+	int pp, v;
+	val_check(s,string);
+	val_check(p,int);
+	val_check(val,int);
+	pp = val_int(p);
+	if( pp < 0 || pp+2 > val_strlen(s) )
+		neko_error();
+	v = val_int(val);
+	if( TO_BE(endian) )
+		v = ((v&0xFF) << 8) | (v>>8);
+	*(unsigned short*)(val_string(s)+pp) = v;
+	return val_null;
+}
+
+/**
+	$sgetf : string -> n:int -> bigEndian:bool -> float?
+	<doc>Return the single precision float value at position [n] or [null] if out of bounds</doc>
+**/
+static value builtin_sgetf( value s, value p, value endian ) {
+	int pp;
+	float f;
+	val_check(s,string);
+	val_check(p,int);
+	pp = val_int(p);
+	if( pp < 0 || pp+4 > val_strlen(s) )
+		return val_null;
+	if( TO_BE(endian) ) {
+		unsigned int bits;
+		bits = *(unsigned int*)(val_string(s)+pp);
+		bits = (bits >> 24) | ((bits >> 8) & 0xFF00) | ((bits << 8) & 0xFF0000) | (bits << 24);
+		f = *(float*)(&bits);
+	} else
+		f = *(float*)(val_string(s)+pp);
+	return alloc_float(f);
+}
+
+/**
+	$ssetf : s:string -> n:int -> bigEndian:bool -> val:float -> void
+	<doc>Set the single precision float value at position [n] of string [s]</doc>
+**/
+static value builtin_ssetf( value s, value p, value endian, value val ) {
+	int pp;
+	float f;
+	val_check(s,string);
+	val_check(p,int);
+	val_check(val,float);
+	pp = val_int(p);
+	if( pp < 0 || pp+4 > val_strlen(s) )
+		neko_error();
+	f = (float)val_float(val);
+	if( TO_BE(endian) ) {
+		unsigned int bits = *(unsigned int *)&f;
+		bits = (bits >> 24) | ((bits >> 8) & 0xFF00) | ((bits << 8) & 0xFF0000) | (bits << 24);
+		*(unsigned int*)(val_string(s)+pp) = bits;
+	} else
+		*(float*)(val_string(s)+pp) = f;
+	return val_null;
+}
+
+/**
+	$sgetd : string -> n:int -> float?
+	<doc>Return the double precision float value at position [n] or [null] if out of bounds</doc>
+**/
+static value builtin_sgetd( value s, value p, value endian ) {
+	int pp;
+	double f;
+	val_check(s,string);
+	val_check(p,int);
+	pp = val_int(p);
+	if( pp < 0 || pp+8 > val_strlen(s) )
+		return val_null;
+	if( TO_BE(endian) ) {
+		const unsigned char *p = (unsigned char*)(val_string(s) + pp);
+		union {
+			unsigned char bytes[8];
+			double f;
+		} s;
+		s.bytes[0] = p[7];
+		s.bytes[1] = p[6];
+		s.bytes[2] = p[5];
+		s.bytes[3] = p[4];
+		s.bytes[4] = p[3];
+		s.bytes[5] = p[2];
+		s.bytes[6] = p[1];
+		s.bytes[7] = p[0];
+		f = s.f;
+	} else
+		f = *(double*)(val_string(s)+pp);
+	return alloc_float(f);
+}
+
+/**
+	$ssetd : s:string -> n:int -> val:float -> void
+	<doc>Set the double precision float value at position [n] of string [s]</doc>
+**/
+static value builtin_ssetd( value s, value p, value endian, value val ) {
+	int pp;
+	double f;
+	val_check(s,string);
+	val_check(p,int);
+	val_check(val,float);
+	pp = val_int(p);
+	if( pp < 0 || pp+8 > val_strlen(s) )
+		neko_error();
+	f = (double)val_float(val);
+	if( TO_BE(endian) ) {
+		unsigned char *p = (unsigned char*)(val_string(s) + pp);
+		union {
+			unsigned char bytes[8];
+			double f;
+		} s;
+		s.f = f;
+		*p = s.bytes[7]; p++;
+		*p = s.bytes[6]; p++;
+		*p = s.bytes[5]; p++;
+		*p = s.bytes[4]; p++;
+		*p = s.bytes[3]; p++;
+		*p = s.bytes[2]; p++;
+		*p = s.bytes[1]; p++;
+		*p = s.bytes[0];
+	} else
+		*(double*)(val_string(s)+pp) = f;
+	return val_null;
+}
+
 /**
 	$sblit : dst:string -> dst_pos:int -> src:string -> src_pos:int -> len:int -> void
 	<doc>
@@ -1247,6 +1401,13 @@ void neko_init_builtins() {
 	BUILTIN(sset,3);
 	BUILTIN(sblit,5);
 	BUILTIN(sfind,3);
+
+	BUILTIN(sget16,3);
+	BUILTIN(sgetf,3);
+	BUILTIN(sgetd,3);
+	BUILTIN(sset16,4);
+	BUILTIN(ssetf,4);
+	BUILTIN(ssetd,4);
 
 	BUILTIN(new,1);
 	BUILTIN(objget,2);
