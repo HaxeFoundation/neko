@@ -144,6 +144,7 @@
     <ClCompile Include="string.c" />
     <ClCompile Include="sys.c" />
     <ClCompile Include="thread.c" />
+    <ClCompile Include="unicode.c" />
     <ClCompile Include="utf8.c" />
     <ClCompile Include="xml.c" />
   </ItemGroup>

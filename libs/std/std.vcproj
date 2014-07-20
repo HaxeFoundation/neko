@@ -225,6 +225,9 @@
 			RelativePath=".\thread.c">
 		</File>
 		<File
+			RelativePath=".\unicode.c">
+		</File>
+		<File
 			RelativePath=".\utf8.c">
 		</File>
 		<File

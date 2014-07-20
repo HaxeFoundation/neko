@@ -20,6 +20,7 @@
  * DEALINGS IN THE SOFTWARE.
  */
 #include <neko.h>
+#include <neko_vm.h>
 #include <string.h>
 /**
 	<doc>
@@ -41,16 +42,18 @@
 typedef unsigned int uchar;
 typedef unsigned char *ustring;
 
+#define val_ustring(s) ((ustring)val_string(s))
+
 typedef enum {
 	ASCII = 0,
 	ISO_LATIN1 = 1,
 	UTF8 = 2,
-	UCS2_LE	= 3,
-	UCS2_BE	= 4,
-	UTF16_LE = 5,
-	UTF16_BE = 6,
-	UTF32_LE = 7,
-	UTF32_BE = 8,
+	UCS2_BE	= 3,
+	UCS2_LE	= 4,
+	UTF16_BE = 5,
+	UTF16_LE = 6,
+	UTF32_BE = 7,
+	UTF32_LE = 8,
 	LAST_ENCODING = 9
 } encoding;
 
@@ -66,7 +69,18 @@ static const char *encodings[] = {
 	"utf32-be",
 };
 
+static int utf8_codelen[16] = {
+	1, 1, 1, 1, 1, 1, 1, 1,
+	0, 0, 0, 0,
+	2, 2, 3, 4
+};
+
 DEFINE_KIND(k_uni_buf);
+
+#define IS_BE(e) (neko_is_big_endian() ^ ((e) & 1))
+
+#define u16be(v) (((v) >> 8) | (((v) << 8) & 0xFF00))
+#define u32be(v) (((v) >> 24) | (((v) >> 8) & 0xFF00) | (((v) << 8) & 0xFF0000) | ((v) << 24))
 
 static void TODO() {
 	val_throw(alloc_string("Not implemented"));
@@ -82,36 +96,62 @@ static int uchar_size( uchar c, encoding e ) {
 	case ISO_LATIN1:
 		if( c >= 0x100 ) return 0;
 		return 1;
-	case UCS2_LE, UCS2_BE:
+	case UCS2_LE:
+	case UCS2_BE:
 		if( c >= 0x10000 ) return 0;
 		return 2;
-	case UTF16_LE, UTF16_BE:
+	case UTF16_LE:
+	case UTF16_BE:
+		if( c >= 0x110000 ) return 0;
 		return c >= 0x10000 ? 4 : 2;
-	case UTF32_LE, UTF32_BE:
+	case UTF32_LE:
+	case UTF32_BE:
 		return 4;
 	case UTF8:
-		if( c < 0x7F ) return 1;
-		if( c < 0xC0 ) return 0;
-		if( c < 0xE0 ) return 2;
-		if( c < 0xF0 ) return 3;
-		return 4;
+		if( c >= 0x200000 ) return 0;
+		return utf8_codelen[c>>4];
 	default:
-		return 0;
+		TODO();
+		break;
 	}
+	return 0;
 }
 
-static int uchar_set( ustring str, encoding e, uchar c ) {
-	TODO();
-}
-
-static uchar uchar_get( ustring str, int size, encoding e, int pos ) {
-	if( pos < 0 ) return INVALID_CHAR;
+static void uchar_set( ustring str, encoding e, uchar c ) {
 	switch( e ) {
-	case ASCII, ISO_LATIN1:
-		if( pos >= size ) return INVALID_CHAR:
-		return str[pos];
-	case UCS2_LE, UCS2_BE:
-		
+	case ASCII:
+	case ISO_LATIN1:
+		*str = c;
+		break;
+	case UTF8:
+		if( c < 0x80 )
+			*str++ = c;
+		else if( c < 0x800 ) {
+			*str++ = (c >> 6);
+			*str++ = (c & 63);
+		} else if( c < 0x10000 ) {
+			*str++ = 0xE0 | (c >> 12);
+			*str++ = 0x80 | ((c >> 6) & 63);
+			*str++ = 0x80 | (c & 63);
+		} else {
+			*str++ = 0xF0 | (c >> 18);
+			*str++ = 0x80 | ((c >> 12) & 63);
+			*str++ = 0x80 | ((c >> 6) & 63);
+			*str++ = 0x80 | (c & 63);
+		}
+		break;
+	case UCS2_LE:
+	case UCS2_BE:
+		if( IS_BE(e) )
+			c = u16be(c);
+		*((unsigned short*)str) = c;
+		break;
+	case UTF32_LE:
+	case UTF32_BE:
+		if( IS_BE(e) )
+			c = u32be(c);
+		*((unsigned int*)str) = c;
+		break;
 	}
 }
 
@@ -119,44 +159,134 @@ static ustring uchar_pos( ustring str, int size, encoding e, int pos ) {
 	if( pos < 0 )
 		return NULL;
 	switch( e ) {
-	case ASCII, ISO_LATIN1:
+	case ASCII:
+	case ISO_LATIN1:
 		if( pos > size ) return NULL;
 		return str + pos;
-	case UCS2_LE, UCS2_BE:
+	case UCS2_LE:
+	case UCS2_BE:
 		if( pos > (size >> 1) ) return NULL;
 		return str + (pos << 1);
-	case UCS32_LE, UCS32_BE:
+	case UTF32_LE:
+	case UTF32_BE:
 		if( pos > (size >> 2) ) return NULL;
 		return str + (pos << 2);
-	case UTF16_LE, UTF16_BE:
-		TODO();
-		break;
-	case UTF8:
-		while( pos-- && size > 0 ) {
-			unsigned char c = *str;
-			if( c < 0x7F ) {
-				size--;
-				str++;
-			} else if( c < 0xC0 )
-				return NULL;
-			else if( c < 0xE0 ) {
-				size-=2;
-				str+=2;
-			} else if( c < 0xF0 ) {
-				size-=3;
-				str+=3;
-			} else {
-				size-=4;
-				str+=4;
-			}
+	case UTF16_LE:
+	case UTF16_BE: {
+		ustring end = str + size;
+		int dec = IS_BE(e) ? 0 : 8;
+		while( str + 1 < end && pos-- > 0 ) {
+			unsigned short c = *(unsigned short *)str;
+			if( ((c >> dec) & 0xFC) == 0xD8 )
+				str += 4;
+			else
+				str += 2;
 		}
-		if( size < 0 )
+		if( str > end )
 			return NULL;
 		return str;
+		}
+	case UTF8: {
+		ustring end = str + size;
+		while( str < end && pos-- > 0 ) {
+			int l = utf8_codelen[(*str)>>4];
+			if( l == 0 ) return NULL;
+			str += l;
+		}
+		if( str > end )
+			return NULL;
+		return str;
+		}
 	default:
 		TODO();
+		break;
 	}
 	return NULL;
+}
+
+static uchar uchar_get( ustring *rstr, int size, encoding e, int pos ) {
+	uchar c;
+	ustring str = *rstr;
+	if( pos < 0 ) return INVALID_CHAR;
+	switch( e ) {
+	case ASCII:
+	case ISO_LATIN1:
+		if( pos >= size ) return INVALID_CHAR;
+		str = str + pos;
+		c = *str++;
+		break;
+	case UCS2_LE:
+	case UCS2_BE:
+		if( pos >= size << 1 ) return INVALID_CHAR;
+		str = str + (pos<<1);
+		c = *((unsigned short *)str);
+		str += 2;
+		if( IS_BE(e) )
+			c = u16be(c);
+		break;
+	case UTF32_LE:
+	case UTF32_BE:
+		if( pos >= size << 2 ) return INVALID_CHAR;
+		str = str + (pos<<2);
+		c = *((unsigned int *)str);
+		str += 4;
+		if( IS_BE(e) )
+			c = u32be(c);
+		break;
+	case UTF16_LE:
+	case UTF16_BE:
+		if( pos > 0 ) {
+			ustring str2 = uchar_pos(str, size, e, pos);
+			size = (str + size) - str2;
+			str = str2;
+		}
+		if( size < 2 ) return INVALID_CHAR;
+		c = *(unsigned short *)str;
+		str += 2;
+		if( IS_BE(e) )
+			c = u16be(c);
+		if( (c & 0xFC00) == 0xD800 ) {
+			unsigned short c2;
+			if( size < 4 ) return INVALID_CHAR;
+			c2 = *(unsigned short *)str;
+			str += 2;
+			if( IS_BE(e) )
+				c2 = u16be(c2);
+			if( (c2 & 0xFC00) != 0xDC00 )
+				return INVALID_CHAR;
+			c = (((c&0x3FFF)<<10) | (c2&0x3FFF)) + 0x10000;
+		}
+		break;
+	case UTF8:
+		if( pos > 0 ) {
+			ustring str2 = uchar_pos(str, size, e, pos);
+			size = (str + size) - str2;
+			str = str2;
+		}
+		if( size < 1 ) return INVALID_CHAR;
+		c = *str;
+		if( c >= 0x80 ) {
+			int len = utf8_codelen[c>>4];
+			if( len == 0 || size < len ) return INVALID_CHAR;
+			if( c < 0xE0 ) {
+				c = ((c & 0x3F) << 6) | ((*str) & 0x7F);
+				str++;
+			} else if( c < 0xF0 ) {
+				c = ((c & 0x1F) << 12) | (((*str) & 0x7F) << 6) | (str[1] & 0x7F);
+				str += 2;
+			} else {
+				c = ((c & 0x0F) << 18) | (((*str) & 0x7F) << 12) | ((str[1] & 0x7F) << 6) | (str[2] & 0x7F);
+				str += 3;
+			}
+		}
+		break;
+	default:
+		c = INVALID_CHAR;
+		TODO();
+		break;
+	}
+	*rstr = str;
+	return c;
 }
 
 /* -------------------------------------------------------------------- */
@@ -167,12 +297,12 @@ static ustring uchar_pos( ustring str, int size, encoding e, int pos ) {
 		ascii=0
 		iso-latin1=1
 		utf8=2
-		ucs2-le=3
-		ucs2-be=4
-		utf16-le=5
-		utf16-be=6
-		utf32-le=7
-		utf32-be=8
+		ucs2-be=3
+		ucs2-le=4
+		utf16-be=5
+		utf16-le=6
+		utf32-be=7
+		utf32-le=8
 	</doc>
 **/
 static value unicode_encoding_code( value str ) {
@@ -212,7 +342,6 @@ static encoding get_encoding( value v ) {
 **/
 static value unicode_buf_alloc( value size, value encoding ) {
 	uni_buf *b;
-	int enc;
 	val_check(size,int);
 	if( val_int(size) < 0 )
 		neko_error();
@@ -220,7 +349,7 @@ static value unicode_buf_alloc( value size, value encoding ) {
 	b->buf = alloc_empty_string(val_int(size));
 	b->pos = 0;
 	b->nchars = 0;
-	b->encoding = get_encoding(encoding);
+	b->enc = get_encoding(encoding);
 	return alloc_abstract(k_uni_buf,b);
 }
 
@@ -239,22 +368,20 @@ static void unicode_buf_resize( uni_buf *b ) {
 	unicode_buf_add : 'buf -> int -> void
 	<doc>Add an Unicode char to the buffer</doc>
 **/
-static value unicode_buf_add( value buf, value uchar ) {
+static value unicode_buf_add( value buf, value uc ) {
 	uni_buf *b;
-	unsigned char *s;
 	uchar c;
 	int req;
 	val_check_kind(buf,k_uni_buf);
-	val_check(uchar,int);
+	val_check(uc,int);
 	b = (uni_buf*)val_data(buf);
-	c = (uchar)val_int(uchar);
-	req = uchar_size(c, b->encoding);
+	c = (uchar)val_int(uc);
+	req = uchar_size(c, b->enc);
 	if( req == 0 )
-		neko_error();
+		val_throw(alloc_string("Unicode char outside of encoding range"));
 	if( b->pos + req > val_strlen(b->buf) )
 		unicode_buf_resize(b);
-	s = (unsigned char*)val_string(b->buf);
-	uchar_set(c, s, b->encoding);
+	uchar_set(val_ustring(b->buf) + b->pos, b->enc, c);
 	return val_null;
 }
 
@@ -304,11 +431,10 @@ static value unicode_buf_size( value buf ) {
 **/
 static value unicode_validate( value str, value encoding ) {
 	int l;
-	encoding enc;
-	unsigned char *s;
+	ustring s;
 	val_check(str,string);
 	l = val_strlen(str);
-	s = (unsigned char*)val_string(str);
+	s = val_ustring(str);
 	switch( get_encoding(encoding) ) {
 	case ASCII:
 		while( l-- ) {
@@ -321,52 +447,58 @@ static value unicode_validate( value str, value encoding ) {
 		return val_true;
 	case UCS2_LE:
 		if( s[0] == 0xFE && s[1] == 0xFF ) return val_false; // BOM fail
-		return alloc_bool(l & 1 == 0);
+		return alloc_bool((l & 1) == 0);
 	case UCS2_BE:
 		if( s[0] == 0xFF && s[1] == 0xFE ) return val_false; // BOM fail
-		return alloc_bool(l & 1 == 0);
+		return alloc_bool((l & 1) == 0);
 	case UTF32_LE:
 		if( l >= 4 && s[0] == 0 && s[1] == 0 && s[2] == 0xFE && s[3] == 0xFF ) return val_false; // BOM fail
-		return alloc_bool(l & 3 == 0);	
+		return alloc_bool((l & 3) == 0);	
 	case UTF32_BE:
 		if( l >= 4 && s[0] == 0xFF && s[1] == 0xFE && s[2] == 0 && s[3] == 0 ) return val_false; // BOM fail
-		return alloc_bool(l & 3 == 0);	
+		return alloc_bool((l & 3) == 0);	
 	case UTF16_LE:
 		if( s[0] == 0xFE && s[1] == 0xFF ) return val_false; // BOM fail
-		// TODO : validate surrogate pairs
-		return alloc_bool(l & 1 == 0);
+		{
+		ustring end = s + l;
+		int dec = IS_BE(UTF16_LE) ? 0 : 8;
+		while( s + 1 < end ) {
+			unsigned short c = *(unsigned short*)s;
+			if( ((c >> dec) & 0xFC) == 0xD8 ) {
+				if( s + 3 >= end ) return val_false;
+				if( ((((unsigned short*)s)[1] >> dec) & 0xFC) != 0xDC ) return val_false;			
+				s += 4;
+			} else
+				s += 2;
+		}
+		return alloc_bool(s == end);
+		}
 	case UTF16_BE:
 		if( s[0] == 0xFF && s[1] == 0xFE ) return val_false; // BOM fail
-		// TODO : validate surrogate pairs
-		return alloc_bool(l & 1 == 0);
-	case UTF8:
-		while( l-- ) {
-			unsigned char c = *s++;
-			if( c < 0x7F )
-				continue;
-			else if( c < 0xC0 )
-				return val_false;
-			else if( c < 0xE0 ) {
-				if( (*s++ & 0x80) != 0x80 )
-					return val_false;
-				l--;
-			} else if( c < 0xF0 ) {
-				if( (*s++ & 0x80) != 0x80 )
-					return val_false;
-				if( (*s++ & 0x80) != 0x80 )
-					return val_false;
-				l-=2;
-			} else {
-				if( (*s++ & 0x80) != 0x80 )
-					return val_false;
-				if( (*s++ & 0x80) != 0x80 )
-					return val_false;
-				if( (*s++ & 0x80) != 0x80 )
-					return val_false;
-				l-=3;
-			}
+		{
+		ustring end = s + l;
+		int dec = IS_BE(UTF16_BE) ? 8 : 0;
+		while( s + 1 < end ) {
+			unsigned short c = *(unsigned short*)s;
+			if( ((c >> dec) & 0xFC) == 0xD8 ) {
+				if( s + 3 >= end ) return val_false;
+				if( ((((unsigned short*)s)[1] >> dec) & 0xFC) != 0xDC ) return val_false;
+				s += 4;
+			} else
+				s += 2;
 		}
-		return val_true;
+		return alloc_bool(s == end);
+		}
+	case UTF8:
+		{
+		ustring end = s + l;
+		while( s < end ) {
+			int l = utf8_codelen[(*s) >> 4];
+			if( l == 0 ) return val_false;
+			s += l;
+		}
+		return alloc_bool(s == end);
+		}
 	default:
 		TODO();
 		break;
@@ -378,44 +510,58 @@ static value unicode_validate( value str, value encoding ) {
 	unicode_length : string -> encoding:int -> int
 	<doc>Returns the number of Unicode chars in the string.</doc>
 **/
-static value unicode_length( value str, value encoding ) {
+static value unicode_length( value str, value enc ) {
 	int l;
 	int count = 0;
+	encoding e;
 	ustring s;
 	val_check(str,string);
 	l = val_strlen(str);
-	s = (ustring)val_string(str);
-	switch( get_encoding(encoding) ) {
-	case ASCII, ISO_LATIN1:
+	s = val_ustring(str);
+	e = get_encoding(enc);
+	switch( e ) {
+	case ASCII:
+	case ISO_LATIN1:
 		count = l;
 		break;
-	case UCS2_LE, UCS2_BE:
+	case UCS2_LE:
+	case UCS2_BE:
 		count = l >> 1;
 		break;
-	case UTF16_LE, UTF16_BE:
-		TODO();
+	case UTF16_LE:
+	case UTF16_BE:
+		{
+		ustring end = s + l;
+		int dec = IS_BE(e) ? 0 : 8;
+		while( s + 1 < end ) {
+			unsigned short c = *(unsigned short *)s;
+			if( ((c >> dec) & 0xFC) == 0xD8 )
+				s += 4;
+			else
+				s += 2;
+			count++;
+		}
+		if( s > end ) count--;
+		}
 		break;
-	case UTF32_LE, UTF32_BE:
+	case UTF32_LE:
+	case UTF32_BE:
 		count = l >> 2;
 		break;
 	case UTF8:
+		{
 		ustring end = s + l;
 		while( s < end ) {
-			unsigned char c = *s;
+			int l = utf8_codelen[(*s) >> 4];
+			if( l == 0 ) l = 1;
 			count++;
-			if( c < 0x7F )
-				s++;
-			else if( c < 0xC0 )
-				neko_error();
-			else if( c < 0xE0 )
-				s+=2;
-			else if( c < 0xF0 )
-				s+=3;
-			else
-				s+=4;
+			s += l;
 		}
-		if( s > end )
-			neko_error();
+		if( s > end ) count--;
+		}
+		break;
+	default:
+		TODO();
 		break;
 	}
 	return alloc_int(count);
@@ -437,7 +583,7 @@ static value unicode_sub( value str, value enc, value vpos, value vlen ) {
 	l = val_strlen(str);
 	pos = val_int(vpos);
 	len = val_int(vlen);
-	s = (ustring)val_string(str);
+	s = val_ustring(str);
 	start = uchar_pos(s,l,e,pos);
 	if( start == NULL )
 		neko_error();
@@ -456,13 +602,12 @@ static value unicode_sub( value str, value enc, value vpos, value vlen ) {
 	This might be inefficient if [n] is big and the string has variable length per char.</doc>
 **/
 static value unicode_get( value str, value enc, value pos ) {
-	int p;
 	uchar c;
-	encoding e;
 	ustring s;
 	val_check(str,string);
 	val_check(pos,int);
-	c = uchar_get((ustring)val_string(str), val_strlen(str), get_encoding(e), val_int(pos));
+	s = val_ustring(str);
+	c = uchar_get(&s, val_strlen(str), get_encoding(enc), val_int(pos));
 	if( c == INVALID_CHAR ) neko_error();
 	return alloc_best_int(c);
 }
@@ -471,18 +616,17 @@ static value unicode_get( value str, value enc, value pos ) {
 	unicode_iter : string -> encoding:int -> f:(int -> void) -> void
 	<doc>Call [f] with each of Unicode char of the string.</doc>
 **/
-static value unicode_iter( value str, value encoding, value f ) {
-	int l;
+static value unicode_iter( value str, value enc, value f ) {
 	encoding e;
 	ustring s, end;
 	val_check(str,string);
 	val_check_function(f,1);
-	e = get_encoding(encoding);
-	s = (ustring)val_string(str);
+	e = get_encoding(enc);
+	s = val_ustring(str);
 	end = s + val_strlen(str);
 	while( s < end ) {
-		uchar c = uchar_get(s, end - s, e, 0);
-		s = uchar_pos(s, end - s, e, 1);
+		uchar c = uchar_get(&s, end - s, e, 0);
+		if( c == INVALID_CHAR ) neko_error();
 		val_call1(f,alloc_best_int(c));
 	}
 	return val_null;
@@ -492,7 +636,7 @@ static value unicode_iter( value str, value encoding, value f ) {
 	unicode_compare : s1:string -> s2:string -> encoding:int -> int
 	<doc>Compare two Unicode strings according to their char codes.</doc>
 **/
-static value unicode_compare( value str1, value str2, value encoding ) {
+static value unicode_compare( value str1, value str2, value enc ) {
 	int l1, l2, l;
 	encoding e;
 	ustring s1, s2;
@@ -500,25 +644,86 @@ static value unicode_compare( value str1, value str2, value encoding ) {
 	val_check(str2,string);
 	l1 = val_strlen(str1);
 	l2 = val_strlen(str2);
-	s1 = (ustring)val_string(str1);
-	s2 = (ustring)val_string(str2);
+	s1 = val_ustring(str1);
+	s2 = val_ustring(str2);
 	l = (l1 < l2)?l1:l2;
-	switch( get_encoding(e) ) {
-	case ISO_LATIN1, ASCII, UCS2_BE, UTF16_BE, UTF32_BE:
+	e = get_encoding(enc);
+	switch( e ) {
+	case ISO_LATIN1:
+	case ASCII:
+	case UCS2_BE:
+	case UTF32_BE: {
 		int r = memcmp(s1,s2,l);
 		if( r != 0 )
 			return alloc_int(r);
 		break;
-	case UCS2_LE:
-		TODO();
+		}
+	case UCS2_LE: {
+		unsigned short *i1 = (unsigned short*)s1;
+		unsigned short *i2 = (unsigned short*)s2;
+		int i, d;
+		for( i = 0; i < (l>>1); i++ ) {
+			unsigned short c1 = i1[i];
+			unsigned short c2 = i2[i];
+			if( IS_BE(UCS2_LE) ) {
+				c1 = u16be(c1);
+				c2 = u16be(c2);
+			}
+			d = c1 - c2;
+			if( d != 0 )
+				return alloc_int(d < 0 ? -1 : 1);
+		}
 		break;
-	case UTF16_LE:
-		TODO();
+		}
+	case UTF32_LE: {
+		unsigned int *i1 = (unsigned int*)s1;
+		unsigned int *i2 = (unsigned int*)s2;
+		int i, d;
+		for( i = 0; i < (l>>2); i++ ) {
+			unsigned int c1 = i1[i];
+			unsigned int c2 = i2[i];
+			if( IS_BE(UTF32_LE) ) {
+				c1 = u32be(c1);
+				c2 = u32be(c2);
+			}
+			d = c1 - c2;
+			if( d != 0 )
+				return alloc_int(d < 0 ? -1 : 1);
+		}
 		break;
-	case UTF32_LE:
-		TODO();
-		break;
+		}
+	case UTF16_BE:
+	case UTF16_LE: {
+		unsigned short *i1 = (unsigned short*)s1;
+		unsigned short *i2 = (unsigned short*)s2;
+		unsigned short *end1 = i1 + (l1>>1);
+		unsigned short *end2 = i2 + (l2>>1);
+		int d;
+		while( i1 < end1 && i2 < end2 ) {
+			unsigned short c1 = *i1++;
+			unsigned short c2 = *i2++;
+			if( IS_BE(e) ) {
+				c1 = u16be(c1);
+				c2 = u16be(c2);
+			}
+			if( (c1 & 0xFC00) == 0xD800 ) {
+				if( i1 == end1 ) neko_error();
+				c1 = (((c1&0x3FFF)<<10) | ((*i1++)&0x3FFF)) + 0x10000;
+			}
+			if( (c2 & 0xFC00) == 0xD800 ) {
+				if( i2 == end2 ) neko_error();
+				c2 = (((c2&0x3FFF)<<10) | ((*i2++)&0x3FFF)) + 0x10000;
+			}
+			d = c1 - c2;
+			if( d != 0 )
+				return alloc_int(d < 0 ? -1 : 1);
+		}
+		d = (end1 - i1) - (end2 - i2);
+		return alloc_int( d == 0 ? 0 : d < 0 ? -1 : 1 );
+		}
 	case UTF8:
+		// assume that we have correctly encoded the code points
+		// so they both take the minimum required number of stored bytes
 		while( l-- ) {
 			unsigned char c1 = *s1++;
 			unsigned char c2 = *s2++;
@@ -554,6 +759,9 @@ static value unicode_compare( value str1, value str2, value encoding ) {
 					return alloc_int((s1[-1] > s2[-1])?-1:1);
 			}
 		}
+	default:
+		TODO();
+		break;
 	}
 	if( l1 != l2 )
 		return alloc_int((l1 > l2)?1:-1);
@@ -564,9 +772,91 @@ static value unicode_compare( value str1, value str2, value encoding ) {
 	unicode_convert : s1:string -> encoding:int -> to_encoding:int -> string
 	<doc>Comvert an Unicode string from a given encoding to another.</doc>
 **/
-static value unicode_convert( value str1, value str2, value encoding ) {
-	TODO();
-	return val_null;
+static value unicode_convert( value str, value encoding, value to_encoding ) {
+	ustring s, end;
+	int e, e_to;
+	int len, size, pos = 0;
+	value vto;
+	val_check(str,string);
+	s = val_ustring(str);
+	size = val_strlen(str);
+	end = s + size;
+	e = get_encoding(encoding);
+	e_to = get_encoding(to_encoding);
+	if( e == e_to )
+		return str;
+	// try to allocate enough space at first guess
+	switch( e ) {	
+	case ISO_LATIN1:
+	case UTF8:
+	case ASCII:
+		len = size;
+		break;
+	case UCS2_LE:
+	case UCS2_BE:
+	case UTF16_LE:
+	case UTF16_BE:
+		len = size >> 1;
+		break;
+	case UTF32_LE:
+	case UTF32_BE:
+		len = size >> 2;
+		break;
+	default:
+		TODO();
+		len = 0;
+		break;
+	}
+	switch( e_to ) {
+	case ISO_LATIN1:
+	case ASCII:
+		break;
+	case UTF8:
+		// assume one byte per char
+		break;
+	case UCS2_LE:
+	case UCS2_BE:
+	case UTF16_LE:
+	case UTF16_BE:
+		len *= 2;
+		break;
+	case UTF32_LE:
+	case UTF32_BE:
+		len *= 4;
+		break;
+	default:
+		TODO();
+		break;
+	}
+	// convert
+	vto = alloc_empty_string(len);
+	while( s < end ) {
+		uchar c = uchar_get(&s,end - s,e,0);
+		int k;
+		if( c == INVALID_CHAR ) val_throw(alloc_string("Input string is not correctly encoded"));
+		k = uchar_size(c, e_to);
+		if( k == 0 ) {
+			if( e_to == ISO_LATIN1 || e_to == ASCII )
+				c = '?';
+			else
+				c = 0xFFFD;
+			k = uchar_size(c, e_to);
+		}
+		if( pos + k > len ) {
+			int len2 = (len * 5) >> 2;
+			value v2;
+			if( len2 - len < 10 ) len2 = len + 10;
+			v2 = alloc_empty_string(len2);
+			memcpy(val_string(v2), val_string(vto), len);
+			len = len2;
+			vto = v2;
+		}
+		uchar_set(val_string(vto) + pos, e_to, c);
+		pos += k;
+	}
+	val_set_length(vto, pos);
+	val_string(vto)[pos] = 0;
+	return vto;
 }
 
 DEFINE_PRIM(unicode_buf_alloc,2);
