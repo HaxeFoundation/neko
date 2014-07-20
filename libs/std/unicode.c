@@ -42,6 +42,8 @@
 typedef unsigned int uchar;
 typedef unsigned char *ustring;
 
+#include "unicase.c"
+
 #define val_ustring(s) ((ustring)val_string(s))
 
 typedef enum {
@@ -768,9 +770,19 @@ static value unicode_compare( value str1, value str2, value enc ) {
 	return alloc_int(0);
 }
 
+static void expand( value *str, int *len ) {
+	int len2 = ((*len) * 5) >> 2;
+	value v2;
+	if( len2 - (*len) < 10 ) len2 = (*len) + 10;
+	v2 = alloc_empty_string(len2);
+	memcpy(val_string(v2), val_string(*str), *len);
+	*len = len2;
+	*str = v2;
+}
+
 /**
-	unicode_convert : s1:string -> encoding:int -> to_encoding:int -> string
-	<doc>Comvert an Unicode string from a given encoding to another.</doc>
+	unicode_convert : string -> encoding:int -> to_encoding:int -> string
+	<doc>Convert an Unicode string from a given encoding to another.</doc>
 **/
 static value unicode_convert( value str, value encoding, value to_encoding ) {
 	ustring s, end;
@@ -842,21 +854,84 @@ static value unicode_convert( value str, value encoding, value to_encoding ) {
 				c = 0xFFFD;
 			k = uchar_size(c, e_to);
 		}
-		if( pos + k > len ) {
-			int len2 = (len * 5) >> 2;
-			value v2;
-			if( len2 - len < 10 ) len2 = len + 10;
-			v2 = alloc_empty_string(len2);
-			memcpy(val_string(v2), val_string(vto), len);
-			len = len2;
-			vto = v2;
-		}
+		if( pos + k > len )
+			expand(&vto,&len);
 		uchar_set(val_string(vto) + pos, e_to, c);
 		pos += k;
 	}
 	val_set_length(vto, pos);
 	val_string(vto)[pos] = 0;
 	return vto;
+}
+
+/**
+	unicode_lower : string -> encoding:int -> string
+	<doc>Returns the lowercase version of the unicode string.</doc>
+**/
+static value unicode_lower( value str, value enc ) {
+	ustring s,end;
+	value out;
+	int pos = 0;
+	int len;
+	encoding e;
+	val_check(str,string);
+	e = get_encoding(enc);
+	s = val_ustring(str);
+	len = val_strlen(str);
+	end = s + len;
+	out = alloc_empty_string(len);
+	while( s < end ) {
+		uchar c = uchar_get(&s,end - s, e, 0);
+		int up = c >> UL_BITS;
+		int k;
+		if( up < LMAX ) {
+			uchar c2 = LOWER[up][c&((1<<UL_BITS)-1)];
+			if( c2 != 0 ) c = c2;
+		}
+		k = uchar_size(c, e);
+		if( pos + k > len )
+			expand(&out, &len);
+		uchar_set(val_ustring(out)+pos, e, c);
+		pos += k;
+	}
+	val_set_length(out, pos);
+	val_string(out)[pos] = 0;
+	return out;
+}
+
+/**
+	unicode_upper : string -> encoding:int -> string
+	<doc>Returns the lowercase version of the unicode string.</doc>
+**/
+static value unicode_upper( value str, value enc ) {
+	ustring s,end;
+	value out;
+	int pos = 0;
+	int len;
+	encoding e;
+	val_check(str,string);
+	e = get_encoding(enc);
+	s = val_ustring(str);
+	len = val_strlen(str);
+	end = s + len;
+	out = alloc_empty_string(len);
+	while( s < end ) {
+		uchar c = uchar_get(&s,end - s, e, 0);
+		int up = c >> UL_BITS;
+		int k;
+		if( up < UMAX ) {
+			uchar c2 = UPPER[up][c&((1<<UL_BITS)-1)];
+			if( c2 != 0 ) c = c2;
+		}
+		k = uchar_size(c, e);
+		if( pos + k > len )
+			expand(&out, &len);
+		uchar_set(val_ustring(out)+pos, e, c);
+		pos += k;
+	}
+	val_set_length(out, pos);
+	val_string(out)[pos] = 0;
+	return out;
 }
 
 DEFINE_PRIM(unicode_buf_alloc,2);
@@ -873,5 +948,7 @@ DEFINE_PRIM(unicode_compare,3);
 DEFINE_PRIM(unicode_sub,4);
 
 DEFINE_PRIM(unicode_convert,3);
+DEFINE_PRIM(unicode_lower,2);
+DEFINE_PRIM(unicode_upper,2);
 
 /* ************************************************************************ */
