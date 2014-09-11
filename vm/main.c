@@ -193,7 +193,10 @@ static int execute_file( neko_vm *vm, char *file, value mload ) {
 
 #ifdef NEKO_POSIX
 static void handle_signal( int signal ) {
-	val_throw(alloc_string("Segmentation fault"));
+	if( signal == SIGPIPE )
+		val_throw(alloc_string("Broken pipe"));
+	else
+		val_throw(alloc_string("Segmentation fault"));
 }
 #endif
 
@@ -235,14 +238,14 @@ int main( int argc, char *argv[] ) {
 			break;
 		}
 #		ifdef NEKO_POSIX
-		if( jit ) {
-			struct sigaction act;
-			act.sa_sigaction = NULL;
-			act.sa_handler = handle_signal;
-			act.sa_flags = 0;
-			sigemptyset(&act.sa_mask);
+		struct sigaction act;
+		act.sa_sigaction = NULL;
+		act.sa_handler = handle_signal;
+		act.sa_flags = 0;
+		sigemptyset(&act.sa_mask);
+		sigaction(SIGPIPE,&act,NULL);
+		if( jit )
 			sigaction(SIGSEGV,&act,NULL);
-		}
 #		endif
 		neko_vm_jit(vm,jit);
 		if( argc == 1 ) {
