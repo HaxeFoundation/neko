@@ -225,11 +225,11 @@ typedef struct _mt_lock mt_lock;
 #define val_number(v)		(val_is_int(v)?val_int(v):((val_tag(v)==VAL_FLOAT)?val_float(v):val_int32(v)))
 #define val_hdata(v)		((vhash*)val_data(v))
 #define val_string(v)		(&((vstring*)(v))->c)
-#define val_strlen(v)		(val_tag(v) >> TAG_BITS)
+#define val_strlen(v)		((signed)(((unsigned)val_tag(v)) >> TAG_BITS))
 #define val_set_length(v,l) val_tag(v) = val_short_tag(v) | ((l) << TAG_BITS)
 #define val_set_size		val_set_length
 
-#define val_array_size(v)	(val_tag(v) >> TAG_BITS)
+#define val_array_size(v)	((signed)(((unsigned)val_tag(v)) >> TAG_BITS))
 #define val_array_ptr(v)	(&((varray*)(v))->ptr)
 #define val_fun_nargs(v)	((vfunction*)(v))->nargs
 #define alloc_int(v)		((value)(int_val)((((int)(v)) << 1) | 1))

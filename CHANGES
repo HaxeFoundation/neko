@@ -8,7 +8,8 @@
 	nekoc : allow break/continue in try/catch
 	std : bugfix in utf8_compare
 	vm : added $sget16/$sgetf/$sgetd and $sset16/$ssetf/$ssetd
-
+	vm : bugfix with arrays/strings having length >128MB 
+	
 2013-02-23 : 2.0.0
 	all : changed license to MIT
 	mod_neko+mod_tora : fixed issue with get_client_ip in 64 bits mode /gcc
