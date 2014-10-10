@@ -452,11 +452,11 @@ EXTERN value val_field_name( field id ) {
 	return otable_get(&neko_fields[id&NEKO_FIELDS_MASK],id);
 }
 
-EXTERN value val_field( value _o, field id ) {
+EXTERN value val_field( const value _o, field id ) {
 	value *f;
 	// WARNING : we can't change the value on the stack
 	// since it will be reused by the JIT (when compiled with GCC)
-	vobject *o = (vobject*)_o;
+	const vobject *o = (const vobject *)_o;
 	do {
 		f = otable_find(&o->table,id);
 		if( f != NULL )

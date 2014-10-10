@@ -388,7 +388,7 @@ C_FUNCTION_BEGIN
 
 	EXTERN value val_this();
 	EXTERN field val_id( const char *str );
-	EXTERN value val_field( value o, field f );
+	EXTERN value val_field( const value o, field f );
 	EXTERN value alloc_object( value o );
 	EXTERN void alloc_field( value obj, field f, value v );
 	EXTERN void val_iter_fields( value obj, void f( value v, field f, void * ), void *p );

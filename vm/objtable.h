@@ -28,7 +28,7 @@ static INLINE void otable_init(objtable *t) {
 	t->cells = NULL;
 }
 
-static INLINE value *otable_find(objtable *t,field id) {
+static INLINE value *otable_find(const objtable *t,field id) {
 	int min;
 	int max;
 	int mid;
@@ -50,7 +50,7 @@ static INLINE value *otable_find(objtable *t,field id) {
 	return NULL;
 }
 
-static INLINE value otable_get(objtable *t,field id) {
+static INLINE value otable_get(const objtable *t,field id) {
 	int min;
 	int max;
 	int mid;
