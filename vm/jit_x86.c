@@ -1621,58 +1621,70 @@ static void jit_make_env( jit_ctx *ctx, int esize ) {
 
 static void jit_object_op_gen( jit_ctx *ctx, enum Operation op, int right ) {
 	int *next;
+	field f;
+	int is_opset;
+
 	INIT_BUFFER;
+
+	f = 0;
+	is_opset = 0;
+	switch( op ) {
+	case OP_ADD:
+		f = (right ? id_radd : id_add);
+		break;
+	case OP_SUB:
+		f = (right ? id_rsub : id_sub);
+		break;
+	case OP_MUL:
+		f = (right ? id_rmult : id_mult);
+		break;
+	case OP_DIV:
+		f = (right ? id_rdiv : id_div);
+		break;
+	case OP_MOD:
+		f = (right ? id_rmod : id_mod);
+		break;
+	case OP_GET:
+		f = id_get;
+		break;
+	case OP_SET:
+		f = id_set;
+		is_opset = 1;
+		break;
+	default:
+		ERROR;
+	}
 
 	// prepare args
 	XPush_r(right?REG_TMP:REG_ACC);
-	if( op == OP_SET ) {
+	if( is_opset ) {
 		XMov_rp(TMP2,Esp,FIELD(3));
 		XPush_r(TMP2);
 	}
 	XMov_rr(TMP2,Esp);
 	XPush_c(0);
-	XPush_c((op == OP_SET)?2:1);
+	XPush_c(is_opset?2:1);
 	XPush_r(TMP2);
-	switch( op ) {
-	case OP_ADD:
-		XPush_c(right?id_radd:id_add);
-		break;
-	case OP_SUB:
-		XPush_c(right?id_rsub:id_sub);
-		break;
-	case OP_MUL:
-		XPush_c(right?id_rmult:id_mult);
-		break;
-	case OP_DIV:
-		XPush_c(right?id_rdiv:id_div);
-		break;
-	case OP_MOD:
-		XPush_c(right?id_rmod:id_mod);
-		break;
-	case OP_GET:
-		XPush_c(id_get);
-		break;
-	case OP_SET:
-		XPush_c(id_set);
-		break;
-	default:
-		ERROR;
-	}
+	XPush_r(right?REG_ACC:REG_TMP);
+
+	XPush_c(f);
 	XPush_r(right?REG_ACC:REG_TMP);
 	XCall_m(val_field);
+	stack_pop(Esp,2);
 	XCmp_rc(ACC,CONST(val_null));
 	XJump(JNeq,next);
-	stack_pop(Esp,(op == OP_SET)?7:6);
+	stack_pop(Esp,is_opset?6:5);
 	runtime_error(11,true); // Unsupported operation
+
 	PATCH_JUMP(next);
 	XPop_r(TMP);
-	stack_pop(Esp,1);
+
 	XPush_r(ACC);
 	XPush_r(TMP);
 	begin_call();
 	XCall_m(val_callEx);
 	end_call();
-	stack_pop(Esp,(op == OP_SET)?7:6);
+	stack_pop(Esp,is_opset?7:6);
 	XRet();
 	END_BUFFER;
 }
