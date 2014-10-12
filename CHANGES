@@ -9,6 +9,8 @@
 	std : bugfix in utf8_compare
 	vm : added $sget16/$sgetf/$sgetd and $sset16/$ssetf/$ssetd
 	vm : bugfix with arrays/strings having length >128MB 
+	jit : bugfix on some GCC versions causing invalid array access
+	std : fixed escaping of arguments in process_run on Windows
 	
 2013-02-23 : 2.0.0
 	all : changed license to MIT

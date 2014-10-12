@@ -112,9 +112,24 @@ static value process_run( value cmd, value vargs ) {
 		buffer_append_char(b,'"');
 		for(i=0;i<val_array_size(vargs);i++) {
 			value v = val_array_ptr(vargs)[i];
+			int j,len;
 			val_check(v,string);
+			len = val_strlen(v);
 			buffer_append(b," \"");
-			val_buffer(b,v);
+			for(j=0;j<len;j++) {
+				char c = val_string(v)[j];
+				switch( c ) {
+				case '"':
+					buffer_append(b,"\\\"");
+					break;
+				case '\\':
+					buffer_append(b,"\\\\");
+					break;
+				default:
+					buffer_append_char(b,c);
+					break;
+				}
+			}
 			buffer_append_char(b,'"');
 		}
 		sargs = buffer_to_string(b);
