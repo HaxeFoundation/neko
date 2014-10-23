@@ -1,0 +1,27 @@
+version: "{build}"
+
+environment:
+  VisualStudioVersion: 10.0
+
+install:
+  - cinst make
+  - cinst 7zip.commandline
+
+build_script:
+  - set PATH=%PATH%;%APPVEYOR_BUILD_FOLDER%/bin
+  - msbuild neko_vc10.sln /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
+  - msbuild libs/libs_vc10.sln /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
+  - copy /y libs\include\gc\gc.dll bin
+  - cd %APPVEYOR_BUILD_FOLDER%/src
+  - neko ../boot/nekoc tools/install.neko
+  - neko tools/install -nolibs
+  - cd %APPVEYOR_BUILD_FOLDER%/bin
+  - nekoc release.neko
+  - neko release.n
+  - cd %APPVEYOR_BUILD_FOLDER%
+
+test_script:
+  - neko -version
+
+artifacts:
+  - path: bin/neko-*.zip

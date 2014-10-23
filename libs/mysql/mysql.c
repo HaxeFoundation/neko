@@ -481,7 +481,7 @@ static void free_connection( value o ) {
 	connect : { host => string, port => int, user => string, pass => string, socket => string? } -> 'connection
 	<doc>Connect to a database using the connection informations</doc>
 **/
-static value connect( value params  ) {
+static value connect_mysql( value params  ) {
 	value host, port, user, pass, socket;
 	val_check(params,object);
 	host = val_field(params,val_id("host"));
@@ -517,7 +517,7 @@ static value connect( value params  ) {
 // ---------------------------------------------------------------
 // Registers
 
-DEFINE_PRIM(connect,1);
+DEFINE_PRIM_WITH_NAME(connect_mysql,connect,1);
 DEFINE_PRIM(close,1);
 DEFINE_PRIM(request,2);
 DEFINE_PRIM(select_db,2);
