@@ -176,6 +176,8 @@ EXTERN value alloc_empty_string( unsigned int size ) {
 	if( size > max_string_size )
 		failure("max_string_size reached");
 	s = (vstring*)gc_alloc_private_big(size+sizeof(vstring));
+	if( s == NULL )
+		failure("out of memory");
 	s->t = VAL_STRING | (size << TAG_BITS);
 	(&s->c)[size] = 0;
 	return (value)s;
@@ -208,6 +210,7 @@ EXTERN value alloc_array( unsigned int n ) {
 	if( n > max_array_size )
 		failure("max_array_size reached");
 	v = (value)gc_alloc_big(sizeof(varray)+(n - 1)*sizeof(value));
+	if( v == NULL ) failure("out of memory");
 	v->t = VAL_ARRAY | (n << TAG_BITS);
 	return v;
 }
