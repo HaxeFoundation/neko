@@ -26,3 +26,4 @@ Release5
 *.bak
 *.ilk
 *.pdb
+ipch
