@@ -13,10 +13,10 @@
 *.sdf
 Debug
 Debug2
+Debug5
 Release
 Release2
 Release5
-*.dll
 *.n
 *.ipch
 *.opensdf
@@ -24,4 +24,5 @@ Release5
 *.so
 *~
 *.bak
-
+*.ilk
+*.pdb
