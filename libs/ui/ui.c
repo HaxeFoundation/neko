@@ -28,6 +28,9 @@
 #	define CLASS_NAME "Neko_UI_wnd_class"
 #	define WM_SYNC_CALL	(WM_USER + 101)
 #elif defined(NEKO_MAC)
+#	undef lock_acquire
+#	undef lock_release
+#	undef lock_try
 #	include <Carbon/Carbon.h>
 #	include <pthread.h>
 #	define UIEvent		0xFFFFAA00
