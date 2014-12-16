@@ -49,6 +49,7 @@ ifeq (${os}, osx)
 export MACOSX_DEPLOYMENT_TARGET=10.4
 EXTFLAGS =
 MAKESO = ${CC}
+LIB_PREFIX = /usr/local/Cellar/bdw-gc/7.4.2
 LIBNEKO_NAME = libneko.dylib
 LIBNEKO_INSTALL = -install_name @executable_path/${LIBNEKO_NAME}
 LIBNEKO_LIBS = -ldl ${LIB_PREFIX}/lib/libgc.a -lm -dynamiclib -single_module ${LIBNEKO_INSTALL}
