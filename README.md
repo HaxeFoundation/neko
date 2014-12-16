@@ -1,6 +1,6 @@
 # Neko
 
-See [Neko Websit](http://nekovm.org/index)
+See [Neko Website](http://nekovm.org/index)
 
 ## Compiling from Sources
 
