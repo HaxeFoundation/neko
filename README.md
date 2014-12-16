@@ -4,6 +4,17 @@ See [Neko Website](http://nekovm.org/index)
 
 ## Compiling from Sources
 
+### General
+
+You need first to install [Boehm-Demers-Weiser Garbage Collector](https://github.com/ivmai/bdwgc) and reference it in the Makefile (The flag is ```LIB_PREFIX =```).
+Then run the command make command depending of your Compiler/OS.
+
+|  Compiler/OS  | Make command  |
+|---|---|
+| MingW/MSys  |  make os=mingw |
+| OSX  |  make os=osx |
+| Unix | make |
+
 ### On OSX
 
 You first need to install [Boehm-Demers-Weiser Garbage Collector](https://github.com/ivmai/bdwgc). 
