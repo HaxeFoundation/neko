@@ -57,7 +57,6 @@ NEKOVM_FLAGS = -L${CURDIR}/bin -lneko
 STD_NDLL_FLAGS = -bundle -undefined dynamic_lookup ${NEKOVM_FLAGS}
 CFLAGS += -L/usr/local/lib -L${LIB_PREFIX}/lib -I${LIB_PREFIX}/include
 INSTALL_FLAGS = -static
-
 endif
 
 ### MAKE
