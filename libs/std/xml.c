@@ -33,6 +33,22 @@
 
 #define ERROR(msg)	xml_error(xml,p,line,msg);
 
+#define ALLOC_BUFFER\
+	if (buf == NULL) {\
+		buf = alloc_buffer("");\
+	}\
+	buffer_append_sub(buf,start,p-start)
+
+#define FLUSH_BUFFER(var)\
+	value var;\
+	if (buf != NULL) {\
+		buffer_append_sub(buf, start, p - start);\
+		var = buffer_to_string(buf);\
+		buf = NULL;\
+	} else {\
+		var = copy_string(start,p-start);\
+	}
+
 // -------------- parsing --------------------------
 
 typedef enum {
@@ -96,7 +112,7 @@ static void do_parse_xml( const char *xml, const char **lp, int *line, value cal
 	const char *p = *lp;
 	char c = *p;
 	int nsubs = 0, nbrackets = 0;
-	buffer buf = alloc_buffer("");
+	buffer buf = NULL;
 	STATE escapeNext = BEGIN;
 	int attrValQuote = -1;
 	while( c ) {
@@ -127,14 +143,13 @@ static void do_parse_xml( const char *xml, const char **lp, int *line, value cal
 			break;
 		case PCDATA:
 			if( c == '<' ) {
-				buffer_append_sub(buf, start, p - start);
-				val_ocall1(callb,id_pcdata,buffer_to_string(buf));
-				buf = alloc_buffer("");
+				FLUSH_BUFFER(aval);
+				val_ocall1(callb,id_pcdata,aval);
 				nsubs++;
 				state = IGNORE_SPACES;
 				next = BEGIN_NODE;
 			} else if (c == '&') {
-				buffer_append_sub(buf,start,p-start);
+				ALLOC_BUFFER;
 				state = ESCAPE;
 				escapeNext = PCDATA;
 				start = p + 1;
@@ -258,7 +273,6 @@ static void do_parse_xml( const char *xml, const char **lp, int *line, value cal
 			switch( c ) {
 			case '"':
 			case '\'':
-				buf = alloc_buffer("");
 				state = ATTRIB_VAL;
 				start = p + 1;
 				attrValQuote = c;
@@ -269,13 +283,12 @@ static void do_parse_xml( const char *xml, const char **lp, int *line, value cal
 			break;
 		case ATTRIB_VAL:
 			if( c == attrValQuote ) {
-				buffer_append_sub(buf, start, p - start);
-				alloc_field(attribs,aname,buffer_to_string(buf));
-				buf = alloc_buffer("");
+				FLUSH_BUFFER(aval);
+				alloc_field(attribs,aname,aval);
 				state = IGNORE_SPACES;
 				next = BODY;
 			} else if (c == '&') {
-				buffer_append_sub(buf, start, p - start);
+				ALLOC_BUFFER;
 				state = ESCAPE;
 				escapeNext = ATTRIB_VAL;
 				start = p + 1;
@@ -413,8 +426,8 @@ static void do_parse_xml( const char *xml, const char **lp, int *line, value cal
 	}
 	if( parentname == NULL && state == PCDATA ) {
 		if( p != start || nsubs == 0 ) {
-			buffer_append_sub(buf, start, p - start);
-			val_ocall1(callb,id_pcdata,buffer_to_string(buf));
+			FLUSH_BUFFER(aval);
+			val_ocall1(callb,id_pcdata,aval);
 		}
 		return;
 	}
