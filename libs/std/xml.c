@@ -360,15 +360,15 @@ static void do_parse_xml( const char *xml, const char **lp, int *line, value cal
 			if (c == ';') {
 				const char* s = val_string(copy_string(start, p - start));
 				if (strcmp(s, "amp") == 0) {
-					buffer_append(buf, "&");
+					buffer_append_char(buf, '&');
 				} else if (strcmp(s, "gt") == 0) {
-					buffer_append(buf, ">");
+					buffer_append_char(buf, '>');
 				} else if (strcmp(s, "lt") == 0) {
-					buffer_append(buf, "<");
+					buffer_append_char(buf, '<');
 				} else if (strcmp(s, "quot") == 0) {
-					buffer_append(buf, "\"");
+					buffer_append_char(buf, '"');
 				} else if (strcmp(s, "apos") == 0) {
-					buffer_append(buf, "'");
+					buffer_append_char(buf, '\'');
 				} else if (s[0] == '#') {
 					int h;
 					if( strlen(s) >= 2 && (s[1] == 'x' || s[1] == 'X') ) {
@@ -395,9 +395,9 @@ static void do_parse_xml( const char *xml, const char **lp, int *line, value cal
 					}
 					buffer_append_char(buf, h);
 				} else {
-					buffer_append(buf, "&");
+					buffer_append_char(buf, '&');
 					buffer_append_sub(buf, start, p-start);
-					buffer_append(buf, ";");
+					buffer_append_char(buf, ';');
 				}
 				start = p + 1;
 				state = escapeNext;
