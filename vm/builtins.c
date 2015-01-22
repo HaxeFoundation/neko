@@ -275,6 +275,8 @@ static value builtin_sset( value s, value p, value c ) {
 #	define TO_BE(v) v == val_true
 #endif
 
+#	define LTB32(bits)	bits = (bits >> 24) | ((bits >> 8) & 0xFF00) | ((bits << 8) & 0xFF0000) | (bits << 24)
+
 /**
 	$sget16 : string -> n:int -> bigEndian:bool -> int?
 	<doc>Return the 16 bit unsigned value at position [n] or [null] if out of bounds</doc>
@@ -294,10 +296,10 @@ static value builtin_sget16( value s, value p, value endian ) {
 }
 
 /**
-	$sset16 : s:string -> n:int -> bigEndian:bool -> val:int -> void
+	$sset16 : s:string -> n:int -> val:int -> bigEndian:bool -> void
 	<doc>Set the 16 bit unsigned value at position [n] of string [s]</doc>
 **/
-static value builtin_sset16( value s, value p, value endian, value val ) {
+static value builtin_sset16( value s, value p, value val, value endian ) {
 	int pp, v;
 	val_check(s,string);
 	val_check(p,int);
@@ -309,6 +311,42 @@ static value builtin_sset16( value s, value p, value endian, value val ) {
 	if( TO_BE(endian) )
 		v = ((v&0xFF) << 8) | (v>>8);
 	*(unsigned short*)(val_string(s)+pp) = v;
+	return val_null;
+}
+
+/**
+	$sget32 : string -> n:int -> bigEndian:bool -> any?
+	<doc>Return the 32 bit int value at position [n] or [null] if out of bounds</doc>
+**/
+static value builtin_sget32( value s, value p, value endian ) {
+	int pp;
+	unsigned int v;
+	val_check(s,string);
+	val_check(p,int);
+	pp = val_int(p);
+	if( pp < 0 || pp+4 > val_strlen(s) )
+		return val_null;
+	v = *(unsigned int*)(val_string(s)+pp);
+	if( TO_BE(endian) ) LTB32(v);
+	return alloc_best_int(v);
+}
+
+/**
+	$sset32 : s:string -> n:int -> val:any -> bigEndian:bool -> void
+	<doc>Set the 32 bit unsigned value at position [n] of string [s]</doc>
+**/
+static value builtin_sset32( value s, value p, value val, value endian ) {
+	int pp, v;
+	val_check(s,string);
+	val_check(p,int);
+	val_check(val,int);
+	pp = val_int(p);
+	if( pp < 0 || pp+4 > val_strlen(s) )
+		neko_error();
+	v = val_int(val);
+	if( TO_BE(endian) )
+		LTB32(v);
+	*(unsigned int*)(val_string(s)+pp) = v;
 	return val_null;
 }
 
@@ -327,7 +365,7 @@ static value builtin_sgetf( value s, value p, value endian ) {
 	if( TO_BE(endian) ) {
 		unsigned int bits;
 		bits = *(unsigned int*)(val_string(s)+pp);
-		bits = (bits >> 24) | ((bits >> 8) & 0xFF00) | ((bits << 8) & 0xFF0000) | (bits << 24);
+		LTB32(bits);
 		f = *(float*)(&bits);
 	} else
 		f = *(float*)(val_string(s)+pp);
@@ -335,10 +373,10 @@ static value builtin_sgetf( value s, value p, value endian ) {
 }
 
 /**
-	$ssetf : s:string -> n:int -> bigEndian:bool -> val:float -> void
+	$ssetf : s:string -> n:int -> val:float -> bigEndian:bool -> void
 	<doc>Set the single precision float value at position [n] of string [s]</doc>
 **/
-static value builtin_ssetf( value s, value p, value endian, value val ) {
+static value builtin_ssetf( value s, value p, value val, value endian ) {
 	int pp;
 	float f;
 	val_check(s,string);
@@ -350,7 +388,7 @@ static value builtin_ssetf( value s, value p, value endian, value val ) {
 	f = (float)val_float(val);
 	if( TO_BE(endian) ) {
 		unsigned int bits = *(unsigned int *)&f;
-		bits = (bits >> 24) | ((bits >> 8) & 0xFF00) | ((bits << 8) & 0xFF0000) | (bits << 24);
+		LTB32(bits);
 		*(unsigned int*)(val_string(s)+pp) = bits;
 	} else
 		*(float*)(val_string(s)+pp) = f;
@@ -390,10 +428,10 @@ static value builtin_sgetd( value s, value p, value endian ) {
 }
 
 /**
-	$ssetd : s:string -> n:int -> val:float -> void
+	$ssetd : s:string -> n:int -> val:float -> bigEndian:bool -> void
 	<doc>Set the double precision float value at position [n] of string [s]</doc>
 **/
-static value builtin_ssetd( value s, value p, value endian, value val ) {
+static value builtin_ssetd( value s, value p, value val, value endian ) {
 	int pp;
 	double f;
 	val_check(s,string);
@@ -420,6 +458,92 @@ static value builtin_ssetd( value s, value p, value endian, value val ) {
 		*p = s.bytes[0];
 	} else
 		*(double*)(val_string(s)+pp) = f;
+	return val_null;
+}
+
+/**
+	$itof : any -> float
+	<doc>Convert the low endian bytes integer to the corresponding float value</doc>
+**/
+static value builtin_itof( value v ) {
+	int bits;
+	float f;
+	val_check(v,any_int);
+	bits = val_any_int(v);
+#	ifdef NEKO_BIG_ENDIAN
+	LTB32(bits);
+#	endif
+	f = *(float*)&bits;
+	return alloc_float(f);
+}
+
+/**
+	$ftod : float -> any
+	<doc>Returns the binary integer representation of the float value</doc>
+**/
+static value builtin_ftoi( value v ) {
+	int bits;
+	float f;
+	val_check(v,float);
+	f = (float)val_float(v);
+	bits = *(int *)&f;
+#	ifdef NEKO_BIG_ENDIAN
+	LTB32(bits);
+#	endif
+	return alloc_best_int(bits);
+}
+
+/**
+	$itod : low:any -> high:any -> float
+	<doc>Convert the low endian bytes integers to the corresponding double value</doc>
+**/
+static value builtin_itod( value low, value high ) {
+	union {
+		unsigned int i[2];
+		double d;
+	} s;
+	val_check(low,any_int);
+	val_check(high,any_int)
+#	ifdef NEKO_BIG_ENDIAN
+	unsigned int bits;
+	bits = val_any_int(low);
+	LTB32(bits);
+	s.i[1] = bits;
+	bits = val_any_int(high);
+	LTB32(bits);
+	s.i[0] = bits;
+#	else
+	s.i[0] = val_any_int(low);
+	s.i[1] = val_any_int(high);
+#	endif
+	return alloc_float(s.d);
+}
+
+/**
+	$dtoi : float -> any array -> void
+	<doc>Save the low endian bytes representation of the double value into the array as two any int</doc>
+**/
+static value builtin_dtoi( value v, value out ) {
+	union {
+		unsigned int i[2];
+		double d;
+	} s;
+	val_check(v,float);
+	val_check(out,array);
+	if( val_array_size(out) < 2 ) neko_error();
+	s.d = val_float(v);
+#	ifdef NEKO_BIG_ENDIAN
+	unsigned int bits;
+	bits = s.i[0];
+	LTB32(bits);
+	val_array_ptr(out)[1] = alloc_best_int(bits);
+	bits = s.i[1];
+	LTB32(bits);
+	val_array_ptr(out)[0] = alloc_best_int(bits);
+#	else
+	val_array_ptr(out)[0] = alloc_best_int(s.i[0]);
+	val_array_ptr(out)[1] = alloc_best_int(s.i[1]);
+#	endif
 	return val_null;
 }
 
@@ -1403,11 +1527,18 @@ void neko_init_builtins() {
 	BUILTIN(sfind,3);
 
 	BUILTIN(sget16,3);
+	BUILTIN(sget32,3);
 	BUILTIN(sgetf,3);
 	BUILTIN(sgetd,3);
 	BUILTIN(sset16,4);
+	BUILTIN(sset32,4);
 	BUILTIN(ssetf,4);
 	BUILTIN(ssetd,4);
+
+	BUILTIN(itof,1);
+	BUILTIN(itod,2);
+	BUILTIN(ftoi,1);
+	BUILTIN(dtoi,2);
 
 	BUILTIN(new,1);
 	BUILTIN(objget,2);
