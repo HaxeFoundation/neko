@@ -131,6 +131,7 @@
     <ClCompile Include="file.c" />
     <ClCompile Include="init.c" />
     <ClCompile Include="int32.c" />
+    <ClCompile Include="int64.c" />
     <ClCompile Include="math.c" />
     <ClCompile Include="md5.c" />
     <ClCompile Include="memory.c" />
