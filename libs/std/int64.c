@@ -62,7 +62,7 @@ static value int64_to_int( value v ) {
 	i = val_any_int64(v);
 	if( need_64_bits(i) )
 		neko_error();
-	return alloc_best_int(i);
+	return alloc_best_int((int) i);
 }
 
 /**
