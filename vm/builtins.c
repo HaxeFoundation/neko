@@ -269,8 +269,9 @@ static value builtin_sset( value s, value p, value c ) {
 	return alloc_int(cc);
 }
 
+// if our endian value is null, we will use hardware endianness
 #ifdef NEKO_BIG_ENDIAN
-#	define TO_BE(v)	v != val_true
+#	define TO_BE(v)	v == val_false
 #else
 #	define TO_BE(v) v == val_true
 #endif
@@ -465,14 +466,12 @@ static value builtin_ssetd( value s, value p, value val, value endian ) {
 	$itof : any -> float
 	<doc>Convert the low endian bytes integer to the corresponding float value</doc>
 **/
-static value builtin_itof( value v ) {
+static value builtin_itof( value v, value endian ) {
 	int bits;
 	float f;
 	val_check(v,any_int);
 	bits = val_any_int(v);
-#	ifdef NEKO_BIG_ENDIAN
-	LTB32(bits);
-#	endif
+	if( TO_BE(endian) ) LTB32(bits);
 	f = *(float*)&bits;
 	return alloc_float(f);
 }
@@ -481,15 +480,13 @@ static value builtin_itof( value v ) {
 	$ftod : float -> any
 	<doc>Returns the binary integer representation of the float value</doc>
 **/
-static value builtin_ftoi( value v ) {
+static value builtin_ftoi( value v, value endian ) {
 	int bits;
 	float f;
 	val_check(v,float);
 	f = (float)val_float(v);
 	bits = *(int *)&f;
-#	ifdef NEKO_BIG_ENDIAN
-	LTB32(bits);
-#	endif
+	if( TO_BE(endian) ) LTB32(bits);
 	return alloc_best_int(bits);
 }
 
@@ -497,25 +494,25 @@ static value builtin_ftoi( value v ) {
 	$itod : low:any -> high:any -> float
 	<doc>Convert the low endian bytes integers to the corresponding double value</doc>
 **/
-static value builtin_itod( value low, value high ) {
+static value builtin_itod( value low, value high, value endian ) {
 	union {
 		unsigned int i[2];
 		double d;
 	} s;
 	val_check(low,any_int);
 	val_check(high,any_int)
-#	ifdef NEKO_BIG_ENDIAN
-	unsigned int bits;
-	bits = val_any_int(low);
-	LTB32(bits);
-	s.i[1] = bits;
-	bits = val_any_int(high);
-	LTB32(bits);
-	s.i[0] = bits;
-#	else
-	s.i[0] = val_any_int(low);
-	s.i[1] = val_any_int(high);
-#	endif
+	if( TO_BE(endian) ) {
+		unsigned int bits;
+		bits = val_any_int(low);
+		LTB32(bits);
+		s.i[1] = bits;
+		bits = val_any_int(high);
+		LTB32(bits);
+		s.i[0] = bits;
+	} else {
+		s.i[0] = val_any_int(low);
+		s.i[1] = val_any_int(high);
+	}
 	return alloc_float(s.d);
 }
 
@@ -523,7 +520,7 @@ static value builtin_itod( value low, value high ) {
 	$dtoi : float -> any array -> void
 	<doc>Save the low endian bytes representation of the double value into the array as two any int</doc>
 **/
-static value builtin_dtoi( value v, value out ) {
+static value builtin_dtoi( value v, value out, value endian ) {
 	union {
 		unsigned int i[2];
 		double d;
@@ -532,19 +529,31 @@ static value builtin_dtoi( value v, value out ) {
 	val_check(out,array);
 	if( val_array_size(out) < 2 ) neko_error();
 	s.d = val_float(v);
-#	ifdef NEKO_BIG_ENDIAN
-	unsigned int bits;
-	bits = s.i[0];
-	LTB32(bits);
-	val_array_ptr(out)[1] = alloc_best_int(bits);
-	bits = s.i[1];
-	LTB32(bits);
-	val_array_ptr(out)[0] = alloc_best_int(bits);
-#	else
-	val_array_ptr(out)[0] = alloc_best_int(s.i[0]);
-	val_array_ptr(out)[1] = alloc_best_int(s.i[1]);
-#	endif
+	if( TO_BE(endian) ) {
+		unsigned int bits;
+		bits = s.i[0];
+		LTB32(bits);
+		val_array_ptr(out)[1] = alloc_best_int(bits);
+		bits = s.i[1];
+		LTB32(bits);
+		val_array_ptr(out)[0] = alloc_best_int(bits);
+	} else {
+		val_array_ptr(out)[0] = alloc_best_int(s.i[0]);
+		val_array_ptr(out)[1] = alloc_best_int(s.i[1]);
+	}
 	return val_null;
+}
+
+/**
+	$isbigendian : void -> bool
+	<doc>Tells if we are on a big endian CPU or not.</doc>
+**/
+static value builtin_isbigendian() {
+#ifdef NEKO_BIG_ENDIAN
+	return val_true;
+#else
+	return val_false;
+#endif
 }
 
 /**
@@ -1535,10 +1544,11 @@ void neko_init_builtins() {
 	BUILTIN(ssetf,4);
 	BUILTIN(ssetd,4);
 
-	BUILTIN(itof,1);
-	BUILTIN(itod,2);
-	BUILTIN(ftoi,1);
-	BUILTIN(dtoi,2);
+	BUILTIN(itof,2);
+	BUILTIN(itod,3);
+	BUILTIN(ftoi,2);
+	BUILTIN(dtoi,3);
+	BUILTIN(isbigendian,0);
 
 	BUILTIN(new,1);
 	BUILTIN(objget,2);
