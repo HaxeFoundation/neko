@@ -3,9 +3,12 @@ version: "{build}"
 environment:
   VisualStudioVersion: 10.0
 
+platform: Win32
+configuration: Release
+
 install:
-  - cinst make
-  - cinst 7zip.commandline
+  - cinst make -y
+  - cinst 7zip.commandline -y
 
 build_script:
   - set PATH=%PATH%;%APPVEYOR_BUILD_FOLDER%/bin
