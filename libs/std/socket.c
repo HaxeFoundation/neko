@@ -1066,7 +1066,6 @@ static value socket_epoll_unregister(value e, value s) {
 **/
 static value socket_epoll_wait(value e, value timeout) {
 	val_check_kind(e,k_epoll);
-	val_check(timeout,number);
 	epolldata *ep = val_epoll(e);
 #ifndef HAS_EPOLL
 	struct timeval t;
@@ -1076,9 +1075,11 @@ static value socket_epoll_wait(value e, value timeout) {
 	POSIX_LABEL(select_again);
 	ra = ep->rcount == 0 ? NULL : make_socket_array(ep->read, ep->rcount, &rx, &n);
 	wa = ep->wcount == 0 ? NULL : make_socket_array(ep->write, ep->wcount, &wx, &n);
-	bool indefinite = val_number(timeout) == -1;
-	if (!indefinite)
+	bool indefinite = val_is_null(timeout);
+	if (!indefinite) {
+		val_check(timeout,number);
 		init_timeval(val_number(timeout),&t);
+	}
 	if( select((int)(n+1),ra,wa,NULL,indefinite ? NULL : &t) == SOCKET_ERROR ) {
 		HANDLE_EINTR(select_again);
 		neko_error();
@@ -1102,9 +1103,13 @@ static value socket_epoll_wait(value e, value timeout) {
 	val_set_size(ep->result,pos);
 	return ep->result;
 #else
-	int t = (int)(val_number(timeout));
-	if (t > 0)
-		t *= 1000;
+	int t;
+	if (val_is_null(timeout))
+		t = -1;
+	else {
+		val_check(timeout,number);
+		t = (int)(val_number(timeout)) * 1000;
+	}
 	int ret = epoll_wait(ep->epollfd, ep->events, ep->maxevents, t);
 	if (ret == -1)
 		val_throw(alloc_int(errno));
