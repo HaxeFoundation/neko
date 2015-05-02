@@ -6,3 +6,16 @@
 # Neko Virtual Machine
 
 See http://nekovm.org/
+
+## Nightly Builds
+
+### Windows
+https://ci.appveyor.com/project/HaxeFoundation/neko/build/artifacts
+
+Note that you may need to install "Microsoft Visual C++ 2010 Redistributable Package" (x86), in case it complains MSVCR100.dll is missing.
+
+### Mac
+`brew install neko --HEAD`.
+
+### Linux
+Just build it from source :)
