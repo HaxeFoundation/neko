@@ -1000,6 +1000,8 @@ static value socket_epoll_register(value e, value s, value events) {
 	int event_types = val_int(events);
 	epolldata *ep = val_epoll(e);
 #ifndef HAS_EPOLL
+	if (sock >= FD_SETSIZE)
+		val_throw(alloc_string("Can't register file descriptor >= FD_SETSIZE"));
 	if (event_types & EPOLLIN) {
 		if (ep->rcount >= FD_SETSIZE)
 			val_throw(alloc_string("Too many sockets (on non-Linux platforms, 'epoll' uses select)"));
@@ -1016,7 +1018,7 @@ static value socket_epoll_register(value e, value s, value events) {
 	ev.data.fd = sock;
 	int ret = epoll_ctl(ep->epollfd, EPOLL_CTL_ADD, sock, &ev);
 	if (ret == -1)
-		failure(alloc_int(errno));
+		val_throw(alloc_int(errno));
 #endif
 	return alloc_int(sock);
 }
@@ -1082,7 +1084,7 @@ static value socket_epoll_wait(value e, value timeout) {
 	}
 	if( select((int)(n+1),ra,wa,NULL,indefinite ? NULL : &t) == SOCKET_ERROR ) {
 		HANDLE_EINTR(select_again);
-		neko_error();
+		val_throw(alloc_int(errno));
 	}
 	int i;
 	int pos = 0;
