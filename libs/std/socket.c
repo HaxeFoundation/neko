@@ -855,6 +855,55 @@ static value socket_set_fast_send( value s, value f ) {
 }
 
 /**
+	socket_set_keepalive : 'socket -> bool -> time:int? -> interval:int? -> probes:int? -> void
+	<doc>
+	Enable or disable TCP_KEEPALIVE flag for the socket and define custom delays and probes.
+	</doc>
+**/
+static value socket_set_keepalive( value o, value b, value time, value interval, value probes ) {
+	int val;
+	val_check_kind(o,k_socket);
+	val_check(b,bool);
+	if( !val_is_null(time) ) val_check(time,int);
+	if( !val_is_null(interval) ) val_check(interval,int);
+	if( !val_is_null(probes) ) val_check(probes,int);
+
+
+	if( !val_bool(b) ) {
+		val = 0;
+		if( setsockopt(val_sock(o), SOL_SOCKET, SO_KEEPALIVE, &val, sizeof(val)) != 0 )
+			neko_error();
+	} else {
+		val = 1;
+		if( setsockopt(val_sock(o), SOL_SOCKET, SO_KEEPALIVE, &val, sizeof(val)) != 0 )
+			neko_error();
+	
+		#ifndef NEKO_WINDOWS
+		if( !val_is_null(time) ) {
+			val = val_int(time);
+			if( setsockopt(val_sock(o), IPPROTO_TCP, TCP_KEEPIDLE, &val, sizeof(val)) != 0 )
+				neko_error();
+		}
+
+		if( !val_is_null(interval) ) {
+			val = val_int(interval);
+			if( setsockopt(val_sock(o), IPPROTO_TCP, TCP_KEEPINTVL, &val, sizeof(val)) != 0 )
+				neko_error();
+		}
+
+		if( !val_is_null(probes) ) {
+			val = val_int(probes);
+			if( setsockopt(val_sock(o), IPPROTO_TCP, TCP_KEEPCNT, &val, sizeof(val)) != 0 )
+				neko_error();
+		}
+		#endif
+	}
+
+
+	return val_true;
+}
+
+/**
 	socket_send_to : 'socket -> buf:string -> pos:int -> length:int -> addr:{host:'int32,port:int} -> int
 	<doc>
 	Send data from an unconnected UDP socket to the given address.
@@ -956,6 +1005,7 @@ DEFINE_PRIM(socket_set_timeout,2);
 DEFINE_PRIM(socket_shutdown,3);
 DEFINE_PRIM(socket_set_blocking,2);
 DEFINE_PRIM(socket_set_fast_send,2);
+DEFINE_PRIM(socket_set_keepalive,5);
 
 DEFINE_PRIM(socket_send_to,5);
 DEFINE_PRIM(socket_recv_from,5);
