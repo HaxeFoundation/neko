@@ -249,7 +249,7 @@ static value builtin_sget( value s, value p ) {
 }
 
 /**
-	$sset : string -> n:int -> c:int -> int?
+	$sset : string -> n:int -> c:anyint -> int?
 	<doc>
 	Set the [n]th char of a string to ([c] & 255).
 	Returns the char set or [null] if out of bounds.
@@ -260,11 +260,11 @@ static value builtin_sset( value s, value p, value c ) {
 	unsigned char cc;
 	val_check(s,string);
 	val_check(p,int);
-	val_check(c,int);
+	val_check(c,any_int);
 	pp = val_int(p);
 	if( pp < 0 || pp >= val_strlen(s) )
 		return val_null;
-	cc = (unsigned char)val_int(c);
+	cc = (unsigned char)val_any_int(c);
 	val_string(s)[pp] = (char)cc;
 	return alloc_int(cc);
 }
@@ -297,18 +297,18 @@ static value builtin_sget16( value s, value p, value endian ) {
 }
 
 /**
-	$sset16 : s:string -> n:int -> val:int -> bigEndian:bool -> void
+	$sset16 : s:string -> n:int -> val:anyint -> bigEndian:bool -> void
 	<doc>Set the 16 bit unsigned value at position [n] of string [s]</doc>
 **/
 static value builtin_sset16( value s, value p, value val, value endian ) {
 	int pp, v;
 	val_check(s,string);
 	val_check(p,int);
-	val_check(val,int);
+	val_check(val,any_int);
 	pp = val_int(p);
 	if( pp < 0 || pp+2 > val_strlen(s) )
 		neko_error();
-	v = val_int(val);
+	v = val_any_int(val);
 	if( TO_BE(endian) )
 		v = ((v&0xFF) << 8) | (v>>8);
 	*(unsigned short*)(val_string(s)+pp) = v;
@@ -316,7 +316,7 @@ static value builtin_sset16( value s, value p, value val, value endian ) {
 }
 
 /**
-	$sget32 : string -> n:int -> bigEndian:bool -> any?
+	$sget32 : string -> n:int -> bigEndian:bool -> anyint?
 	<doc>Return the 32 bit int value at position [n] or [null] if out of bounds</doc>
 **/
 static value builtin_sget32( value s, value p, value endian ) {
@@ -333,7 +333,7 @@ static value builtin_sget32( value s, value p, value endian ) {
 }
 
 /**
-	$sset32 : s:string -> n:int -> val:any -> bigEndian:bool -> void
+	$sset32 : s:string -> n:int -> val:anyint -> bigEndian:bool -> void
 	<doc>Set the 32 bit unsigned value at position [n] of string [s]</doc>
 **/
 static value builtin_sset32( value s, value p, value val, value endian ) {
@@ -463,7 +463,7 @@ static value builtin_ssetd( value s, value p, value val, value endian ) {
 }
 
 /**
-	$itof : any -> float
+	// $itof : anyint -> float
 	<doc>Convert the low endian bytes integer to the corresponding float value</doc>
 **/
 static value builtin_itof( value v, value endian ) {
@@ -477,7 +477,7 @@ static value builtin_itof( value v, value endian ) {
 }
 
 /**
-	$ftod : float -> any
+	$ftod : float -> anyint
 	<doc>Returns the binary integer representation of the float value</doc>
 **/
 static value builtin_ftoi( value v, value endian ) {
@@ -491,7 +491,7 @@ static value builtin_ftoi( value v, value endian ) {
 }
 
 /**
-	$itod : low:any -> high:any -> float
+	$itod : low:anyint -> high:anyint -> float
 	<doc>Convert the low endian bytes integers to the corresponding double value</doc>
 **/
 static value builtin_itod( value low, value high, value endian ) {
@@ -517,7 +517,7 @@ static value builtin_itod( value low, value high, value endian ) {
 }
 
 /**
-	$dtoi : float -> any array -> void
+	$dtoi : float -> anyint array -> void
 	<doc>Save the low endian bytes representation of the double value into the array as two any int</doc>
 **/
 static value builtin_dtoi( value v, value out, value endian ) {
@@ -894,7 +894,7 @@ static value builtin_varargs( value f ) {
 /** <doc><h2>Number Builtins</h2></doc> **/
 
 /**
-	$iadd : any -> any -> int
+	$iadd : anyint -> anyint -> anyint
 	<doc>Add two integers</doc>
 **/
 static value builtin_iadd( value a, value b ) {
@@ -902,7 +902,7 @@ static value builtin_iadd( value a, value b ) {
 }
 
 /**
-	$isub : any -> any -> int
+	$isub : anyint -> anyint -> anyint
 	<doc>Subtract two integers</doc>
 **/
 static value builtin_isub( value a, value b ) {
@@ -910,7 +910,7 @@ static value builtin_isub( value a, value b ) {
 }
 
 /**
-	$imult : any -> any -> int
+	$imult : anyint -> anyint -> anyint
 	<doc>Multiply two integers</doc>
 **/
 static value builtin_imult( value a, value b ) {
@@ -918,7 +918,7 @@ static value builtin_imult( value a, value b ) {
 }
 
 /**
-	$idiv : any -> any -> int
+	$idiv : anyint -> anyint -> anyint
 	<doc>Divide two integers. An error occurs if division by 0</doc>
 **/
 static value builtin_idiv( value a, value b ) {
