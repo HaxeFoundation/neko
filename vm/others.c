@@ -37,51 +37,6 @@ extern field id_string;
 extern char *jit_handle_trap;
 typedef void (*jit_handle)( neko_vm * );
 
-INLINE float type_punning_uint_to_float(unsigned int inval) {
-	union _U {
-		float f;
-		unsigned int uint;
-	} u;
-	u.uint = inval;
-	return u.f;
-}
-
-INLINE int type_punning_float_to_int(float inval) {
-	union _U {
-		float f;
-		int i;
-	} u;
-	u.f = inval;
-	return u.i;
-}
-
-INLINE unsigned int type_punning_float_to_uint(float inval) {
-	union _U {
-		float f;
-		unsigned int i;
-	} u;
-	u.f = inval;
-	return u.i;
-}
-
-INLINE float type_punning_ptr_to_float(void *inval) {
-	union _U {
-		float f;
-		void *ptr;
-	} u;
-	u.ptr = inval;
-	return u.f;
-}
-
-INLINE double type_punning_ptr_to_double(void *inval) {
-	union _U {
-		double d;
-		void *ptr;
-	} u;
-	u.ptr = inval;
-	return u.d;
-}
-
 static INLINE int icmp( int a, int b ) {
 	return (a == b)?0:((a < b)?-1:1);
 }

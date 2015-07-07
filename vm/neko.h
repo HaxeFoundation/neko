@@ -90,11 +90,8 @@
 
 #define NEKO_VERSION	200
 
-float type_punning_uint_to_float(unsigned int inval);
-int type_punning_float_to_int(float inval);
-unsigned int type_punning_float_to_uint(float inval);
-float type_punning_ptr_to_float(void *inval);
-double type_punning_ptr_to_double(void *inval);
+#define UNION_CAST(x, destType) \
+    (((union {__typeof__(x) a; destType b;})x).b)
 
 typedef intptr_t int_val;
 
