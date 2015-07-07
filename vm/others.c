@@ -37,6 +37,51 @@ extern field id_string;
 extern char *jit_handle_trap;
 typedef void (*jit_handle)( neko_vm * );
 
+INLINE float type_punning_uint_to_float(unsigned int inval) {
+	union _U {
+		float f;
+		unsigned int uint;
+	} u;
+	u.uint = inval;
+	return u.f;
+}
+
+INLINE int type_punning_float_to_int(float inval) {
+	union _U {
+		float f;
+		int i;
+	} u;
+	u.f = inval;
+	return u.i;
+}
+
+INLINE unsigned int type_punning_float_to_uint(float inval) {
+	union _U {
+		float f;
+		unsigned int i;
+	} u;
+	u.f = inval;
+	return u.i;
+}
+
+INLINE float type_punning_ptr_to_float(void *inval) {
+	union _U {
+		float f;
+		void *ptr;
+	} u;
+	u.ptr = inval;
+	return u.f;
+}
+
+INLINE double type_punning_ptr_to_double(void *inval) {
+	union _U {
+		double d;
+		void *ptr;
+	} u;
+	u.ptr = inval;
+	return u.d;
+}
+
 static INLINE int icmp( int a, int b ) {
 	return (a == b)?0:((a < b)?-1:1);
 }
@@ -145,7 +190,7 @@ static void buffer_append_new( buffer b, const char *s, int len ) {
 	it->size = size;
 	it->len = len;
 	it->next = b->data;
-	b->data = it;	
+	b->data = it;
 }
 
 EXTERN void buffer_append_sub( buffer b, const char *s, int_val _len ) {
@@ -182,7 +227,7 @@ EXTERN void buffer_append_char( buffer b, char c ) {
 	b->totlen++;
 	it = b->data;
 	if( it && it->len != it->size ) {
-		it->str[it->len++] = c;		
+		it->str[it->len++] = c;
 		return;
 	}
 	buffer_append_new(b,&c,1);
@@ -483,7 +528,7 @@ EXTERN void val_throw( value v ) {
 	neko_vm *vm = NEKO_VM();
 	vm->exc_stack = alloc_array(0);
 	vm->vthis = v;
-	if( *(char**)vm->start == jit_handle_trap )
+	if( (char *)vm->start ==	jit_handle_trap )
 		((jit_handle)jit_handle_trap)(vm);
 	else
 		longjmp(vm->start,1);
@@ -492,7 +537,7 @@ EXTERN void val_throw( value v ) {
 EXTERN void val_rethrow( value v ) {
 	neko_vm *vm = NEKO_VM();
 	vm->vthis = v;
-	if( *(char**)vm->start == jit_handle_trap )
+	if( (char*)vm->start == jit_handle_trap )
 		((jit_handle)jit_handle_trap)(vm);
 	else
 		longjmp(vm->start,1);

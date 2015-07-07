@@ -78,7 +78,7 @@ static value float_of_bytes( value s, value be ) {
 	val_check(be,bool);
 	if( val_strlen(s) != 4 )
 		neko_error();
-	f = *(float*)val_string(s);
+	f = type_punning_ptr_to_float(val_string(s));
 	if( neko_is_big_endian() != val_bool(be) ) {
 		char *c = (char*)&f;
 		char tmp;
@@ -98,7 +98,7 @@ static value double_of_bytes( value s, value be ) {
 	val_check(be,bool);
 	if( val_strlen(s) != 8 )
 		neko_error();
-	f = *(double*)val_string(s);
+	f = type_punning_ptr_to_double(val_string(s));
 	if( neko_is_big_endian() != val_bool(be) ) {
 		char *c = (char*)&f;
 		char tmp;
@@ -161,12 +161,12 @@ static value test() {
 /**
 	print_redirect : function:1? -> void
 	<doc>
-	Set a redirection function for all printed values. 
+	Set a redirection function for all printed values.
 	Setting it to null will cancel the redirection and restore previous printer.
 	</doc>
 **/
 
-static void print_callback( const char *s, int size, void *f ) {	
+static void print_callback( const char *s, int size, void *f ) {
 	val_call1(f,copy_string(s,size));
 }
 

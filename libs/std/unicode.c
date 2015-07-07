@@ -26,8 +26,8 @@
 	<doc>
 	<h1>Unicode</h1>
 	<p>
-	Operations on Unicode strings. 
-	Most of the operations are optimized for speed so they might still 
+	Operations on Unicode strings.
+	Most of the operations are optimized for speed so they might still
 	succeed on some malformed Unicode string. The only function that completely
 	check the Unicode format is [unicode_validate]. Other functions might raise
 	some exception or not depending on the malformed data.
@@ -59,6 +59,7 @@ typedef enum {
 	LAST_ENCODING = 9
 } encoding;
 
+/*
 static const char *encodings[] = {
 	"ascii",
 	"iso-latin1",
@@ -70,6 +71,7 @@ static const char *encodings[] = {
 	"utf32-le",
 	"utf32-be",
 };
+*/
 
 static int utf8_codelen[16] = {
 	1, 1, 1, 1, 1, 1, 1, 1,
@@ -153,6 +155,8 @@ static void uchar_set( ustring str, encoding e, uchar c ) {
 		if( IS_BE(e) )
 			c = u32be(c);
 		*((unsigned int*)str) = c;
+		break;
+	default:
 		break;
 	}
 }
@@ -307,6 +311,7 @@ static uchar uchar_get( ustring *rstr, int size, encoding e, int pos ) {
 		utf32-le=8
 	</doc>
 **/
+/*
 static value unicode_encoding_code( value str ) {
 	int i;
 	val_check(str, string);
@@ -323,6 +328,7 @@ static value unicode_encoding_string( value enc ) {
 		neko_error();
 	return alloc_string(encodings[val_int(enc)]);
 }
+*/
 
 typedef struct {
 	value buf;
@@ -332,7 +338,7 @@ typedef struct {
 } uni_buf;
 
 static encoding get_encoding( value v ) {
-	int e;
+	int e = 0;
 	if( !val_is_int(v) || (e = val_int(v)) < 0 || e >= LAST_ENCODING )
 		val_throw(alloc_string("Invalid encoding value"));
 	return e;
@@ -362,7 +368,7 @@ static void unicode_buf_resize( uni_buf *b ) {
 	if( size2 - len < 10 ) size2 = 10 + len;
 	s = alloc_empty_string(size2);
 	memcpy(val_string(s),val_string(b->buf),len);
-	b->buf = s;	
+	b->buf = s;
 }
 
 
@@ -392,7 +398,7 @@ static value unicode_buf_add( value buf, value uc ) {
 	<doc>
 	Return the current content of the buffer.
 	This is not a copy of the buffer but the shared content.
-	Retreiving content and then continuing to add chars is 
+	Retreiving content and then continuing to add chars is
 	possible but not very efficient.
 	</doc>
 **/
@@ -455,10 +461,10 @@ static value unicode_validate( value str, value encoding ) {
 		return alloc_bool((l & 1) == 0);
 	case UTF32_LE:
 		if( l >= 4 && s[0] == 0 && s[1] == 0 && s[2] == 0xFE && s[3] == 0xFF ) return val_false; // BOM fail
-		return alloc_bool((l & 3) == 0);	
+		return alloc_bool((l & 3) == 0);
 	case UTF32_BE:
 		if( l >= 4 && s[0] == 0xFF && s[1] == 0xFE && s[2] == 0 && s[3] == 0 ) return val_false; // BOM fail
-		return alloc_bool((l & 3) == 0);	
+		return alloc_bool((l & 3) == 0);
 	case UTF16_LE:
 		if( s[0] == 0xFE && s[1] == 0xFF ) return val_false; // BOM fail
 		{
@@ -468,7 +474,7 @@ static value unicode_validate( value str, value encoding ) {
 			unsigned short c = *(unsigned short*)s;
 			if( ((c >> dec) & 0xFC) == 0xD8 ) {
 				if( s + 3 >= end ) return val_false;
-				if( ((((unsigned short*)s)[1] >> dec) & 0xFC) != 0xDC ) return val_false;			
+				if( ((((unsigned short*)s)[1] >> dec) & 0xFC) != 0xDC ) return val_false;
 				s += 4;
 			} else
 				s += 2;
@@ -600,7 +606,7 @@ static value unicode_sub( value str, value enc, value vpos, value vlen ) {
 
 /**
 	unicode_get : string -> encoding:int -> n:int -> int
-	<doc>Returns the [n]th char in an Unicode string. 
+	<doc>Returns the [n]th char in an Unicode string.
 	This might be inefficient if [n] is big and the string has variable length per char.</doc>
 **/
 static value unicode_get( value str, value enc, value pos ) {
@@ -786,7 +792,7 @@ static void expand( value *str, int *len ) {
 **/
 static value unicode_convert( value str, value encoding, value to_encoding ) {
 	ustring s, end;
-	int e, e_to;
+	int e = 0, e_to;
 	int len, size, pos = 0;
 	value vto;
 	val_check(str,string);
@@ -798,7 +804,7 @@ static value unicode_convert( value str, value encoding, value to_encoding ) {
 	if( e == e_to )
 		return str;
 	// try to allocate enough space at first guess
-	switch( e ) {	
+	switch( e ) {
 	case ISO_LATIN1:
 	case UTF8:
 	case ASCII:
@@ -856,7 +862,7 @@ static value unicode_convert( value str, value encoding, value to_encoding ) {
 		}
 		if( pos + k > len )
 			expand(&vto,&len);
-		uchar_set(val_string(vto) + pos, e_to, c);
+		uchar_set(val_ustring(vto) + pos, e_to, c);
 		pos += k;
 	}
 	val_set_length(vto, pos);

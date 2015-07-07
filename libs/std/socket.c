@@ -921,7 +921,7 @@ static value socket_recv_from( value o, value data, value pos, value len, value 
 		neko_thread_blocking(tmp_recv,&t);
 		ret = t.ret;
 	} else
-		ret = recvfrom(val_sock(o), val_string(data) + p , l, MSG_NOSIGNAL, (struct sockaddr*)&saddr, &slen);
+		ret = recvfrom(val_sock(o), val_string(data) + p , l, MSG_NOSIGNAL, (struct sockaddr*)&saddr, (socklen_t * __restrict__)(&slen));
 	if( ret == SOCKET_ERROR ) {
 		HANDLE_EINTR(recv_from_again);
 #ifdef	NEKO_WINDOWS
