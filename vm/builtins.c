@@ -367,7 +367,6 @@ static value builtin_sgetf( value s, value p, value endian ) {
 		unsigned int bits;
 		bits = *(unsigned int*)(val_string(s)+pp);
 		LTB32(bits);
-		//f = *(float*)(&bits);
 		f = type_punning_uint_to_float(bits);
 	} else
 		f = *(float*)(val_string(s)+pp);
@@ -389,7 +388,6 @@ static value builtin_ssetf( value s, value p, value val, value endian ) {
 		neko_error();
 	f = (float)val_float(val);
 	if( TO_BE(endian) ) {
-		//unsigned int bits = *(unsigned int *)&f;
 		unsigned int bits = type_punning_float_to_uint(f);
 		LTB32(bits);
 		*(unsigned int*)(val_string(s)+pp) = bits;
@@ -474,7 +472,6 @@ static value builtin_itof( value v, value endian ) {
 	val_check(v,any_int);
 	bits = val_any_int(v);
 	if( TO_BE(endian) ) LTB32(bits);
-	//f = *(float*)&bits;
 	f = type_punning_uint_to_float(bits);
 	return alloc_float(f);
 }
@@ -488,7 +485,6 @@ static value builtin_ftoi( value v, value endian ) {
 	float f;
 	val_check(v,float);
 	f = (float)val_float(v);
-	//bits = *(int *)&f;
 	bits = type_punning_float_to_int(f);
 	if( TO_BE(endian) ) LTB32(bits);
 	return alloc_best_int(bits);
