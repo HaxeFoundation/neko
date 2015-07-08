@@ -7,6 +7,9 @@
 # For MingW/MSys
 #   make os=mingw
 #
+# For Linux
+#   make os=linux
+#
 
 ## CONFIG
 
@@ -21,6 +24,7 @@ NEKOVM_FLAGS = -Lbin -lneko
 STD_NDLL_FLAGS = ${NEKOVM_FLAGS} -lrt
 INSTALL_FLAGS =
 LIB_PREFIX = /opt/local
+NEKO_BIN_LINKER_FLAGS =
 
 NEKO_EXEC = LD_LIBRARY_PATH=../bin:${LD_LIBRARY_PATH} NEKOPATH=../boot:../bin ../bin/neko
 
@@ -56,7 +60,12 @@ NEKOVM_FLAGS = -L${CURDIR}/bin -lneko
 STD_NDLL_FLAGS = -bundle -undefined dynamic_lookup ${NEKOVM_FLAGS}
 CFLAGS += -L/usr/local/lib -L${LIB_PREFIX}/lib -I${LIB_PREFIX}/include
 INSTALL_FLAGS = -static
+endif
 
+### LINUX SPECIFIC
+
+ifeq (${os}, linux)
+NEKO_BIN_LINKER_FLAGS = -Wl,-rpath,'$$ORIGIN',--enable-new-dtags
 endif
 
 ### MAKE
@@ -101,7 +110,7 @@ bin/${LIBNEKO_NAME}: ${LIBNEKO_OBJECTS}
 	${MAKESO} ${EXTFLAGS} -o $@ ${LIBNEKO_OBJECTS} ${LIBNEKO_LIBS}
 
 bin/neko: $(VM_OBJECTS)
-	${CC} ${CFLAGS} ${EXTFLAGS} -o $@ ${VM_OBJECTS} ${NEKOVM_FLAGS}
+	${CC} ${CFLAGS} ${EXTFLAGS} -o $@ ${VM_OBJECTS} ${NEKOVM_FLAGS} ${NEKO_BIN_LINKER_FLAGS}
 	strip bin/neko
 
 bin/std.ndll: ${STD_OBJECTS}
