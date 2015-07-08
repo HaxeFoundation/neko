@@ -90,8 +90,8 @@
 
 #define NEKO_VERSION	200
 
-#define UNION_CAST(x, destType) \
-    (((union {__typeof__(x) a; destType b;})x).b)
+#define UNION_CAST(x, fromType, toType) \
+    (((union {fromType a; toType b;})x).b)
 
 typedef intptr_t int_val;
 

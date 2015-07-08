@@ -78,7 +78,7 @@ static value float_of_bytes( value s, value be ) {
 	val_check(be,bool);
 	if( val_strlen(s) != 4 )
 		neko_error();
-	f = UNION_CAST(val_string(s), float);
+	f = UNION_CAST(val_string(s), char*, float);
 	if( neko_is_big_endian() != val_bool(be) ) {
 		char *c = (char*)&f;
 		char tmp;
@@ -98,7 +98,7 @@ static value double_of_bytes( value s, value be ) {
 	val_check(be,bool);
 	if( val_strlen(s) != 8 )
 		neko_error();
-	f = UNION_CAST(val_string(s), float);
+	f = UNION_CAST(val_string(s), char*, float);
 	if( neko_is_big_endian() != val_bool(be) ) {
 		char *c = (char*)&f;
 		char tmp;
