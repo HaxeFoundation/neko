@@ -28,6 +28,12 @@
 #	define SHUT_WR		SD_SEND
 #	define SHUT_RD		SD_RECEIVE
 #	define SHUT_RDWR	SD_BOTH
+#ifndef socklen_t
+	typedef int socklen_t;
+#endif
+# ifndef __restrict__
+#  define __restrict__ restrict
+# endif
 	static bool init_done = false;
 	static WSADATA init_data;
 #else
