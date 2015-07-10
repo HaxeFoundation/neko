@@ -484,10 +484,11 @@ EXTERN void val_throw( value v ) {
 	vm->exc_stack = alloc_array(0);
 	vm->vthis = v;
 	union U {
-		jmp_buf from;
+		int  *from;
 		char **to;
-	} __u = { .from = vm->start };
-	if( *__u.to ==	jit_handle_trap )
+	} __u;
+	__u.from = (int*)vm->start;
+	if( *__u.to == jit_handle_trap )
 		((jit_handle)jit_handle_trap)(vm);
 	else
 		longjmp(vm->start,1);
@@ -497,10 +498,11 @@ EXTERN void val_rethrow( value v ) {
 	neko_vm *vm = NEKO_VM();
 	vm->vthis = v;
 	union U {
-		jmp_buf from;
+		int  *from;
 		char **to;
-	} __u = { .from = vm->start };
-	if( *__u.to ==	jit_handle_trap )
+	} __u;
+	__u.from = (int*)vm->start;
+	if (*__u.to == jit_handle_trap)
 		((jit_handle)jit_handle_trap)(vm);
 	else
 		longjmp(vm->start,1);
