@@ -2,4 +2,4 @@
 -main RunTests
 -D neko-source
  
- -cmd neko bin/RunTests.n
+# -cmd neko bin/RunTests.n
