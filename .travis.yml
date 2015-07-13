@@ -2,7 +2,7 @@ language: cpp
 
 install:
   - sudo apt-get update -qq
-  - sudo apt-get install ocaml zlib1g-dev libgc-dev -qq
+  - sudo apt-get install ocaml zlib1g-dev libgc-dev haxe -qq
 
 script:
   - make
@@ -10,6 +10,8 @@ script:
   - neko -version
   - make test
   - cd test/bin
+  - rm RunTests.n
+  - haxe RunTests.hxml
   - nekoc RunTests.neko
   - neko RunTests.n
   - cd ../..
