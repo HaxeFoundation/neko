@@ -9,9 +9,10 @@ script:
   - sudo make install
   - neko -version
   - make test
-  - cd test/bin
-  - rm RunTests.n
+  - cd test
   - haxe RunTests.hxml
+  - cd bin
+  - rm RunTests.n
   - nekoc RunTests.neko
   - neko RunTests.n
   - cd ../..
