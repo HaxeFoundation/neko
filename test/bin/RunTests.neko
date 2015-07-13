@@ -84,6 +84,7 @@ neko = $new(null);
 haxe = $new(null);
 @classes.haxe = haxe;
 haxe._Int64 = $new(null);
+haxe.ds = $new(null);
 haxe.io = $new(null);
 haxe.unit = $new(null);
 tests = $new(null);
@@ -549,15 +550,16 @@ tests = $new(null);
         var runner = haxe.unit.TestRunner.new();
         runner.add(tests.Test1.new());
         runner.add(tests.Test2.new());
-        runner.add(tests.Test1.new());
         runner.run();
         haxe.Log.trace(runner.result.toString(),{
             fileName => String.new("RunTests.hx"), 
-            lineNumber => 14, 
+            lineNumber => 13, 
             className => String.new("RunTests"), 
             methodName => String.new("main")
 
         });
+        if ( $not(runner.result.success) )
+            Sys.exit(1);
         return null;
     }
     @RunTests.__class__ = RunTests;
@@ -988,6 +990,21 @@ tests = $new(null);
     }
     @StringTools.__class__ = StringTools;
     @classes.StringTools = StringTools;
+}
+{
+    var @tmp = $new(null);
+    @Sys = @tmp;
+    @tmp.__serialize = @serialize;
+    var @tmp = $new(null);
+    Sys = @tmp;
+    @tmp.prototype = @Sys;
+    @tmp.sys_exit = $loader.loadprim(("std" + "@") + "sys_exit",1);
+    @tmp.exit = function(code) {
+        Sys.sys_exit(code);
+        return null;
+    }
+    @Sys.__class__ = Sys;
+    @classes.Sys = Sys;
 }
 {
     var @tmp = $new(null);
@@ -1604,6 +1621,7 @@ haxe.CallStack.__name__ = Array.new1($array(String.new("haxe"),String.new("CallS
 haxe.StackItem.__ename__ = Array.new1($array(String.new("haxe"),String.new("StackItem")),2);
 haxe.StackItem.__constructs__ = Array.new1($array(String.new("CFunction"),String.new("Module"),String.new("FilePos"),String.new("Method"),String.new("LocalFunction")),5);
 Type.__name__ = Array.new1($array(String.new("Type")),1);
+Sys.__name__ = Array.new1($array(String.new("Sys")),1);
 StringTools.__name__ = Array.new1($array(String.new("StringTools")),1);
 StringBuf.__name__ = Array.new1($array(String.new("StringBuf")),1);
 String.__name__ = Array.new1($array(String.new("String")),1);
@@ -1668,4 +1686,5 @@ StringBuf.__make = neko.Lib.load(String.new("std"),String.new("buffer_new"),0);
 StringBuf.__add = neko.Lib.load(String.new("std"),String.new("buffer_add"),2);
 StringBuf.__add_char = neko.Lib.load(String.new("std"),String.new("buffer_add_char"),2);
 StringBuf.__to_string = neko.Lib.load(String.new("std"),String.new("buffer_string"),1);
+Sys.sys_exit = neko.Lib.load(String.new("std"),String.new("sys_exit"),1);
 RunTests.main();
