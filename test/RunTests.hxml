@@ -1,0 +1,5 @@
+-neko bin/RunTests.n
+-main RunTests
+-D neko-source
+ 
+ -cmd neko bin/RunTests.n

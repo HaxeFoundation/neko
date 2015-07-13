@@ -25,6 +25,10 @@ build_script:
 
 test_script:
   - neko -version
+  - cd test/bin
+  - nekoc RunTests.neko
+  - neko RunTests.n
+  - cd ../..
 
 artifacts:
   - path: bin/neko-*.zip

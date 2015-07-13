@@ -1,0 +1,1671 @@
+@classes = $new(null);
+@enum_to_string = function()
+    return neko.Boot.__enum_str(this)
+@serialize = function()
+    return neko.Boot.__serialize(this)
+@tag_serialize = function()
+    return neko.Boot.__tagserialize(this)
+@lazy_error = function(e)
+    return $varargs(function(_)
+        return $throw(e)
+    )
+@default__string = function()
+    return {
+        var @s = this.toString();
+        if $typeof(@s) != $tobject
+            return null;
+        return @s.__s;
+    }
+
+@closure0 = function(@this,@fun)
+    return if @fun == null
+        null
+    else
+        function() {
+            this = @this;
+            @fun();
+        }
+
+
+@closure1 = function(@this,@fun)
+    return if @fun == null
+        null
+    else
+        function(a) {
+            this = @this;
+            @fun(a);
+        }
+
+
+@closure2 = function(@this,@fun)
+    return if @fun == null
+        null
+    else
+        function(a,b) {
+            this = @this;
+            @fun(a,b);
+        }
+
+
+@closure3 = function(@this,@fun)
+    return if @fun == null
+        null
+    else
+        function(a,b,c) {
+            this = @this;
+            @fun(a,b,c);
+        }
+
+
+@closure4 = function(@this,@fun)
+    return if @fun == null
+        null
+    else
+        function(a,b,c,d) {
+            this = @this;
+            @fun(a,b,c,d);
+        }
+
+
+@closure5 = function(@this,@fun)
+    return if @fun == null
+        null
+    else
+        function(a,b,c,d,e) {
+            this = @this;
+            @fun(a,b,c,d,e);
+        }
+
+
+{
+}
+neko = $new(null);
+@classes.neko = neko;
+haxe = $new(null);
+@classes.haxe = haxe;
+haxe._Int64 = $new(null);
+haxe.io = $new(null);
+haxe.unit = $new(null);
+tests = $new(null);
+@classes.tests = tests;
+{
+    var @tmp = $new(null);
+    neko.@Lib = @tmp;
+    @tmp.__serialize = @serialize;
+    var @tmp = $new(null);
+    neko.Lib = @tmp;
+    @tmp.prototype = neko.@Lib;
+    @tmp.load = function(lib,prim,nargs) {
+        return $loader.loadprim(( (lib + String.new("@")) + prim ).__s,nargs);
+    }
+    neko.@Lib.__class__ = neko.Lib;
+}
+{
+    var @tmp = $new(null);
+    @Array = @tmp;
+    @tmp.unshift = function(x) {
+        var l = this.length;
+        this.__grow(l + 1);
+        var a = this.__a;
+        $ablit(a,1,a,0,l);
+        a[0] = x;
+        return null;
+    }
+    @tmp.toString = function() {
+        var s = StringBuf.new();
+        StringBuf.__add(s.b,String.new("["));
+        var it = this.iterator();
+        {
+            var @tmp = it;
+            while @tmp.hasNext() {
+                var i = @tmp.next();
+                {
+                    StringBuf.__add(s.b,i);
+                    if ( it.hasNext() )
+                        StringBuf.__add_char(s.b,44);
+                }
+            }
+        }
+        StringBuf.__add(s.b,String.new("]"));
+        return String.new(StringBuf.__to_string(s.b));
+    }
+    @tmp.splice = function(pos,len) {
+        if ( len < 0 )
+            return Array.new();
+        if ( pos < 0 ) {
+            pos = (this.length + pos);
+            if ( pos < 0 )
+                pos = 0;
+        }
+        if ( pos > this.length ) {
+            pos = 0;
+            len = 0;
+        }
+        else
+            if ( (pos + len) > this.length ) {
+                len = (this.length - pos);
+                if ( len < 0 )
+                    len = 0;
+            }
+
+        var a = this.__a;
+        var ret = Array.new1($asub(a,pos,len),len);
+        var end = pos + len;
+        $ablit(a,pos,a,end,this.length - end);
+        this.length -= len;
+        while ( (len -= 1) >= 0 )
+            a[this.length + len] = null
+        return ret;
+    }
+    @tmp.sort = function(f) {
+        var a = this.__a;
+        var i = 0;
+        var l = this.length;
+        while ( i < l ) {
+            var swap = false;
+            var j = 0;
+            var max = (l - i) - 1;
+            while ( j < max ) {
+                if ( f(a[j],a[j + 1]) > 0 ) {
+                    var tmp = a[j + 1];
+                    a[j + 1] = a[j];
+                    a[j] = tmp;
+                    swap = true;
+                }
+                j += 1;
+            }
+            if ( $not(swap) )
+                break;;
+            i += 1;
+        }
+        return null;
+    }
+    @tmp.slice = function(pos,end) {
+        if ( pos < 0 ) {
+            pos = (this.length + pos);
+            if ( pos < 0 )
+                pos = 0;
+        }
+        if ( end == null )
+            end = this.length
+        else
+            if ( end < 0 )
+                end = (this.length + end);
+
+        if ( end > this.length )
+            end = this.length;
+        var len = end - pos;
+        if ( len < 0 )
+            return Array.new();
+        return Array.new1($asub(this.__a,pos,len),len);
+    }
+    @tmp.shift = function() {
+        var l = this.length;
+        if ( l == 0 )
+            return null;
+        var a = this.__a;
+        var x = a[0];
+        l -= 1;
+        $ablit(a,0,a,1,l);
+        a[l] = null;
+        this.length = l;
+        return x;
+    }
+    @tmp.reverse = function() {
+        var i = 0;
+        var l = this.length;
+        var a = this.__a;
+        var half = l >> 1;
+        l -= 1;
+        while ( i < half ) {
+            var tmp = a[i];
+            a[i] = a[l - i];
+            a[l - i] = tmp;
+            i += 1;
+        }
+        return null;
+    }
+    @tmp.remove = function(x) {
+        var i = 0;
+        var l = this.length;
+        var a = this.__a;
+        while ( i < l ) {
+            if ( a[i] == x ) {
+                $ablit(a,i,a,i + 1,(l - i) - 1);
+                l -= 1;
+                this.length = l;
+                a[l] = null;
+                return true;
+            }
+            i += 1;
+        }
+        return false;
+    }
+    @tmp.push = function(x) {
+        var l = this.length;
+        this.__grow(l + 1);
+        this.__a[l] = x;
+        return l + 1;
+    }
+    @tmp.pop = function() {
+        if ( this.length == 0 )
+            return null;
+        this.length -= 1;
+        var x = this.__a[this.length];
+        this.__a[this.length] = null;
+        return x;
+    }
+    @tmp.map = function(f) {
+        var ret = Array.new1($array(),0);
+        {
+            var _g = 0;
+            var _g1 = this;
+            while ( _g < _g1.length ) {
+                var elt = _g1[_g];
+                _g += 1;
+                ret.push(f(elt));
+            }
+        }
+        return ret;
+    }
+    @tmp.length = null;
+    @tmp.lastIndexOf = function(x,fromIndex) {
+        var len = this.length;
+        var i;
+        if ( fromIndex != null )
+            i = fromIndex
+        else
+            i = (len - 1)
+        var a = this.__a;
+        if ( i >= len )
+            i = (len - 1)
+        else
+            if ( i < 0 )
+                i += len;
+
+        while ( i >= 0 ) {
+            if ( a[i] == x )
+                return i;
+            i --= 1;
+        }
+        return -1;
+    }
+    @tmp.join = function(sep) {
+        var s = StringBuf.new();
+        var a = this.__a;
+        var max = this.length - 1;
+        {
+            var _g1 = 0;
+            var _g = this.length;
+            while ( _g1 < _g ) {
+                var p = _g1 ++= 1;
+                StringBuf.__add(s.b,a[p]);
+                if ( p != max )
+                    StringBuf.__add(s.b,sep);
+            }
+        }
+        return String.new(StringBuf.__to_string(s.b));
+    }
+    @tmp.iterator = function() {
+        return {
+            a => this, 
+            p => 0, 
+            hasNext => function() {
+                return this.p < this.a.length;
+            }
+            , 
+            next => function() {
+                var i = this.a.__a[this.p];
+                this.p += 1;
+                return i;
+            }
+
+
+        };
+    }
+    @tmp.insert = function(pos,x) {
+        var l = this.length;
+        if ( pos < 0 ) {
+            pos = (l + pos);
+            if ( pos < 0 )
+                pos = 0;
+        }
+        if ( pos > l )
+            pos = l;
+        this.__grow(l + 1);
+        var a = this.__a;
+        $ablit(a,pos + 1,a,pos,l - pos);
+        a[pos] = x;
+        return null;
+    }
+    @tmp.indexOf = function(x,fromIndex) {
+        var len = this.length;
+        var i;
+        if ( fromIndex != null )
+            i = fromIndex
+        else
+            i = 0
+        var a = this.__a;
+        if ( i < 0 ) {
+            i += len;
+            if ( i < 0 )
+                i = 0;
+        }
+        while ( i < len ) {
+            if ( a[i] == x )
+                return i;
+            i ++= 1;
+        }
+        return -1;
+    }
+    @tmp.filter = function(f) {
+        var ret = Array.new1($array(),0);
+        {
+            var _g = 0;
+            var _g1 = this;
+            while ( _g < _g1.length ) {
+                var elt = _g1[_g];
+                _g += 1;
+                if ( f(elt) )
+                    ret.push(elt);
+            }
+        }
+        return ret;
+    }
+    @tmp.copy = function() {
+        return Array.new1($asub(this.__a,0,this.length),this.length);
+    }
+    @tmp.concat = function(a) {
+        var a1 = this.__a;
+        var a2 = a.__a;
+        var s1 = this.length;
+        var s2 = a.length;
+        var a3 = $amake(s1 + s2);
+        $ablit(a3,0,a1,0,s1);
+        $ablit(a3,s1,a2,0,s2);
+        return Array.new1(a3,s1 + s2);
+    }
+    @tmp.__set = function(pos,v) {
+        var a = this.__a;
+        if ( this.length <= pos ) {
+            var l = pos + 1;
+            var dlen = l - $asize(a);
+            if ( dlen > 0 ) {
+                if ( dlen == 1 ) {
+                    this.__grow(l);
+                    a = this.__a;
+                }
+                else {
+                    a = $amake(l);
+                    $ablit(a,0,this.__a,0,this.length);
+                    this.__a = a;
+                }
+            }
+            this.length = l;
+        }
+        a[pos] = v;
+        return v;
+    }
+    @tmp.__neko = function() {
+        var a = this.__a;
+        var sz = $asize(a);
+        if ( sz != this.length ) {
+            a = $asub(a,0,this.length);
+            this.__a = a;
+        }
+        return a;
+    }
+    @tmp.__grow = function(l) {
+        var a = this.__a;
+        var sz = $asize(a);
+        if ( sz >= l ) {
+            this.length = l;
+            return null;
+        }
+        var big = (sz * 3) >> 1;
+        if ( big < l )
+            big = l;
+        var a2 = $amake(big);
+        $ablit(a2,0,a,0,this.length);
+        this.__a = a2;
+        this.length = l;
+        return null;
+    }
+    @tmp.__get = function(pos) {
+        return this.__a[pos];
+    }
+    @tmp.__a = null;
+    @tmp.__serialize = @serialize;
+    @tmp.__string = @default__string;
+    var @tmp = $new(null);
+    Array = @tmp;
+    @tmp.prototype = @Array;
+    @tmp.new1 = function(a,l) {
+        var inst = Array.new();
+        inst.__a = a;
+        inst.length = l;
+        return inst;
+    }
+    @tmp.__construct__ = function() {
+        this.__a = $amake(0);
+        this.length = 0;
+        return null;
+    }
+    @tmp.new = function() {
+        var @o = $new(null);
+        $objsetproto(@o,@Array);
+        $call(this.__construct__,@o,$array());
+        return @o;
+    }
+    @Array.__class__ = Array;
+    @classes.Array = Array;
+}
+{
+    var @tmp = $new(null);
+    @List = @tmp;
+    @tmp.q = null;
+    @tmp.length = null;
+    @tmp.h = null;
+    @tmp.add = function(item) {
+        var x = $array(item,null);
+        if ( this.h == null )
+            this.h = x
+        else
+            this.q[1] = x
+        this.q = x;
+        this.length ++= 1;
+        return null;
+    }
+    @tmp.__serialize = @serialize;
+    var @tmp = $new(null);
+    List = @tmp;
+    @tmp.prototype = @List;
+    @tmp.__construct__ = function() {
+        this.length = 0;
+        return null;
+    }
+    @tmp.new = function() {
+        var @o = $new(null);
+        $objsetproto(@o,@List);
+        $call(this.__construct__,@o,$array());
+        return @o;
+    }
+    @List.__class__ = List;
+    @classes.List = List;
+}
+{
+    var @tmp = $new(null);
+    @Reflect = @tmp;
+    @tmp.__serialize = @serialize;
+    var @tmp = $new(null);
+    Reflect = @tmp;
+    @tmp.prototype = @Reflect;
+    @tmp.isFunction = function(f) {
+        return $typeof(f) == $tfunction;
+    }
+    @tmp.fields = function(o) {
+        if ( $typeof(o) != $tobject )
+            return Array.new()
+        else {
+            var a = $objfields(o);
+            var i = 0;
+            var hasid = false;
+            var l = $asize(a);
+            while ( i < l ) {
+                var fid = a[i];
+                if ( fid == -190054693 )
+                    hasid = true;
+                a[i] = String.new($field(fid));
+                i ++= 1;
+            }
+            var a1 = Array.new1(a,l);
+            if ( hasid )
+                a1.remove(String.new("__id__"));
+            return a1;
+        }
+        return null;
+    }
+    @tmp.callMethod = function(o,func,args) {
+        var a = args.__neko();
+        var n = $nargs(func);
+        if ( n > $asize(a) ) {
+            var a2 = $amake(n);
+            $ablit(a2,0,a,0,$asize(a));
+            a = a2;
+        }
+        return $call(func,o,a);
+    }
+    @Reflect.__class__ = Reflect;
+    @classes.Reflect = Reflect;
+}
+{
+    var @tmp = $new(null);
+    @RunTests = @tmp;
+    @tmp.__serialize = @serialize;
+    var @tmp = $new(null);
+    RunTests = @tmp;
+    @tmp.prototype = @RunTests;
+    @tmp.main = function() {
+        var runner = haxe.unit.TestRunner.new();
+        runner.add(tests.Test1.new());
+        runner.add(tests.Test2.new());
+        runner.add(tests.Test1.new());
+        runner.run();
+        haxe.Log.trace(runner.result.toString(),{
+            fileName => String.new("RunTests.hx"), 
+            lineNumber => 14, 
+            className => String.new("RunTests"), 
+            methodName => String.new("main")
+
+        });
+        return null;
+    }
+    @RunTests.__class__ = RunTests;
+    @classes.RunTests = RunTests;
+}
+{
+    var @tmp = $new(null);
+    neko.@Boot = @tmp;
+    @tmp.__serialize = @serialize;
+    var @tmp = $new(null);
+    neko.Boot = @tmp;
+    @tmp.prototype = neko.@Boot;
+    @tmp.__unserialize = function(v) {
+        if ( $typeof(v) != $tarray )
+            $throw(String.new("Invalid serialized class data"));
+        {
+            var _g1 = 0;
+            var _g = $asize(v);
+            while ( _g1 < _g ) {
+                var i = _g1 ++= 1;
+                if ( $typeof(v[i]) != $tstring )
+                    $throw(String.new("Invalid serialized class data"));
+            }
+        }
+        var cl = neko.Boot.__classes;
+        {
+            var _g1 = 0;
+            var _g = $asize(v);
+            while ( _g1 < _g ) {
+                var i = _g1 ++= 1;
+                cl = $objget(cl,$hash(v[i]));
+                if ( cl == null )
+                    $throw(String.new("Class not found ") + Std.string(v));
+            }
+        }
+        if ( $typeof(cl) == $tobject ) {
+            if ( (cl.__name__ != null) || (cl.__ename__ != null) )
+                return cl.prototype;
+            if ( (cl.__enum__ != null) && ($typeof(cl.tag) == $tstring) )
+                return cl;
+        }
+        $throw(String.new("Invalid class ") + Std.string(v));
+        return null;
+    }
+    @tmp.__tmp_str = function() {
+        return String.new("<...>").__s;
+    }
+    @tmp.__tagserialize = function(o) {
+        var n = o.__enum__.__ename__;
+        var x = $amake(n.length + 1);
+        {
+            var _g1 = 0;
+            var _g = n.length;
+            while ( _g1 < _g ) {
+                var i = _g1 ++= 1;
+                x[i] = n[i].__s;
+            }
+        }
+        x[n.length] = o.tag;
+        return x;
+    }
+    @tmp.__serialize = function(o) {
+        if ( o.__class__ != null ) {
+            var n = o.__class__.__name__;
+            var x = $amake(n.length);
+            {
+                var _g1 = 0;
+                var _g = n.length;
+                while ( _g1 < _g ) {
+                    var i = _g1 ++= 1;
+                    x[i] = n[i].__s;
+                }
+            }
+            return x;
+        }
+        if ( o.__enum__ != null ) {
+            var n = o.__enum__.__ename__;
+            var x = $amake(n.length);
+            {
+                var _g1 = 0;
+                var _g = n.length;
+                while ( _g1 < _g ) {
+                    var i = _g1 ++= 1;
+                    x[i] = n[i].__s;
+                }
+            }
+            return x;
+        }
+        $throw(String.new("Can't serialize"));
+        return null;
+    }
+    @tmp.__interfLoop = function(cc,cl) {
+        if ( cc == null )
+            return false;
+        if ( cc == cl )
+            return true;
+        var intf = cc.__interfaces__;
+        if ( intf != null ) {
+            var _g1 = 0;
+            var _g = intf.length;
+            while ( _g1 < _g ) {
+                var i = _g1 ++= 1;
+                var i1 = intf[i];
+                if ( (i1 == cl) || neko.Boot.__interfLoop(i1,cl) )
+                    return true;
+            }
+        }
+        return neko.Boot.__interfLoop(cc.__super__,cl);
+    }
+    @tmp.__instanceof = function(o,cl) {
+        if ( cl == Dynamic )
+            return true;
+        {
+            var _g = $typeof(o);
+            switch ( _g ){
+            1 => 
+                return (cl == Int) || (cl == Float)
+            2 => 
+                return (cl == Float) || ((cl == Int) && ($int(o) == o))
+            3 => 
+                return cl == Bool
+            5 => 
+                {
+                    if ( cl == null )
+                        return false;
+                    return ((neko.Boot.__interfLoop(o.__class__,cl) || (o.__enum__ == cl)) || ((cl == Class) && (o.__name__ != null))) || ((cl == Enum) && (o.__ename__ != null));
+                }
+
+            default => 
+                return false
+            }
+        }
+        return null;
+    }
+    @tmp.__init = function() {
+        $exports.__unserialize = neko.Boot.__unserialize;
+        $exports.__classes = neko.Boot.__classes;
+        return null;
+    }
+    @tmp.__enum_str = function(e) {
+        if ( e.args == null )
+            return e.tag;
+        var s = e.tag + String.new("(").__s;
+        var i = 0;
+        var l = $asize(e.args);
+        var old = e.__string;
+        e.__string = neko.Boot.__tmp_str;
+        while ( i < l ) {
+            if ( i != 0 )
+                s += String.new(",").__s;
+            try {
+                s += $string(e.args[i]);
+            }
+            catch @tmp {
+                if $typeof(@tmp) == $tstring
+                    @tmp = String.new(@tmp);
+                if true {
+                    var err = @tmp;
+                    {
+                        s += neko.Boot.__tmp_str();
+                    }
+                }
+                else
+                    $rethrow(@tmp)
+            }
+            i += 1;
+        }
+        e.__string = old;
+        return s + String.new(")").__s;
+    }
+    neko.@Boot.__class__ = neko.Boot;
+}
+{
+    var @tmp = $new(null);
+    @Std = @tmp;
+    @tmp.__serialize = @serialize;
+    var @tmp = $new(null);
+    Std = @tmp;
+    @tmp.prototype = @Std;
+    @tmp.string = function(s) {
+        return String.new($string(s));
+    }
+    @Std.__class__ = Std;
+    @classes.Std = Std;
+}
+{
+    var @tmp = $new(null);
+    @String = @tmp;
+    @tmp.toUpperCase = function() {
+        var s = this.__s;
+        var l = this.length;
+        var s2 = $scopy(s);
+        var i = 0;
+        while ( i < l ) {
+            var c = $sget(s,i);
+            if ( (c >= 97) && (c <= 122) )
+                $sset(s2,i,(c - 97) + 65);
+            i ++= 1;
+        }
+        return String.new(s2);
+    }
+    @tmp.toString = function() {
+        return this;
+    }
+    @tmp.toLowerCase = function() {
+        var s = this.__s;
+        var l = this.length;
+        var s2 = $scopy(s);
+        var i = 0;
+        while ( i < l ) {
+            var c = $sget(s,i);
+            if ( (c >= 65) && (c <= 90) )
+                $sset(s2,i,(c - 65) + 97);
+            i ++= 1;
+        }
+        return String.new(s2);
+    }
+    @tmp.substring = function(startIndex,endIndex) {
+        if ( endIndex == null )
+            endIndex = this.length
+        else
+            if ( endIndex < 0 )
+                endIndex = 0
+            else
+                if ( endIndex > this.length )
+                    endIndex = this.length;
+
+
+        if ( startIndex < 0 )
+            startIndex = 0
+        else
+            if ( startIndex > this.length )
+                startIndex = this.length;
+
+        if ( startIndex > endIndex ) {
+            var tmp = startIndex;
+            startIndex = endIndex;
+            endIndex = tmp;
+        }
+        return this.substr(startIndex,endIndex - startIndex);
+    }
+    @tmp.substr = function(pos,len) {
+        if ( len == 0 )
+            return String.new("");
+        var sl = this.length;
+        if ( len == null )
+            len = sl;
+        if ( pos == null )
+            pos = 0;
+        if ( (pos != 0) && (len < 0) )
+            return String.new("");
+        if ( pos < 0 ) {
+            pos = (sl + pos);
+            if ( pos < 0 )
+                pos = 0;
+        }
+        else
+            if ( len < 0 )
+                len = ((sl + len) - pos);
+
+        if ( (pos + len) > sl )
+            len = (sl - pos);
+        if ( (pos < 0) || (len <= 0) )
+            return String.new("");
+        return String.new($ssub(this.__s,pos,len));
+    }
+    @tmp.split = function(delimiter) {
+        var l = String.__split(this.__s,delimiter.__s);
+        var a = Array.new();
+        if ( l == null ) {
+            a.push(String.new(""));
+            return a;
+        }
+        do  {
+            a.push(String.new(l[0]));
+            l = l[1];
+        }
+        while ( l != null )
+        return a;
+    }
+    @tmp.length = null;
+    @tmp.lastIndexOf = function(str,startIndex) {
+        var last = -1;
+        if ( startIndex == null )
+            startIndex = $ssize(this.__s);
+        while ( true ) {
+            var p;
+            try {
+                p = $sfind(this.__s,last + 1,str.__s);
+            }
+            catch @tmp {
+                if $typeof(@tmp) == $tstring
+                    @tmp = String.new(@tmp);
+                if true {
+                    var e = @tmp;
+                    {
+                        p = null;
+                    }
+                }
+                else
+                    $rethrow(@tmp)
+            }
+            if ( (p == null) || (p > startIndex) )
+                return last;
+            last = p;
+        }
+        return null;
+    }
+    @tmp.indexOf = function(str,startIndex) {
+        var p;
+        try {
+            p = $sfind(this.__s,if ( startIndex == null )
+                0
+            else
+                startIndex
+            ,str.__s);
+        }
+        catch @tmp {
+            if $typeof(@tmp) == $tstring
+                @tmp = String.new(@tmp);
+            if true {
+                var e = @tmp;
+                {
+                    p = null;
+                }
+            }
+            else
+                $rethrow(@tmp)
+        }
+        if ( p == null )
+            return -1;
+        return p;
+    }
+    @tmp.charCodeAt = function(index) {
+        return $sget(this.__s,index);
+    }
+    @tmp.charAt = function(index) {
+        try {
+            var s = $smake(1);
+            $sset(s,0,$sget(this.__s,index));
+            return String.new(s);
+        }
+        catch @tmp {
+            if $typeof(@tmp) == $tstring
+                @tmp = String.new(@tmp);
+            if true {
+                var e = @tmp;
+                {
+                    return String.new("");
+                }
+            }
+            else
+                $rethrow(@tmp)
+        }
+        return null;
+    }
+    @tmp.__radd = function(s) {
+        return String.new($string(s) + this.__s);
+    }
+    @tmp.__compare = function(o) {
+        return $compare(this.__s,o.__s);
+    }
+    @tmp.__add = function(s) {
+        return String.new(this.__s + $string(s));
+    }
+    @tmp.__serialize = @serialize;
+    @tmp.__string = @default__string;
+    var @tmp = $new(null);
+    String = @tmp;
+    @tmp.prototype = @String;
+    @tmp.fromCharCode = function(code) {
+        var s = $smake(1);
+        $sset(s,0,code);
+        return String.new(s);
+    }
+    @tmp.__split = $loader.loadprim(("std" + "@") + "string_split",2);
+    @tmp.__is_String = null;
+    @tmp.__construct__ = function(string) {
+        if ( $typeof(string) != $tstring )
+            string = $string(string);
+        this.__s = string;
+        this.length = $ssize(string);
+        return null;
+    }
+    @tmp.new = function(string) {
+        var @o = $new(null);
+        $objsetproto(@o,@String);
+        $call(this.__construct__,@o,$array(string));
+        return @o;
+    }
+    @String.__class__ = String;
+    @classes.String = String;
+}
+{
+    var @tmp = $new(null);
+    @StringBuf = @tmp;
+    @tmp.b = null;
+    @tmp.__serialize = @serialize;
+    var @tmp = $new(null);
+    StringBuf = @tmp;
+    @tmp.prototype = @StringBuf;
+    @tmp.__to_string = $loader.loadprim(("std" + "@") + "buffer_string",1);
+    @tmp.__make = $loader.loadprim(("std" + "@") + "buffer_new",0);
+    @tmp.__add_char = $loader.loadprim(("std" + "@") + "buffer_add_char",2);
+    @tmp.__add = $loader.loadprim(("std" + "@") + "buffer_add",2);
+    @tmp.__construct__ = function() {
+        this.b = StringBuf.__make();
+        return null;
+    }
+    @tmp.new = function() {
+        var @o = $new(null);
+        $objsetproto(@o,@StringBuf);
+        $call(this.__construct__,@o,$array());
+        return @o;
+    }
+    @StringBuf.__class__ = StringBuf;
+    @classes.StringBuf = StringBuf;
+}
+{
+    var @tmp = $new(null);
+    @StringTools = @tmp;
+    @tmp.__serialize = @serialize;
+    var @tmp = $new(null);
+    StringTools = @tmp;
+    @tmp.prototype = @StringTools;
+    @tmp.startsWith = function(s,start) {
+        return (s.length >= start.length) && (s.substr(0,start.length) == start);
+    }
+    @StringTools.__class__ = StringTools;
+    @classes.StringTools = StringTools;
+}
+{
+    var @tmp = $new(null);
+    @Type = @tmp;
+    @tmp.__serialize = @serialize;
+    var @tmp = $new(null);
+    Type = @tmp;
+    @tmp.prototype = @Type;
+    @tmp.getInstanceFields = function(c) {
+        var a = Reflect.fields(c.prototype);
+        c = c.__super__;
+        while ( c != null ) {
+            {
+                var _g = 0;
+                var _g1 = Reflect.fields(c.prototype);
+                while ( _g < _g1.length ) {
+                    var f = _g1[_g];
+                    _g += 1;
+                    a.remove(f);
+                    a.push(f);
+                }
+            }
+            c = c.__super__;
+        }
+        a.remove(String.new("__class__"));
+        a.remove(String.new("__serialize"));
+        a.remove(String.new("__string"));
+        a.remove(String.new("__properties__"));
+        return a;
+    }
+    @tmp.getClassName = function(c) {
+        if ( c == null )
+            return null;
+        var a = c.__name__;
+        return a.join(String.new("."));
+    }
+    @tmp.getClass = function(o) {
+        if ( $typeof(o) != $tobject )
+            return null;
+        var p = $objgetproto(o);
+        if ( p == null )
+            return null;
+        return p.__class__;
+    }
+    @Type.__class__ = Type;
+    @classes.Type = Type;
+}
+{
+    @G0 = $new(null);
+    haxe.StackItem = @G0;
+    @G0.prototype = {
+        __enum__ => @G0, 
+        __serialize => @serialize, 
+        __string => @enum_to_string
+
+    };
+    @G0.Module = function(m) {
+        var @tmp = {
+            tag => "Module", 
+            index => 1, 
+            args => $array(m)
+
+        };
+        $objsetproto(@tmp,@G0.prototype);
+        @tmp;
+    }
+    @G0.Method = function(classname,method) {
+        var @tmp = {
+            tag => "Method", 
+            index => 3, 
+            args => $array(classname,method)
+
+        };
+        $objsetproto(@tmp,@G0.prototype);
+        @tmp;
+    }
+    @G0.LocalFunction = function(v) {
+        var @tmp = {
+            tag => "LocalFunction", 
+            index => 4, 
+            args => $array(v)
+
+        };
+        $objsetproto(@tmp,@G0.prototype);
+        @tmp;
+    }
+    @G0.FilePos = function(s,file,line) {
+        var @tmp = {
+            tag => "FilePos", 
+            index => 2, 
+            args => $array(s,file,line)
+
+        };
+        $objsetproto(@tmp,@G0.prototype);
+        @tmp;
+    }
+    @G0.CFunction = {
+        var @tmp = {
+            tag => "CFunction", 
+            index => 0, 
+            __serialize => @tag_serialize
+
+        };
+        $objsetproto(@tmp,@G0.prototype);
+        @tmp;
+    }
+}
+{
+    var @tmp = $new(null);
+    haxe.@CallStack = @tmp;
+    @tmp.__serialize = @serialize;
+    var @tmp = $new(null);
+    haxe.CallStack = @tmp;
+    @tmp.prototype = haxe.@CallStack;
+    @tmp.toString = function(stack) {
+        var b = StringBuf.new();
+        {
+            var _g = 0;
+            while ( _g < stack.length ) {
+                var s = stack[_g];
+                _g += 1;
+                StringBuf.__add(b.b,String.new("\nCalled from "));
+                haxe.CallStack.itemToString(b,s);
+            }
+        }
+        return String.new(StringBuf.__to_string(b.b));
+    }
+    @tmp.makeStack = function(s) {
+        var a = Array.new();
+        var l = $asize(s);
+        var i = 0;
+        while ( i < l ) {
+            var x = s[i ++= 1];
+            if ( x == null )
+                a.unshift(haxe.StackItem.CFunction)
+            else
+                if ( $typeof(x) == $tstring )
+                    a.unshift(haxe.StackItem.Module(String.new(x)))
+                else
+                    a.unshift(haxe.StackItem.FilePos(null,String.new(x[0]),x[1]))
+
+        }
+        return a;
+    }
+    @tmp.itemToString = function(b,s) {
+        switch ( s.index ){
+        0 => 
+            StringBuf.__add(b.b,String.new("a C function"))
+        1 => 
+            {
+                var m = s.args[0];
+                {
+                    StringBuf.__add(b.b,String.new("module "));
+                    StringBuf.__add(b.b,m);
+                }
+            }
+
+        2 => 
+            {
+                var line = s.args[2];
+                var file = s.args[1];
+                var s1 = s.args[0];
+                {
+                    if ( s1 != null ) {
+                        haxe.CallStack.itemToString(b,s1);
+                        StringBuf.__add(b.b,String.new(" ("));
+                    }
+                    StringBuf.__add(b.b,file);
+                    StringBuf.__add(b.b,String.new(" line "));
+                    StringBuf.__add(b.b,line);
+                    if ( s1 != null )
+                        StringBuf.__add(b.b,String.new(")"));
+                }
+            }
+
+        3 => 
+            {
+                var meth = s.args[1];
+                var cname = s.args[0];
+                {
+                    StringBuf.__add(b.b,cname);
+                    StringBuf.__add(b.b,String.new("."));
+                    StringBuf.__add(b.b,meth);
+                }
+            }
+
+        4 => 
+            {
+                var n = s.args[0];
+                {
+                    StringBuf.__add(b.b,String.new("local function #"));
+                    StringBuf.__add(b.b,n);
+                }
+            }
+
+        }
+        return null;
+    }
+    @tmp.exceptionStack = function() {
+        return haxe.CallStack.makeStack($excstack());
+    }
+    haxe.@CallStack.__class__ = haxe.CallStack;
+}
+{
+    var @tmp = $new(null);
+    haxe.@Log = @tmp;
+    @tmp.__serialize = @serialize;
+    var @tmp = $new(null);
+    haxe.Log = @tmp;
+    @tmp.prototype = haxe.@Log;
+    @tmp.trace = function(v,infos) {
+        $print(((infos.fileName + String.new(":")) + infos.lineNumber) + String.new(": "),v);
+        if ( infos.customParams != null ) {
+            var _g = 0;
+            var _g1 = infos.customParams;
+            while ( _g < _g1.length ) {
+                var v1 = _g1[_g];
+                _g += 1;
+                $print(String.new(","),v1);
+            }
+        }
+        $print(String.new("\n"));
+        return null;
+    }
+    haxe.@Log.__class__ = haxe.Log;
+}
+{
+    var @tmp = $new(null);
+    haxe.io.@Eof = @tmp;
+    @tmp.toString = function() {
+        return String.new("Eof");
+    }
+    @tmp.__serialize = @serialize;
+    @tmp.__string = @default__string;
+    var @tmp = $new(null);
+    haxe.io.Eof = @tmp;
+    @tmp.prototype = haxe.io.@Eof;
+    haxe.io.@Eof.__class__ = haxe.io.Eof;
+}
+{
+    var @tmp = $new(null);
+    haxe.unit.@TestCase = @tmp;
+    @tmp.tearDown = function() {
+        return null;
+    }
+    @tmp.setup = function() {
+        return null;
+    }
+    @tmp.print = function(v) {
+        haxe.unit.TestRunner.print(v);
+        return null;
+    }
+    @tmp.currentTest = null;
+    @tmp.assertTrue = function(b,c) {
+        this.currentTest.done = true;
+        if ( b != true ) {
+            this.currentTest.success = false;
+            this.currentTest.error = String.new("expected true but was false");
+            this.currentTest.posInfos = c;
+            $throw(this.currentTest);
+        }
+        return null;
+    }
+    @tmp.assertFalse = function(b,c) {
+        this.currentTest.done = true;
+        if ( b == true ) {
+            this.currentTest.success = false;
+            this.currentTest.error = String.new("expected false but was true");
+            this.currentTest.posInfos = c;
+            $throw(this.currentTest);
+        }
+        return null;
+    }
+    @tmp.assertEquals = function(expected,actual,c) {
+        this.currentTest.done = true;
+        if ( actual != expected ) {
+            this.currentTest.success = false;
+            this.currentTest.error = ((((String.new("expected '") + Std.string(expected)) + String.new("' but was '")) + Std.string(actual)) + String.new("'"));
+            this.currentTest.posInfos = c;
+            $throw(this.currentTest);
+        }
+        return null;
+    }
+    @tmp.__serialize = @serialize;
+    var @tmp = $new(null);
+    haxe.unit.TestCase = @tmp;
+    @tmp.prototype = haxe.unit.@TestCase;
+    @tmp.__construct__ = function() {
+        return null;
+    }
+    @tmp.new = function() {
+        var @o = $new(null);
+        $objsetproto(@o,haxe.unit.@TestCase);
+        $call(this.__construct__,@o,$array());
+        return @o;
+    }
+    haxe.unit.@TestCase.__class__ = haxe.unit.TestCase;
+}
+{
+    var @tmp = $new(null);
+    haxe.unit.@TestResult = @tmp;
+    @tmp.toString = function() {
+        var buf = StringBuf.new();
+        var failures = 0;
+        {
+            var _g_head = this.m_tests.h;
+            var _g_val = null;
+            while ( _g_head != null ) {
+                var test;
+                test = {
+                    _g_val = _g_head[0];
+                    _g_head = _g_head[1];
+                    _g_val;
+                }
+                if ( test.success == false ) {
+                    StringBuf.__add(buf.b,String.new("* "));
+                    StringBuf.__add(buf.b,test.classname);
+                    StringBuf.__add(buf.b,String.new("::"));
+                    StringBuf.__add(buf.b,test.method);
+                    StringBuf.__add(buf.b,String.new("()"));
+                    StringBuf.__add(buf.b,String.new("\n"));
+                    StringBuf.__add(buf.b,String.new("ERR: "));
+                    if ( test.posInfos != null ) {
+                        StringBuf.__add(buf.b,test.posInfos.fileName);
+                        StringBuf.__add(buf.b,String.new(":"));
+                        StringBuf.__add(buf.b,test.posInfos.lineNumber);
+                        StringBuf.__add(buf.b,String.new("("));
+                        StringBuf.__add(buf.b,test.posInfos.className);
+                        StringBuf.__add(buf.b,String.new("."));
+                        StringBuf.__add(buf.b,test.posInfos.methodName);
+                        StringBuf.__add(buf.b,String.new(") - "));
+                    }
+                    StringBuf.__add(buf.b,test.error);
+                    StringBuf.__add(buf.b,String.new("\n"));
+                    if ( test.backtrace != null ) {
+                        StringBuf.__add(buf.b,test.backtrace);
+                        StringBuf.__add(buf.b,String.new("\n"));
+                    }
+                    StringBuf.__add(buf.b,String.new("\n"));
+                    failures ++= 1;
+                }
+            }
+        }
+        StringBuf.__add(buf.b,String.new("\n"));
+        if ( failures == 0 )
+            StringBuf.__add(buf.b,String.new("OK "))
+        else
+            StringBuf.__add(buf.b,String.new("FAILED "))
+        StringBuf.__add(buf.b,this.m_tests.length);
+        StringBuf.__add(buf.b,String.new(" tests, "));
+        StringBuf.__add(buf.b,failures);
+        StringBuf.__add(buf.b,String.new(" failed, "));
+        StringBuf.__add(buf.b,this.m_tests.length - failures);
+        StringBuf.__add(buf.b,String.new(" success"));
+        StringBuf.__add(buf.b,String.new("\n"));
+        return String.new(StringBuf.__to_string(buf.b));
+    }
+    @tmp.success = null;
+    @tmp.m_tests = null;
+    @tmp.add = function(t) {
+        this.m_tests.add(t);
+        if ( $not(t.success) )
+            this.success = false;
+        return null;
+    }
+    @tmp.__serialize = @serialize;
+    @tmp.__string = @default__string;
+    var @tmp = $new(null);
+    haxe.unit.TestResult = @tmp;
+    @tmp.prototype = haxe.unit.@TestResult;
+    @tmp.__construct__ = function() {
+        this.m_tests = List.new();
+        this.success = true;
+        return null;
+    }
+    @tmp.new = function() {
+        var @o = $new(null);
+        $objsetproto(@o,haxe.unit.@TestResult);
+        $call(this.__construct__,@o,$array());
+        return @o;
+    }
+    haxe.unit.@TestResult.__class__ = haxe.unit.TestResult;
+}
+{
+    var @tmp = $new(null);
+    haxe.unit.@TestRunner = @tmp;
+    @tmp.runCase = function(t) {
+        var old = haxe.Log.trace;
+        haxe.Log.trace = haxe.unit.TestRunner.customTrace;
+        var cl = Type.getClass(t);
+        var fields = Type.getInstanceFields(cl);
+        haxe.unit.TestRunner.print((String.new("Class: ") + Type.getClassName(cl)) + String.new(" "));
+        {
+            var _g = 0;
+            while ( _g < fields.length ) {
+                var f = fields[_g];
+                _g += 1;
+                var fname = f;
+                var field;
+                field = if ( $typeof(t) != $tobject )
+                    null
+                else
+                    $objget(t,$fasthash(f.__s))
+                if ( StringTools.startsWith(fname,String.new("test")) && Reflect.isFunction(field) ) {
+                    t.currentTest = haxe.unit.TestStatus.new();
+                    t.currentTest.classname = Type.getClassName(cl);
+                    t.currentTest.method = fname;
+                    t.setup();
+                    try {
+                        Reflect.callMethod(t,field,Array.new());
+                        if ( t.currentTest.done ) {
+                            t.currentTest.success = true;
+                            haxe.unit.TestRunner.print(String.new("."));
+                        }
+                        else {
+                            t.currentTest.success = false;
+                            t.currentTest.error = String.new("(warning) no assert");
+                            haxe.unit.TestRunner.print(String.new("W"));
+                        }
+                    }
+                    catch @tmp {
+                        if $typeof(@tmp) == $tstring
+                            @tmp = String.new(@tmp);
+                        if neko.Boot.__instanceof(@tmp,haxe.unit.TestStatus) {
+                            var e = @tmp;
+                            {
+                                haxe.unit.TestRunner.print(String.new("F"));
+                                t.currentTest.backtrace = haxe.CallStack.toString(haxe.CallStack.exceptionStack());
+                            }
+                        }
+                        else
+                            if true {
+                                var e = @tmp;
+                                {
+                                    haxe.unit.TestRunner.print(String.new("E"));
+                                    t.currentTest.error = (String.new("exception thrown : ") + Std.string(e));
+                                    t.currentTest.backtrace = haxe.CallStack.toString(haxe.CallStack.exceptionStack());
+                                }
+                            }
+                            else
+                                $rethrow(@tmp)
+
+                    }
+                    this.result.add(t.currentTest);
+                    t.tearDown();
+                }
+            }
+        }
+        haxe.unit.TestRunner.print(String.new("\n"));
+        haxe.Log.trace = old;
+        return null;
+    }
+    @tmp.run = function() {
+        this.result = haxe.unit.TestResult.new();
+        {
+            var _g_head = this.cases.h;
+            var _g_val = null;
+            while ( _g_head != null ) {
+                var c;
+                c = {
+                    _g_val = _g_head[0];
+                    _g_head = _g_head[1];
+                    _g_val;
+                }
+                this.runCase(c);
+            }
+        }
+        haxe.unit.TestRunner.print(this.result.toString());
+        return this.result.success;
+    }
+    @tmp.result = null;
+    @tmp.cases = null;
+    @tmp.add = function(c) {
+        this.cases.add(c);
+        return null;
+    }
+    @tmp.__serialize = @serialize;
+    var @tmp = $new(null);
+    haxe.unit.TestRunner = @tmp;
+    @tmp.prototype = haxe.unit.@TestRunner;
+    @tmp.print = function(v) {
+        $print(v);
+        return null;
+    }
+    @tmp.customTrace = function(v,p) {
+        haxe.unit.TestRunner.print(((((p.fileName + String.new(":")) + p.lineNumber) + String.new(": ")) + Std.string(v)) + String.new("\n"));
+        return null;
+    }
+    @tmp.__construct__ = function() {
+        this.result = haxe.unit.TestResult.new();
+        this.cases = List.new();
+        return null;
+    }
+    @tmp.new = function() {
+        var @o = $new(null);
+        $objsetproto(@o,haxe.unit.@TestRunner);
+        $call(this.__construct__,@o,$array());
+        return @o;
+    }
+    haxe.unit.@TestRunner.__class__ = haxe.unit.TestRunner;
+}
+{
+    var @tmp = $new(null);
+    haxe.unit.@TestStatus = @tmp;
+    @tmp.success = null;
+    @tmp.posInfos = null;
+    @tmp.method = null;
+    @tmp.error = null;
+    @tmp.done = null;
+    @tmp.classname = null;
+    @tmp.backtrace = null;
+    @tmp.__serialize = @serialize;
+    var @tmp = $new(null);
+    haxe.unit.TestStatus = @tmp;
+    @tmp.prototype = haxe.unit.@TestStatus;
+    @tmp.__construct__ = function() {
+        this.done = false;
+        this.success = false;
+        return null;
+    }
+    @tmp.new = function() {
+        var @o = $new(null);
+        $objsetproto(@o,haxe.unit.@TestStatus);
+        $call(this.__construct__,@o,$array());
+        return @o;
+    }
+    haxe.unit.@TestStatus.__class__ = haxe.unit.TestStatus;
+}
+{
+    var @tmp = $new(null);
+    neko.@NativeArray = @tmp;
+    @tmp.__serialize = @serialize;
+    var @tmp = $new(null);
+    neko.NativeArray = @tmp;
+    @tmp.prototype = neko.@NativeArray;
+    neko.@NativeArray.__class__ = neko.NativeArray;
+}
+{
+    var @tmp = $new(null);
+    tests.@Test1 = @tmp;
+    @tmp.test = function() {
+        this.assertEquals(String.new("A"),String.new("A"),{
+            fileName => String.new("Test1.hx"), 
+            lineNumber => 8, 
+            className => String.new("tests.Test1"), 
+            methodName => String.new("test")
+
+        });
+        return null;
+    }
+    @tmp.__serialize = @serialize;
+    var @tmp = $new(null);
+    tests.Test1 = @tmp;
+    @tmp.prototype = tests.@Test1;
+    @tmp.__construct__ = function() {
+        $call(haxe.unit.TestCase.__construct__,this,$array());
+        return null;
+    }
+    @tmp.new = function() {
+        var @o = $new(null);
+        $objsetproto(@o,tests.@Test1);
+        $call(this.__construct__,@o,$array());
+        return @o;
+    }
+    @tmp.__super__ = haxe.unit.TestCase;
+    $objsetproto(tests.@Test1,haxe.unit.@TestCase);
+    tests.@Test1.__class__ = tests.Test1;
+}
+{
+    var @tmp = $new(null);
+    tests.@Test2 = @tmp;
+    @tmp.test = function() {
+        this.assertEquals(0,1,{
+            fileName => String.new("Test2.hx"), 
+            lineNumber => 8, 
+            className => String.new("tests.Test2"), 
+            methodName => String.new("test")
+
+        });
+        return null;
+    }
+    @tmp.__serialize = @serialize;
+    var @tmp = $new(null);
+    tests.Test2 = @tmp;
+    @tmp.prototype = tests.@Test2;
+    @tmp.__construct__ = function() {
+        $call(haxe.unit.TestCase.__construct__,this,$array());
+        return null;
+    }
+    @tmp.new = function() {
+        var @o = $new(null);
+        $objsetproto(@o,tests.@Test2);
+        $call(this.__construct__,@o,$array());
+        return @o;
+    }
+    @tmp.__super__ = haxe.unit.TestCase;
+    $objsetproto(tests.@Test2,haxe.unit.@TestCase);
+    tests.@Test2.__class__ = tests.Test2;
+}
+{
+    neko.Boot.__classes = @classes;
+    neko.Boot.__init();
+}
+tests.Test2.__name__ = Array.new1($array(String.new("tests"),String.new("Test2")),2);
+tests.Test1.__name__ = Array.new1($array(String.new("tests"),String.new("Test1")),2);
+neko.NativeArray.__name__ = Array.new1($array(String.new("neko"),String.new("NativeArray")),2);
+haxe.unit.TestStatus.__name__ = Array.new1($array(String.new("haxe"),String.new("unit"),String.new("TestStatus")),3);
+haxe.unit.TestRunner.__name__ = Array.new1($array(String.new("haxe"),String.new("unit"),String.new("TestRunner")),3);
+haxe.unit.TestResult.__name__ = Array.new1($array(String.new("haxe"),String.new("unit"),String.new("TestResult")),3);
+haxe.unit.TestCase.__name__ = Array.new1($array(String.new("haxe"),String.new("unit"),String.new("TestCase")),3);
+haxe.io.Eof.__name__ = Array.new1($array(String.new("haxe"),String.new("io"),String.new("Eof")),3);
+haxe.Log.__name__ = Array.new1($array(String.new("haxe"),String.new("Log")),2);
+haxe.CallStack.__name__ = Array.new1($array(String.new("haxe"),String.new("CallStack")),2);
+haxe.StackItem.__ename__ = Array.new1($array(String.new("haxe"),String.new("StackItem")),2);
+haxe.StackItem.__constructs__ = Array.new1($array(String.new("CFunction"),String.new("Module"),String.new("FilePos"),String.new("Method"),String.new("LocalFunction")),5);
+Type.__name__ = Array.new1($array(String.new("Type")),1);
+StringTools.__name__ = Array.new1($array(String.new("StringTools")),1);
+StringBuf.__name__ = Array.new1($array(String.new("StringBuf")),1);
+String.__name__ = Array.new1($array(String.new("String")),1);
+Std.__name__ = Array.new1($array(String.new("Std")),1);
+neko.Boot.__name__ = Array.new1($array(String.new("neko"),String.new("Boot")),2);
+RunTests.__name__ = Array.new1($array(String.new("RunTests")),1);
+Reflect.__name__ = Array.new1($array(String.new("Reflect")),1);
+List.__name__ = Array.new1($array(String.new("List")),1);
+Array.__name__ = Array.new1($array(String.new("Array")),1);
+neko.Lib.__name__ = Array.new1($array(String.new("neko"),String.new("Lib")),2);
+try {
+    var msort = $array(neko.Lib.load(String.new("std"),String.new("merge_sort"),3));
+    Array.prototype.sort = function(cmp) {
+        msort[0](this.__a,this.length,cmp);
+        return null;
+    }
+}
+catch @tmp {
+    if $typeof(@tmp) == $tstring
+        @tmp = String.new(@tmp);
+    if true {
+        var e = @tmp;
+        {
+        }
+    }
+    else
+        $rethrow(@tmp)
+}
+{
+    Int = {
+        __name__ => Array.new1($array(String.new("Int")),1)
+
+    };
+    Float = {
+        __name__ => Array.new1($array(String.new("Float")),1)
+
+    };
+    Bool = {
+        __ename__ => Array.new1($array(String.new("Bool")),1)
+
+    };
+    Dynamic = {
+        __name__ => Array.new1($array(String.new("Dynamic")),1)
+
+    };
+    Class = {
+        __name__ => Array.new1($array(String.new("Class")),1)
+
+    };
+    Enum = $new(null);
+    var cl = neko.Boot.__classes;
+    cl.Int = Int;
+    cl.Float = Float;
+    cl.Bool = Bool;
+    cl.Dynamic = Dynamic;
+    cl.Class = Class;
+    cl.Enum = Enum;
+}
+String.__is_String = true;
+String.__split = neko.Lib.load(String.new("std"),String.new("string_split"),2);
+StringBuf.__make = neko.Lib.load(String.new("std"),String.new("buffer_new"),0);
+StringBuf.__add = neko.Lib.load(String.new("std"),String.new("buffer_add"),2);
+StringBuf.__add_char = neko.Lib.load(String.new("std"),String.new("buffer_add_char"),2);
+StringBuf.__to_string = neko.Lib.load(String.new("std"),String.new("buffer_string"),1);
+RunTests.main();
