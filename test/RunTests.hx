@@ -9,9 +9,11 @@ class RunTests {
 		var runner = new TestRunner();
 		runner.add(new Test1());
 		runner.add(new Test2());
-		runner.add(new Test1());
 		runner.run();
 		trace(runner.result.toString());
+		if (!runner.result.success) {
+			Sys.exit(1);
+		}
 	}
 
 }
