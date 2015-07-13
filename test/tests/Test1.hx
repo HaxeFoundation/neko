@@ -1,6 +1,6 @@
 package tests;
 
-import haxe.unit.*;
+import haxe.unit.TestCase;
 
 class Test1 extends TestCase {
 
