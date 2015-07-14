@@ -2,8 +2,12 @@ language: cpp
 
 install:
   - sudo apt-get update -qq
-  - sudo apt-get install ocaml zlib1g-dev libgc-dev haxe -qq
-
+  - sudo apt-get install ocaml zlib1g-dev libgc-dev -qq
+  - sudo apt-get install python-software-properties -y # for the next command
+  - sudo add-apt-repository ppa:eyecreate/haxe -y      # add the ubuntu ppa that contains haxe
+  - sudo apt-get update                                # pull info from ppa
+  - sudo apt-get install haxe -y                       # install haxe (and neko)
+  
 script:
   - make
   - sudo make install
