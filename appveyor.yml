@@ -9,6 +9,10 @@ configuration: Release
 install:
   - cinst make -y
   - cinst 7zip.commandline -y
+  - cinst haxe -y
+  - RefreshEnv
+  - mkdir "%HAXELIB_ROOT%"
+  - haxelib setup "%HAXELIB_ROOT%"
 
 build_script:
   - set PATH=%PATH%;%APPVEYOR_BUILD_FOLDER%/bin
