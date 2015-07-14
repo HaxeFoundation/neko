@@ -9,10 +9,6 @@ configuration: Release
 install:
   - cinst make -y
   - cinst 7zip.commandline -y
-  - cinst haxe -y
-  - RefreshEnv
-  - mkdir haxelib_root
-  - haxelib setup haxelib_root
 
 build_script:
   - set PATH=%PATH%;%APPVEYOR_BUILD_FOLDER%/bin
@@ -30,7 +26,9 @@ build_script:
 test_script:
   - neko -version
   - cd test
-  - haxe RunTests.hxml
+  - ps: Start-FileDownload 'http://haxe.org/download/file/3.2.0/haxe-3.2.0-win.zip'
+  - 7z x haxe-3.2.0-win.zip -y > nul
+  - haxe-3.2.0\haxe.exe RunTests.hxml
   - cd bin
   - rm RunTests.n
   - nekoc RunTests.neko
