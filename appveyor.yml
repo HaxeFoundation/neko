@@ -11,8 +11,8 @@ install:
   - cinst 7zip.commandline -y
   - cinst haxe -y
   - RefreshEnv
-  - mkdir "%HAXELIB_ROOT%"
-  - haxelib setup "%HAXELIB_ROOT%"
+  - mkdir haxelib_root
+  - haxelib setup haxelib_root
 
 build_script:
   - set PATH=%PATH%;%APPVEYOR_BUILD_FOLDER%/bin
@@ -29,7 +29,10 @@ build_script:
 
 test_script:
   - neko -version
-  - cd test/bin
+  - cd test
+  - haxe RunTests.hxml
+  - cd bin
+  - rm RunTests.n
   - nekoc RunTests.neko
   - neko RunTests.n
   - cd ../..
