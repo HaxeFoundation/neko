@@ -134,7 +134,7 @@ cflags = "-O3 -fPIC";
 if( system == "Linux" ) cflags += " -pthread";
 cc = getenv("CC");
 if( cc == null ) cc = "gcc";
-linkcmd = switch system { "BSD" => "ld" default => cc };
+linkcmd = cc;
 linkneko = "-lneko";
 linkoptions = switch system {
 	"Mac" => "-bundle -undefined dynamic_lookup -L../../bin"
