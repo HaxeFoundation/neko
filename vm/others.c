@@ -307,6 +307,9 @@ static void val_buffer_rec( buffer b, value v, vlist *stack ) {
 	case VAL_INT32:
 		buffer_append_sub(b,buf,sprintf(buf,"%d",val_int32(v)));
 		break;
+	case VAL_INT64:
+		buffer_append_sub(b,buf,sprintf(buf,"%lld",val_int64(v)));
+		break;
 	case VAL_ABSTRACT:
 		buffer_append_sub(b,"#abstract",9);
 		break;

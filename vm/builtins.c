@@ -1432,6 +1432,8 @@ static value builtin_typeof( value v ) {
 		return alloc_int(7);
 	case VAL_ABSTRACT:
 		return alloc_int(8);
+	case VAL_INT64:
+		return alloc_int(9);
 	default:
 		neko_error();
 	}

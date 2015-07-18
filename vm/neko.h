@@ -91,6 +91,8 @@
 #define NEKO_VERSION	200
 
 typedef intptr_t int_val;
+typedef long long int neko_int64;
+typedef unsigned long long int neko_uint64;
 
 typedef enum {
 	VAL_INT			= 0xFF,
@@ -103,6 +105,7 @@ typedef enum {
 	VAL_FUNCTION	= 6,
 	VAL_ABSTRACT	= 7,
 	VAL_INT32		= 8,
+	VAL_INT64		= 9,
 	VAL_PRIMITIVE	= 6 | 16,
 	VAL_JITFUN		= 6 | 32,
 	VAL_32_BITS		= 0xFFFFFFFF
@@ -143,6 +146,11 @@ typedef struct {
 	val_type t;
 	int i;
 } vint32;
+
+typedef struct {
+	val_type t;
+	neko_int64 i;
+} vint64;
 #pragma pack()
 
 typedef struct _vobject {
@@ -200,10 +208,12 @@ typedef struct _mt_lock mt_lock;
 #define val_is_null(v)		((v) == val_null)
 #define val_is_int(v)		((((int)(int_val)(v)) & 1) != 0)
 #define val_is_any_int(v)	(val_is_int(v) || val_tag(v) == VAL_INT32)
+#define val_is_any_int64(v)	(val_is_int(v) || val_tag(v) == VAL_INT32 || val_tag(v) == VAL_INT64)
 #define val_is_bool(v)		((v) == val_true || (v) == val_false)
 #define val_is_number(v)	(val_is_int(v) || val_tag(v) == VAL_FLOAT || val_tag(v) == VAL_INT32)
 #define val_is_float(v)		(!val_is_int(v) && val_tag(v) == VAL_FLOAT)
 #define val_is_int32(v)		(!val_is_int(v) && val_tag(v) == VAL_INT32)
+#define val_is_int64(v)		(!val_is_int(v) && val_tag(v) == VAL_INT64)
 #define val_is_string(v)	(!val_is_int(v) && val_short_tag(v) == VAL_STRING)
 #define val_is_function(v)	(!val_is_int(v) && val_short_tag(v) == VAL_FUNCTION)
 #define val_is_object(v)	(!val_is_int(v) && val_tag(v) == VAL_OBJECT)
@@ -220,7 +230,9 @@ typedef struct _mt_lock mt_lock;
 #define val_int(v)			(((int)(int_val)(v)) >> 1)
 #define val_float(v)		(CONV_FLOAT ((vfloat*)(v))->f)
 #define val_int32(v)		(((vint32*)(v))->i)
+#define val_int64(v)		(((vint64*)(v))->i)
 #define val_any_int(v)		(val_is_int(v)?val_int(v):val_int32(v))
+#define val_any_int64(v)		((neko_int64) (val_is_int(v)?((neko_int64)val_int(v)):val_tag(v) == VAL_INT32?((neko_int64)val_int32(v)):val_int64(v)))
 #define val_bool(v)			((v) == val_true)
 #define val_number(v)		(val_is_int(v)?val_int(v):((val_tag(v)==VAL_FLOAT)?val_float(v):val_int32(v)))
 #define val_hdata(v)		((vhash*)val_data(v))
@@ -275,7 +287,9 @@ typedef struct _mt_lock mt_lock;
 
 // the two upper bits must be either 00 or 11
 #define need_32_bits(i) ( (((unsigned int)(i)) + 0x40000000) & 0x80000000 )
+#define need_64_bits(i) ( (i) > 2147483647LL || (i) < -2147483648LL )
 #define alloc_best_int(i) (need_32_bits(i) ? alloc_int32(i) : alloc_int(i))
+#define alloc_best_int64(i) (need_64_bits(i) ? alloc_int64(i) : need_32_bits((int)(i)) ? alloc_int32((int)(i)) : alloc_int((int)(i)) )
 
 #define neko_error()		return NULL
 #define failure(msg)		_neko_failure(alloc_string(msg),__FILE__,__LINE__)
@@ -318,6 +332,7 @@ typedef struct _mt_lock mt_lock;
 #define DECLARE_KIND(name) C_FUNCTION_BEGIN H_EXTERN extern vkind name; C_FUNCTION_END
 
 #define alloc_int32			neko_alloc_int32
+#define alloc_int64			neko_alloc_int64
 #define alloc_float			neko_alloc_float
 #define alloc_string		neko_alloc_string
 #define alloc_empty_string	neko_alloc_empty_string
@@ -382,6 +397,7 @@ C_FUNCTION_BEGIN
 
 	EXTERN value alloc_float( tfloat t );
 	EXTERN value alloc_int32( int i );
+	EXTERN value alloc_int64( neko_int64 i );
 
 	EXTERN value alloc_string( const char *str );
 	EXTERN value alloc_empty_string( unsigned int size );

@@ -203,6 +203,13 @@ EXTERN value alloc_int32( int i ) {
 	return (value)v;
 }
 
+EXTERN value alloc_int64( neko_int64 i ) {
+	vint64 *v = (vint64*)gc_alloc_private(sizeof(vint64));
+	v->t = VAL_INT64;
+	v->i = i;
+	return (value)v;
+}
+
 EXTERN value alloc_array( unsigned int n ) {
 	value v;
 	if( n == 0 )
