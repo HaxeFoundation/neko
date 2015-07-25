@@ -66,9 +66,8 @@ endif
 ### FreeBSD SPECIFIC
 
 ifeq (${os}, freebsd)
-PREFIX = /usr/local
-INSTALL_PREFIX = $(PREFIX)
-LIB_PREFIX = $(PREFIX)
+INSTALL_PREFIX = /usr/local
+LIB_PREFIX = /usr/local
 LIBNEKO_LIBS = -L${LIB_PREFIX}/lib -lgc-threaded -lm
 CFLAGS += -I${LIB_PREFIX}/include
 INSTALL_ENV = CC=cc
