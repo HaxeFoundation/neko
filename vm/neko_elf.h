@@ -25,12 +25,13 @@
 #endif
 #endif
 
+#include <neko.h>
+
 /* None of this is needed on non-ELF platforms... */
 #ifdef SEPARATE_SECTION_FOR_BYTECODE
 
 #include <stdio.h>
 #include <elf.h>
-#include <neko.h>
 
 
 value elf_read_header(FILE *exe);

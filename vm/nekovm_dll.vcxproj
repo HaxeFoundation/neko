@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -130,6 +130,7 @@
     <ClCompile Include="alloc.c" />
     <ClCompile Include="builtins.c" />
     <ClCompile Include="callback.c" />
+    <ClCompile Include="elf_update.c" />
     <ClCompile Include="hash.c" />
     <ClCompile Include="interp.c" />
     <ClCompile Include="jit_x86.c" />
@@ -141,6 +142,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="neko.h" />
+    <ClInclude Include="neko_elf.h" />
     <ClInclude Include="neko_mod.h" />
     <ClInclude Include="neko_vm.h" />
     <ClInclude Include="objtable.h" />
