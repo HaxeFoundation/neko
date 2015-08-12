@@ -25,7 +25,7 @@
 #endif
 #endif
 
-#include <neko.h>
+#include "neko.h"
 
 /* None of this is needed on non-ELF platforms... */
 #ifdef SEPARATE_SECTION_FOR_BYTECODE
