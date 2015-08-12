@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "neko_vm.h"
+#include "neko_elf.h"
 #ifdef NEKO_WINDOWS
 #	include <windows.h>
 #else
@@ -34,6 +35,19 @@
 #endif
 #ifdef NEKO_POSIX
 #	include <signal.h>
+#endif
+
+#ifdef __GNUC__
+#ifdef ABI_ELF
+#	define SEPARATE_SECTION_FOR_BYTECODE
+#endif
+#endif
+
+#ifdef SEPARATE_SECTION_FOR_BYTECODE
+// Make a special section header that can be repurposed to encapsulate
+// any attached bytecode so that it will not be stripped away by
+// accident...
+const unsigned int BYTECODE_SEC __attribute__((__section__(".nekobytecode"))) = 0x00;
 #endif
 
 #ifdef NEKO_STANDALONE
@@ -79,19 +93,35 @@ static char *executable_path() {
 int neko_has_embedded_module( neko_vm *vm ) {
 	char *exe = executable_path();
 	unsigned char id[8];
-	int pos;
+	int pos, beg=-1, end=0;
 	if( exe == NULL )
 		return 0;
+
+#ifdef SEPARATE_SECTION_FOR_BYTECODE
+	/* Look for a ,nekobytecode section in the executable... */
+	if ( val_true != elf_find_embedded_bytecode(exe,&beg,&end) ) {
+		/* Couldn't find a .nekobytecode section,
+		   fallback to looking at the end of the executable... */
+		beg = -1; end = 0;
+	}
+#endif
+	/* Back up eight bytes to the possible bytecode signature... */
+	end -= 8;
+
 	self = fopen(exe,"rb");
 	if( self == NULL )
 		return 0;
-	fseek(self,-8,SEEK_END);
+
+	fseek(self,end,(end<0)?SEEK_END:SEEK_SET);
 	if( fread(id,1,8,self) != 8 || id[0] != 'N' || id[1] != 'E' || id[2] != 'K' || id[3] != 'O' ) {
 		fclose(self);
 		return 0;
 	}
-	pos = id[4] | id[5] << 8 | id[6] << 16;
-	fseek(self,pos,SEEK_SET);
+
+        if ( -1 == beg ) {
+		beg = id[4] | id[5] << 8 | id[6] << 16;
+	}
+	fseek(self,beg,(beg<0)?SEEK_END:SEEK_SET);
 	// flags
 	if( (id[7] & 1) == 0 )
 		neko_vm_jit(vm,1);

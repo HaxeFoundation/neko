@@ -1,3 +1,11 @@
+2015-08-11 : ???
+	vm : added ability to find embedded bytecode anywhere within elf format binary; controlled by ABI_ELF define
+	std : added ability to inject bytecode into .nekobytecode section of elf format vm binary
+	perf : 'neko -version' execution slowed by 32% or ~4.4ms/execution on my 2.53Ghz Xeon
+	perf : 'nekoc -help' execution slowed by 4% or ~13.8ms/execution on my 2.53Ghz Xeon
+	size : neko vm grew 2,880 bytes or ~23% larger; still under 16KB
+	size : nekotools boot executables can be stripped now, making them 2%-8% smaller on x86_64
+
 2013-??-?? : 2.1.0
 	all : silent libs compilation by default
 	all : installation by default in /usr instead of /usr/local + some rights fixes

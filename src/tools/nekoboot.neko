@@ -22,6 +22,7 @@
 
 // primitives
 
+elf_update_section_header = $loader.loadprim("std@elf_update_section_header_for_bytecode",3);
 file_contents = $loader.loadprim("std@file_contents",1);
 file_open = $loader.loadprim("std@file_open",2);
 file_write = $loader.loadprim("std@file_write",4);
@@ -89,8 +90,15 @@ if( dot_pos != null )
 
 var out_name = file+exe_ext;
 var out = file_open(out_name,"wb");
+var bytecode_size = $ssize(bytecode);
+var pad_size = (4-(boot_size&0x3)) & 0x3;
+
 file_write(out,boot,0,boot_size);
-file_write(out,bytecode,0,$ssize(bytecode));
+boot_size += pad_size;
+if( pad_size >= 3 ) file_write_char(out,0x00);
+if( pad_size >= 2 ) file_write_char(out,0x00);
+if( pad_size >= 1 ) file_write_char(out,0x00);
+file_write(out,bytecode,0,bytecode_size)
 file_write(out,"NEKO",0,4);
 file_write_char(out,boot_size & 0xFF);
 file_write_char(out,(boot_size >> 8) & 0xFF);
@@ -105,3 +113,9 @@ switch system {
 	default => command("chmod 755 "+out_name)
 }
 
+// Update ELF section header (on platforms where that is appropriate) to protect
+// binary's bytecode from being removed by the strip program
+
+var res = elf_update_section_header(out_name,boot_size,bytecode_size+8);
+if( res == 0 )
+	$print("Trouble updating elf section header; stripping binary may lead to problems!")
