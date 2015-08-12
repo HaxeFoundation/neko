@@ -33,6 +33,10 @@
 #	include <sys/param.h>
 #	include <mach-o/dyld.h>
 #endif
+#ifdef NEKO_BSD
+#	include <sys/param.h>
+#	include <sys/sysctl.h>
+#endif
 #ifdef NEKO_POSIX
 #	include <signal.h>
 #endif
@@ -76,6 +80,17 @@ static char *executable_path() {
 	if ( _NSGetExecutablePath(path, &path_len) )
 		return NULL;
 	return path;
+#elif defined(NEKO_BSD)
+        int mib[4];
+        mib[0] = CTL_KERN;
+        mib[1] = KERN_PROC;
+        mib[2] = KERN_PROC_PATHNAME;
+        mib[3] = -1;
+	static char path[MAXPATHLEN];
+        size_t cb = sizeof(path);
+        sysctl(mib, 4, path, &cb, NULL, 0);
+        if (!cb) return NULL;
+        return path;
 #else
 	static char path[200];
 	int length = readlink("/proc/self/exe", path, sizeof(path));

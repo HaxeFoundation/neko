@@ -7,6 +7,9 @@
 # For MingW/MSys
 #   make os=mingw
 #
+# For FreeBSD
+#   gmake os=freebsd
+#
 
 ## CONFIG
 
@@ -21,8 +24,9 @@ NEKOVM_FLAGS = -Lbin -lneko
 STD_NDLL_FLAGS = ${NEKOVM_FLAGS} -lrt
 INSTALL_FLAGS =
 LIB_PREFIX = /opt/local
+INSTALL_ENV =
 
-NEKO_EXEC = LD_LIBRARY_PATH=../bin:${LD_LIBRARY_PATH} NEKOPATH=../boot:../bin ../bin/neko
+NEKO_EXEC = ${INSTALL_ENV} LD_LIBRARY_PATH=../bin:${LD_LIBRARY_PATH} NEKOPATH=../boot:../bin ../bin/neko
 
 # For profiling VM
 #
@@ -56,6 +60,17 @@ NEKOVM_FLAGS = -L${CURDIR}/bin -lneko
 STD_NDLL_FLAGS = -bundle -undefined dynamic_lookup ${NEKOVM_FLAGS}
 CFLAGS += -L/usr/local/lib -L${LIB_PREFIX}/lib -I${LIB_PREFIX}/include
 INSTALL_FLAGS = -static
+
+endif
+
+### FreeBSD SPECIFIC
+
+ifeq (${os}, freebsd)
+INSTALL_PREFIX = /usr/local
+LIB_PREFIX = /usr/local
+LIBNEKO_LIBS = -L${LIB_PREFIX}/lib -lgc-threaded -lm
+CFLAGS += -I${LIB_PREFIX}/include
+INSTALL_ENV = CC=cc
 
 endif
 

@@ -18,4 +18,8 @@ Note that you may need to install "Microsoft Visual C++ 2010 Redistributable Pac
 `brew install neko --HEAD`.
 
 ### Linux
-Just build it from source :)
+Install the libgc-dev dependency, then build from source.
+
+### FreeBSD
+Install the devel/boehm-gc-threaded port or corresponding package, then build from source. See Makefile for additional instructions.
+
