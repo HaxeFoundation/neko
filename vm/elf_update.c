@@ -78,6 +78,8 @@ failed:
         elf_free_section_string_table();
 	fclose(exe);
 	return val_false;
+#else
+	return val_true;
 #endif
 }
 
