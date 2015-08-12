@@ -108,7 +108,7 @@ static char *executable_path() {
 int neko_has_embedded_module( neko_vm *vm ) {
 	char *exe = executable_path();
 	unsigned char id[8];
-	int pos, beg=-1, end=0;
+	int beg=-1, end=0;
 	if( exe == NULL )
 		return 0;
 
