@@ -90,6 +90,7 @@ libneko: bin/${LIBNEKO_NAME}
 libs:
 	(cd src; ${NEKO_EXEC} nekoc tools/install.neko)
 	(cd src; ${NEKO_EXEC} tools/install -silent ${INSTALL_FLAGS})
+	strip bin/nekoc bin/nekoml bin/nekotools
 
 tools:
 	(cd src; ${NEKO_EXEC} nekoc tools/install.neko)
