@@ -19,13 +19,15 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
+#ifndef _NEKO_ELF_H
+#define _NEKO_ELF_H
+#include "neko.h"
+
 #ifdef __GNUC__
 #ifdef ABI_ELF
 #	define SEPARATE_SECTION_FOR_BYTECODE
 #endif
 #endif
-
-#include "neko.h"
 
 /* None of this is needed on non-ELF platforms... */
 #ifdef SEPARATE_SECTION_FOR_BYTECODE
@@ -33,32 +35,29 @@
 #include <stdio.h>
 #include <elf.h>
 
-
-value elf_read_header(FILE *exe);
-
-int elf_is_32();
-
-value elf_read_section(FILE *exe, int sec, char *buf);
-value elf_write_section(FILE *exe, int sec, char *buf);
-
-int elf_find_bytecode_section(FILE *exe);
-
-void elf_free_section_string_table();
-
-
-value elf_find_embedded_bytecode(const char *file, int *beg, int *end);
-int elf_find_bytecode_section(FILE *exe);
-
-
 #define elf_get_Ehdr(p,f)   (elf_is_32() ? ((Elf32_Ehdr*)p)->f : ((Elf64_Ehdr*)p)->f)
 #define elf_get_Shdr(p,f)   (elf_is_32() ? ((Elf32_Shdr*)p)->f : ((Elf64_Shdr*)p)->f)
 
 #define elf_set_Ehdr(p,f,v) { if (elf_is_32()) ((Elf32_Ehdr*)p)->f = v; else ((Elf64_Ehdr*)p)->f = v; }
 #define elf_set_Shdr(p,f,v) { if (elf_is_32()) ((Elf32_Shdr*)p)->f = v; else ((Elf64_Shdr*)p)->f = v; }
 
+C_FUNCTION_BEGIN
 
-extern int size_Ehdr; /* Big enough to hold Elf32_Ehdr or Elf64_Ehdr... */
-extern int size_Shdr; /* Big enough to hold Elf32_Shdr or Elf64_Shdr... */
+VEXTERN int size_Ehdr; /* Big enough to hold Elf32_Ehdr or Elf64_Ehdr... */
+VEXTERN int size_Shdr; /* Big enough to hold Elf32_Shdr or Elf64_Shdr... */
 
+EXTERN value elf_read_header(FILE *exe);
+EXTERN int elf_is_32();
+EXTERN value elf_read_section(FILE *exe, int sec, char *buf);
+EXTERN value elf_write_section(FILE *exe, int sec, char *buf);
+EXTERN int elf_find_bytecode_section(FILE *exe);
+EXTERN void elf_free_section_string_table();
+EXTERN value elf_find_embedded_bytecode(const char *file, int *beg, int *end);
+EXTERN int elf_find_bytecode_section(FILE *exe);
+
+C_FUNCTION_END
 
 #endif
+
+#endif
+/* ************************************************************************ */
