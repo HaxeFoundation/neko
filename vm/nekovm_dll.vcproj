@@ -181,7 +181,7 @@
 				RelativePath=".\callback.c">
 			</File>
 			<File
-				RelativePath=".\elf_update.c">
+				RelativePath=".\elf.c">
 			</File>
 			<File
 				RelativePath=".\hash.c">

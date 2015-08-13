@@ -130,7 +130,7 @@
     <ClCompile Include="alloc.c" />
     <ClCompile Include="builtins.c" />
     <ClCompile Include="callback.c" />
-    <ClCompile Include="elf_update.c" />
+    <ClCompile Include="elf.c" />
     <ClCompile Include="hash.c" />
     <ClCompile Include="interp.c" />
     <ClCompile Include="jit_x86.c" />
