@@ -28,6 +28,9 @@
 #	define SHUT_WR		SD_SEND
 #	define SHUT_RD		SD_RECEIVE
 #	define SHUT_RDWR	SD_BOTH
+#ifndef socklen_t
+	typedef int socklen_t;
+#endif
 	static bool init_done = false;
 	static WSADATA init_data;
 #else
@@ -921,7 +924,11 @@ static value socket_recv_from( value o, value data, value pos, value len, value 
 		neko_thread_blocking(tmp_recv,&t);
 		ret = t.ret;
 	} else
+		#if defined(_MSC_VER) && _MSC_VER<=1600
 		ret = recvfrom(val_sock(o), val_string(data) + p , l, MSG_NOSIGNAL, (struct sockaddr*)&saddr, &slen);
+		#else
+		ret = recvfrom(val_sock(o), val_string(data) + p , l, MSG_NOSIGNAL, (struct sockaddr*)&saddr, (socklen_t * __restrict__)(&slen));
+		#endif
 	if( ret == SOCKET_ERROR ) {
 		HANDLE_EINTR(recv_from_again);
 #ifdef	NEKO_WINDOWS

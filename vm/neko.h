@@ -50,6 +50,8 @@
 
 #if defined(_MSC_VER)
 #	define NEKO_VCC
+// remove unnamed type definition in parentheses warnings
+# pragma warning( disable : 4116)
 // remove deprecated C API usage warnings
 #	pragma warning( disable : 4996 )
 #endif
@@ -89,6 +91,13 @@
 #endif
 
 #define NEKO_VERSION	200
+
+#if defined(_MSC_VER)
+#	define UNION_CAST(x, typeof_x, type) (((union {typeof_x src; type dst;}*)&(x))->dst)
+#else
+	#define UNION_CAST(x, fromType, toType) \
+	    (((union {fromType a; toType b;})x).b)
+#endif
 
 typedef intptr_t int_val;
 

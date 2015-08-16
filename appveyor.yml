@@ -25,6 +25,15 @@ build_script:
 
 test_script:
   - neko -version
+  - cd test
+  - appveyor DownloadFile "http://haxe.org/website-content/downloads/3.2.0/downloads/haxe-3.2.0-win.zip" -FileName "c:\haxe-3.2.0-win.zip" > nul
+  - 7z x "c:\haxe-3.2.0-win.zip" -o"C:\" -y > nul
+  - c:\haxe-3.2.0\haxe.exe RunTests.hxml
+  - cd bin
+  - rm RunTests.n
+  - nekoc RunTests.neko
+  - neko RunTests.n
+  - cd ../..
 
 artifacts:
   - path: bin/neko-*.zip
