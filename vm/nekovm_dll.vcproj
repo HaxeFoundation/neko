@@ -181,6 +181,9 @@
 				RelativePath=".\callback.c">
 			</File>
 			<File
+				RelativePath=".\elf.c">
+			</File>
+			<File
 				RelativePath=".\hash.c">
 			</File>
 			<File
@@ -211,6 +214,9 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}">
 			<File
 				RelativePath=".\neko.h">
+			</File>
+			<File
+				RelativePath=".\neko_elf.h">
 			</File>
 			<File
 				RelativePath=".\neko_mod.h">
