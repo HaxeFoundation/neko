@@ -1,11 +1,32 @@
 language: cpp
 
+os:
+  - linux
+  - osx
+
 install:
-  - sudo apt-get update -qq
-  - sudo apt-get install ocaml zlib1g-dev libgc-dev -qq
+  # For our forks that do not have mult-os enabled...
+  - if [ -z "${TRAVIS_OS_NAME}" ]; then
+    export TRAVIS_OS_NAME=linux;
+    fi
+  # Install dependencies
+  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
+        sudo apt-get update -qq;
+        sudo apt-get install zlib1g-dev libgc-dev -qq;
+    elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
+    	brew tap homebrew/dupes;
+        brew update;
+        brew install bdw-gc pcre openssl zlib;
+        brew link zlib --force;
+    fi
 
 script:
-  - make
-  - sudo make install
+  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
+        make;
+        sudo make install;
+    elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
+        make os=osx LIB_PREFIX=/usr/local;
+        sudo make os=osx install;
+    fi
   - neko -version
   - make test
