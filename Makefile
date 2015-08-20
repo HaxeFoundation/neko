@@ -60,6 +60,7 @@ NEKOVM_FLAGS = -L${CURDIR}/bin -lneko
 STD_NDLL_FLAGS = -bundle -undefined dynamic_lookup ${NEKOVM_FLAGS}
 CFLAGS += -L/usr/local/lib -L${LIB_PREFIX}/lib -I${LIB_PREFIX}/include
 INSTALL_FLAGS = -static
+CFLAGS := $(filter-out -DABI_ELF,$(CFLAGS))
 
 endif
 
@@ -90,7 +91,7 @@ libneko: bin/${LIBNEKO_NAME}
 libs:
 	(cd src; ${NEKO_EXEC} nekoc tools/install.neko)
 	(cd src; ${NEKO_EXEC} tools/install -silent ${INSTALL_FLAGS})
-	strip bin/nekoc bin/nekoml bin/nekotools
+	if [ "$$os" != "osx" ]; then strip bin/nekoc bin/nekoml bin/nekotools; fi
 
 tools:
 	(cd src; ${NEKO_EXEC} nekoc tools/install.neko)
