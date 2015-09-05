@@ -27,8 +27,12 @@
 #	include <sys/types.h>
 #	include <unistd.h>
 #	include <errno.h>
-#	if !defined(NEKO_MAC) && !defined(NEKO_BSD)
-#		include <wait.h>
+#	if !defined(NEKO_MAC)
+#		if defined(NEKO_BSD)
+#			include <sys/wait.h>
+#		else
+#			include <wait.h>
+#		endif
 #	endif
 #endif
 
