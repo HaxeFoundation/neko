@@ -141,14 +141,6 @@ install:
 	chmod o+rx,g+rx ${INSTALL_PREFIX}/bin/neko ${INSTALL_PREFIX}/bin/nekoc ${INSTALL_PREFIX}/bin/nekotools ${INSTALL_PREFIX}/bin/nekoml ${INSTALL_PREFIX}/lib/${LIBNEKO_NAME} ${INSTALL_PREFIX}/lib/neko ${INSTALL_PREFIX}/lib/neko/*.ndll
 	chmod o+r,g+r ${INSTALL_PREFIX}/bin/nekoml.std ${INSTALL_PREFIX}/include/neko*.h
 
-install-strip: install
-	strip ${INSTALL_PREFIX}/bin/neko
-	strip ${INSTALL_PREFIX}/bin/nekoc
-	strip ${INSTALL_PREFIX}/bin/nekotools
-	strip ${INSTALL_PREFIX}/bin/nekoml
-	strip ${INSTALL_PREFIX}/lib/libneko.so
-	strip ${INSTALL_PREFIX}/lib/neko/*.ndll
-
 uninstall:
 	rm -rf ${INSTALL_PREFIX}/lib/${LIBNEKO_NAME}
 	rm -rf ${INSTALL_PREFIX}/bin/neko ${INSTALL_PREFIX}/bin/nekoc ${INSTALL_PREFIX}/bin/nekotools 
