@@ -36,7 +36,7 @@
 #	define UIEvent		0xFFFFAA00
 #	define eCall		0x0
 enum { pFunc = 'func' };
-#elif defined(NEKO_LINUX)
+#else
 #	include <gtk/gtk.h>
 #	include <glib.h>
 #	include <pthread.h>
@@ -60,7 +60,7 @@ typedef struct {
 	HWND wnd;
 #elif defined(NEKO_MAC)
 	pthread_t tid;
-#elif defined(NEKO_LINUX)
+#else
 	pthread_t tid;
 	pthread_mutex_t lock;
 #endif
