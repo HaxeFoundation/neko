@@ -84,14 +84,14 @@ LIBNEKO_OBJECTS = vm/alloc.o vm/builtins.o vm/callback.o vm/elf.o vm/interp.o vm
 all: createbin libneko neko std compiler libs
 
 createbin:
-	-mkdir bin 2>/dev/null
+	-mkdir -p bin 2>/dev/null
 
 libneko: bin/${LIBNEKO_NAME}
 
 libs:
 	(cd src; ${NEKO_EXEC} nekoc tools/install.neko)
 	(cd src; ${NEKO_EXEC} tools/install -silent ${INSTALL_FLAGS})
-	if [ "$$os" != "osx" ]; then strip bin/nekoc bin/nekoml bin/nekotools; fi
+	if [ "$$os" != "osx" ]; then strip bin/nekoc bin/nekoml bin/nekotools bin/*.ndll; fi
 
 tools:
 	(cd src; ${NEKO_EXEC} nekoc tools/install.neko)
@@ -116,6 +116,7 @@ compiler:
 
 bin/${LIBNEKO_NAME}: ${LIBNEKO_OBJECTS}
 	${MAKESO} ${EXTFLAGS} -o $@ ${LIBNEKO_OBJECTS} ${LIBNEKO_LIBS}
+	if [ "$$LIBNEKO_NAME" == "libneko.so" ]; then strip bin/${LIBNEKO_NAME}; fi
 
 bin/neko: $(VM_OBJECTS)
 	${CC} ${CFLAGS} ${EXTFLAGS} -o $@ ${VM_OBJECTS} ${NEKOVM_FLAGS}
@@ -134,9 +135,9 @@ clean:
 install:
 	cp bin/${LIBNEKO_NAME} ${INSTALL_PREFIX}/lib
 	cp bin/neko bin/nekoc bin/nekotools bin/nekoml bin/nekoml.std ${INSTALL_PREFIX}/bin
-	-mkdir ${INSTALL_PREFIX}/lib/neko
+	-mkdir -p ${INSTALL_PREFIX}/lib/neko
 	cp bin/*.ndll ${INSTALL_PREFIX}/lib/neko
-	-mkdir ${INSTALL_PREFIX}/include
+	-mkdir -p ${INSTALL_PREFIX}/include
 	cp vm/neko*.h ${INSTALL_PREFIX}/include
 	chmod o+rx,g+rx ${INSTALL_PREFIX}/bin/neko ${INSTALL_PREFIX}/bin/nekoc ${INSTALL_PREFIX}/bin/nekotools ${INSTALL_PREFIX}/bin/nekoml ${INSTALL_PREFIX}/lib/${LIBNEKO_NAME} ${INSTALL_PREFIX}/lib/neko ${INSTALL_PREFIX}/lib/neko/*.ndll
 	chmod o+r,g+r ${INSTALL_PREFIX}/bin/nekoml.std ${INSTALL_PREFIX}/include/neko*.h
