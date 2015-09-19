@@ -21,6 +21,7 @@
  */
 #include <neko.h>
 #include <memory.h>
+#include <stdlib.h>
 
 #ifndef NEKO_WINDOWS
 #  include <strings.h>
@@ -31,6 +32,22 @@
 #endif
 
 #define ERROR(msg)	xml_error(xml,p,line,msg);
+
+#define ALLOC_BUFFER\
+	if (buf == NULL) {\
+		buf = alloc_buffer("");\
+	}\
+	buffer_append_sub(buf,start,p-start)
+
+#define FLUSH_BUFFER(var)\
+	value var;\
+	if (buf != NULL) {\
+		buffer_append_sub(buf, start, p - start);\
+		var = buffer_to_string(buf);\
+		buf = NULL;\
+	} else {\
+		var = copy_string(start,p-start);\
+	}
 
 // -------------- parsing --------------------------
 
@@ -53,6 +70,7 @@ typedef enum {
 	COMMENT,
 	DOCTYPE,
 	CDATA,
+	ESCAPE
 } STATE;
 
 extern field id_pcdata;
@@ -94,6 +112,9 @@ static void do_parse_xml( const char *xml, const char **lp, int *line, value cal
 	const char *p = *lp;
 	char c = *p;
 	int nsubs = 0, nbrackets = 0;
+	buffer buf = NULL;
+	STATE escapeNext = BEGIN;
+	int attrValQuote = -1;
 	while( c ) {
 		switch( state ) {
 		case IGNORE_SPACES:
@@ -122,10 +143,16 @@ static void do_parse_xml( const char *xml, const char **lp, int *line, value cal
 			break;
 		case PCDATA:
 			if( c == '<' ) {
-				val_ocall1(callb,id_pcdata,copy_string(start,p-start));
+				FLUSH_BUFFER(aval);
+				val_ocall1(callb,id_pcdata,aval);
 				nsubs++;
 				state = IGNORE_SPACES;
 				next = BEGIN_NODE;
+			} else if (c == '&') {
+				ALLOC_BUFFER;
+				state = ESCAPE;
+				escapeNext = PCDATA;
+				start = p + 1;
 			}
 			break;
 		case CDATA:
@@ -161,7 +188,7 @@ static void do_parse_xml( const char *xml, const char **lp, int *line, value cal
 						(p[6] != 'P' && p[6] != 'p') ||
 						(p[7] != 'E' && p[7] != 'e') )
 						ERROR("Expected <!DOCTYPE");
-					p += 7;
+					p += 8;
 					state = DOCTYPE;
 					start = p + 1;
 					break;
@@ -247,18 +274,28 @@ static void do_parse_xml( const char *xml, const char **lp, int *line, value cal
 			case '"':
 			case '\'':
 				state = ATTRIB_VAL;
-				start = p;
+				start = p + 1;
+				attrValQuote = c;
 				break;
 			default:
 				ERROR("Expected \"");
 			}
 			break;
 		case ATTRIB_VAL:
-			if( c == *start ) {
-				value aval = copy_string(start+1,p-start-1);
+			if( c == attrValQuote ) {
+				FLUSH_BUFFER(aval);
 				alloc_field(attribs,aname,aval);
 				state = IGNORE_SPACES;
 				next = BODY;
+			} else if (c == '&') {
+				ALLOC_BUFFER;
+				state = ESCAPE;
+				escapeNext = ATTRIB_VAL;
+				start = p + 1;
+			} else if (c == '>') {
+				ERROR("Invalid unescaped > in attribute value");
+			} else if (c == '<') {
+				ERROR("Invalid unescaped < in attribute value");
 			}
 			break;
 		case CHILDS:
@@ -332,6 +369,52 @@ static void do_parse_xml( const char *xml, const char **lp, int *line, value cal
 				state = BEGIN;
 			}
 			break;
+		case ESCAPE:
+			if (c == ';') {
+				const char* s = val_string(copy_string(start, p - start));
+				if (strcmp(s, "amp") == 0) {
+					buffer_append_char(buf, '&');
+				} else if (strcmp(s, "gt") == 0) {
+					buffer_append_char(buf, '>');
+				} else if (strcmp(s, "lt") == 0) {
+					buffer_append_char(buf, '<');
+				} else if (strcmp(s, "quot") == 0) {
+					buffer_append_char(buf, '"');
+				} else if (strcmp(s, "apos") == 0) {
+					buffer_append_char(buf, '\'');
+				} else if (s[0] == '#') {
+					int h;
+					if( strlen(s) >= 2 && (s[1] == 'x' || s[1] == 'X') ) {
+						h = 0;
+						s += 2;
+						while( *s ) {
+							char k = *s++;
+							if( k >= '0' && k <= '9' )
+								h = (h << 4) | (k - '0');
+							else if( k >= 'A' && k <= 'F' )
+								h = (h << 4) | ((k - 'A') + 10);
+							else if( k >= 'a' && k <= 'f' )
+								h = (h << 4) | ((k - 'a') + 10);
+							else
+								ERROR("Invalid escape sequence");
+						}
+					} else {
+						char *end;
+						s += 1;
+						h = strtol(s, &end, 10);
+						if (end == s) {
+							ERROR("Invalid escape sequence");
+						}
+					}
+					buffer_append_char(buf, h);
+				} else {
+					buffer_append_char(buf, '&');
+					buffer_append_sub(buf, start, p-start);
+					buffer_append_char(buf, ';');
+				}
+				start = p + 1;
+				state = escapeNext;
+			}
 		}
 		c = *++p;
 		if( c == '\n' )
@@ -342,8 +425,10 @@ static void do_parse_xml( const char *xml, const char **lp, int *line, value cal
 		state = PCDATA;
 	}
 	if( parentname == NULL && state == PCDATA ) {
-		if( p != start || nsubs == 0 )
-			val_ocall1(callb,id_pcdata,copy_string(start,p-start));
+		if( p != start || nsubs == 0 ) {
+			FLUSH_BUFFER(aval);
+			val_ocall1(callb,id_pcdata,aval);
+		}
 		return;
 	}
 	ERROR("Unexpected end");
