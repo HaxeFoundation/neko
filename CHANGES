@@ -14,6 +14,7 @@
 	all : nekotools boot executable can now be safely striped on Linux
 	std : added epoll support
 	all : libneko.so can now be loaded from current directory
+	vm : comparisons with NaN and Int/Float now always returns false
 	
 2013-02-23 : 2.0.0
 	all : changed license to MIT
