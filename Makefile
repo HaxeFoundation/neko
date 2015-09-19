@@ -37,6 +37,12 @@ NEKO_BIN_LINKER_FLAGS = -Wl,-rpath,'$$ORIGIN',--enable-new-dtags
 #
 # CFLAGS += -DLOW_MEM
 
+# 32-bit SPECIFIC
+LBITS := $(shell getconf LONG_BIT)
+ifeq ($(LBITS),32)
+CFLAGS +=  -mincoming-stack-boundary=2
+endif
+
 ## MINGW SPECIFIC
 
 ifeq (${os}, mingw)
