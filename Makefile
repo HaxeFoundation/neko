@@ -27,6 +27,7 @@ LIB_PREFIX = /opt/local
 INSTALL_ENV =
 
 NEKO_EXEC = ${INSTALL_ENV} LD_LIBRARY_PATH=../bin:${LD_LIBRARY_PATH} NEKOPATH=../boot:../bin ../bin/neko
+NEKO_BIN_LINKER_FLAGS = -Wl,-rpath,'$$ORIGIN',--enable-new-dtags
 
 # For profiling VM
 #
@@ -45,6 +46,7 @@ MAKESO = $(CC) -O -shared
 LIBNEKO_NAME = neko.dll
 LIBNEKO_LIBS = -Lbin -lgc
 STD_NDLL_FLAGS = ${NEKOVM_FLAGS} -lws2_32
+NEKO_BIN_LINKER_FLAGS =
 endif
 
 ### OSX SPECIFIC
@@ -61,7 +63,7 @@ STD_NDLL_FLAGS = -bundle -undefined dynamic_lookup ${NEKOVM_FLAGS}
 CFLAGS += -L/usr/local/lib -L${LIB_PREFIX}/lib -I${LIB_PREFIX}/include
 INSTALL_FLAGS = -static
 CFLAGS := $(filter-out -DABI_ELF,$(CFLAGS))
-
+NEKO_BIN_LINKER_FLAGS =
 endif
 
 ### FreeBSD SPECIFIC
@@ -119,7 +121,7 @@ bin/${LIBNEKO_NAME}: ${LIBNEKO_OBJECTS}
 	if [ "$$LIBNEKO_NAME" == "libneko.so" ]; then strip bin/${LIBNEKO_NAME}; fi
 
 bin/neko: $(VM_OBJECTS)
-	${CC} ${CFLAGS} ${EXTFLAGS} -o $@ ${VM_OBJECTS} ${NEKOVM_FLAGS}
+	${CC} ${CFLAGS} ${EXTFLAGS} -o $@ ${VM_OBJECTS} ${NEKOVM_FLAGS} ${NEKO_BIN_LINKER_FLAGS}
 	strip bin/neko
 
 bin/std.ndll: ${STD_OBJECTS}
