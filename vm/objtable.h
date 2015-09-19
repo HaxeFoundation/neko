@@ -54,11 +54,11 @@ static INLINE value otable_get(objtable *t,field id) {
 	int min;
 	int max;
 	int mid;
-	objcell *c;
+	const objcell *c;
 	field cid;
 	min = 0;
 	max = t->count;
-	c = t->cells;
+	c = (const objcell*)t->cells;
 	while( min < max ) {
 		mid = (min + max) >> 1;
 		cid = c[mid].id;

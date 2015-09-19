@@ -192,7 +192,7 @@ EXTERN void neko_vm_set_custom( neko_vm *vm, vkind k, void *v ) {
 	c->tag = k;
 	c->custom = v;
 	c->next = vm->clist;
-	vm->clist = c;	
+	vm->clist = c;
 }
 
 typedef struct {
@@ -282,7 +282,7 @@ static int_val jit_run( neko_vm *vm, vfunction *acc ) {
 #ifdef NEKO_THREADED
 #	define Instr(x)	Label##x:
 #	ifdef NEKO_DIRECT_THREADED
-#		define Next		goto **pc++;
+#		define Next		goto *((const void *)*pc++);
 #	else
 #		define Next		goto **(instructions + *pc++);
 #	endif
