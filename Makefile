@@ -51,6 +51,11 @@ endif
 
 ### OSX SPECIFIC
 
+
+ifeq (${package_manager}, brew)
+LIB_PREFIX = $(shell brew --prefix)
+endif
+
 ifeq (${os}, osx)
 export MACOSX_DEPLOYMENT_TARGET=10.4
 EXTFLAGS =
