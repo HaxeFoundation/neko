@@ -68,6 +68,7 @@ void otable_replace( objtable *t, field id, value data ) {
 	int mid;
 	field cid;
 	objcell *c = t->cells;
+	const size_t objcell_size = sizeof(objcell);
 	while( min < max ) {
 		mid = (min + max) >> 1;
 		cid = c[mid].id;
@@ -81,7 +82,6 @@ void otable_replace( objtable *t, field id, value data ) {
 		}
 	}
 	mid = (min + max) >> 1;
-	const size_t objcell_size = sizeof(objcell);
 	c = (objcell*)alloc(objcell_size * (t->count + 1));
 	memcpy(c, t->cells, mid * objcell_size);
 	c[mid].id = id;
@@ -92,8 +92,8 @@ void otable_replace( objtable *t, field id, value data ) {
 }
 
 void otable_copy( objtable *t, objtable *target ) {
-	target->count = t->count;
 	const size_t size = sizeof(objcell) * t->count;
+	target->count = t->count;
 	target->cells = (objcell*)alloc(size);
 	memcpy(target->cells,t->cells,size);
 }
