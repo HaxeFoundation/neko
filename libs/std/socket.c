@@ -373,10 +373,23 @@ static value host_resolve( value host ) {
 #	if defined(NEKO_WINDOWS) || defined(NEKO_MAC)
 		h = gethostbyname(val_string(host));
 #	else
-		struct hostent hbase;
-		char buf[1024];
-		int errcode;
-		gethostbyname_r(val_string(host),&hbase,buf,1024,&h,&errcode);
+		int i;
+		struct addrinfo *ai;
+		int errcode = getaddrinfo(val_string(host), NULL, NULL, &ai);
+
+		if (errcode != 0)
+			neko_error();
+
+		for (i = 0; ai; ai = ai->ai_next, i++)
+		{
+			const struct in_addr *addr4 = &((const struct sockaddr_in*)ai->ai_addr)->sin_addr;
+
+			if (ai->ai_family == AF_INET)
+				return alloc_int32(addr4->s_addr);
+		}
+
+		neko_error();
+
 #	endif
 		if( h == NULL )
 			neko_error();
