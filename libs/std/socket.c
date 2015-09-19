@@ -971,8 +971,8 @@ static value socket_recv_from( value o, value data, value pos, value len, value 
 	</doc>
 **/
 static value socket_epoll_alloc(value maxevents) {
-	val_check(maxevents,int);
 	epolldata *ep;
+	val_check(maxevents,int);
 	ep = (epolldata*)alloc(sizeof(epolldata));
 	ep->maxevents = val_int(maxevents);
 	ep->result = alloc_array(val_int(maxevents));
@@ -993,12 +993,15 @@ static value socket_epoll_alloc(value maxevents) {
 	<doc>Register a socket with an epoll instance to be notified of events. Returns the socket's fd.</doc>
 **/
 static value socket_epoll_register(value e, value s, value events) {
+	SOCKET sock;
+	int event_types;
+	epolldata *ep;
 	val_check_kind(e,k_epoll);
 	val_check_kind(s,k_socket);
 	val_check(events,int);
-	SOCKET sock = val_sock(s);
-	int event_types = val_int(events);
-	epolldata *ep = val_epoll(e);
+	sock = val_sock(s);
+	event_types = val_int(events);
+	ep = val_epoll(e);
 #ifndef HAS_EPOLL
 	if (sock >= FD_SETSIZE)
 		val_throw(alloc_string("Can't register file descriptor >= FD_SETSIZE"));
@@ -1028,12 +1031,16 @@ static value socket_epoll_register(value e, value s, value events) {
 	<doc>Unegister a socket with an epoll instance. Returns the socket's fd.</doc>
 **/
 static value socket_epoll_unregister(value e, value s) {
-	val_check_kind(e,k_epoll);
-	//val_check_kind(s,k_socket);
-	SOCKET sock = val_sock(s);
-	epolldata *ep = val_epoll(e);
-#ifndef HAS_EPOLL
+	SOCKET sock;
+	epolldata *ep;
+#	ifndef HAS_EPOLL
 	int i, j;
+#	endif
+	val_check_kind(e,k_epoll);
+	val_check_kind(s,k_socket);
+	sock = val_sock(s);
+	ep = val_epoll(e);
+#ifndef HAS_EPOLL
 	for (i = 0; i < ep->rcount; i++) {
 		if (val_array_ptr(ep->read)[i] == s) {
 			for (j = i+1; j < ep->rcount; j++) {
@@ -1067,17 +1074,21 @@ static value socket_epoll_unregister(value e, value s) {
 	<doc>Wait and return a list of socket fds with events.</doc>
 **/
 static value socket_epoll_wait(value e, value timeout) {
-	val_check_kind(e,k_epoll);
-	epolldata *ep = val_epoll(e);
+	epolldata *ep;
 #ifndef HAS_EPOLL
 	struct timeval t;
 	SOCKET n = 0;
+	bool indefinite;
 	fd_set rx, wx;
 	fd_set *ra, *wa;
+	int i;
+	int pos = 0;
+	val_check_kind(e,k_epoll);
+	ep = val_epoll(e);
 	POSIX_LABEL(select_again);
 	ra = ep->rcount == 0 ? NULL : make_socket_array(ep->read, ep->rcount, &rx, &n);
 	wa = ep->wcount == 0 ? NULL : make_socket_array(ep->write, ep->wcount, &wx, &n);
-	bool indefinite = val_is_null(timeout);
+	indefinite = val_is_null(timeout);
 	if (!indefinite) {
 		val_check(timeout,number);
 		init_timeval(val_number(timeout),&t);
@@ -1086,8 +1097,6 @@ static value socket_epoll_wait(value e, value timeout) {
 		HANDLE_EINTR(select_again);
 		val_throw(alloc_int(errno));
 	}
-	int i;
-	int pos = 0;
 	if (ra != NULL) {
 		for (i=0; i < ep->rcount && pos < ep->maxevents; i++) {
 			value s = val_array_ptr(ep->read)[i];
@@ -1106,6 +1115,8 @@ static value socket_epoll_wait(value e, value timeout) {
 	return ep->result;
 #else
 	int t;
+	val_check_kind(e,k_epoll);
+	ep = val_epoll(e);
 	if (val_is_null(timeout))
 		t = -1;
 	else {
