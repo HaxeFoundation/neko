@@ -15,6 +15,15 @@
 
 INSTALL_PREFIX = /usr
 
+# standard directory variables
+# https://www.gnu.org/prep/standards/html_node/Directory-Variables.html#Directory-Variables
+DESTDIR =
+prefix = $(INSTALL_PREFIX)
+exec_prefix = $(prefix)
+bindir = $(exec_prefix)/bin
+libdir = $(exec_prefix)/lib
+includedir = $(prefix)/include
+
 INCLUDE_FLAGS = -I vm -I libs/common
 CFLAGS = -Wall -O3 -fPIC -fomit-frame-pointer -D_GNU_SOURCE -DABI_ELF
 LDFLAGS =
@@ -102,7 +111,6 @@ libneko: bin/${LIBNEKO_NAME}
 libs:
 	(cd src; ${NEKO_EXEC} nekoc tools/install.neko)
 	(cd src; ${NEKO_EXEC} tools/install -silent ${INSTALL_FLAGS})
-	if [ "$$os" != "osx" ]; then strip bin/nekoc bin/nekoml bin/nekotools bin/*.ndll; fi
 
 tools:
 	(cd src; ${NEKO_EXEC} nekoc tools/install.neko)
@@ -127,11 +135,9 @@ compiler:
 
 bin/${LIBNEKO_NAME}: ${LIBNEKO_OBJECTS}
 	${MAKESO} -o $@ ${LIBNEKO_OBJECTS} ${LIBNEKO_LIBS} ${LDFLAGS} ${EXTFLAGS}
-	if [ "$$LIBNEKO_NAME" == "libneko.so" ]; then strip bin/${LIBNEKO_NAME}; fi
 
 bin/neko: $(VM_OBJECTS)
 	${CC} -o $@ ${VM_OBJECTS} ${NEKOVM_FLAGS} ${LDFLAGS} ${EXTFLAGS} ${NEKO_BIN_LINKER_FLAGS}
-	strip bin/neko
 
 bin/std.ndll: ${STD_OBJECTS}
 	${MAKESO} -o $@ ${STD_OBJECTS} ${STD_NDLL_FLAGS} ${LDFLAGS} ${EXTFLAGS}
@@ -144,20 +150,25 @@ clean:
 	rm -rf bin/mtypes bin/tools
 
 install:
-	cp bin/${LIBNEKO_NAME} ${INSTALL_PREFIX}/lib
-	cp bin/neko bin/nekoc bin/nekotools bin/nekoml bin/nekoml.std ${INSTALL_PREFIX}/bin
-	-mkdir -p ${INSTALL_PREFIX}/lib/neko
-	cp bin/*.ndll ${INSTALL_PREFIX}/lib/neko
-	-mkdir -p ${INSTALL_PREFIX}/include
-	cp vm/neko*.h ${INSTALL_PREFIX}/include
-	chmod o+rx,g+rx ${INSTALL_PREFIX}/bin/neko ${INSTALL_PREFIX}/bin/nekoc ${INSTALL_PREFIX}/bin/nekotools ${INSTALL_PREFIX}/bin/nekoml ${INSTALL_PREFIX}/lib/${LIBNEKO_NAME} ${INSTALL_PREFIX}/lib/neko ${INSTALL_PREFIX}/lib/neko/*.ndll
-	chmod o+r,g+r ${INSTALL_PREFIX}/bin/nekoml.std ${INSTALL_PREFIX}/include/neko*.h
+	cp bin/$(LIBNEKO_NAME) $(DESTDIR)$(libdir)
+	cp bin/neko bin/nekoc bin/nekotools bin/nekoml bin/nekoml.std $(DESTDIR)$(bindir)
+	-mkdir -p $(DESTDIR)$(libdir)/neko
+	cp bin/*.ndll $(DESTDIR)$(libdir)/neko
+	-mkdir -p $(DESTDIR)$(includedir)
+	cp vm/neko*.h $(DESTDIR)$(includedir)
+	chmod o+rx,g+rx $(DESTDIR)$(bindir)/neko $(DESTDIR)$(bindir)/nekoc $(DESTDIR)$(bindir)/nekotools $(DESTDIR)$(bindir)/nekoml
+	chmod o+r,g+r $(DESTDIR)$(libdir)/$(LIBNEKO_NAME) $(DESTDIR)$(libdir)/neko/*.ndll $(DESTDIR)$(bindir)/nekoml.std $(DESTDIR)$(includedir)/neko*.h
+
+install-strip: install
+	strip $(DESTDIR)$(bindir)/neko
+	strip $(DESTDIR)$(libdir)/$(LIBNEKO_NAME)
+	strip $(DESTDIR)$(bindir)/nekoc $(DESTDIR)$(bindir)/nekoml $(DESTDIR)$(bindir)/nekotools $(DESTDIR)$(bindir)/*.ndll
 
 uninstall:
-	rm -rf ${INSTALL_PREFIX}/lib/${LIBNEKO_NAME}
-	rm -rf ${INSTALL_PREFIX}/bin/neko ${INSTALL_PREFIX}/bin/nekoc ${INSTALL_PREFIX}/bin/nekotools 
-	rm -rf ${INSTALL_PREFIX}/bin/nekoml ${INSTALL_PREFIX}/bin/nekoml.std
-	rm -rf ${INSTALL_PREFIX}/lib/neko
+	rm -rf $(DESTDIR)$(libdir)/$(LIBNEKO_NAME)
+	rm -rf $(DESTDIR)$(bindir)/neko $(DESTDIR)$(bindir)/nekoc $(DESTDIR)$(bindir)/nekotools 
+	rm -rf $(DESTDIR)$(bindir)/nekoml $(DESTDIR)$(bindir)/nekoml.std
+	rm -rf $(DESTDIR)$(libdir)/neko
 
 .SUFFIXES : .c .o
 
