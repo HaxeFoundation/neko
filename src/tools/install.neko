@@ -130,13 +130,17 @@ while( i < $asize($loader.args) ) {
 
 // PLATFORM
 
-cflags = "-O3 -fPIC";
-if( system == "Linux" ) cflags += " -pthread";
+cflags = getenv("CFLAGS");
+if( cflags == null ) {
+	cflags = "-O3 -fPIC";
+	if( system == "Linux" ) cflags += " -pthread";
+}
 cc = getenv("CC");
 if( cc == null ) cc = "gcc";
 linkcmd = cc;
 linkneko = "-lneko";
-linkoptions = switch system {
+linkoptions = getenv("LDFLAGS");
+if( linkoptions == null ) linkoptions = switch system {
 	"Mac" => "-bundle -undefined dynamic_lookup -L../../bin"
 	default => "-shared -L../../bin -pthread"
 };
