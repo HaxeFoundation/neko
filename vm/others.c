@@ -473,11 +473,17 @@ EXTERN void val_print( value v ) {
 	vm->print( val_string(v), val_strlen(v), vm->print_param );
 }
 
+union UThrowsCast {
+	int  *from;
+	char **to;
+} __UThrowsCast;
+
 EXTERN void val_throw( value v ) {
 	neko_vm *vm = NEKO_VM();
 	vm->exc_stack = alloc_array(0);
 	vm->vthis = v;
-	if( *(char**)vm->start == jit_handle_trap )
+	__UThrowsCast.from = (int*)vm->start;
+	if( *__UThrowsCast.to == jit_handle_trap )
 		((jit_handle)jit_handle_trap)(vm);
 	else
 		longjmp(vm->start,1);
@@ -486,7 +492,8 @@ EXTERN void val_throw( value v ) {
 EXTERN void val_rethrow( value v ) {
 	neko_vm *vm = NEKO_VM();
 	vm->vthis = v;
-	if( *(char**)vm->start == jit_handle_trap )
+	__UThrowsCast.from = (int*)vm->start;
+	if( *__UThrowsCast.to == jit_handle_trap )
 		((jit_handle)jit_handle_trap)(vm);
 	else
 		longjmp(vm->start,1);
