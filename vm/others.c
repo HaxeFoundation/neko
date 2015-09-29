@@ -473,18 +473,24 @@ EXTERN void val_print( value v ) {
 	vm->print( val_string(v), val_strlen(v), vm->print_param );
 }
 
+#if !(defined(_MSC_VER) && _MSC_VER<=1600)
 typedef union {
 	int  *from;
 	char **to;
 } UThrowsCast;
+#endif
 
 EXTERN void val_throw( value v ) {
 	neko_vm *vm = NEKO_VM();
 	vm->exc_stack = alloc_array(0);
 	vm->vthis = v;
+	#if defined(_MSC_VER) && _MSC_VER<=1600
+	if( *(char**)vm->start == jit_handle_trap )
+	#else
 	UThrowsCast u;
 	u.from = (int*)vm->start;
 	if ( *u.to == jit_handle_trap )
+	#endif
 		((jit_handle)jit_handle_trap)(vm);
 	else
 		longjmp(vm->start,1);
@@ -493,9 +499,13 @@ EXTERN void val_throw( value v ) {
 EXTERN void val_rethrow( value v ) {
 	neko_vm *vm = NEKO_VM();
 	vm->vthis = v;
+	#if defined(_MSC_VER) && _MSC_VER<=1600
+	if( *(char**)vm->start == jit_handle_trap )
+	#else
 	UThrowsCast u;
 	u.from = (int*)vm->start;
-	if( *u.to == jit_handle_trap )
+	if ( *u.to == jit_handle_trap )
+	#endif
 		((jit_handle)jit_handle_trap)(vm);
 	else
 		longjmp(vm->start,1);
