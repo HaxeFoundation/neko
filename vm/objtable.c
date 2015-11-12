@@ -39,11 +39,8 @@ int otable_remove( objtable *t, field id ) {
 			max = mid;
 		else {
 			t->count--;
-			while( mid < t->count ) {
-				c[mid] = c[mid+1];
-				mid++;
-			}
-			c[mid].v = val_null;
+			memmove(&c[mid], &c[mid + 1], (t->count - mid) * sizeof(objcell));
+			c[t->count].v = val_null;
 			return 1;
 		}
 	}
@@ -71,6 +68,7 @@ void otable_replace( objtable *t, field id, value data ) {
 	int mid;
 	field cid;
 	objcell *c = t->cells;
+	const size_t objcell_size = sizeof(objcell);
 	while( min < max ) {
 		mid = (min + max) >> 1;
 		cid = c[mid].id;
@@ -84,31 +82,25 @@ void otable_replace( objtable *t, field id, value data ) {
 		}
 	}
 	mid = (min + max) >> 1;
-	c = (objcell*)alloc(sizeof(objcell)*(t->count + 1));
-	min = 0;
-	while( min < mid ) {
-		c[min] = t->cells[min];
-		min++;
-	}
+	c = (objcell*)alloc(objcell_size * (t->count + 1));
+	memcpy(c, t->cells, mid * objcell_size);
 	c[mid].id = id;
 	c[mid].v = data;
-	while( min < t->count ) {
-		c[min+1] = t->cells[min];
-		min++;
-	}
+	memcpy(&c[mid + 1], &t->cells[mid], (t->count - mid) * objcell_size);
 	t->cells = c;
 	t->count++;
 }
 
 void otable_copy( objtable *t, objtable *target ) {
+	const size_t size = sizeof(objcell) * t->count;
 	target->count = t->count;
-	target->cells = (objcell*)alloc(sizeof(objcell)*t->count);
-	memcpy(target->cells,t->cells,sizeof(objcell)*t->count);
+	target->cells = (objcell*)alloc(size);
+	memcpy(target->cells,t->cells,size);
 }
 
 void otable_iter(objtable *t, void f( value data, field id, void *), void *p ) {
 	int i;
-	int n = t->count;
+	const int n = (const int)t->count;
 	objcell *c = t->cells;
 	for(i=0;i<n;i++)
 		f(c[i].v,c[i].id,p);

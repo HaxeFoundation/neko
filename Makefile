@@ -15,7 +15,18 @@
 
 INSTALL_PREFIX = /usr
 
-CFLAGS = -Wall -O3 -fPIC -fomit-frame-pointer -I vm -D_GNU_SOURCE -I libs/common -DABI_ELF
+# standard directory variables
+# https://www.gnu.org/prep/standards/html_node/Directory-Variables.html#Directory-Variables
+DESTDIR =
+prefix = $(INSTALL_PREFIX)
+exec_prefix = $(prefix)
+bindir = $(exec_prefix)/bin
+libdir = $(exec_prefix)/lib
+includedir = $(prefix)/include
+
+INCLUDE_FLAGS = -I vm -I libs/common
+CFLAGS = -Wall -O3 -fPIC -fomit-frame-pointer -D_GNU_SOURCE -DABI_ELF
+LDFLAGS =
 EXTFLAGS = -pthread
 MAKESO = $(CC) -shared -Wl,-Bsymbolic
 LIBNEKO_NAME = libneko.so
@@ -27,6 +38,7 @@ LIB_PREFIX = /opt/local
 INSTALL_ENV =
 
 NEKO_EXEC = ${INSTALL_ENV} LD_LIBRARY_PATH=../bin:${LD_LIBRARY_PATH} NEKOPATH=../boot:../bin ../bin/neko
+NEKO_BIN_LINKER_FLAGS = -Wl,-rpath,'$$ORIGIN',--enable-new-dtags
 
 # For profiling VM
 #
@@ -36,15 +48,23 @@ NEKO_EXEC = ${INSTALL_ENV} LD_LIBRARY_PATH=../bin:${LD_LIBRARY_PATH} NEKOPATH=..
 #
 # CFLAGS += -DLOW_MEM
 
+# 32-bit SPECIFIC
+LBITS := $(shell getconf LONG_BIT)
+ifeq ($(LBITS),32)
+CFLAGS += -mincoming-stack-boundary=2
+endif
+
 ## MINGW SPECIFIC
 
 ifeq (${os}, mingw)
-CFLAGS = -g -Wall -O3 -momit-leaf-frame-pointer -I vm -I /usr/local/include -I libs/common
+INCLUDE_FLAGS += -I /usr/local/include
+CFLAGS = -g -Wall -O3 -momit-leaf-frame-pointer
 EXTFLAGS =
 MAKESO = $(CC) -O -shared
 LIBNEKO_NAME = neko.dll
 LIBNEKO_LIBS = -Lbin -lgc
 STD_NDLL_FLAGS = ${NEKOVM_FLAGS} -lws2_32
+NEKO_BIN_LINKER_FLAGS =
 endif
 
 ### OSX SPECIFIC
@@ -58,10 +78,10 @@ LIBNEKO_INSTALL = -install_name @executable_path/${LIBNEKO_NAME}
 LIBNEKO_LIBS = -ldl ${LIB_PREFIX}/lib/libgc.a -lm -dynamiclib -single_module ${LIBNEKO_INSTALL}
 NEKOVM_FLAGS = -L${CURDIR}/bin -lneko
 STD_NDLL_FLAGS = -bundle -undefined dynamic_lookup ${NEKOVM_FLAGS}
-CFLAGS += -L/usr/local/lib -L${LIB_PREFIX}/lib -I${LIB_PREFIX}/include
+CFLAGS = -Wall -O3 -fPIC -fomit-frame-pointer -D_GNU_SOURCE -L/usr/local/lib -L${LIB_PREFIX}/lib
+INCLUDE_FLAGS += -I${LIB_PREFIX}/include
 INSTALL_FLAGS = -static
-CFLAGS := $(filter-out -DABI_ELF,$(CFLAGS))
-
+NEKO_BIN_LINKER_FLAGS =
 endif
 
 ### FreeBSD SPECIFIC
@@ -70,7 +90,7 @@ ifeq (${os}, freebsd)
 INSTALL_PREFIX = /usr/local
 LIB_PREFIX = /usr/local
 LIBNEKO_LIBS = -L${LIB_PREFIX}/lib -lgc-threaded -lm
-CFLAGS += -I${LIB_PREFIX}/include
+INCLUDE_FLAGS += -I${LIB_PREFIX}/include
 INSTALL_ENV = CC=cc
 
 endif
@@ -84,14 +104,13 @@ LIBNEKO_OBJECTS = vm/alloc.o vm/builtins.o vm/callback.o vm/elf.o vm/interp.o vm
 all: createbin libneko neko std compiler libs
 
 createbin:
-	-mkdir bin 2>/dev/null
+	-mkdir -p bin 2>/dev/null
 
 libneko: bin/${LIBNEKO_NAME}
 
 libs:
 	(cd src; ${NEKO_EXEC} nekoc tools/install.neko)
 	(cd src; ${NEKO_EXEC} tools/install -silent ${INSTALL_FLAGS})
-	if [ "$$os" != "osx" ]; then strip bin/nekoc bin/nekoml bin/nekotools; fi
 
 tools:
 	(cd src; ${NEKO_EXEC} nekoc tools/install.neko)
@@ -115,14 +134,13 @@ compiler:
 	(cd src; ${NEKO_EXEC} nekoc -link ../boot/nekoml.n nekoml/Main)
 
 bin/${LIBNEKO_NAME}: ${LIBNEKO_OBJECTS}
-	${MAKESO} ${EXTFLAGS} -o $@ ${LIBNEKO_OBJECTS} ${LIBNEKO_LIBS}
+	${MAKESO} -o $@ ${LIBNEKO_OBJECTS} ${LIBNEKO_LIBS} ${LDFLAGS} ${EXTFLAGS}
 
 bin/neko: $(VM_OBJECTS)
-	${CC} ${CFLAGS} ${EXTFLAGS} -o $@ ${VM_OBJECTS} ${NEKOVM_FLAGS}
-	strip bin/neko
+	${CC} -o $@ ${VM_OBJECTS} ${NEKOVM_FLAGS} ${LDFLAGS} ${EXTFLAGS} ${NEKO_BIN_LINKER_FLAGS}
 
 bin/std.ndll: ${STD_OBJECTS}
-	${MAKESO} -o $@ ${STD_OBJECTS} ${STD_NDLL_FLAGS}
+	${MAKESO} -o $@ ${STD_OBJECTS} ${STD_NDLL_FLAGS} ${LDFLAGS} ${EXTFLAGS}
 
 clean:
 	rm -rf bin/${LIBNEKO_NAME} ${LIBNEKO_OBJECTS} ${VM_OBJECTS}
@@ -132,24 +150,29 @@ clean:
 	rm -rf bin/mtypes bin/tools
 
 install:
-	cp bin/${LIBNEKO_NAME} ${INSTALL_PREFIX}/lib
-	cp bin/neko bin/nekoc bin/nekotools bin/nekoml bin/nekoml.std ${INSTALL_PREFIX}/bin
-	-mkdir ${INSTALL_PREFIX}/lib/neko
-	cp bin/*.ndll ${INSTALL_PREFIX}/lib/neko
-	-mkdir ${INSTALL_PREFIX}/include
-	cp vm/neko*.h ${INSTALL_PREFIX}/include
-	chmod o+rx,g+rx ${INSTALL_PREFIX}/bin/neko ${INSTALL_PREFIX}/bin/nekoc ${INSTALL_PREFIX}/bin/nekotools ${INSTALL_PREFIX}/bin/nekoml ${INSTALL_PREFIX}/lib/${LIBNEKO_NAME} ${INSTALL_PREFIX}/lib/neko ${INSTALL_PREFIX}/lib/neko/*.ndll
-	chmod o+r,g+r ${INSTALL_PREFIX}/bin/nekoml.std ${INSTALL_PREFIX}/include/neko*.h
+	cp bin/$(LIBNEKO_NAME) $(DESTDIR)$(libdir)
+	cp bin/neko bin/nekoc bin/nekotools bin/nekoml bin/nekoml.std $(DESTDIR)$(bindir)
+	-mkdir -p $(DESTDIR)$(libdir)/neko
+	cp bin/*.ndll $(DESTDIR)$(libdir)/neko
+	-mkdir -p $(DESTDIR)$(includedir)
+	cp vm/neko*.h $(DESTDIR)$(includedir)
+	chmod o+rx,g+rx $(DESTDIR)$(bindir)/neko $(DESTDIR)$(bindir)/nekoc $(DESTDIR)$(bindir)/nekotools $(DESTDIR)$(bindir)/nekoml
+	chmod o+r,g+r $(DESTDIR)$(libdir)/$(LIBNEKO_NAME) $(DESTDIR)$(libdir)/neko/*.ndll $(DESTDIR)$(bindir)/nekoml.std $(DESTDIR)$(includedir)/neko*.h
+
+install-strip: install
+	strip $(DESTDIR)$(bindir)/neko
+	strip $(DESTDIR)$(libdir)/$(LIBNEKO_NAME)
+	strip $(DESTDIR)$(bindir)/nekoc $(DESTDIR)$(bindir)/nekoml $(DESTDIR)$(bindir)/nekotools $(DESTDIR)$(bindir)/*.ndll
 
 uninstall:
-	rm -rf ${INSTALL_PREFIX}/lib/${LIBNEKO_NAME}
-	rm -rf ${INSTALL_PREFIX}/bin/neko ${INSTALL_PREFIX}/bin/nekoc ${INSTALL_PREFIX}/bin/nekotools 
-	rm -rf ${INSTALL_PREFIX}/bin/nekoml ${INSTALL_PREFIX}/bin/nekoml.std
-	rm -rf ${INSTALL_PREFIX}/lib/neko
+	rm -rf $(DESTDIR)$(libdir)/$(LIBNEKO_NAME)
+	rm -rf $(DESTDIR)$(bindir)/neko $(DESTDIR)$(bindir)/nekoc $(DESTDIR)$(bindir)/nekotools 
+	rm -rf $(DESTDIR)$(bindir)/nekoml $(DESTDIR)$(bindir)/nekoml.std
+	rm -rf $(DESTDIR)$(libdir)/neko
 
 .SUFFIXES : .c .o
 
 .c.o :
-	${CC} ${CFLAGS} ${EXTFLAGS} -o $@ -c $<
+	${CC} ${INCLUDE_FLAGS} ${CFLAGS} ${EXTFLAGS} -o $@ -c $<
 
 .PHONY: all libneko libs neko std compiler clean doc test

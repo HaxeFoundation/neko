@@ -91,7 +91,7 @@ field id_get, id_set;
 field id_add, id_radd, id_sub, id_rsub, id_mult, id_rmult, id_div, id_rdiv, id_mod, id_rmod;
 EXTERN field neko_id_module;
 
-#if defined (GC_LOG) && defined(NEKO_POSIX) 
+#if defined (GC_LOG) && defined(NEKO_POSIX)
 static void handle_signal( int signal ) {
 	// reset to default handler
 	struct sigaction act;
@@ -225,7 +225,7 @@ EXTERN value alloc_abstract( vkind k, void *data ) {
 
 EXTERN value alloc_function( void *c_prim, unsigned int nargs, const char *name ) {
 	vfunction *v;
-	if( c_prim == NULL || (nargs < 0 && nargs != VAR_ARGS) )
+	if( c_prim == NULL || ((int)nargs < 0 && nargs != VAR_ARGS) )
 		failure("alloc_function");
 	v = (vfunction*)gc_alloc(sizeof(vfunction));
 	v->t = VAL_PRIMITIVE;

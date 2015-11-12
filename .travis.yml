@@ -23,10 +23,12 @@ install:
 script:
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
         make;
+        make test;
         sudo make install;
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
         make os=osx LIB_PREFIX=/usr/local;
+        make test;
         sudo make os=osx install;
     fi
   - neko -version
-  - make test
+  - neko src/tools/test.n
