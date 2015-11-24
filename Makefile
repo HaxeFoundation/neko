@@ -35,9 +35,8 @@ NEKOVM_FLAGS = -Lbin -lneko
 STD_NDLL_FLAGS = ${NEKOVM_FLAGS} -lrt
 INSTALL_FLAGS =
 LIB_PREFIX = /opt/local
-INSTALL_ENV =
 
-NEKO_EXEC = ${INSTALL_ENV} LD_LIBRARY_PATH=../bin:${LD_LIBRARY_PATH} NEKOPATH=../boot:../bin ../bin/neko
+NEKO_EXEC = LD_LIBRARY_PATH=../bin:${LD_LIBRARY_PATH} NEKOPATH=../boot:../bin ../bin/neko
 NEKO_BIN_LINKER_FLAGS = -Wl,-rpath,'$$ORIGIN',--enable-new-dtags
 
 # For profiling VM
@@ -91,7 +90,7 @@ INSTALL_PREFIX = /usr/local
 LIB_PREFIX = /usr/local
 LIBNEKO_LIBS = -L${LIB_PREFIX}/lib -lgc-threaded -lm
 INCLUDE_FLAGS += -I${LIB_PREFIX}/include
-INSTALL_ENV = CC=cc
+INSTALL_FLAGS = -cc cc
 
 endif
 
@@ -114,7 +113,7 @@ libs:
 
 tools:
 	(cd src; ${NEKO_EXEC} nekoc tools/install.neko)
-	(cd src; ${NEKO_EXEC} tools/install -nolibs)
+	(cd src; ${NEKO_EXEC} tools/install -nolibs ${INSTALL_FLAGS})
 
 doc:
 	(cd src; ${NEKO_EXEC} nekoc tools/makedoc.neko)
