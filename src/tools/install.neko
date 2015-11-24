@@ -126,18 +126,37 @@ while( i < $asize($loader.args) ) {
 	switch $loader.args[i] {
 		"-silent" =>
 			silent = true
+
 		"-static" => {
 			libs.regexp.lparams = null;
 			libs.regexp.lib = "libpcre.a";
 			libs.zlib.lparams = null;
 			libs.zlib.lib = "libz.a";
 		}
+
 		"-nolibs" =>
 			libs = $new(null)
+
+		// Libs (comma-seperated) to be built.
+		// The lib names are the fields of libs above.
+		// By default all libs will be built.
+		"-libs" => {
+			i = i + 1;
+			var libs_list = split($loader.args[i], ",");
+			var new_libs = $new(null)
+			while( libs_list != null ) {
+				var field_hash = $hash(libs_list[0]);
+				$objset(new_libs, field_hash, $objget(libs, field_hash));
+				libs_list = libs_list[1];
+			}
+			libs = new_libs;
+		}
+
 		"-cc" => {
 			i = i + 1;
 			cc = $loader.args[i];
 		}
+
 		"-cflags" => {
 			i = i + 1;
 			cflags = $loader.args[i];
@@ -146,6 +165,7 @@ while( i < $asize($loader.args) ) {
 			i = i + 1;
 			linkoptions = $loader.args[i];
 		}
+
 		"-append-cflags" => {
 			i = i + 1;
 			cflags += " " + $loader.args[i];
