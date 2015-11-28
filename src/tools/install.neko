@@ -55,13 +55,6 @@ libs = {
 		realdir => "mod_neko",
 		apache2 => true,
 	},
-	mysql => {
-		src => $array("mysql"),
-		inc => "mysql.h",
-		incname => "MySQL 4.+"
-		lib => "libmysqlclient_r.a",
-		lparams => "-lz -lssl"
-	},
 	mysql5 => {
 		src => $array("../common/sha1","../common/socket","my_proto/my_proto","my_proto/my_api","mysql"),
 		inc => $array(),
