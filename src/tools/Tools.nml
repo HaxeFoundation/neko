@@ -1,5 +1,5 @@
 /*
- * Copyright (C)2005-2012 Haxe Foundation
+ * Copyright (C)2005-2015 Haxe Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -30,7 +30,7 @@ function invalid_arg(f) {
 }
 
 try {
-	var head = "Neko Tools v1.0 - (c)2006-2013 Haxe Foundation\nUsage : nekotools [options]";
+	var head = "Neko Tools v1.0 - (c)2005-2015 Haxe Foundation\nUsage : nekotools [options]";
 	var decl = [
 		("server", Args.Void (function() {
 			erase_argument();
