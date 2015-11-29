@@ -7,13 +7,13 @@ platform: Win32
 configuration: Release
 
 install:
-  - cinst make -y
   - cinst 7zip.commandline -y
 
 build_script:
   - set PATH=%PATH%;%APPVEYOR_BUILD_FOLDER%/bin
-  - msbuild neko_vc10.sln /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
-  - msbuild libs/libs_vc10.sln /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
+  - msbuild vm\nekovm.vcxproj     /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
+  - msbuild vm\nekovm_dll.vcxproj /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
+  - msbuild libs\libs_vc10.sln    /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
   - copy /y libs\include\gc\gc.dll bin
   - cd %APPVEYOR_BUILD_FOLDER%/src
   - neko ../boot/nekoc tools/install.neko
