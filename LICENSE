@@ -132,6 +132,28 @@ The data format used by the zlib library is described by RFCs (Request for
 Comments) 1950 to 1952 in the files http://www.ietf.org/rfc/rfc1950.txt
 (zlib format), rfc1951.txt (deflate format) and rfc1952.txt (gzip format).
 
+mysql
+-----
+
+mysql.ndll uses the GPL-licensed MySQL connector.
+To understand how it may affect programs that use it, see
+http://www.mysql.com/about/legal/licensing/oem/
+
+Copyright (c) 2000, 2014, Oracle and/or its affiliates. All rights reserved.
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; version 2 of the License.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
+
 
 mod_neko and mod_tora
 ---------------------
