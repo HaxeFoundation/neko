@@ -1,7 +1,5 @@
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual C++ Express 2010
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mod_neko", "mod_neko\mod_neko.vcxproj", "{BC400EC9-8F65-4E34-85DC-687D5272B049}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "regexp", "regexp\regexp.vcxproj", "{145AAFB0-C897-4F74-A330-314F5727C5D4}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "std", "std\std.vcxproj", "{32AA6F03-939E-469B-8E85-A0CCE55464AD}"
@@ -15,8 +13,6 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mysql5", "mysql\mysql5.vcxproj", "{DB4D82FF-EE9A-4456-9163-48CCC64FEB09}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ui", "ui\ui.vcxproj", "{9A36DC8A-8070-4F5D-A401-6889DD652288}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mod_tora", "mod_tora\mod_tora.vcxproj", "{4F7BD088-CAFB-4263-98DA-D9BABE82EAC6}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mod_tora2", "mod_tora\mod_tora2.vcxproj", "{0242BA00-FECF-4D6B-80FA-2A9389E9060C}"
 EndProject
