@@ -188,7 +188,7 @@ static value math_int( value n ) {
 	case VAL_FLOAT:
 		{
 			tfloat v = val_float(n);
-			return alloc_best_int( (int)((n < 0) ? ceil(v) : floor(v)) );
+			return alloc_best_int( (int)((v < 0) ? ceil(v) : floor(v)) );
 		}
 	default:
 		neko_error();
