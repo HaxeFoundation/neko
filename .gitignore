@@ -9,6 +9,7 @@
 *.user
 *.exp
 *.lib
+!libs/**/*.lib
 *.suo
 *.sdf
 Debug
