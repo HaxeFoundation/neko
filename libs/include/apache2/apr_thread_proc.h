@@ -1,9 +1,9 @@
-/* Copyright 2000-2005 The Apache Software Foundation or its licensors, as
- * applicable.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+/* Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -77,15 +77,26 @@ typedef enum {
 
 /** @see apr_procattr_io_set */
 #define APR_NO_PIPE          0
-
-/** @see apr_procattr_io_set */
+/** @see apr_procattr_io_set and apr_file_pipe_create_ex */
 #define APR_FULL_BLOCK       1
-/** @see apr_procattr_io_set */
+/** @see apr_procattr_io_set and apr_file_pipe_create_ex */
 #define APR_FULL_NONBLOCK    2
 /** @see apr_procattr_io_set */
 #define APR_PARENT_BLOCK     3
 /** @see apr_procattr_io_set */
 #define APR_CHILD_BLOCK      4
+/** @see apr_procattr_io_set */
+#define APR_NO_FILE          8
+
+/** @see apr_file_pipe_create_ex */
+#define APR_READ_BLOCK       3
+/** @see apr_file_pipe_create_ex */
+#define APR_WRITE_BLOCK      4
+
+/** @see apr_procattr_io_set 
+ * @note Win32 only effective with version 1.2.12, portably introduced in 1.3.0
+ */
+#define APR_NO_FILE          8
 
 /** @see apr_procattr_limit_set */
 #define APR_LIMIT_CPU        0
@@ -103,7 +114,7 @@ typedef enum {
 #define APR_OC_REASON_DEATH         0     /**< child has died, caller must call
                                            * unregister still */
 #define APR_OC_REASON_UNWRITABLE    1     /**< write_fd is unwritable */
-#define APR_OC_REASON_RESTART       2     /**< a restart is occuring, perform
+#define APR_OC_REASON_RESTART       2     /**< a restart is occurring, perform
                                            * any necessary cleanup (including
                                            * sending a special signal to child)
                                            */
@@ -112,7 +123,7 @@ typedef enum {
                                            * kill the child) */
 #define APR_OC_REASON_LOST          4     /**< somehow the child exited without
                                            * us knowing ... buggy os? */
-#define APR_OC_REASON_RUNNING       5     /**< a health check is occuring, 
+#define APR_OC_REASON_RUNNING       5     /**< a health check is occurring, 
                                            * for most maintainence functions
                                            * this is a no-op.
                                            */
@@ -186,7 +197,9 @@ typedef struct apr_other_child_rec_t  apr_other_child_rec_t;
 typedef void *(APR_THREAD_FUNC *apr_thread_start_t)(apr_thread_t*, void*);
 
 typedef enum {
-    APR_KILL_NEVER,             /**< process is never sent any signals */
+    APR_KILL_NEVER,             /**< process is never killed (i.e., never sent
+                                 * any signals), but it will be reaped if it exits
+                                 * before the pool is cleaned up */
     APR_KILL_ALWAYS,            /**< process is sent SIGKILL on apr_pool_t cleanup */
     APR_KILL_AFTER_TIMEOUT,     /**< SIGTERM, wait 3 seconds, SIGKILL */
     APR_JUST_WAIT,              /**< wait forever for the process to complete */
@@ -304,7 +317,7 @@ APR_DECLARE(apr_status_t) apr_thread_once(apr_thread_once_t *control,
 APR_DECLARE(apr_status_t) apr_thread_detach(apr_thread_t *thd);
 
 /**
- * Return the pool associated with the current thread.
+ * Return user data associated with the current thread.
  * @param data The user data associated with the thread.
  * @param key The key to associate with the data
  * @param thread The currently open thread.
@@ -313,7 +326,7 @@ APR_DECLARE(apr_status_t) apr_thread_data_get(void **data, const char *key,
                                              apr_thread_t *thread);
 
 /**
- * Return the pool associated with the current thread.
+ * Set user data associated with the current thread.
  * @param data The user data to associate with the thread.
  * @param key The key to use for associating the data with the thread
  * @param cleanup The cleanup routine to use when the thread is destroyed.
@@ -392,6 +405,12 @@ APR_DECLARE(apr_status_t) apr_procattr_create(apr_procattr_t **new_attr,
  * @param in Should stdin be a pipe back to the parent?
  * @param out Should stdout be a pipe back to the parent?
  * @param err Should stderr be a pipe back to the parent?
+ * @note If APR_NO_PIPE, there will be no special channel, the child
+ * inherits the parent's corresponding stdio stream.  If APR_NO_FILE is 
+ * specified, that corresponding stream is closed in the child (and will
+ * be INVALID_HANDLE_VALUE when inspected on Win32). This can have ugly 
+ * side effects, as the next file opened in the child on Unix will fall
+ * into the stdio stream fd slot!
  */
 APR_DECLARE(apr_status_t) apr_procattr_io_set(apr_procattr_t *attr, 
                                              apr_int32_t in, apr_int32_t out,
@@ -408,6 +427,9 @@ APR_DECLARE(apr_status_t) apr_procattr_io_set(apr_procattr_t *attr,
  *          process invocations - such as a log file. You can save some 
  *          extra function calls by not creating your own pipe since this
  *          creates one in the process space for you.
+ * @bug Note that calling this function with two NULL files on some platforms
+ * creates an APR_FULL_BLOCK pipe, but this behavior is neither portable nor
+ * is it supported.  @see apr_procattr_io_set instead for simple pipes.
  */
 APR_DECLARE(apr_status_t) apr_procattr_child_in_set(struct apr_procattr_t *attr,
                                                   apr_file_t *child_in,
@@ -422,6 +444,9 @@ APR_DECLARE(apr_status_t) apr_procattr_child_in_set(struct apr_procattr_t *attr,
  *         useful if you have already opened a pipe (or multiple files)
  *         that you wish to use, perhaps persistently across multiple
  *         process invocations - such as a log file. 
+ * @bug Note that calling this function with two NULL files on some platforms
+ * creates an APR_FULL_BLOCK pipe, but this behavior is neither portable nor
+ * is it supported.  @see apr_procattr_io_set instead for simple pipes.
  */
 APR_DECLARE(apr_status_t) apr_procattr_child_out_set(struct apr_procattr_t *attr,
                                                    apr_file_t *child_out,
@@ -436,6 +461,9 @@ APR_DECLARE(apr_status_t) apr_procattr_child_out_set(struct apr_procattr_t *attr
  *         useful if you have already opened a pipe (or multiple files)
  *         that you wish to use, perhaps persistently across multiple
  *         process invocations - such as a log file. 
+ * @bug Note that calling this function with two NULL files on some platforms
+ * creates an APR_FULL_BLOCK pipe, but this behavior is neither portable nor
+ * is it supported.  @see apr_procattr_io_set instead for simple pipes.
  */
 APR_DECLARE(apr_status_t) apr_procattr_child_err_set(struct apr_procattr_t *attr,
                                                    apr_file_t *child_err,
@@ -606,7 +634,7 @@ APR_DECLARE(apr_status_t) apr_proc_create(apr_proc_t *new_proc,
  *            APR_NOWAIT -- return immediately regardless of if the 
  *                          child is dead or not.
  * </PRE>
- * @remark The childs status is in the return code to this process.  It is one of:
+ * @remark The child's status is in the return code to this process.  It is one of:
  * <PRE>
  *            APR_CHILD_DONE     -- child is no longer running.
  *            APR_CHILD_NOTDONE  -- child is still running.
@@ -704,13 +732,13 @@ APR_DECLARE(void) apr_proc_other_child_unregister(void *data);
  * <pre>
  * rv = apr_proc_wait_all_procs(&proc, &exitcode, &status, APR_WAIT, p);
  * if (APR_STATUS_IS_CHILD_DONE(rv)) {
- * #if APR_HAS_OTHER_CHILD
+ * \#if APR_HAS_OTHER_CHILD
  *     if (apr_proc_other_child_alert(&proc, APR_OC_REASON_DEATH, status)
  *             == APR_SUCCESS) {
  *         ;  (already handled)
  *     }
  *     else
- * #endif
+ * \#endif
  *         [... handling non-otherchild processes death ...]
  * </pre>
  */

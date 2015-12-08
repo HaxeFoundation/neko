@@ -1,9 +1,9 @@
-/* Copyright 2000-2005 The Apache Software Foundation or its licensors, as
- * applicable.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+/* Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -33,11 +33,11 @@ extern "C" {
  * @{
  */
 /**
- * Function to implemnt the APR_OPTIONAL_HOOK Macro
+ * Function to implement the APR_OPTIONAL_HOOK Macro
  * @internal
  * @see APR_OPTIONAL_HOOK
  *
- * @param name The name of the hook
+ * @param szName The name of the hook
  * @param pfn A pointer to a function that will be called
  * @param aszPre a NULL-terminated array of strings that name modules whose hooks should precede this one
  * @param aszSucc a NULL-terminated array of strings that name modules whose hooks should succeed this one

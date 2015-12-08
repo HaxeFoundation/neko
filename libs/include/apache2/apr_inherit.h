@@ -1,9 +1,9 @@
-/* Copyright 2000-2005 The Apache Software Foundation or its licensors, as
- * applicable.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+/* Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -28,7 +28,7 @@
  * Prototype for type-specific declarations of apr_foo_inherit_set 
  * functions.  
  * @remark Doxygen unwraps this macro (via doxygen.conf) to provide 
- * actual help for each specific occurance of apr_foo_inherit_set.
+ * actual help for each specific occurrence of apr_foo_inherit_set.
  * @remark the linkage is specified for APR. It would be possible to expand
  *       the macros to support other linkages.
  */
@@ -40,7 +40,7 @@
  * Prototype for type-specific declarations of apr_foo_inherit_unset 
  * functions.  
  * @remark Doxygen unwraps this macro (via doxygen.conf) to provide 
- * actual help for each specific occurance of apr_foo_inherit_unset.
+ * actual help for each specific occurrence of apr_foo_inherit_unset.
  * @remark the linkage is specified for APR. It would be possible to expand
  *       the macros to support other linkages.
  */

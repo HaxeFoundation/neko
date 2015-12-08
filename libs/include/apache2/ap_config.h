@@ -1,9 +1,9 @@
-/* Copyright 1999-2005 The Apache Software Foundation or its licensors, as
- * applicable.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+/* Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -22,13 +22,11 @@
 #ifndef AP_CONFIG_H
 #define AP_CONFIG_H
 
-#include "apr.h"
-#include "apr_hooks.h"
-#include "apr_optional_hooks.h"
+#include "ap_hooks.h"
 
-/* Although this file doesn't declare any hooks, declare the hook group here */
-/** 
- * @defgroup hooks Apache Hooks 
+/* Although this file doesn't declare any hooks, declare the exports group here */
+/**
+ * @defgroup exports Apache exports
  * @ingroup  APACHE_CORE
  */
 
@@ -42,8 +40,8 @@
  * @see AP_DECLARE_EXPORT
  *
  * AP_DECLARE_STATIC and AP_DECLARE_EXPORT are left undefined when
- * including Apache's Core headers, to import and link the symbols from the 
- * dynamic Apache Core library and assure appropriate indirection and calling 
+ * including Apache's Core headers, to import and link the symbols from the
+ * dynamic Apache Core library and assure appropriate indirection and calling
  * conventions at compile time.
  */
 # define AP_DECLARE_STATIC
@@ -69,7 +67,7 @@
 #define AP_DECLARE(type)            type
 
 /**
- * Apache Core dso variable argument and hook functions are declared with 
+ * Apache Core dso variable argument and hook functions are declared with
  * AP_DECLARE_NONSTD(), as they must use the C language calling convention.
  * @see AP_DECLARE
  * @code
@@ -108,7 +106,7 @@
 /**
  * Declare a dso module's exported module structure as AP_MODULE_DECLARE_DATA.
  *
- * Unless AP_MODULE_DECLARE_STATIC is defined at compile time, symbols 
+ * Unless AP_MODULE_DECLARE_STATIC is defined at compile time, symbols
  * declared with AP_MODULE_DECLARE_DATA are always exported.
  * @code
  * module AP_MODULE_DECLARE_DATA mod_tag
@@ -126,7 +124,7 @@
  * AP_MODULE_DECLARE_EXPORT is a no-op.  Unless contradicted by the
  * AP_MODULE_DECLARE_STATIC compile-time symbol, it is assumed and defined.
  *
- * The old SHARED_MODULE compile-time symbol is now the default behavior, 
+ * The old SHARED_MODULE compile-time symbol is now the default behavior,
  * so it is no longer referenced anywhere with Apache 2.0.
  */
 #define AP_MODULE_DECLARE_EXPORT
@@ -135,116 +133,31 @@
 #define AP_MODULE_DECLARE_DATA           __declspec(dllexport)
 #endif
 
-/**
- * Declare a hook function
- * @param ret The return type of the hook
- * @param name The hook's name (as a literal)
- * @param args The arguments the hook function takes, in brackets.
- */
-#define AP_DECLARE_HOOK(ret,name,args) \
-	APR_DECLARE_EXTERNAL_HOOK(ap,AP,ret,name,args)
-
-/** @internal */
-#define AP_IMPLEMENT_HOOK_BASE(name) \
-	APR_IMPLEMENT_EXTERNAL_HOOK_BASE(ap,AP,name)
-
-/**
- * Implement an Apache core hook that has no return code, and
- * therefore runs all of the registered functions. The implementation
- * is called ap_run_<i>name</i>.
- *
- * @param name The name of the hook
- * @param args_decl The declaration of the arguments for the hook, for example
- * "(int x,void *y)"
- * @param args_use The arguments for the hook as used in a call, for example
- * "(x,y)"
- * @note If IMPLEMENTing a hook that is not linked into the Apache core,
- * (e.g. within a dso) see APR_IMPLEMENT_EXTERNAL_HOOK_VOID.
- */
-#define AP_IMPLEMENT_HOOK_VOID(name,args_decl,args_use) \
-	APR_IMPLEMENT_EXTERNAL_HOOK_VOID(ap,AP,name,args_decl,args_use)
-
-/**
- * Implement an Apache core hook that runs until one of the functions
- * returns something other than ok or decline. That return value is
- * then returned from the hook runner. If the hooks run to completion,
- * then ok is returned. Note that if no hook runs it would probably be
- * more correct to return decline, but this currently does not do
- * so. The implementation is called ap_run_<i>name</i>.
- *
- * @param ret The return type of the hook (and the hook runner)
- * @param name The name of the hook
- * @param args_decl The declaration of the arguments for the hook, for example
- * "(int x,void *y)"
- * @param args_use The arguments for the hook as used in a call, for example
- * "(x,y)"
- * @param ok The "ok" return value
- * @param decline The "decline" return value
- * @return ok, decline or an error.
- * @note If IMPLEMENTing a hook that is not linked into the Apache core,
- * (e.g. within a dso) see APR_IMPLEMENT_EXTERNAL_HOOK_RUN_ALL.
- */
-#define AP_IMPLEMENT_HOOK_RUN_ALL(ret,name,args_decl,args_use,ok,decline) \
-	APR_IMPLEMENT_EXTERNAL_HOOK_RUN_ALL(ap,AP,ret,name,args_decl, \
-                                            args_use,ok,decline)
-
-/**
- * Implement a hook that runs until a function returns something other than 
- * decline. If all functions return decline, the hook runner returns decline. 
- * The implementation is called ap_run_<i>name</i>.
- *
- * @param ret The return type of the hook (and the hook runner)
- * @param name The name of the hook
- * @param args_decl The declaration of the arguments for the hook, for example
- * "(int x,void *y)"
- * @param args_use The arguments for the hook as used in a call, for example
- * "(x,y)"
- * @param decline The "decline" return value
- * @return decline or an error.
- * @note If IMPLEMENTing a hook that is not linked into the Apache core
- * (e.g. within a dso) see APR_IMPLEMENT_EXTERNAL_HOOK_RUN_FIRST.
- */
-#define AP_IMPLEMENT_HOOK_RUN_FIRST(ret,name,args_decl,args_use,decline) \
-	APR_IMPLEMENT_EXTERNAL_HOOK_RUN_FIRST(ap,AP,ret,name,args_decl, \
-                                              args_use,decline)
-
-/* Note that the other optional hook implementations are straightforward but
- * have not yet been needed
- */
-
-/**
- * Implement an optional hook. This is exactly the same as a standard hook
- * implementation, except the hook is optional.
- * @see AP_IMPLEMENT_HOOK_RUN_ALL
- */
-#define AP_IMPLEMENT_OPTIONAL_HOOK_RUN_ALL(ret,name,args_decl,args_use,ok, \
-					   decline) \
-	APR_IMPLEMENT_OPTIONAL_HOOK_RUN_ALL(ap,AP,ret,name,args_decl, \
-                                            args_use,ok,decline)
-
-/**
- * Hook an optional hook. Unlike static hooks, this uses a macro instead of a
- * function.
- */
-#define AP_OPTIONAL_HOOK(name,fn,pre,succ,order) \
-        APR_OPTIONAL_HOOK(ap,name,fn,pre,succ,order)
-
 #include "os.h"
-#if !defined(WIN32) && !defined(NETWARE)
+#if (!defined(WIN32) && !defined(NETWARE)) || defined(__MINGW32__)
 #include "ap_config_auto.h"
-#include "ap_config_layout.h"
 #endif
+#include "ap_config_layout.h"
+
+/* Where the main/parent process's pid is logged */
+#ifndef DEFAULT_PIDLOG
+#define DEFAULT_PIDLOG DEFAULT_REL_RUNTIMEDIR "/httpd.pid"
+#endif
+
 #if defined(NETWARE)
 #define AP_NONBLOCK_WHEN_MULTI_LISTEN 1
 #endif
 
-/* TODO - We need to put OS detection back to make all the following work */
+#if defined(AP_ENABLE_DTRACE) && HAVE_SYS_SDT_H
+#include <sys/sdt.h>
+#else
+#undef _DTRACE_VERSION
+#endif
 
-#if defined(SUNOS4) || defined(IRIX) || defined(NEXT) || defined(AUX3) \
-    || defined (UW) || defined(LYNXOS) || defined(TPF)
-/* These systems don't do well with any lingering close code; I don't know
- * why -- manoj */
-#define NO_LINGCLOSE
+#ifdef _DTRACE_VERSION
+#include "apache_probes.h"
+#else
+#include "apache_noprobes.h"
 #endif
 
 /* If APR has OTHER_CHILD logic, use reliable piped logs. */
@@ -252,12 +165,42 @@
 #define AP_HAVE_RELIABLE_PIPED_LOGS TRUE
 #endif
 
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
+#define AP_HAVE_C99
+#endif
+
 /* Presume that the compiler supports C99-style designated
  * initializers if using GCC (but not G++), or for any other compiler
  * which claims C99 support. */
-#if (defined(__GNUC__) && !defined(__cplusplus))                \
-     || (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L)
+#if (defined(__GNUC__) && !defined(__cplusplus)) || defined(AP_HAVE_C99)
 #define AP_HAVE_DESIGNATED_INITIALIZER
+#endif
+
+#ifndef __has_attribute         /* check for supported attributes on clang */
+#define __has_attribute(x) 0
+#endif
+#if (defined(__GNUC__) && __GNUC__ >= 4) || __has_attribute(sentinel)
+#define AP_FN_ATTR_SENTINEL __attribute__((sentinel))
+#else
+#define AP_FN_ATTR_SENTINEL
+#endif
+
+#if ( defined(__GNUC__) &&                                        \
+      (__GNUC__ >= 4 || ( __GNUC__ == 3 && __GNUC_MINOR__ >= 4))) \
+    || __has_attribute(warn_unused_result)
+#define AP_FN_ATTR_WARN_UNUSED_RESULT   __attribute__((warn_unused_result))
+#else
+#define AP_FN_ATTR_WARN_UNUSED_RESULT
+#endif
+
+#if ( defined(__GNUC__) &&                                        \
+      (__GNUC__ >= 4 && __GNUC_MINOR__ >= 3))                     \
+    || __has_attribute(alloc_size)
+#define AP_FN_ATTR_ALLOC_SIZE(x)     __attribute__((alloc_size(x)))
+#define AP_FN_ATTR_ALLOC_SIZE2(x,y)  __attribute__((alloc_size(x,y)))
+#else
+#define AP_FN_ATTR_ALLOC_SIZE(x)
+#define AP_FN_ATTR_ALLOC_SIZE2(x,y)
 #endif
 
 #endif /* AP_CONFIG_H */

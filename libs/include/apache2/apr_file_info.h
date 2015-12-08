@@ -1,9 +1,9 @@
-/* Copyright 2000-2005 The Apache Software Foundation or its licensors, as
- * applicable.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+/* Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -125,16 +125,10 @@ typedef struct apr_dir_t          apr_dir_t;
 typedef apr_int32_t               apr_fileperms_t;
 #if (defined WIN32) || (defined NETWARE)
 /**
- * Structure for determining the inode of the file.
- */
-typedef apr_uint64_t              apr_ino_t;
-/**
  * Structure for determining the device the file is on.
  */
 typedef apr_uint32_t              apr_dev_t;
 #else
-/** The inode of the file. */
-typedef ino_t                     apr_ino_t;
 /**
  * Structure for determining the device the file is on.
  */
@@ -214,7 +208,7 @@ struct apr_finfo_t {
     const char *fname;
     /** The file's name (no path) in filesystem case */
     const char *name;
-    /** The file's handle, if accessed (can be submitted to apr_duphandle) */
+    /** Unused */
     struct apr_file_t *filehand;
 };
 
@@ -267,7 +261,8 @@ APR_DECLARE(apr_status_t) apr_dir_close(apr_dir_t *thedir);
  *
  * @note If @c APR_INCOMPLETE is returned all the fields in @a finfo may
  *       not be filled in, and you need to check the @c finfo->valid bitmask
- *       to verify that what you're looking for is there.
+ *       to verify that what you're looking for is there. When no more
+ *       entries are available, APR_ENOENT is returned.
  */                        
 APR_DECLARE(apr_status_t) apr_dir_read(apr_finfo_t *finfo, apr_int32_t wanted,
                                        apr_dir_t *thedir);
@@ -284,7 +279,11 @@ APR_DECLARE(apr_status_t) apr_dir_rewind(apr_dir_t *thedir);
  * @{
  */
 
-/** Cause apr_filepath_merge to fail if addpath is above rootpath */
+/** Cause apr_filepath_merge to fail if addpath is above rootpath 
+ * @bug in APR 0.9 and 1.x, this flag's behavior is undefined
+ * if the rootpath is NULL or empty.  In APR 2.0 this should be
+ * changed to imply NOTABSOLUTE if the rootpath is NULL or empty.
+ */
 #define APR_FILEPATH_NOTABOVEROOT   0x01
 
 /** internal: Only meaningful with APR_FILEPATH_NOTABOVEROOT */
@@ -317,7 +316,7 @@ APR_DECLARE(apr_status_t) apr_dir_rewind(apr_dir_t *thedir);
  * @param filepath the pathname to parse for its root component
  * @param flags the desired rules to apply, from
  * <PRE>
- *      APR_FILEPATH_NATIVE    Use native path seperators (e.g. '\' on Win32)
+ *      APR_FILEPATH_NATIVE    Use native path separators (e.g. '\' on Win32)
  *      APR_FILEPATH_TRUENAME  Tests that the root exists, and makes it proper
  * </PRE>
  * @param p the pool to allocate the new path string from
@@ -329,7 +328,7 @@ APR_DECLARE(apr_status_t) apr_dir_rewind(apr_dir_t *thedir);
  * test for the validity of that root (e.g., that a drive d:/ or network 
  * share //machine/foovol/). 
  * The function returns APR_ERELATIVE if filepath isn't rooted (an
- * error), APR_EINCOMPLETE if the root path is ambigious (but potentially
+ * error), APR_EINCOMPLETE if the root path is ambiguous (but potentially
  * legitimate, e.g. "/" on Windows is incomplete because it doesn't specify
  * the drive letter), or APR_EBADPATH if the root is simply invalid.
  * APR_SUCCESS is returned if filepath is an absolute path.
@@ -363,7 +362,7 @@ APR_DECLARE(apr_status_t) apr_filepath_merge(char **newpath,
  * @param pathelts the returned components of the search path
  * @param liststr the search path (e.g., <tt>getenv("PATH")</tt>)
  * @param p the pool to allocate the array and path components from
- * @remark empty path componenta do not become part of @a pathelts.
+ * @remark empty path components do not become part of @a pathelts.
  * @remark the path separator in @a liststr is system specific;
  * e.g., ':' on Unix, ';' on Windows, etc.
  */

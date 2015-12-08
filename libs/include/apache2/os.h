@@ -1,9 +1,9 @@
-/* Copyright 1999-2005 The Apache Software Foundation or its licensors, as
- * applicable.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+/* Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -19,7 +19,7 @@
  * @brief This file in included in all Apache source code. It contains definitions
  * of facilities available on _this_ operating system (HAVE_* macros),
  * and prototypes of OS specific functions defined in os.c or os-inline.c
- * 
+ *
  * @defgroup APACHE_OS_WIN32 win32
  * @ingroup  APACHE_OS
  * @{
@@ -38,16 +38,54 @@
 #include <io.h>
 #include <fcntl.h>
 
+#ifdef _WIN64
+#define PLATFORM "Win64"
+#else
 #define PLATFORM "Win32"
+#endif
+
+/* With all the different binary packages from third parties available 
+ * using many different versions of Visual Studio, it would be nice to
+ * allow the user to know just which compiler the server was built on
+ * allowing them to make a more informed choice when finding third party
+ * modules to extend their server. 
+ */
+#if _MSC_VER
+#   if _MSC_VER == 1200 /* (Visual Studio 6) */
+#   define MSVC_COMPILER "Visual Studio 6"
+#   elif _MSC_VER == 1300 /* (Visual Studio .Net) */
+#   define MSVC_COMPILER "Visual Studio .Net"
+#   elif _MSC_VER == 1310 /* (Visual Studio .Net 2003) */
+#   define MSVC_COMPILER "Visual Studio .Net 2003"
+#   elif _MSC_VER == 1400 /* (Visual Studio 2005) */
+#   define MSVC_COMPILER "Visual Studio 2005"
+#   elif _MSC_VER == 1500 /* (Visual Studio 2008) */
+#   define MSVC_COMPILER "Visual Studio 2008"
+#   elif _MSC_VER == 1600 /* (Visual Studio 2010) */
+#   define MSVC_COMPILER "Visual Studio 2010"
+#   elif _MSC_VER == 1700 /* (Visual Studio 2012) */
+#   define MSVC_COMPILER "Visual Studio 2012"
+#   elif _MSC_VER == 1800 /* (Visual Studio 2013) */
+#   define MSVC_COMPILER "Visual Studio 2013"
+#   elif _MSC_VER == 1900 /* (Visual Studio 2015) */
+#   define MSVC_COMPILER "Visual Studio 2015"
+#   endif
+#endif
+
+/* Define command-line rewriting for this platform, handled by core.
+ * For Windows, this is currently handled inside the WinNT MPM.
+ * XXX To support a choice of MPMs, extract common platform behavior
+ * into a function specified here.
+ */
+#define AP_PLATFORM_REWRITE_ARGS_HOOK NULL
 
 /* going away shortly... */
 #define HAVE_DRIVE_LETTERS
 #define HAVE_UNC_PATHS
 #define CASE_BLIND_FILESYSTEM
 
-#define APACHE_MPM_DIR  "server/mpm/winnt" /* generated on unix */
-
 #include <stddef.h>
+#include <stdlib.h> /* for exit() */
 
 #ifdef __cplusplus
 extern "C" {
@@ -75,36 +113,30 @@ AP_DECLARE_DATA extern int ap_real_exit_code;
 AP_DECLARE(apr_status_t) ap_os_proc_filepath(char **binpath, apr_pool_t *p);
 
 typedef enum {
-    AP_DLL_WINBASEAPI = 0,    // kernel32 From WinBase.h
-    AP_DLL_WINADVAPI = 1,     // advapi32 From WinBase.h
-    AP_DLL_WINSOCKAPI = 2,    // mswsock  From WinSock.h
-    AP_DLL_WINSOCK2API = 3,   // ws2_32   From WinSock2.h
-    AP_DLL_defined = 4        // must define as last idx_ + 1
+    AP_DLL_WINBASEAPI = 0,    /* kernel32 From WinBase.h      */
+    AP_DLL_WINADVAPI = 1,     /* advapi32 From WinBase.h      */
+    AP_DLL_WINSOCKAPI = 2,    /* mswsock  From WinSock.h      */
+    AP_DLL_WINSOCK2API = 3,   /* ws2_32   From WinSock2.h     */
+    AP_DLL_defined = 4        /* must define as last idx_ + 1 */
 } ap_dlltoken_e;
 
 FARPROC ap_load_dll_func(ap_dlltoken_e fnLib, char* fnName, int ordinal);
 
-PSECURITY_ATTRIBUTES GetNullACL();
+PSECURITY_ATTRIBUTES GetNullACL(void);
 void CleanNullACL(void *sa);
-
-DWORD wait_for_many_objects(DWORD nCount, CONST HANDLE *lpHandles, 
-                            DWORD dwSeconds);
-
-int set_listeners_noninheritable(apr_pool_t *p);
-
 
 #define AP_DECLARE_LATE_DLL_FUNC(lib, rettype, calltype, fn, ord, args, names) \
     typedef rettype (calltype *ap_winapi_fpt_##fn) args; \
     static ap_winapi_fpt_##fn ap_winapi_pfn_##fn = NULL; \
-    __inline rettype ap_winapi_##fn args \
+    static APR_INLINE rettype ap_winapi_##fn args \
     {   if (!ap_winapi_pfn_##fn) \
             ap_winapi_pfn_##fn = (ap_winapi_fpt_##fn) ap_load_dll_func(lib, #fn, ord); \
         return (*(ap_winapi_pfn_##fn)) names; }; \
 
 /* Win2K kernel only */
 AP_DECLARE_LATE_DLL_FUNC(AP_DLL_WINADVAPI, BOOL, WINAPI, ChangeServiceConfig2A, 0, (
-    SC_HANDLE hService, 
-    DWORD dwInfoLevel, 
+    SC_HANDLE hService,
+    DWORD dwInfoLevel,
     LPVOID lpInfo),
     (hService, dwInfoLevel, lpInfo));
 #undef ChangeServiceConfig2
