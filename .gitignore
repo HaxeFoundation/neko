@@ -4,6 +4,8 @@
 /bin/nekoc
 /bin/nekoml
 /bin/nekotools
+/bin/*.tar.*
+/bin/*.zip
 *.dll
 *.exe
 *.user
@@ -19,6 +21,7 @@ Release
 Release2
 Release5
 *.n
+!src/tools/RunCi.n
 *.ipch
 *.opensdf
 *.o

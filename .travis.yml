@@ -4,6 +4,13 @@ os:
   - linux
   - osx
 
+env:
+  global:
+    # Bintray (BINTRAY_SUBJECT, BINTRAY_USERNAME, BINTRAY_API_KEY)
+    - secure: "YFyUyUGxkTaDIjjRATcAVAwWZ2HYhbLjSq2af/avIsf3/YEq856gSPm973LBT9O7fwSbE75wep2bVqtbh/GoEnx2GGe9BEVZQA1572Ob5oE3odkfQBGmXWIc/Yy8F5Ynlf8C7E5zRBHY6U/4aJA/ewd5hBn8PWid4COf/B3/68M="
+    - secure: "BYxT+XH2JR5/H4L7hr7BJTJbIIPEKpPG7ysuPOx5vrlKtskjciFZsqkLdSrN7mcjxH80wblNLL8V/iokmzHt8QuauQxSZnp1PwnzZrzF5zQuDMbjk85tNpmJSR00x9KBfFUSdONfy41Q3WwCTMWVcpn9dcjJHxGvh3dkmD/bDMs="
+    - secure: "R5q3GngrospFvixEFVt8MiP4la/v7rZnQ6UEbR+q95wtTwRH0ZNPBWuma+JLpPXkvPzb26gObhe7Z/JjXNpvbB/mkBinHoUE+G4CJG2zBHvm2Vf+QihrvAww6iazK/H/Crs7EImLh2NLr/sMjbm6tIaQdjeHetEO25cn9rwQk7g="
+
 install:
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
         sudo apt-get update -qq;
@@ -37,6 +44,23 @@ script:
         make test;
         sudo make os=osx install;
     fi
-  - ls bin
   - neko -version
   - neko src/tools/test.n
+  - pushd bin;
+    nekoc release.neko;
+    neko release.n;
+    popd
+  - pushd src/tools;
+    neko RunCi.n;
+    popd
+  - ls bin
+
+deploy:
+  provider: bintray
+  on:
+    all_branches: true
+    condition: "-e src/tools/bintray.json"
+  skip_cleanup: true
+  file: "src/tools/bintray.json"
+  user: "${BINTRAY_USERNAME}"
+  key: "${BINTRAY_API_KEY}"

@@ -1,0 +1,25 @@
+{
+    "package": {
+        "name": "neko",
+        "repo": "snapshot",
+        "subject": "::packageSubject::"
+    },
+
+    "version": {
+        "name": "::versionName::",
+        "desc": "::versionDesc::",
+        "released": "::gitDate::",
+        "attributes": [
+            {"name": "repo",   "values" : ["::gitRepo::"], "type": "string"},
+            {"name": "branch", "values" : ["::gitBranch::"], "type": "string"},
+            {"name": "commit", "values" : ["::gitCommit::"], "type": "string"}
+        ],
+        "gpgSign": false
+    },
+
+    "files":
+        [
+            {"includePattern": "bin/(.*).tar.gz", "uploadPattern": "::os::/::gitBranch::/$1.tar.gz"}
+        ],
+    "publish": true
+}
