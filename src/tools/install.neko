@@ -39,6 +39,9 @@ buffer_new = $loader.loadprim("std@buffer_new",0);
 buffer_add_char = $loader.loadprim("std@buffer_add_char",2);
 buffer_string = $loader.loadprim("std@buffer_string",1);
 
+isApache22 = command("apachectl -v | grep Apache/2.2.") == 0;
+isApache24 = command("apachectl -v | grep Apache/2.4.") == 0;
+
 // LIBS DATAS
 
 libs = {
@@ -46,7 +49,7 @@ libs = {
 		src => $array("../../vm/stats","mod_neko","cgi"),
 		inc => $array("httpd.h","apr.h"),
 		incname => "Apache 2.x",
-		cflags => "-D_LARGEFILE64_SOURCE",
+		cflags => "-D_LARGEFILE64_SOURCE " + (if (isApache22) "-DAPACHE_2_2" else if (isApache24) "-DAPACHE_2_4" else ""),
 		realdir => "mod_neko",
 	},
 	mysql => {
@@ -335,11 +338,9 @@ link = function(files,target,params1,params2) {
 		opt += " "+linkneko;
 	var cmd = linkcmd+" "+make("-L",libraries);
 	if( target == "mod_neko2" || target == "mod_tora2" ) {
-		var is22 = command("apachectl -v | grep Apache/2.2.") == 0;
-		var is24 = command("apachectl -v | grep Apache/2.4.") == 0;
-		if (is22) {
+		if (isApache22) {
 			target += "2";
-		} else if (is24) {
+		} else if (isApache24) {
 			target += "4";
 		} else {
 			$throw("Error: unknown apache httpd version.");

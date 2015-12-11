@@ -326,7 +326,11 @@ static void mod_neko_do_init() {
 	config.use_cache = 1;
 	config.gc_period = 1;
 	config.max_post_size = MOD_NEKO_POST_SIZE;
-#	ifdef APACHE_2_X
+#	if   defined(APACHE_2_4)
+	putenv(strdup("MOD_NEKO=24"));
+#	elif defined(APACHE_2_2)
+	putenv(strdup("MOD_NEKO=22"));
+#	elif defined(APACHE_2_X)
 	putenv(strdup("MOD_NEKO=2"));
 #	else
 	putenv(strdup("MOD_NEKO=1"));
