@@ -45,7 +45,7 @@ libs = {
 	mod_neko2 => {
 		src => $array("../../vm/stats","mod_neko","cgi"),
 		inc => $array("httpd.h","apr.h"),
-		incname => "Apache 2.2.x",
+		incname => "Apache 2.x",
 		cflags => "-D_LARGEFILE64_SOURCE",
 		realdir => "mod_neko",
 	},
@@ -182,26 +182,29 @@ search_includes = $array(
 	"/usr/local/include/mysql",
 	"/usr/include/mysql",
 	"/usr/local/include",
-	"/usr/include/gtk-2.0",
 	"/usr/local/include/gtk-2.0",
+	"/usr/include/gtk-2.0",
 	"/opt/local/include",
 	"/opt/local/include/mysql",
 	"/opt/local/include/mysql5/mysql",
 	"/Developer/Headers/FlatCarbon",
 	"/System/Library/Frameworks/Carbon.framework/Versions/A/Headers/",
 	"/usr/local/apache2/include",
-	"/usr/include/apache2",
+	"/usr/local/include/apache2",
 	"/opt/local/apache2/include",
+	"/usr/local/include/apache2",
+	"/usr/local/include/apache24",
 	"/usr/local/include/apache22",
-	"/usr/include/apr-1",
-	"/usr/include/apr-1.0",
-	"/usr/include/apr-0",
 	"/usr/local/include/apr-1",
 	"/usr/local/include/apr-1.0",
 	"/usr/local/include/apr-0",
 	"/opt/local/include/apr-1",
 	"/opt/local/include/apr-1.0",
-	"/opt/local/include/apr-0"
+	"/opt/local/include/apr-0",
+	"/usr/include/apache2",
+	"/usr/include/apr-1",
+	"/usr/include/apr-1.0",
+	"/usr/include/apr-0",
 );
 
 var cwd = $loader.loadprim("std@get_cwd",0)();
@@ -328,9 +331,20 @@ link = function(files,target,params1,params2) {
 		dir[0] + ".o"
 	}));
 	var opt = linkoptions;
-	if( target != "mod_tora" && target != "mod_tora2" )
+	if( target != "mod_tora2" )
 		opt += " "+linkneko;
 	var cmd = linkcmd+" "+make("-L",libraries);
+	if( target == "mod_neko2" || target == "mod_tora2" ) {
+		var is22 = command("apachectl -v | grep Apache/2.2.") == 0;
+		var is24 = command("apachectl -v | grep Apache/2.4.") == 0;
+		if (is22) {
+			target += "2";
+		} else if (is24) {
+			target += "4";
+		} else {
+			$throw("Error: unknown apache httpd version.");
+		}
+	}
 	var out = " -o ../../bin/"+target+".ndll ";
 	try {
 		exec(cmd+out+files+params1+params2+" "+opt);
