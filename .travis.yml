@@ -18,12 +18,22 @@ install:
 script:
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
         make;
+        sudo add-apt-repository ppa:ondrej/apache2 -y;
+        sudo apt-get update -y;
+        sudo apt-get install apache2-mpm-prefork apache2-prefork-dev -y;
+        make libs "INSTALL_FLAGS=-libs mod_neko2,mod_tora2";
+        sudo apt-get install apache2 apache2-dev -y;
+        make libs "INSTALL_FLAGS=-libs mod_neko2,mod_tora2";
         make test;
         sudo make install;
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
         make os=osx LIB_PREFIX=/usr/local;
-        brew install homebrew/apache/httpd22;
-        make os=osx LIB_PREFIX=/usr/local libs;
+        brew tap homebrew/apache;
+        brew install httpd22;
+        make os=osx LIB_PREFIX=/usr/local libs "INSTALL_FLAGS=-libs mod_neko2,mod_tora2";
+        brew remove httpd22;
+        brew install httpd24;
+        make os=osx LIB_PREFIX=/usr/local libs "INSTALL_FLAGS=-libs mod_neko2,mod_tora2";
         make test;
         sudo make os=osx install;
     fi

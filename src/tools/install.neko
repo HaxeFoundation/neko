@@ -90,7 +90,7 @@ libs = {
 	mod_tora2 => {
 		src => $array("../common/socket","protocol","mod_tora"),
 		inc => $array("httpd.h","apr.h"),
-		incname => "Apache 2.2.x",
+		incname => "Apache 2.x",
 		cflags => "-D_LARGEFILE64_SOURCE -I../common",
 		realdir => "mod_tora",
 	},
