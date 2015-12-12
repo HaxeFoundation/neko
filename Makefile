@@ -17,7 +17,7 @@ INSTALL_PREFIX = /usr
 
 # standard directory variables
 # https://www.gnu.org/prep/standards/html_node/Directory-Variables.html#Directory-Variables
-DESTDIR =
+DESTINATION =
 prefix = $(INSTALL_PREFIX)
 exec_prefix = $(prefix)
 bindir = $(exec_prefix)/bin
@@ -149,25 +149,25 @@ clean:
 	rm -rf bin/mtypes bin/tools
 
 install:
-	cp bin/$(LIBNEKO_NAME) $(DESTDIR)$(libdir)
-	cp bin/neko bin/nekoc bin/nekotools bin/nekoml bin/nekoml.std $(DESTDIR)$(bindir)
-	-mkdir -p $(DESTDIR)$(libdir)/neko
-	cp bin/*.ndll $(DESTDIR)$(libdir)/neko
-	-mkdir -p $(DESTDIR)$(includedir)
-	cp vm/neko*.h $(DESTDIR)$(includedir)
-	chmod o+rx,g+rx $(DESTDIR)$(bindir)/neko $(DESTDIR)$(bindir)/nekoc $(DESTDIR)$(bindir)/nekotools $(DESTDIR)$(bindir)/nekoml
-	chmod o+r,g+r $(DESTDIR)$(libdir)/$(LIBNEKO_NAME) $(DESTDIR)$(libdir)/neko/*.ndll $(DESTDIR)$(bindir)/nekoml.std $(DESTDIR)$(includedir)/neko*.h
+	cp bin/$(LIBNEKO_NAME) $(DESTINATION)$(libdir)
+	cp bin/neko bin/nekoc bin/nekotools bin/nekoml bin/nekoml.std $(DESTINATION)$(bindir)
+	-mkdir -p $(DESTINATION)$(libdir)/neko
+	cp bin/*.ndll $(DESTINATION)$(libdir)/neko
+	-mkdir -p $(DESTINATION)$(includedir)
+	cp vm/neko*.h $(DESTINATION)$(includedir)
+	chmod o+rx,g+rx $(DESTINATION)$(bindir)/neko $(DESTINATION)$(bindir)/nekoc $(DESTINATION)$(bindir)/nekotools $(DESTINATION)$(bindir)/nekoml
+	chmod o+r,g+r $(DESTINATION)$(libdir)/$(LIBNEKO_NAME) $(DESTINATION)$(libdir)/neko/*.ndll $(DESTINATION)$(bindir)/nekoml.std $(DESTINATION)$(includedir)/neko*.h
 
 install-strip: install
-	strip $(DESTDIR)$(bindir)/neko
-	strip $(DESTDIR)$(libdir)/$(LIBNEKO_NAME)
-	strip $(DESTDIR)$(bindir)/nekoc $(DESTDIR)$(bindir)/nekoml $(DESTDIR)$(bindir)/nekotools $(DESTDIR)$(bindir)/*.ndll
+	strip $(DESTINATION)$(bindir)/neko
+	strip $(DESTINATION)$(libdir)/$(LIBNEKO_NAME)
+	strip $(DESTINATION)$(bindir)/nekoc $(DESTINATION)$(bindir)/nekoml $(DESTINATION)$(bindir)/nekotools $(DESTINATION)$(bindir)/*.ndll
 
 uninstall:
-	rm -rf $(DESTDIR)$(libdir)/$(LIBNEKO_NAME)
-	rm -rf $(DESTDIR)$(bindir)/neko $(DESTDIR)$(bindir)/nekoc $(DESTDIR)$(bindir)/nekotools 
-	rm -rf $(DESTDIR)$(bindir)/nekoml $(DESTDIR)$(bindir)/nekoml.std
-	rm -rf $(DESTDIR)$(libdir)/neko
+	rm -rf $(DESTINATION)$(libdir)/$(LIBNEKO_NAME)
+	rm -rf $(DESTINATION)$(bindir)/neko $(DESTINATION)$(bindir)/nekoc $(DESTINATION)$(bindir)/nekotools 
+	rm -rf $(DESTINATION)$(bindir)/nekoml $(DESTINATION)$(bindir)/nekoml.std
+	rm -rf $(DESTINATION)$(libdir)/neko
 
 .SUFFIXES : .c .o
 
