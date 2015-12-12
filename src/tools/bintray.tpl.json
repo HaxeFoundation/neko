@@ -19,7 +19,7 @@
 
     "files":
         [
-            {"includePattern": "bin/(.*).tar.gz", "uploadPattern": "::os::/::gitBranch::/$1.tar.gz"}
+            {"includePattern": "bin/(.*).tar.gz", "uploadPattern": "::os::/::gitBranch::/neko_::versionName::.tar.gz"}
         ],
     "publish": true
 }
