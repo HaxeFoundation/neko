@@ -1,5 +1,5 @@
 /*
- * Copyright (C)2005-2012 Haxe Foundation
+ * Copyright (C)2005-2015 Haxe Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -188,7 +188,7 @@ static value math_int( value n ) {
 	case VAL_FLOAT:
 		{
 			tfloat v = val_float(n);
-			return alloc_best_int( (int)((n < 0) ? ceil(v) : floor(v)) );
+			return alloc_best_int( (int)((v < 0) ? ceil(v) : floor(v)) );
 		}
 	default:
 		neko_error();
