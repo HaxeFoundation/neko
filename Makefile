@@ -18,10 +18,11 @@ INSTALL_PREFIX = /usr
 # standard directory variables
 # https://www.gnu.org/prep/standards/html_node/Directory-Variables.html#Directory-Variables
 DESTDIR =
-exec_prefix = $(INSTALL_PREFIX)
+prefix = $(INSTALL_PREFIX)
+exec_prefix = $(prefix)
 bindir = $(exec_prefix)/bin
 libdir = $(exec_prefix)/lib
-includedir = $(INSTALL_PREFIX)/include
+includedir = $(prefix)/include
 
 INCLUDE_FLAGS = -I vm -I libs/common
 CFLAGS = -Wall -O3 -fPIC -fomit-frame-pointer -D_GNU_SOURCE -DABI_ELF
