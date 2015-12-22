@@ -377,8 +377,15 @@ static value process_exit( value vp ) {
 			continue;
 		neko_error();
 	}
-	if( !WIFEXITED(rval) )
-		neko_error();
+	if( !WIFEXITED(rval) ) {
+		if (WIFSIGNALED(rval)) {
+			char msg[30];
+			sprintf(msg, "process killed by signal %d", WTERMSIG(rval));
+			val_throw(alloc_string(msg));
+		} else {
+			neko_error();
+		}
+	}
 	return alloc_int(WEXITSTATUS(rval));
 #	endif
 }
