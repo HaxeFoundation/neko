@@ -102,12 +102,13 @@ static void free_process( value vp ) {
 	</doc>
 **/
 static value process_run( value cmd, value vargs ) {
-	int i;
+	int i, isRaw;
 	vprocess *p;
 	val_check(cmd,string);
-	int isRaw = val_is_null(vargs);
-	if (!isRaw)
+	isRaw = val_is_null(vargs);
+	if (!isRaw) {
 		val_check(vargs,array);
+	}
 #	ifdef NEKO_WINDOWS
 	{		 
 		SECURITY_ATTRIBUTES sattr;		
@@ -118,9 +119,9 @@ static value process_run( value cmd, value vargs ) {
 		buffer b = alloc_buffer(NULL);
 		value sargs;
 		if (isRaw) {
-			buffer_append(b,"\"");
 			char* cmdexe = getenv("COMSPEC");
 			if (!cmdexe) cmdexe = "cmd.exe";
+			buffer_append(b,"\"");
 			buffer_append(b,cmdexe);
 			buffer_append(b,"\" /C \"");
 			buffer_append(b,val_string(cmd));
