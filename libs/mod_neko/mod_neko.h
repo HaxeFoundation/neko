@@ -58,12 +58,8 @@ typedef struct {
 
 DECLARE_KIND(k_mod_neko)
 
-#ifdef STANDARD20_MODULE_STUFF
-#	define APACHE_2_X
-#	define REMOTE_ADDR(c)	c->remote_addr->sa.sin.sin_addr
-#else
-#	define REMOTE_ADDR(c)	c->remote_addr.sin_addr
-#endif
+#define APACHE_2_X
+#define REMOTE_ADDR(c)	c->remote_addr->sa.sin.sin_addr
 
 extern mconfig *mod_neko_get_config();
 extern void mod_neko_set_config( mconfig *cfg );

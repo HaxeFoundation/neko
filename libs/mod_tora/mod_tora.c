@@ -38,23 +38,18 @@
 		c->headers_sent = 1; \
 	}
 
-#ifdef STANDARD20_MODULE_STUFF
-#	define APACHE_2_X
-#	define ap_send_http_header(x)
-#	define ap_soft_timeout(msg,r)
-#	define ap_kill_timeout(r)
-#	define ap_table_get		apr_table_get
-#	define ap_table_set		apr_table_set
-#	define ap_table_add		apr_table_add
-#	define ap_table_do		apr_table_do
-#	define ap_palloc		apr_palloc
-#	define LOG_SUCCESS		APR_SUCCESS,
-#	define REDIRECT			HTTP_MOVED_TEMPORARILY
-#	define REMOTE_ADDR(c)	c->remote_addr->sa.sin.sin_addr
-#else
-#	define LOG_SUCCESS
-#	define REMOTE_ADDR(c)	c->remote_addr.sin_addr
-#endif
+#define APACHE_2_X
+#define ap_send_http_header(x)
+#define ap_soft_timeout(msg,r)
+#define ap_kill_timeout(r)
+#define ap_table_get		apr_table_get
+#define ap_table_set		apr_table_set
+#define ap_table_add		apr_table_add
+#define ap_table_do		apr_table_do
+#define ap_palloc		apr_palloc
+#define LOG_SUCCESS		APR_SUCCESS,
+#define REDIRECT			HTTP_MOVED_TEMPORARILY
+#define REMOTE_ADDR(c)	c->remote_addr->sa.sin.sin_addr
 
 #if AP_SERVER_MAJORVERSION_NUMBER >= 2 && AP_SERVER_MINORVERSION_NUMBER >= 4
 #       define REMOTE_IP(r) r->useragent_ip
@@ -302,11 +297,8 @@ static void mod_tora_do_init() {
 	config.max_post_size = DEFAULT_MAX_POST_DATA;
 }
 
-#ifdef APACHE_2_X
-#	define MCONFIG void*
-#else
-#	define MCONFIG char*
-#endif
+#define MCONFIG void*
+
 static const char *mod_tora_config( cmd_parms *cmd, MCONFIG mconfig, const char *fargs ) {
 	char *code = strdup(fargs);
 	char *args = code;
@@ -330,27 +322,15 @@ static const char *mod_tora_config( cmd_parms *cmd, MCONFIG mconfig, const char 
 	return NULL;
 }
 
-#ifdef APACHE_2_X
 static int tora_init( apr_pool_t *p, apr_pool_t *plog, apr_pool_t *ptemp, server_rec *s ) {
 	mod_tora_do_init();
 	return OK;
 }
-#else
-static void tora_init(server_rec *s, pool *p) {
-	mod_tora_do_init();
-}
-#endif
 
 static command_rec tora_module_cmds[] = {
-#	ifdef APACHE_2_X
 	AP_INIT_RAW_ARGS( "ModTora", mod_tora_config , NULL, RSRC_CONF, NULL ),
-#	else
-	{ "ModTora", mod_tora_config, NULL, RSRC_CONF, RAW_ARGS, NULL },
-#	endif
 	{ NULL }
 };
-
-#ifdef APACHE_2_X
 
 static void tora_register_hooks( apr_pool_t *p ) {
 	ap_hook_post_config( tora_init, NULL, NULL, APR_HOOK_MIDDLE );
@@ -366,36 +346,5 @@ module AP_MODULE_DECLARE_DATA tora_module = {
 	tora_module_cmds,
 	tora_register_hooks
 };
-
-#else /* APACHE 1.3 */
-
-static const handler_rec tora_handlers[] = {
-    {"tora-handler", tora_handler},
-    {NULL}
-};
-
-module MODULE_VAR_EXPORT tora_module = {
-    STANDARD_MODULE_STUFF,
-    tora_init,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    tora_module_cmds,
-    tora_handlers,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL
-};
-
-#endif
 
 /* ************************************************************************ */

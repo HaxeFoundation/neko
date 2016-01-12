@@ -28,19 +28,13 @@
 #	define MOD_NEKO_POST_SIZE (1 << 18) // 256 K
 #endif
 
-#ifdef APACHE_2_X
-#	define FTIME(r)		r->finfo.mtime
-#	define ap_send_http_header(x)
-#	define ap_soft_timeout(msg,r)
-#	define ap_kill_timeout(r)
-#	define ap_table_get		apr_table_get
-#	define LOG_SUCCESS		APR_SUCCESS,
+#define FTIME(r)		r->finfo.mtime
+#define ap_send_http_header(x)
+#define ap_soft_timeout(msg,r)
+#define ap_kill_timeout(r)
+#define ap_table_get		apr_table_get
+#define LOG_SUCCESS		APR_SUCCESS,
 typedef apr_time_t aptime;
-#else
-#	define FTIME(r)		r->finfo.st_mtime
-#	define LOG_SUCCESS
-typedef time_t aptime;
-#endif
 
 #define apache_error(level,request,message)	\
 	ap_rprintf(request,"<b>Error</b> : %s",message); \
@@ -330,10 +324,8 @@ static void mod_neko_do_init() {
 	putenv(strdup("MOD_NEKO=24"));
 #	elif defined(APACHE_2_2)
 	putenv(strdup("MOD_NEKO=22"));
-#	elif defined(APACHE_2_X)
-	putenv(strdup("MOD_NEKO=2"));
 #	else
-	putenv(strdup("MOD_NEKO=1"));
+	putenv(strdup("MOD_NEKO=2"));
 #	endif
 	neko_global_init();
 	cache_root = alloc_local();
@@ -394,11 +386,8 @@ static void preload_module( const char *name, server_rec *serv ) {
 	neko_vm_select(NULL);
 }
 
-#ifdef APACHE_2_X
-#	define MCONFIG void*
-#else
-#	define MCONFIG char*
-#endif
+#define MCONFIG void*
+
 static const char *mod_neko_config( cmd_parms *cmd, MCONFIG mconfig, const char *fargs ) {
 	char *code = strdup(fargs);
 	char *args = code;
@@ -424,28 +413,15 @@ static const char *mod_neko_config( cmd_parms *cmd, MCONFIG mconfig, const char 
 	return NULL;
 }
 
-
-#ifdef APACHE_2_X
 static int neko_init( apr_pool_t *p, apr_pool_t *plog, apr_pool_t *ptemp, server_rec *s ) {
 	mod_neko_do_init();
 	return OK;
 }
-#else
-static void neko_init(server_rec *s, pool *p) {
-	mod_neko_do_init();
-}
-#endif
 
 static command_rec neko_module_cmds[] = {
-#	ifdef APACHE_2_X
 	AP_INIT_RAW_ARGS( "ModNeko", mod_neko_config , NULL, RSRC_CONF, NULL ),
-#	else
-	{ "ModNeko", mod_neko_config, NULL, RSRC_CONF, RAW_ARGS, NULL },
-#	endif
 	{ NULL }
 };
-
-#ifdef APACHE_2_X
 
 static void neko_register_hooks( apr_pool_t *p ) {
 	ap_hook_post_config( neko_init, NULL, NULL, APR_HOOK_MIDDLE );
@@ -461,36 +437,5 @@ module AP_MODULE_DECLARE_DATA neko_module = {
 	neko_module_cmds,
 	neko_register_hooks
 };
-
-#else /* APACHE 1.3 */
-
-static const handler_rec neko_handlers[] = {
-    {"neko-handler", neko_handler},
-    {NULL}
-};
-
-module MODULE_VAR_EXPORT neko_module = {
-    STANDARD_MODULE_STUFF,
-    neko_init,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    neko_module_cmds,
-    neko_handlers,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL
-};
-
-#endif
 
 /* ************************************************************************ */
