@@ -29,13 +29,11 @@ DEFINE_KIND(k_mod_neko);
 #	define strcmpi	strcasecmp
 #endif
 
-#ifdef APACHE_2_X
-#	define ap_table_get		apr_table_get
-#	define ap_table_set		apr_table_set
-#	define ap_table_add		apr_table_add
-#	define ap_table_do		apr_table_do
-#	define REDIRECT			HTTP_MOVED_TEMPORARILY
-#endif
+#define ap_table_get		apr_table_get
+#define ap_table_set		apr_table_set
+#define ap_table_add		apr_table_add
+#define ap_table_do		apr_table_do
+#define REDIRECT			HTTP_MOVED_TEMPORARILY
 
 #define PARSE_HEADER(start,cursor) \
 	cursor = start; \
@@ -574,11 +572,7 @@ static value get_http_method() {
 static value log_message( value message ) {
 	mcontext *c = CONTEXT();
 	val_check(message, string);
-#ifdef APACHE_2_X
 	ap_log_rerror(APLOG_MARK, APLOG_NOTICE, APR_SUCCESS, c->r, "[mod_neko] %s", val_string(message));
-#else
-	ap_log_rerror(APLOG_MARK, APLOG_NOTICE, c->r, "[mod_neko] %s", val_string(message));
-#endif
 	return val_null;
 }
 

@@ -4,17 +4,19 @@ os:
   - linux
   - osx
 
+env:
+  global:
+    # Bintray (BINTRAY_SUBJECT, BINTRAY_USERNAME, BINTRAY_API_KEY)
+    - secure: "YFyUyUGxkTaDIjjRATcAVAwWZ2HYhbLjSq2af/avIsf3/YEq856gSPm973LBT9O7fwSbE75wep2bVqtbh/GoEnx2GGe9BEVZQA1572Ob5oE3odkfQBGmXWIc/Yy8F5Ynlf8C7E5zRBHY6U/4aJA/ewd5hBn8PWid4COf/B3/68M="
+    - secure: "BYxT+XH2JR5/H4L7hr7BJTJbIIPEKpPG7ysuPOx5vrlKtskjciFZsqkLdSrN7mcjxH80wblNLL8V/iokmzHt8QuauQxSZnp1PwnzZrzF5zQuDMbjk85tNpmJSR00x9KBfFUSdONfy41Q3WwCTMWVcpn9dcjJHxGvh3dkmD/bDMs="
+    - secure: "R5q3GngrospFvixEFVt8MiP4la/v7rZnQ6UEbR+q95wtTwRH0ZNPBWuma+JLpPXkvPzb26gObhe7Z/JjXNpvbB/mkBinHoUE+G4CJG2zBHvm2Vf+QihrvAww6iazK/H/Crs7EImLh2NLr/sMjbm6tIaQdjeHetEO25cn9rwQk7g="
+
 install:
-  # For our forks that do not have mult-os enabled...
-  - if [ -z "${TRAVIS_OS_NAME}" ]; then
-    export TRAVIS_OS_NAME=linux;
-    fi
-  # Install dependencies
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
         sudo apt-get update -qq;
         sudo apt-get install zlib1g-dev libgc-dev -qq;
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
-    	brew tap homebrew/dupes;
+        brew tap homebrew/dupes;
         brew update;
         brew install bdw-gc pcre openssl zlib;
         brew link zlib --force;
@@ -23,12 +25,42 @@ install:
 script:
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
         make;
+        sudo add-apt-repository ppa:ondrej/apache2 -y;
+        sudo apt-get update -y;
+        sudo apt-get install apache2-mpm-prefork apache2-prefork-dev -y;
+        make libs "INSTALL_FLAGS=-libs mod_neko2,mod_tora2";
+        sudo apt-get install apache2 apache2-dev -y;
+        make libs "INSTALL_FLAGS=-libs mod_neko2,mod_tora2";
         make test;
         sudo make install;
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
         make os=osx LIB_PREFIX=/usr/local;
+        brew tap homebrew/apache;
+        brew install httpd22;
+        make os=osx LIB_PREFIX=/usr/local libs "INSTALL_FLAGS=-libs mod_neko2,mod_tora2";
+        brew remove httpd22;
+        brew install httpd24;
+        make os=osx LIB_PREFIX=/usr/local libs "INSTALL_FLAGS=-libs mod_neko2,mod_tora2";
         make test;
         sudo make os=osx install;
     fi
   - neko -version
   - neko src/tools/test.n
+  - pushd bin;
+    nekoc release.neko;
+    neko release.n;
+    popd
+  - pushd src/tools;
+    neko RunCi.n;
+    popd
+  - ls bin
+
+deploy:
+  provider: bintray
+  on:
+    all_branches: true
+    condition: "-e src/tools/bintray.json"
+  skip_cleanup: true
+  file: "src/tools/bintray.json"
+  user: "${BINTRAY_USERNAME}"
+  key: "${BINTRAY_API_KEY}"
