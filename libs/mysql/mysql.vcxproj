@@ -70,7 +70,7 @@
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>..\include\mysql\mysqlclient.lib;ws2_32.lib;..\..\bin\neko.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\include\mysql\mariadbclient.lib;ws2_32.lib;..\..\bin\neko.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>../../bin/mysql.ndll</OutputFile>
       <IgnoreSpecificDefaultLibraries>LIBCMT;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -92,7 +92,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>..\include\mysql\mysqlclient.lib;..\..\bin\neko.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\include\mysql\mariadbclient.lib;..\..\bin\neko.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>../../bin/mysql.ndll</OutputFile>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -115,7 +115,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>..\include\mysql\mysqlclient.lib;..\..\bin\neko.lib;ws2_32.lib;../include/msvcrt/extra.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\include\mysql\mariadbclient.lib;..\..\bin\neko.lib;ws2_32.lib;../include/msvcrt/extra.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>../../bin/mysql.ndll</OutputFile>
       <IgnoreSpecificDefaultLibraries>MSVCRT;LIBCMT;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>

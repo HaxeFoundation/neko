@@ -32,7 +32,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="..\include\mysql\mysqlclient.lib ws2_32.lib ..\..\bin\neko.lib"
+				AdditionalDependencies="..\include\mysql\mariadbclient.lib ws2_32.lib ..\..\bin\neko.lib"
 				OutputFile="../../bin/mysql.ndll"
 				LinkIncremental="2"
 				IgnoreDefaultLibraryNames="LIBCMT"
@@ -82,7 +82,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="..\include\mysql\mysqlclient.lib ..\..\bin\neko.lib ws2_32.lib"
+				AdditionalDependencies="..\include\mysql\mariadbclient.lib ..\..\bin\neko.lib ws2_32.lib"
 				OutputFile="../../bin/mysql.ndll"
 				LinkIncremental="1"
 				IgnoreDefaultLibraryNames="LIBCMT"
@@ -133,7 +133,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="..\include\mysql\mysqlclient.lib ..\..\bin\neko.lib ws2_32.lib ../include/msvcrt/extra.lib "
+				AdditionalDependencies="..\include\mysql\mariadbclient.lib ..\..\bin\neko.lib ws2_32.lib ../include/msvcrt/extra.lib "
 				OutputFile="../../bin/mysql.ndll"
 				LinkIncremental="1"
 				IgnoreDefaultLibraryNames="MSVCRT;LIBCMT"

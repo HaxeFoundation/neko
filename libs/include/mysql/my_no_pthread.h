@@ -15,34 +15,18 @@
    Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
    MA 02111-1307, USA */
 
-/* thread safe version of some common functions */
+/*
+  This undefs some pthread mutex locks when one isn't using threads
+  to make thread safe code, that should also work in single thread
+  environment, easier to use.
+*/
 
-/* for thread safe my_inet_ntoa */
-#ifdef	__cplusplus
-extern "C" {
-#endif /* __cplusplus */
+#if !defined(_my_no_pthread_h) && !defined(THREAD)
+#define _my_no_pthread_h
 
-#if !defined(MSDOS) && !defined(_WIN32) && !defined(__BEOS__)
-#ifdef HAVE_SYS_SOCKET_H
-#include <sys/socket.h>
-#endif
-#ifdef HAVE_NETINET_IN_H
-#include <netinet/in.h>
-#endif
-#ifdef HAVE_ARPA_INET_H
-#include <arpa/inet.h>
-#endif
-#endif /* !defined(MSDOS) && !defined(_WIN32) */
+#define pthread_mutex_init(A,B)
+#define pthread_mutex_lock(A)
+#define pthread_mutex_unlock(A)
+#define pthread_mutex_destroy(A)
 
-
-/* On SCO you get a link error when refering to h_errno */
-#ifdef SCO
-#undef h_errno
-#define h_errno errno
-#endif
-
-void my_inet_ntoa(struct in_addr in, char *buf);
-
-#ifdef	__cplusplus
-}
 #endif
