@@ -1,5 +1,5 @@
 /*
- * Copyright (C)2005-2015 Haxe Foundation
+ * Copyright (C)2005-2016 Haxe Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -203,7 +203,6 @@ static int store_table( void *r, const char *key, const char *val ) {
 	value a;
 	if( key == NULL || val == NULL )
 		return 1;
-	a = alloc_array(2);
 	a = alloc_array(3);
 	val_array_ptr(a)[0] = alloc_string(key);
 	val_array_ptr(a)[1] = alloc_string(val);

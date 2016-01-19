@@ -1,5 +1,5 @@
 /*
- * Copyright (C)2005-2015 Haxe Foundation
+ * Copyright (C)2005-2016 Haxe Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -297,7 +297,7 @@ int main( int argc, char *argv[] ) {
 #			ifdef NEKO_STANDALONE
 			report(vm,alloc_string("No embedded module in this executable"),0);
 #			else
-			printf("NekoVM %d.%d.%d (c)2005-2015 Haxe Foundation\n  Usage : neko <file>\n",NEKO_VERSION/100,(NEKO_VERSION/10)%10,NEKO_VERSION%10);
+			printf("NekoVM %d.%d.%d (c)2005-2016 Haxe Foundation\n  Usage : neko <file>\n",NEKO_VERSION/100,(NEKO_VERSION/10)%10,NEKO_VERSION%10);
 #			endif
 			mload = NULL;
 			r = 1;

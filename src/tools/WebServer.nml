@@ -1,5 +1,5 @@
 /*
- * Copyright (C)2005-2015 Haxe Foundation
+ * Copyright (C)2005-2016 Haxe Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -607,7 +607,7 @@ function client_msg_safe(c) {
 }
 
 function init() {
-	var head = "Neko Web Server v1.0 - (c)2005-2015 Haxe Foundation";
+	var head = "Neko Web Server v1.0 - (c)2005-2016 Haxe Foundation";
 	var port = &2000;
 	var host = &"localhost";
 	var decl = [
