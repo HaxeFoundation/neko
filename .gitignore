@@ -4,6 +4,7 @@
 /bin/nekoc
 /bin/nekoml
 /bin/nekotools
+/bin/*.tar.gz
 *.dll
 *.exe
 *.user
@@ -23,6 +24,7 @@ Release5
 *.opensdf
 *.o
 *.so
+*.so.*
 *~
 *.bak
 *.ilk

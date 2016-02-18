@@ -28,8 +28,12 @@ INCLUDE_FLAGS = -I vm -I libs/common
 CFLAGS = -Wall -O3 -fPIC -fomit-frame-pointer -D_GNU_SOURCE -DABI_ELF
 LDFLAGS =
 EXTFLAGS = -pthread
-MAKESO = $(CC) -shared -Wl,-Bsymbolic
+SO_MAJOR=0
+SO_MINOR=1
 LIBNEKO_NAME = libneko.so
+LIBNEKO_NAME_MAJOR = libneko.so.${SO_MAJOR}
+LIBNEKO_NAME_MAJOR_MINOR = libneko.so.${SO_MAJOR}.${SO_MINOR}
+MAKESO = $(CC) -shared -Wl,-Bsymbolic,-soname,${LIBNEKO_NAME_MAJOR}
 LIBNEKO_LIBS = -ldl -lgc -lm
 NEKOVM_FLAGS = -Lbin -lneko
 STD_NDLL_FLAGS = ${NEKOVM_FLAGS} -lrt
@@ -61,6 +65,8 @@ CFLAGS = -g -Wall -O3 -momit-leaf-frame-pointer
 EXTFLAGS =
 MAKESO = $(CC) -O -shared
 LIBNEKO_NAME = neko.dll
+LIBNEKO_NAME_MAJOR = ${LIBNEKO_NAME}
+LIBNEKO_NAME_MAJOR_MINOR = ${LIBNEKO_NAME}
 LIBNEKO_LIBS = -Lbin -lgc
 STD_NDLL_FLAGS = ${NEKOVM_FLAGS} -lws2_32
 NEKO_BIN_LINKER_FLAGS =
@@ -73,7 +79,9 @@ export MACOSX_DEPLOYMENT_TARGET=10.4
 EXTFLAGS =
 MAKESO = ${CC}
 LIBNEKO_NAME = libneko.dylib
-LIBNEKO_INSTALL = -install_name @executable_path/${LIBNEKO_NAME}
+LIBNEKO_NAME_MAJOR = libneko.${SO_MAJOR}.dylib
+LIBNEKO_NAME_MAJOR_MINOR = libneko.${SO_MAJOR}.${SO_MINOR}.dylib
+LIBNEKO_INSTALL = -install_name @executable_path/${LIBNEKO_NAME_MAJOR}
 LIBNEKO_LIBS = -ldl ${LIB_PREFIX}/lib/libgc.a -lm -dynamiclib -single_module ${LIBNEKO_INSTALL}
 NEKOVM_FLAGS = -L${CURDIR}/bin -lneko
 STD_NDLL_FLAGS = -bundle -undefined dynamic_lookup ${NEKOVM_FLAGS}
@@ -105,7 +113,13 @@ all: createbin libneko neko std compiler libs
 createbin:
 	-mkdir -p bin 2>/dev/null
 
-libneko: bin/${LIBNEKO_NAME}
+libneko: bin/${LIBNEKO_NAME_MAJOR_MINOR}
+	if [ "${LIBNEKO_NAME_MAJOR_MINOR}" != "${LIBNEKO_NAME_MAJOR}" ]; then \
+		ln -sf ${LIBNEKO_NAME_MAJOR_MINOR} bin/${LIBNEKO_NAME_MAJOR}; \
+	fi
+	if [ "${LIBNEKO_NAME_MAJOR}" != "${LIBNEKO_NAME}" ]; then \
+		ln -sf ${LIBNEKO_NAME_MAJOR} bin/${LIBNEKO_NAME}; \
+	fi
 
 libs:
 	(cd src; ${NEKO_EXEC} nekoc tools/install.neko)
@@ -132,7 +146,7 @@ compiler:
 	(cd src; ${NEKO_EXEC} nekoc -link ../boot/nekoc.n neko/Main)
 	(cd src; ${NEKO_EXEC} nekoc -link ../boot/nekoml.n nekoml/Main)
 
-bin/${LIBNEKO_NAME}: ${LIBNEKO_OBJECTS}
+bin/${LIBNEKO_NAME_MAJOR_MINOR}: ${LIBNEKO_OBJECTS}
 	${MAKESO} -o $@ ${LIBNEKO_OBJECTS} ${LIBNEKO_LIBS} ${LDFLAGS} ${EXTFLAGS}
 
 bin/neko: $(VM_OBJECTS)
@@ -142,14 +156,20 @@ bin/std.ndll: ${STD_OBJECTS}
 	${MAKESO} -o $@ ${STD_OBJECTS} ${STD_NDLL_FLAGS} ${LDFLAGS} ${EXTFLAGS}
 
 clean:
-	rm -rf bin/${LIBNEKO_NAME} ${LIBNEKO_OBJECTS} ${VM_OBJECTS}
+	rm -rf bin/${LIBNEKO_NAME} bin/${LIBNEKO_NAME_MAJOR} bin/${LIBNEKO_NAME_MAJOR_MINOR} ${LIBNEKO_OBJECTS} ${VM_OBJECTS}
 	rm -rf bin/neko bin/nekoc bin/nekoml bin/nekotools
 	rm -rf bin/std bin/*.ndll bin/*.n libs/*/*.o
 	rm -rf src/*.n src/neko/*.n src/nekoml/*.n src/tools/*.n
 	rm -rf bin/mtypes bin/tools
 
 install:
-	cp bin/$(LIBNEKO_NAME) $(DESTDIR)$(libdir)
+	cp bin/$(LIBNEKO_NAME_MAJOR_MINOR) $(DESTDIR)$(libdir)
+	if [ "${LIBNEKO_NAME_MAJOR_MINOR}" != "${LIBNEKO_NAME_MAJOR}" ]; then \
+		ln -sf ${LIBNEKO_NAME_MAJOR_MINOR} $(DESTDIR)$(libdir)/$(LIBNEKO_NAME_MAJOR); \
+	fi
+	if [ "${LIBNEKO_NAME_MAJOR}" != "${LIBNEKO_NAME}" ]; then \
+		ln -sf ${LIBNEKO_NAME_MAJOR} $(DESTDIR)$(libdir)/$(LIBNEKO_NAME); \
+	fi
 	cp bin/neko bin/nekoc bin/nekotools bin/nekoml bin/nekoml.std $(DESTDIR)$(bindir)
 	-mkdir -p $(DESTDIR)$(libdir)/neko
 	cp bin/*.ndll $(DESTDIR)$(libdir)/neko
@@ -160,11 +180,13 @@ install:
 
 install-strip: install
 	strip $(DESTDIR)$(bindir)/neko
-	strip $(DESTDIR)$(libdir)/$(LIBNEKO_NAME)
+	strip $(DESTDIR)$(libdir)/$(LIBNEKO_NAME_MAJOR_MINOR)
 	strip $(DESTDIR)$(bindir)/nekoc $(DESTDIR)$(bindir)/nekoml $(DESTDIR)$(bindir)/nekotools $(DESTDIR)$(bindir)/*.ndll
 
 uninstall:
 	rm -rf $(DESTDIR)$(libdir)/$(LIBNEKO_NAME)
+	rm -rf $(DESTDIR)$(libdir)/$(LIBNEKO_NAME_MAJOR)
+	rm -rf $(DESTDIR)$(libdir)/$(LIBNEKO_NAME_MAJOR_MINOR)
 	rm -rf $(DESTDIR)$(bindir)/neko $(DESTDIR)$(bindir)/nekoc $(DESTDIR)$(bindir)/nekotools 
 	rm -rf $(DESTDIR)$(bindir)/nekoml $(DESTDIR)$(bindir)/nekoml.std
 	rm -rf $(DESTDIR)$(libdir)/neko
