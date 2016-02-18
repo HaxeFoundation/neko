@@ -169,6 +169,9 @@ uninstall:
 	rm -rf $(DESTDIR)$(bindir)/nekoml $(DESTDIR)$(bindir)/nekoml.std
 	rm -rf $(DESTDIR)$(libdir)/neko
 
+package:
+	git archive -o bin/neko-`(cd bin; ${NEKO_EXEC} -version)`.tar.gz HEAD
+
 .SUFFIXES : .c .o
 
 .c.o :

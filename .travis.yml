@@ -33,5 +33,6 @@ script:
         make test;
         sudo make os=osx install;
     fi
+  - make package
   - neko -version
   - neko src/tools/test.n
