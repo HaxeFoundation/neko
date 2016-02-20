@@ -94,6 +94,12 @@ libs = {
 		cflags => "-D_LARGEFILE64_SOURCE -I../common",
 		realdir => "mod_tora",
 	},
+	ssl => {
+		src => $array("ssl"),
+		inc => $array("openssl/ssl.h"),
+		incname => "OpenSSL",
+		lparams => "-lssl -lcrypto",
+	}
 }
 
 var silent = false;
