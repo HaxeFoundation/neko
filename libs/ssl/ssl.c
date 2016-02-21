@@ -14,6 +14,7 @@
 #include <openssl/bio.h>
 #include <openssl/err.h>
 #include <openssl/ssl.h>
+#include <openssl/asn1.h>
 
 #ifdef _MSC_VER
 #undef X509_NAME
@@ -568,6 +569,84 @@ static value ctx_set_servername_callback( value ctx, value cb ){
 	return val_true;
 }
 
+static value x509_read_certificate(value file){
+	BIO *in;
+	X509 *x = NULL;
+	val_check(file,string);
+	in = BIO_new(BIO_s_file());
+	if (in == NULL)
+		neko_error();
+	if (BIO_read_filename(in, val_string(file)) <= 0){
+		BIO_free(in);
+		neko_error();
+	}
+	x = PEM_read_bio_X509(in, NULL, NULL, NULL);
+	BIO_free(in);
+	if (x == NULL)
+		neko_error();
+	return alloc_abstract(k_x509, x);
+}
+
+static value x509_get_commonname( value cert ){
+	int loc = -1;
+	X509_NAME *subject;
+	const char *str;
+	val_check_kind(cert,k_x509);
+	subject = X509_get_subject_name(val_x509(cert));
+	loc = X509_NAME_get_index_by_NID(subject, NID_commonName, -1);
+	if (loc < 0)
+		return val_null;
+	str = ASN1_STRING_data(X509_NAME_ENTRY_get_data(X509_NAME_get_entry(subject, loc)));
+	return alloc_string(str);
+}
+
+static value x509_get_altnames( value cert ){
+	int i, nb = -1;
+	STACK_OF(GENERAL_NAME) *san_names = NULL;
+	value l, first;
+	val_check_kind(cert, k_x509);
+	san_names = (STACK_OF(GENERAL_NAME) *) X509_get_ext_d2i(val_x509(cert), NID_subject_alt_name, NULL, NULL);
+	if (san_names == NULL)
+		return val_null;
+	nb = sk_GENERAL_NAME_num(san_names);
+	l = NULL;
+	first = NULL;
+	for (i = 0; i < nb; i++){
+		const GENERAL_NAME *cur = sk_GENERAL_NAME_value(san_names, i);
+		if (cur->type == GEN_DNS){
+			value l2 = alloc_array(2);
+			val_array_ptr(l2)[0] = alloc_string(ASN1_STRING_data(cur->d.dNSName));
+			val_array_ptr(l2)[1] = val_null;
+			if (first == NULL)
+				first = l2;
+			else
+				val_array_ptr(l)[1] = l2;
+			l = l2;
+		}
+	}
+	return (first==NULL)?val_null:first;
+}
+
+static value x509_cmp_notbefore(value cert, value date){
+	ASN1_TIME *t;
+	time_t d;
+	val_check_kind(cert, k_x509);
+	val_check(date, any_int);
+	d = val_any_int(date);
+	t = X509_get_notBefore(val_x509(cert));
+	return alloc_int(X509_cmp_time(t,&d));
+}
+
+static value x509_cmp_notafter(value cert, value date){
+	ASN1_TIME *t;
+	time_t d;
+	val_check_kind(cert, k_x509);
+	val_check(date, any_int);
+	d = val_any_int(date);
+	t = X509_get_notAfter(val_x509(cert));
+	return alloc_int(X509_cmp_time(t,&d));
+}
+
 void ssl_main() {
 	SSL_library_init();
 	SSL_load_error_strings();
@@ -607,5 +686,11 @@ DEFINE_PRIM( ctx_set_verify, 1 );
 DEFINE_PRIM( ctx_use_certificate_file, 3 );
 DEFINE_PRIM( ctx_set_session_id_context, 2 );
 DEFINE_PRIM( ctx_set_servername_callback, 2 );
+
+DEFINE_PRIM( x509_read_certificate, 1 );
+DEFINE_PRIM( x509_get_commonname, 1 );
+DEFINE_PRIM( x509_get_altnames, 1);
+DEFINE_PRIM( x509_cmp_notbefore, 2 );
+DEFINE_PRIM( x509_cmp_notafter, 2 );
 
 DEFINE_ENTRY_POINT(ssl_main);
