@@ -73,5 +73,13 @@ script:
       backportpackage -d wily    --upload ${PPA} --yes ../neko_*.dsc;
       backportpackage -d vivid   --upload ${PPA} --yes ../neko_*.dsc;
       backportpackage -d trusty  --upload ${PPA} --yes ../neko_*.dsc;
+      git checkout debian/changelog;
+      git merge origin/backport-precise;
+      git rm -r debian/patches;
+      git config --global user.name "${DEBFULLNAME}";
+      git config --global user.email "${DEBEMAIL}";
+      git commit -m "backport to precise";
+      dch -v "${SNAPSHOT_VERSION}-1" --urgency low "snapshot build";
+      debuild -S -sa;
       backportpackage -d precise --upload ${PPA} --yes ../neko_*.dsc;
     fi
