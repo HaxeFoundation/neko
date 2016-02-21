@@ -39,6 +39,7 @@ typedef int SOCKET;
 #define val_ssl(o)	(SSL*)val_data(o)
 #define val_ctx(o)	(SSL_CTX*)val_data(o)
 #define val_x509(o) (X509*)val_data(o)
+#define val_pkey(o) (EVP_PKEY*)val_data(o)
 #define alloc_null() val_null;
 
 static field f_s;
@@ -48,6 +49,7 @@ DEFINE_KIND( k_ssl_ctx );
 DEFINE_KIND( k_ssl );
 DEFINE_KIND( k_bio );
 DEFINE_KIND( k_x509 );
+DEFINE_KIND( k_pkey );
 
 #if !_MSC_VER
 typedef struct {
@@ -569,7 +571,7 @@ static value ctx_set_servername_callback( value ctx, value cb ){
 	return val_true;
 }
 
-static value x509_read_certificate(value file){
+static value x509_load_file(value file){
 	BIO *in;
 	X509 *x = NULL;
 	val_check(file,string);
@@ -647,6 +649,50 @@ static value x509_cmp_notafter(value cert, value date){
 	return alloc_int(X509_cmp_time(t,&d));
 }
 
+int password_callback(char *buf, int bufsiz, int verify, const char *pass){
+	int res = 0;
+	if (pass){
+		res = strlen(pass);
+		if (res > bufsiz)
+			res = bufsiz;
+		memcpy(buf, pass, res);
+	}
+	return res;
+}
+
+static value key_load_file(value file, value pub, value pass){
+	BIO *key = NULL;
+	EVP_PKEY *pkey = NULL;
+	val_check(file,string);
+	val_check(pub, bool);
+	if (!val_is_null(pass)) val_check(pass, string);
+	key = BIO_new(BIO_s_file());
+	if (key == NULL)
+		neko_error();
+
+	if (BIO_read_filename(key, val_string(file)) <= 0){
+		BIO_free(key);
+		neko_error();
+	}
+
+	if (val_bool(pub))
+		pkey = PEM_read_bio_PUBKEY(key, NULL, password_callback, val_is_null(pass) ? NULL : val_string(pass));
+	else
+		pkey = PEM_read_bio_PrivateKey(key, NULL, password_callback, val_is_null(pass) ? NULL : val_string(pass));
+	BIO_free(key);
+	if (pkey == NULL)
+		neko_error();
+	return alloc_abstract(k_pkey, pkey);
+}
+
+/*
+static value dgst_sign(value data, value key, value alg){
+}
+
+static value dgst_verify(value data, value sign, value pubkey, value alg){
+}
+*/
+
 void ssl_main() {
 	SSL_library_init();
 	SSL_load_error_strings();
@@ -687,10 +733,15 @@ DEFINE_PRIM( ctx_use_certificate_file, 3 );
 DEFINE_PRIM( ctx_set_session_id_context, 2 );
 DEFINE_PRIM( ctx_set_servername_callback, 2 );
 
-DEFINE_PRIM( x509_read_certificate, 1 );
+DEFINE_PRIM( x509_load_file, 1 );
 DEFINE_PRIM( x509_get_commonname, 1 );
 DEFINE_PRIM( x509_get_altnames, 1);
 DEFINE_PRIM( x509_cmp_notbefore, 2 );
 DEFINE_PRIM( x509_cmp_notafter, 2 );
+
+DEFINE_PRIM( key_load_file, 3 );
+
+//DEFINE_PRIM( dgst_sign, 4 );
+//DEFINE_PRIM( dgst_verify, 5 );
 
 DEFINE_ENTRY_POINT(ssl_main);
