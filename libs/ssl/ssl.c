@@ -748,7 +748,7 @@ static value dgst_sign(value data, value key, value alg){
 		val_set_size(out, len);
 	}
 
-	end:
+end:
 	if (in != NULL)
 		BIO_free(in);
 	if (bmd != NULL)
@@ -758,10 +758,64 @@ static value dgst_sign(value data, value key, value alg){
 	else
 		neko_error();
 }
-/*
-static value dgst_verify(value data, value sign, value pubkey, value alg){
+
+static value dgst_verify( value data, value sign, value key, value alg ){
+	BIO *in = NULL;
+	BIO *bmd = NULL;
+	const EVP_MD *md = NULL;
+	EVP_MD_CTX *mctx = NULL;
+	EVP_MD_CTX *ctx;
+	EVP_PKEY *sigkey = NULL;
+	size_t bufsize = 1024 * 8;
+	bool result = -1;
+	int i;
+	char *buf;
+	val_check(data, string);
+	val_check(sign, string);
+	val_check_kind(key, k_pkey);
+	val_check(alg, string);
+
+	md = EVP_get_digestbyname(val_string(alg));
+	if (md == NULL)
+		goto end;
+	in = BIO_new_mem_buf((void *)val_string(data), val_strlen(data));
+	if (in == NULL)
+		goto end;
+	bmd = BIO_new(BIO_f_md());
+	if (bmd == NULL)
+		goto end;
+	if (!BIO_get_md_ctx(bmd, &mctx))
+		goto end;
+	sigkey = val_pkey(key);
+	if (!EVP_DigestVerifyInit(mctx, NULL, md, NULL, sigkey))
+		goto end;
+
+	bmd = BIO_push(bmd, in);
+	buf = malloc( bufsize );
+	for (;;) {
+		i = BIO_read(bmd, (char *)buf, bufsize);
+		if (i < 0)
+			goto end;
+		if (i == 0)
+			break;
+	}
+
+	BIO_get_md_ctx(bmd, &ctx);
+	result = EVP_DigestVerifyFinal(ctx, val_string(sign), val_strlen(sign));
+
+end:
+	if (in != NULL)
+		BIO_free(in);
+	if (bmd != NULL)
+		BIO_free(bmd);
+	if (buf != NULL)
+		free(buf);
+
+	if (result < 0)
+		neko_error();
+	else
+		return result > 0 ? val_true : val_false;
 }
-*/
 
 void ssl_main() {
 	SSL_library_init();
@@ -814,6 +868,6 @@ DEFINE_PRIM( key_from_der, 2 );
 DEFINE_PRIM( key_free, 1 );
 
 DEFINE_PRIM( dgst_sign, 3 );
-//DEFINE_PRIM( dgst_verify, 5 );
+DEFINE_PRIM( dgst_verify, 4 );
 
 DEFINE_ENTRY_POINT(ssl_main);
