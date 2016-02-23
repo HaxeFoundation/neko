@@ -532,12 +532,9 @@ static value ctx_use_certificate_file( value ctx, value certFile, value privateK
 }
 
 static value ctx_set_session_id_context( value ctx, value sid ) {
-	const char *_sid;
 	val_check_kind(ctx,k_ssl_ctx);
 	val_check(sid,string);
-
-	_sid = val_string(sid);
-	if( SSL_CTX_set_session_id_context(val_ctx(ctx), (unsigned char *)_sid, sizeof _sid) != 1 )
+	if (SSL_CTX_set_session_id_context(val_ctx(ctx), (unsigned char *)val_string(sid), val_strlen(sid)) != 1)
 		neko_error();
 	return val_true;
 }
@@ -685,10 +682,64 @@ static value key_load_file(value file, value pub, value pass){
 	return alloc_abstract(k_pkey, pkey);
 }
 
-/*
 static value dgst_sign(value data, value key, value alg){
-}
+	BIO *in = NULL;
+	BIO *bmd = NULL;
+	const EVP_MD *md = NULL;
+	EVP_MD_CTX *mctx = NULL;
+	EVP_MD_CTX *ctx;
+	EVP_PKEY *sigkey = NULL;
+	size_t bufsize = 1024 * 8;
+	bool success = false;
+	int i, len;
+	value out;
+	char *buf;	
+	val_check(data, string);
+	val_check_kind(key, k_pkey);
+	val_check(alg, string);
+	
+	md = EVP_get_digestbyname(val_string(alg));
+	if (md == NULL)
+		goto end;
+	in = BIO_new_mem_buf((void *)val_string(data), val_strlen(data));
+	bmd = BIO_new(BIO_f_md());
+	if (in == NULL || bmd == NULL)
+		goto end;
+	if (!BIO_get_md_ctx(bmd, &mctx)) 
+		goto end;
+	sigkey = val_pkey(key);
+	if ( !EVP_DigestSignInit(mctx, NULL, md, NULL, sigkey) )
+		goto end;
+	bmd = BIO_push(bmd, in);
+	out = alloc_empty_string(bufsize);
+	buf = val_string(out);
+	for (;;) {
+		i = BIO_read(bmd, (char *)buf, bufsize);
+		if (i < 0)
+			goto end;
+		if (i == 0)
+			break;
+	}
 
+	BIO_get_md_ctx(bmd, &ctx);
+	len = bufsize;
+	if (EVP_DigestSignFinal(ctx, buf, &len)){
+		success = true;
+		buf[len] = 0;
+		val_set_size(out, len);
+	}
+
+	end:
+	if (in != NULL)
+		BIO_free(in);
+	if (bmd != NULL)
+		BIO_free(bmd);
+	if (success)
+		return out;
+	else
+		neko_error();
+}
+/*
 static value dgst_verify(value data, value sign, value pubkey, value alg){
 }
 */
@@ -741,7 +792,7 @@ DEFINE_PRIM( x509_cmp_notafter, 2 );
 
 DEFINE_PRIM( key_load_file, 3 );
 
-//DEFINE_PRIM( dgst_sign, 4 );
+DEFINE_PRIM( dgst_sign, 3 );
 //DEFINE_PRIM( dgst_verify, 5 );
 
 DEFINE_ENTRY_POINT(ssl_main);
