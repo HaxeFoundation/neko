@@ -657,21 +657,14 @@ int password_callback(char *buf, int bufsiz, int verify, const char *pass){
 	return res;
 }
 
-static value key_load_file(value file, value pub, value pass){
+static value key_from_pem(value data, value pub, value pass){
 	BIO *key = NULL;
 	EVP_PKEY *pkey = NULL;
-	val_check(file,string);
+	val_check(data,string);
 	val_check(pub, bool);
 	if (!val_is_null(pass)) val_check(pass, string);
-	key = BIO_new(BIO_s_file());
-	if (key == NULL)
-		neko_error();
 
-	if (BIO_read_filename(key, val_string(file)) <= 0){
-		BIO_free(key);
-		neko_error();
-	}
-
+	key = BIO_new_mem_buf((void *)val_string(data), val_strlen(data));
 	if (val_bool(pub))
 		pkey = PEM_read_bio_PUBKEY(key, NULL, password_callback, val_is_null(pass) ? NULL : val_string(pass));
 	else
@@ -681,6 +674,30 @@ static value key_load_file(value file, value pub, value pass){
 		neko_error();
 	return alloc_abstract(k_pkey, pkey);
 }
+
+static value key_from_der(value data, value pub){
+	BIO *key = NULL;
+	EVP_PKEY *pkey = NULL;
+	val_check(data, string);
+	val_check(pub, bool);
+
+	key = BIO_new_mem_buf((void *)val_string(data), val_strlen(data));
+	if (val_bool(pub))
+		pkey = d2i_PUBKEY_bio(key, NULL);
+	else
+		pkey = d2i_PrivateKey_bio(key, NULL);
+	BIO_free(key);
+	if (pkey == NULL)
+		neko_error();
+	return alloc_abstract(k_pkey, pkey);
+}
+
+static value key_free( value key ){
+	val_check_kind(key, k_pkey);
+	EVP_PKEY_free(val_pkey(key));
+	return val_true;
+}
+
 
 static value dgst_sign(value data, value key, value alg){
 	BIO *in = NULL;
@@ -699,11 +716,13 @@ static value dgst_sign(value data, value key, value alg){
 	val_check(alg, string);
 	
 	md = EVP_get_digestbyname(val_string(alg));
-	if (md == NULL)
+	if( md == NULL )
 		goto end;
 	in = BIO_new_mem_buf((void *)val_string(data), val_strlen(data));
+	if( in == NULL )
+		goto end;
 	bmd = BIO_new(BIO_f_md());
-	if (in == NULL || bmd == NULL)
+	if( bmd == NULL )
 		goto end;
 	if (!BIO_get_md_ctx(bmd, &mctx)) 
 		goto end;
@@ -790,7 +809,9 @@ DEFINE_PRIM( x509_get_altnames, 1);
 DEFINE_PRIM( x509_cmp_notbefore, 2 );
 DEFINE_PRIM( x509_cmp_notafter, 2 );
 
-DEFINE_PRIM( key_load_file, 3 );
+DEFINE_PRIM( key_from_pem, 3 );
+DEFINE_PRIM( key_from_der, 2 );
+DEFINE_PRIM( key_free, 1 );
 
 DEFINE_PRIM( dgst_sign, 3 );
 //DEFINE_PRIM( dgst_verify, 5 );
