@@ -51,6 +51,14 @@ DEFINE_KIND( k_bio );
 DEFINE_KIND( k_x509 );
 DEFINE_KIND( k_pkey );
 
+static void free_x509( value v ){
+	X509_free(val_x509(v));
+}
+
+static void free_pkey( value v ){
+	EVP_PKEY_free(val_pkey(v));
+}
+
 #if !_MSC_VER
 typedef struct {
 	SSL *ssl;
@@ -571,6 +579,7 @@ static value ctx_set_servername_callback( value ctx, value cb ){
 static value x509_load_file(value file){
 	BIO *in;
 	X509 *x = NULL;
+	value v;
 	val_check(file,string);
 	in = BIO_new(BIO_s_file());
 	if (in == NULL)
@@ -583,7 +592,9 @@ static value x509_load_file(value file){
 	BIO_free(in);
 	if (x == NULL)
 		neko_error();
-	return alloc_abstract(k_x509, x);
+	v = alloc_abstract(k_x509, x);
+	val_gc(v,free_x509);
+	return v;
 }
 
 static value x509_get_commonname( value cert ){
@@ -646,10 +657,10 @@ static value x509_cmp_notafter(value cert, value date){
 	return alloc_int(X509_cmp_time(t,&d));
 }
 
-int password_callback(char *buf, int bufsiz, int verify, const char *pass){
+int password_callback(char *buf, int bufsiz, int verify, void *pass){
 	int res = 0;
 	if (pass){
-		res = strlen(pass);
+		res = strlen((char *)pass);
 		if (res > bufsiz)
 			res = bufsiz;
 		memcpy(buf, pass, res);
@@ -660,24 +671,28 @@ int password_callback(char *buf, int bufsiz, int verify, const char *pass){
 static value key_from_pem(value data, value pub, value pass){
 	BIO *key = NULL;
 	EVP_PKEY *pkey = NULL;
+	value v;
 	val_check(data,string);
 	val_check(pub, bool);
 	if (!val_is_null(pass)) val_check(pass, string);
 
 	key = BIO_new_mem_buf((void *)val_string(data), val_strlen(data));
 	if (val_bool(pub))
-		pkey = PEM_read_bio_PUBKEY(key, NULL, password_callback, val_is_null(pass) ? NULL : val_string(pass));
+		pkey = PEM_read_bio_PUBKEY(key, NULL, password_callback, val_is_null(pass) ? NULL : (void *)val_string(pass));
 	else
-		pkey = PEM_read_bio_PrivateKey(key, NULL, password_callback, val_is_null(pass) ? NULL : val_string(pass));
+		pkey = PEM_read_bio_PrivateKey(key, NULL, password_callback, val_is_null(pass) ? NULL : (void *)val_string(pass));
 	BIO_free(key);
 	if (pkey == NULL)
 		neko_error();
-	return alloc_abstract(k_pkey, pkey);
+	v = alloc_abstract(k_pkey, pkey);
+	val_gc(v,free_pkey);
+	return v;
 }
 
 static value key_from_der(value data, value pub){
 	BIO *key = NULL;
 	EVP_PKEY *pkey = NULL;
+	value v;
 	val_check(data, string);
 	val_check(pub, bool);
 
@@ -689,15 +704,10 @@ static value key_from_der(value data, value pub){
 	BIO_free(key);
 	if (pkey == NULL)
 		neko_error();
-	return alloc_abstract(k_pkey, pkey);
+	v = alloc_abstract(k_pkey, pkey);
+	val_gc(v,free_pkey);
+	return v;
 }
-
-static value key_free( value key ){
-	val_check_kind(key, k_pkey);
-	EVP_PKEY_free(val_pkey(key));
-	return val_true;
-}
-
 
 static value dgst_sign(value data, value key, value alg){
 	BIO *in = NULL;
@@ -706,9 +716,9 @@ static value dgst_sign(value data, value key, value alg){
 	EVP_MD_CTX *mctx = NULL;
 	EVP_MD_CTX *ctx;
 	EVP_PKEY *sigkey = NULL;
-	size_t bufsize = 1024 * 8;
+	size_t bufsize = 1024 * 8, len;
 	bool success = false;
-	int i, len;
+	int i;
 	value out;
 	char *buf;	
 	val_check(data, string);
@@ -865,7 +875,6 @@ DEFINE_PRIM( x509_cmp_notafter, 2 );
 
 DEFINE_PRIM( key_from_pem, 3 );
 DEFINE_PRIM( key_from_der, 2 );
-DEFINE_PRIM( key_free, 1 );
 
 DEFINE_PRIM( dgst_sign, 3 );
 DEFINE_PRIM( dgst_verify, 4 );
