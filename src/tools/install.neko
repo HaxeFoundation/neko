@@ -187,6 +187,8 @@ search_includes = $array(
 	"/usr/include",
 	"/usr/local/include/mysql",
 	"/usr/include/mysql",
+	"/usr/local/include/mariadb",
+	"/usr/include/mariadb",
 	"/usr/local/include",
 	"/usr/include/gtk-2.0",
 	"/usr/local/include/gtk-2.0",
@@ -215,12 +217,17 @@ cwd = $ssub(cwd,0,$ssize(cwd)-1);
 libraries = $array(
 	cwd,
 	"/usr/lib",
+	"/usr/lib/mariadb",
 	"/usr/lib/mysql",
 	"/usr/local/lib",
+	"/usr/local/lib/mariadb",
 	"/usr/local/lib/mysql",
 	"/opt/local/lib",
+	"/opt/local/lib/mariadb",
 	"/opt/local/lib/mysql",
 	"/opt/local/lib/mysql5/mysql",
+	"/usr/lib/x86_64-linux-gnu",
+	"/usr/lib/i386-linux-gnu"
 );
 
 exec = function(cmd) {

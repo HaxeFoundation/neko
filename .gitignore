@@ -30,3 +30,5 @@ Release5
 *.ilk
 *.pdb
 ipch
+*_sec.gpg
+*_ssh
