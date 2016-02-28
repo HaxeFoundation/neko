@@ -35,11 +35,13 @@ Users of other Linux/FreeBSD distributions should build Neko from source using `
 
 ## Build dependencies
 
-* Boehm GC
-* OpenSSL
-* PCRE
-* zlib
-* Apache 2.2 / 2.4, with apr and apr-util
-* MariaDB / MySQL (Connector/C)
-* SQLite
-* GTK+2
+| library                                 | Debian/Ubuntu package                                     |
+|-----------------------------------------|-----------------------------------------------------------|
+| Boehm GC                                | libgc-dev                                                 |
+| OpenSSL                                 | libssl-dev                                                |
+| PCRE                                    | libpcre3-dev                                              |
+| zlib                                    | zlib1g-dev                                                |
+| Apache 2.2 / 2.4, with apr and apr-util | apache2-dev                                               |
+| MariaDB / MySQL (Connector/C)           | libmariadb-client-lgpl-dev-compat (or libmysqlclient-dev) |
+| SQLite                                  | libsqlite3-dev                                            |
+| GTK+2                                   | libgtk2.0-dev                                             |
