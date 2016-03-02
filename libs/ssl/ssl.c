@@ -121,6 +121,7 @@ static value bio_noclose() {
 }
 
 static value bio_new_socket( value sock, value close_flag ) {
+	if( !k_socket ) k_socket = kind_lookup("socket");
 	val_check_kind(sock, k_socket);
 	int sock_ = ((int_val) val_data(sock) );
 	BIO* bio = BIO_new_socket( sock_, val_int(close_flag) );
@@ -189,6 +190,7 @@ static value ssl_set_hostname( value ssl, value hostname ){
 static value ssl_accept( value ssl, value sock ) {
 	int r, _sock;
 	SSL *_ssl;
+	if( !k_socket ) k_socket = kind_lookup("socket");
 	val_check_kind(ssl,k_ssl);
 	val_check_kind(sock,k_socket);
 	_ssl = val_ssl( ssl );
@@ -548,31 +550,22 @@ static value ctx_set_session_id_context( value ctx, value sid ) {
 }
 
 static int servername_cb(SSL *ssl, int *ad, void *arg){
-	value fn = *((value *)arg);
-
 	const char *servername = SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name);
-
-	if( servername && fn != NULL ){
-	 	value ret = val_call1(fn, alloc_string(servername)) ;
+	if( servername && arg ){
+	 	value ret = val_call1((value)arg, alloc_string(servername)) ;
 		if( !val_is_null(ret) )
 			SSL_set_SSL_CTX( ssl, val_ctx(ret) );
 	}
-
 	return SSL_TLSEXT_ERR_OK;
 }
 
 static value ctx_set_servername_callback( value ctx, value cb ){
 	SSL_CTX *_ctx;
-	value *arg;
 	val_check_kind(ctx,k_ssl_ctx);
 	val_check_function(cb,1);
 	_ctx = val_ctx(ctx);
-
-	arg = neko_alloc_root(1);
-	*arg = cb;
-
 	SSL_CTX_set_tlsext_servername_callback( _ctx, servername_cb );
-	SSL_CTX_set_tlsext_servername_arg( _ctx, (void *)arg );
+	SSL_CTX_set_tlsext_servername_arg( _ctx, (void *)cb );
 	return val_true;
 }
 
@@ -830,7 +823,6 @@ end:
 void ssl_main() {
 	SSL_library_init();
 	SSL_load_error_strings();
-	k_socket = kind_lookup("socket");
 }
 
 DEFINE_PRIM( bio_noclose, 0 );
