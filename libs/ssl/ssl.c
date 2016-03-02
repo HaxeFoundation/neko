@@ -42,14 +42,14 @@ typedef int SOCKET;
 #define val_pkey(o) (EVP_PKEY*)val_data(o)
 #define alloc_null() val_null;
 
-static field f_s;
-
 DEFINE_KIND( k_ssl_method );
 DEFINE_KIND( k_ssl_ctx );
 DEFINE_KIND( k_ssl );
 DEFINE_KIND( k_bio );
 DEFINE_KIND( k_x509 );
 DEFINE_KIND( k_pkey );
+
+static vkind k_socket;
 
 static void free_x509( value v ){
 	X509_free(val_x509(v));
@@ -121,7 +121,7 @@ static value bio_noclose() {
 }
 
 static value bio_new_socket( value sock, value close_flag ) {
-	// TODO val_check
+	val_check_kind(sock, k_socket);
 	int sock_ = ((int_val) val_data(sock) );
 	BIO* bio = BIO_new_socket( sock_, val_int(close_flag) );
 	return alloc_abstract( k_bio, bio );
@@ -190,7 +190,7 @@ static value ssl_accept( value ssl, value sock ) {
 	int r, _sock;
 	SSL *_ssl;
 	val_check_kind(ssl,k_ssl);
-	//val_check_kind(sock,k_socket); // TODO
+	val_check_kind(sock,k_socket);
 	_ssl = val_ssl( ssl );
 	_sock = ((int_val) val_data(sock) );
 	if( !SSL_set_fd( _ssl, _sock ) )
@@ -830,6 +830,7 @@ end:
 void ssl_main() {
 	SSL_library_init();
 	SSL_load_error_strings();
+	k_socket = kind_lookup("socket");
 }
 
 DEFINE_PRIM( bio_noclose, 0 );
