@@ -207,7 +207,7 @@ static value ssl_get_peer_certificate( value ssl ){
 	X509 *cert;
 	val_check_kind(ssl,k_ssl);
 	cert = SSL_get_peer_certificate(val_ssl(ssl));
-	return alloc_abstract( k_x509, cert );
+	return cert ? alloc_abstract( k_x509, cert ) : val_null;
 }
 
 // HostnameValidation based on https://github.com/iSECPartners/ssl-conservatory
@@ -287,15 +287,14 @@ static HostnameValidationResult matches_common_name(const X509 *server_cert, con
 	return match_hostname(X509_NAME_ENTRY_get_data(cn_entry), hostname);
 }
 
-static value ssl_validate_hostname( value ssl, value hostname ){
+static value x509_validate_hostname( value cert, value hostname ){
 	X509 *server_cert;
 	const char *name;
 	HostnameValidationResult result;
-	val_check_kind(ssl,k_ssl);
+	val_check_kind(cert,k_x509);
 	val_check(hostname,string);
 	name = val_string(hostname);
-	server_cert = SSL_get_peer_certificate(val_ssl(ssl));
-
+	server_cert = val_x509(cert);
 	if( server_cert == NULL )
 		neko_error();
 
@@ -308,10 +307,10 @@ static value ssl_validate_hostname( value ssl, value hostname ){
 
 	switch( result ){
 		case MatchNotFound:
-			val_throw(alloc_string("MatchNotFound"));
+			return val_false;
 			break;
 		case MalformedCertificate:
-			val_throw(alloc_string("MalformedCertificate"));
+			return val_false;
 			break;
 	}
 
@@ -840,7 +839,6 @@ DEFINE_PRIM( ssl_set_bio, 3 );
 DEFINE_PRIM( ssl_set_hostname, 2 );
 DEFINE_PRIM( ssl_accept, 2 );
 DEFINE_PRIM( ssl_get_peer_certificate, 1 );
-DEFINE_PRIM( ssl_validate_hostname, 2 );
 
 DEFINE_PRIM( ssl_send_char, 2 );
 DEFINE_PRIM( ssl_send, 4 );
@@ -865,6 +863,7 @@ DEFINE_PRIM( x509_get_commonname, 1 );
 DEFINE_PRIM( x509_get_altnames, 1);
 DEFINE_PRIM( x509_cmp_notbefore, 2 );
 DEFINE_PRIM( x509_cmp_notafter, 2 );
+DEFINE_PRIM( x509_validate_hostname, 2 );
 
 DEFINE_PRIM( key_from_pem, 3 );
 DEFINE_PRIM( key_from_der, 2 );
