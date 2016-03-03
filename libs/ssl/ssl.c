@@ -187,16 +187,11 @@ static value ssl_set_hostname( value ssl, value hostname ){
 	return val_true;
 }
 
-static value ssl_accept( value ssl, value sock ) {
-	int r, _sock;
+static value ssl_accept( value ssl ) {
+	int r;
 	SSL *_ssl;
-	if( !k_socket ) k_socket = kind_lookup("socket");
 	val_check_kind(ssl,k_ssl);
-	val_check_kind(sock,k_socket);
 	_ssl = val_ssl( ssl );
-	_sock = ((int_val) val_data(sock) );
-	if( !SSL_set_fd( _ssl, _sock ) )
-	    neko_error();
 	r = SSL_accept( _ssl );
 	if( r < 0 )
 	    ssl_error(_ssl,r);
@@ -512,11 +507,13 @@ static value ctx_load_verify_locations( value ctx, value certFile, value certFol
 	return val_true;
 }
 
-static value  ctx_set_verify( value ctx ) {
-	SSL_CTX *_ctx;
-	val_check_kind(ctx,k_ssl_ctx);
-	_ctx = val_ctx(ctx);
-	SSL_CTX_set_verify( _ctx, SSL_VERIFY_PEER, NULL );
+static value ctx_set_verify( value ctx, value b ) {
+	val_check_kind(ctx, k_ssl_ctx);
+	val_check(b, bool);
+	if (val_bool(b))
+		SSL_CTX_set_verify(val_ctx(ctx), SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
+	else
+		SSL_CTX_set_verify(val_ctx(ctx), SSL_VERIFY_NONE, NULL);
 	return val_true;
 }
 
@@ -837,7 +834,7 @@ DEFINE_PRIM( ssl_shutdown, 1 );
 DEFINE_PRIM( ssl_free, 1 );
 DEFINE_PRIM( ssl_set_bio, 3 );
 DEFINE_PRIM( ssl_set_hostname, 2 );
-DEFINE_PRIM( ssl_accept, 2 );
+DEFINE_PRIM( ssl_accept, 1 );
 DEFINE_PRIM( ssl_get_peer_certificate, 1 );
 
 DEFINE_PRIM( ssl_send_char, 2 );
@@ -853,7 +850,7 @@ DEFINE_PRIM( ctx_set_cipher_list, 3 );
 DEFINE_PRIM( ctx_set_ecdh, 1 );
 DEFINE_PRIM( ctx_set_dhfile, 2 );
 DEFINE_PRIM( ctx_load_verify_locations, 3 );
-DEFINE_PRIM( ctx_set_verify, 1 );
+DEFINE_PRIM( ctx_set_verify, 2 );
 DEFINE_PRIM( ctx_use_certificate_file, 3 );
 DEFINE_PRIM( ctx_set_session_id_context, 2 );
 DEFINE_PRIM( ctx_set_servername_callback, 2 );
