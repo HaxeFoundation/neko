@@ -586,18 +586,46 @@ static value x509_load_file(value file){
 	return v;
 }
 
-static value x509_get_commonname( value cert ){
+static value x509_get_subject( value cert, value objname ){
 	int loc = -1;
 	X509_NAME *subject;
+	ASN1_OBJECT *obj;
 	const char *str;
 	val_check_kind(cert,k_x509);
+	val_check(objname, string);
+	obj = OBJ_txt2obj(val_string(objname), 0);
+	if (!obj)
+		neko_error();
 	subject = X509_get_subject_name(val_x509(cert));
-	loc = X509_NAME_get_index_by_NID(subject, NID_commonName, -1);
+	if (!subject)
+		return val_null;
+	loc = X509_NAME_get_index_by_OBJ(subject, obj, -1);
 	if (loc < 0)
 		return val_null;
 	str = ASN1_STRING_data(X509_NAME_ENTRY_get_data(X509_NAME_get_entry(subject, loc)));
 	return alloc_string(str);
 }
+
+static value x509_get_issuer(value cert, value objname){
+	int loc = -1;
+	X509_NAME *issuer;
+	ASN1_OBJECT *obj;
+	const char *str;
+	val_check_kind(cert, k_x509);
+	val_check(objname, string);
+	obj = OBJ_txt2obj(val_string(objname), 0);
+	if (!obj)
+		neko_error();
+	issuer = X509_get_issuer_name(val_x509(cert));
+	if (!issuer)
+		return val_null;
+	loc = X509_NAME_get_index_by_OBJ(issuer, obj, -1);
+	if (loc < 0)
+		return val_null;
+	str = ASN1_STRING_data(X509_NAME_ENTRY_get_data(X509_NAME_get_entry(issuer, loc)));
+	return alloc_string(str);
+}
+
 
 static value x509_get_altnames( value cert ){
 	int i, nb = -1;
@@ -856,8 +884,9 @@ DEFINE_PRIM( ctx_set_session_id_context, 2 );
 DEFINE_PRIM( ctx_set_servername_callback, 2 );
 
 DEFINE_PRIM( x509_load_file, 1 );
-DEFINE_PRIM( x509_get_commonname, 1 );
-DEFINE_PRIM( x509_get_altnames, 1);
+DEFINE_PRIM( x509_get_subject, 2 );
+DEFINE_PRIM( x509_get_issuer, 2 );
+DEFINE_PRIM( x509_get_altnames, 1 );
 DEFINE_PRIM( x509_cmp_notbefore, 2 );
 DEFINE_PRIM( x509_cmp_notafter, 2 );
 DEFINE_PRIM( x509_validate_hostname, 2 );
