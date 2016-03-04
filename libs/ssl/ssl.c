@@ -148,6 +148,7 @@ static value ssl_new( value ctx ) {
 static value ssl_close( value ssl ) {
 	val_check_kind(ssl,k_ssl);
 	SSL_free( val_ssl(ssl) );
+	val_kind(ssl) = NULL;
 	return val_true;
 }
 
@@ -431,6 +432,7 @@ static value ctx_new( value m ) {
 static value ctx_close( value ctx ) {
 	val_check_kind(ctx,k_ssl_ctx);
 	SSL_CTX_free( val_ctx(ctx) );
+	val_kind(ctx) = NULL;
 	return val_true;
 }
 
