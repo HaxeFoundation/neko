@@ -228,7 +228,7 @@ static HostnameValidationResult match_hostname( const ASN1_STRING *asn1, const c
 		pattern_end = strchr(pattern, '.');
 		if( pattern_end == NULL || strchr(pattern_end+1,'.') == NULL || wildcard > pattern_end || strncasecmp(pattern,"xn--",4)==0 )
 			return MatchNotFound;
-		hostname_end = strchr((char *)hostname, '.');
+		hostname_end = strchr(hostname, '.');
 		if( hostname_end == NULL || strcasecmp(pattern_end, hostname_end) != 0 )
 			return MatchNotFound;
 		if( hostname_end-hostname < pattern_end-pattern )
@@ -307,6 +307,8 @@ static value x509_validate_hostname( value cert, value hostname ){
 			break;
 		case MalformedCertificate:
 			return val_false;
+			break;
+		default:
 			break;
 	}
 
@@ -604,7 +606,7 @@ static value x509_get_subject( value cert, value objname ){
 	loc = X509_NAME_get_index_by_OBJ(subject, obj, -1);
 	if (loc < 0)
 		return val_null;
-	str = ASN1_STRING_data(X509_NAME_ENTRY_get_data(X509_NAME_get_entry(subject, loc)));
+	str = (char*)ASN1_STRING_data(X509_NAME_ENTRY_get_data(X509_NAME_get_entry(subject, loc)));
 	return alloc_string(str);
 }
 
@@ -624,7 +626,7 @@ static value x509_get_issuer(value cert, value objname){
 	loc = X509_NAME_get_index_by_OBJ(issuer, obj, -1);
 	if (loc < 0)
 		return val_null;
-	str = ASN1_STRING_data(X509_NAME_ENTRY_get_data(X509_NAME_get_entry(issuer, loc)));
+	str = (char *)ASN1_STRING_data(X509_NAME_ENTRY_get_data(X509_NAME_get_entry(issuer, loc)));
 	return alloc_string(str);
 }
 
@@ -644,7 +646,7 @@ static value x509_get_altnames( value cert ){
 		const GENERAL_NAME *cur = sk_GENERAL_NAME_value(san_names, i);
 		if (cur->type == GEN_DNS){
 			value l2 = alloc_array(2);
-			val_array_ptr(l2)[0] = alloc_string(ASN1_STRING_data(cur->d.dNSName));
+			val_array_ptr(l2)[0] = alloc_string((char*)ASN1_STRING_data(cur->d.dNSName));
 			val_array_ptr(l2)[1] = val_null;
 			if (first == NULL)
 				first = l2;
@@ -771,7 +773,7 @@ static value dgst_sign(value data, value key, value alg){
 
 	BIO_get_md_ctx(bmd, &ctx);
 	len = bufsize;
-	if (EVP_DigestSignFinal(ctx, buf, &len)){
+	if (EVP_DigestSignFinal(ctx, (unsigned char *)buf, &len)){
 		success = true;
 		buf[len] = 0;
 		val_set_size(out, len);
@@ -830,7 +832,7 @@ static value dgst_verify( value data, value sign, value key, value alg ){
 	}
 
 	BIO_get_md_ctx(bmd, &ctx);
-	result = EVP_DigestVerifyFinal(ctx, val_string(sign), val_strlen(sign));
+	result = EVP_DigestVerifyFinal(ctx, (unsigned char*)val_string(sign), val_strlen(sign));
 
 end:
 	if (in != NULL)
