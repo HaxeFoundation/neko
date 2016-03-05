@@ -19,7 +19,7 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
- 
+
 // PRIMITIVES
 
 system = $loader.loadprim("std@sys_string",0)();
@@ -184,6 +184,7 @@ includes = $array(
 );
 
 search_includes = $array(
+    "/usr/local/opt/openssl/include",
 	"/usr/include",
 	"/usr/local/include/mysql",
 	"/usr/include/mysql",
