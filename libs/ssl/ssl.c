@@ -40,7 +40,6 @@ typedef int SOCKET;
 #define val_ctx(o)	(SSL_CTX*)val_data(o)
 #define val_x509(o) (X509*)val_data(o)
 #define val_pkey(o) (EVP_PKEY*)val_data(o)
-#define alloc_null() val_null;
 
 DEFINE_KIND( k_ssl_method );
 DEFINE_KIND( k_ssl_ctx );
@@ -741,7 +740,7 @@ static value dgst_sign(value data, value key, value alg){
 	bool success = false;
 	int i;
 	value out;
-	char *buf;	
+	char *buf;
 	val_check(data, string);
 	val_check_kind(key, k_pkey);
 	val_check(alg, string);
@@ -755,16 +754,16 @@ static value dgst_sign(value data, value key, value alg){
 	bmd = BIO_new(BIO_f_md());
 	if( bmd == NULL )
 		goto end;
-	if (!BIO_get_md_ctx(bmd, &mctx)) 
+	if (!BIO_get_md_ctx(bmd, &mctx))
 		goto end;
 	sigkey = val_pkey(key);
 	if ( !EVP_DigestSignInit(mctx, NULL, md, NULL, sigkey) )
 		goto end;
 	bmd = BIO_push(bmd, in);
 	out = alloc_empty_string(bufsize);
-	buf = val_string(out);
+	buf = (char *)val_string(out);
 	for (;;) {
-		i = BIO_read(bmd, (char *)buf, bufsize);
+		i = BIO_read(bmd, buf, bufsize);
 		if (i < 0)
 			goto end;
 		if (i == 0)
@@ -798,7 +797,7 @@ static value dgst_verify( value data, value sign, value key, value alg ){
 	EVP_MD_CTX *ctx;
 	EVP_PKEY *sigkey = NULL;
 	size_t bufsize = 1024 * 8;
-	bool result = -1;
+	int result = -1;
 	int i;
 	char *buf;
 	val_check(data, string);
@@ -822,9 +821,9 @@ static value dgst_verify( value data, value sign, value key, value alg ){
 		goto end;
 
 	bmd = BIO_push(bmd, in);
-	buf = malloc( bufsize );
+	buf = (char *)malloc( bufsize );
 	for (;;) {
-		i = BIO_read(bmd, (char *)buf, bufsize);
+		i = BIO_read(bmd, buf, bufsize);
 		if (i < 0)
 			goto end;
 		if (i == 0)
