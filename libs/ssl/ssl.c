@@ -121,10 +121,10 @@ static value bio_noclose() {
 }
 
 static value bio_new_socket( value sock, value close_flag ) {
+	BIO* bio;
 	if( !k_socket ) k_socket = kind_lookup("socket");
 	val_check_kind(sock, k_socket);
-	int sock_ = ((int_val) val_data(sock) );
-	BIO* bio = BIO_new_socket( sock_, val_int(close_flag) );
+	bio = BIO_new_socket( ((int_val) val_data(sock)), val_int(close_flag) );
 	return alloc_abstract( k_bio, bio );
 }
 
