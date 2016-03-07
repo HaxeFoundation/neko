@@ -96,6 +96,9 @@ set_target_properties(std.ndll
 project(zlib.ndll)
 
 find_package(ZLIB REQUIRED)
+if(NOT ZLIB_FOUND)
+	pkg_check_modules(ZLIB REQUIRED zlib)
+endif(NOT ZLIB_FOUND)
 
 set(zlib.ndll_SRC
 	libs/zlib/zlib.c
@@ -117,7 +120,10 @@ set_target_properties(zlib.ndll
 
 project(mysql.ndll)
 
-pkg_check_modules(MYSQL REQUIRED mysqlclient)
+pkg_check_modules(MYSQL REQUIRED mariadb)
+if(NOT MYSQL_FOUND)
+	pkg_check_modules(MYSQL REQUIRED mysqlclient)
+endif(NOT MYSQL_FOUND)
 
 set(mysql.ndll_SRC
 	libs/mysql/mysql.c
