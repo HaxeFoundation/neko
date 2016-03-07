@@ -25,6 +25,7 @@ Release5
 *.o
 *.so
 *.so.*
+*.dylib
 *~
 *.bak
 *.ilk
@@ -32,3 +33,11 @@ Release5
 ipch
 *_sec.gpg
 *_ssh
+
+# cmake
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+cmake_install.cmake
+install_manifest.txt
+build
