@@ -125,6 +125,17 @@ if(NOT MYSQL_FOUND)
 	pkg_check_modules(MYSQL REQUIRED mysqlclient)
 endif(NOT MYSQL_FOUND)
 
+add_library(mysql_static STATIC IMPORTED)
+set_target_properties(mysql_static
+	PROPERTIES
+	IMPORTED_LOCATION ${MYSQL_LIBRARY_DIRS}/libmysqlclient_r.a
+)
+
+find_package(OPENSSL REQUIRED)
+if(NOT OPENSSL_FOUND)
+	pkg_check_modules(OPENSSL REQUIRED openssl)
+endif(NOT OPENSSL_FOUND)
+
 set(mysql.ndll_SRC
 	libs/mysql/mysql.c
 )
@@ -136,7 +147,7 @@ target_include_directories(mysql.ndll
 	${MYSQL_INCLUDE_DIRS}
 )
 
-target_link_libraries(mysql.ndll libneko ${MYSQL_LIBRARIES})
+target_link_libraries(mysql.ndll libneko mysql_static ${OPENSSL_LIBRARIES})
 
 set_target_properties(mysql.ndll
 	PROPERTIES
@@ -310,8 +321,11 @@ set_target_properties(mod_tora.ndll
 	SUFFIX .ndll
 )
 
+
+#######################
+
 if(APPLE)
-	set_target_properties(mod_tora.ndll
+	set_target_properties(mod_tora.ndll mysql.ndll
 		PROPERTIES
 		LINK_FLAGS "-undefined dynamic_lookup ${LINK_FLAGS}"
 	)
