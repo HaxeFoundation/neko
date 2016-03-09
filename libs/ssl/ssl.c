@@ -256,7 +256,7 @@ static  value ssl_read( value ssl ) {
 		}
 		if( len == 0 )
 			break;
-		buffer_append_sub(b,buf,len);
+		buffer_append_sub(b,(const char *)buf,len);
 	}
 	return buffer_to_string(b);
 }
@@ -558,7 +558,7 @@ static value dgst_sign(value data, value key, value alg){
 		return val_null;
 	}
 
-	if( r = mbedtls_md( md, (const unsigned char *)val_string(data), val_strlen(data), hash ) != 0 )
+	if( (r = mbedtls_md( md, (const unsigned char *)val_string(data), val_strlen(data), hash )) != 0 )
 		return ssl_error(r);
 
 	out = alloc_empty_string(MBEDTLS_MPI_MAX_SIZE);
