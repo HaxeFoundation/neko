@@ -98,7 +98,7 @@ libs = {
 		src => $array("ssl"),
 		inc => $array("mbedtls/error.h", "mbedtls/entropy.h", "mbedtls/ctr_drbg.h","mbedtls/md.h","mbedtls/pk.h","mbedtls/oid.h","mbedtls/x509_crt.h","mbedtls/ssl.h","mbedtls/net.h"),
 		incname => "mbedTLS",
-		lparams => "-lmbedtls",
+		lparams => "-lmbedtls -lmbedx509 -lmbedcrypto",
 	},
 }
 
