@@ -26,7 +26,7 @@ install:
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
         brew tap homebrew/dupes;
         brew update;
-        brew install bdw-gc pcre openssl zlib mariadb;
+        brew install bdw-gc pcre openssl zlib mariadb mbedtls;
         brew link zlib --force;
     fi
 
