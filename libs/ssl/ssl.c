@@ -47,13 +47,11 @@ static mbedtls_ctr_drbg_context ctr_drbg;
 static void free_cert( value v ){
 	mbedtls_x509_crt *x = val_cert(v);
 	mbedtls_x509_crt_free(x);
-	free(x);
 }
 
 static void free_pkey( value v ){
 	mbedtls_pk_context *k = val_pkey(v);
 	mbedtls_pk_free(k);
-	free(k);
 }
 
 static value block_error() {
@@ -79,11 +77,10 @@ static value ssl_new( value config ) {
 	int ret;
 	mbedtls_ssl_context *ssl;
 	val_check_kind(config,k_ssl_conf);
-	ssl = (mbedtls_ssl_context *)malloc(sizeof(mbedtls_ssl_context));
+	ssl = (mbedtls_ssl_context *)alloc(sizeof(mbedtls_ssl_context));
 	mbedtls_ssl_init(ssl);
-	if( ret = mbedtls_ssl_setup(ssl, val_conf(config)) != 0 ){
+	if( (ret = mbedtls_ssl_setup(ssl, val_conf(config))) != 0 ){
 		mbedtls_ssl_free(ssl);
-		free(ssl);
 		return ssl_error(ret);
 	}
 	return alloc_abstract( k_ssl, ssl );
@@ -94,7 +91,6 @@ static value ssl_close( value ssl ) {
 	val_check_kind(ssl,k_ssl);
 	s = val_ssl(ssl);
 	mbedtls_ssl_free( s );
-	free(s);
 	val_kind(ssl) = NULL;
 	return val_true;
 }
@@ -129,7 +125,7 @@ static value ssl_set_hostname( value ssl, value hostname ){
 	int ret;
 	val_check_kind(ssl,k_ssl);
 	val_check(hostname,string);
-	if( ret = mbedtls_ssl_set_hostname(val_ssl(ssl), val_string(hostname)) != 0 )
+	if( (ret = mbedtls_ssl_set_hostname(val_ssl(ssl), val_string(hostname))) != 0 )
 		return ssl_error(ret);
 	return val_true;
 }
@@ -269,12 +265,11 @@ static value conf_new( value server ) {
 	int ret;
 	mbedtls_ssl_config *conf;
 	val_check(server,bool);
-	conf = (mbedtls_ssl_config *)malloc(sizeof(mbedtls_ssl_config));
+	conf = (mbedtls_ssl_config *)alloc(sizeof(mbedtls_ssl_config));
 	mbedtls_ssl_config_init(conf);
-	if( ret = mbedtls_ssl_config_defaults( conf, val_bool(server) ? MBEDTLS_SSL_IS_SERVER : MBEDTLS_SSL_IS_CLIENT,
-		MBEDTLS_SSL_TRANSPORT_STREAM, 0 ) != 0 ){
+	if( (ret = mbedtls_ssl_config_defaults( conf, val_bool(server) ? MBEDTLS_SSL_IS_SERVER : MBEDTLS_SSL_IS_CLIENT,
+		MBEDTLS_SSL_TRANSPORT_STREAM, 0 )) != 0 ){
 		mbedtls_ssl_config_free(conf);
-		free(conf);
 		return ssl_error( ret );
 	}
 	mbedtls_ssl_conf_rng( conf, mbedtls_ctr_drbg_random, &ctr_drbg );
@@ -286,7 +281,6 @@ static value conf_close( value config ) {
 	val_check_kind(config,k_ssl_conf);
 	conf = val_conf(config);
 	mbedtls_ssl_config_free(conf);
-	free(conf);
 	val_kind(config) = NULL;
 	return val_true;
 }
@@ -316,7 +310,7 @@ static value conf_set_cert( value config, value cert, value key ) {
 	val_check_kind(cert,k_cert);
 	val_check_kind(key,k_pkey);
 
-	if( r = mbedtls_ssl_conf_own_cert(val_conf(config), val_cert(cert), val_pkey(key)) != 0 )
+	if( (r = mbedtls_ssl_conf_own_cert(val_conf(config), val_cert(cert), val_pkey(key))) != 0 )
 		return ssl_error(r);
 
 	return val_true;
@@ -345,10 +339,9 @@ static value cert_load_file(value file){
 	mbedtls_x509_crt *x;
 	value v;
 	val_check(file,string);
-	x = (mbedtls_x509_crt *)malloc(sizeof(mbedtls_x509_crt));
+	x = (mbedtls_x509_crt *)alloc(sizeof(mbedtls_x509_crt));
 	mbedtls_x509_crt_init( x );
-	if( r = mbedtls_x509_crt_parse_file(x, val_string(file)) != 0 ){
-		free(x);
+	if( (r = mbedtls_x509_crt_parse_file(x, val_string(file))) != 0 ){
 		return ssl_error(r);
 	}
 	v = alloc_abstract(k_cert, x);
@@ -361,10 +354,9 @@ static value cert_load_path(value path){
 	mbedtls_x509_crt *x;
 	value v;
 	val_check(path,string);
-	x = (mbedtls_x509_crt *)malloc(sizeof(mbedtls_x509_crt));
+	x = (mbedtls_x509_crt *)alloc(sizeof(mbedtls_x509_crt));
 	mbedtls_x509_crt_init( x );
-	if( r = mbedtls_x509_crt_parse_path(x, val_string(path)) != 0 ){
-		free(x);
+	if( (r = mbedtls_x509_crt_parse_path(x, val_string(path))) != 0 ){
 		return ssl_error(r);
 	}
 	v = alloc_abstract(k_cert, x);
@@ -505,7 +497,7 @@ static value key_from_der( value data, value pub ){
 	value v;
 	val_check(data, string);
 	val_check(pub, bool);
-	pk = (mbedtls_pk_context *)malloc(sizeof(mbedtls_pk_context));
+	pk = (mbedtls_pk_context *)alloc(sizeof(mbedtls_pk_context));
 	mbedtls_pk_init(pk);
 	if( val_bool(pub) )
 		r = mbedtls_pk_parse_public_key( pk, (const unsigned char*)val_string(data), val_strlen(data) );
@@ -513,7 +505,6 @@ static value key_from_der( value data, value pub ){
 		r = mbedtls_pk_parse_key( pk, (const unsigned char*)val_string(data), val_strlen(data), NULL, 0 );
 	if( r != 0 ){
 		mbedtls_pk_free(pk);
-		free(pk);
 		return ssl_error(r);
 	}
 	v = alloc_abstract(k_pkey, pk);
@@ -530,10 +521,10 @@ static value key_from_pem(value data, value pub, value pass){
 	val_check(pub, bool);
 	if (!val_is_null(pass)) val_check(pass, string);
 	len = val_strlen(data)+1;
-	buf = (unsigned char *)malloc(len);
+	buf = (unsigned char *)alloc(len);
 	memcpy(buf, val_string(data), len-1);
 	buf[len-1] = '\0';
-	pk = (mbedtls_pk_context *)malloc(sizeof(mbedtls_pk_context));
+	pk = (mbedtls_pk_context *)alloc(sizeof(mbedtls_pk_context));
 	mbedtls_pk_init(pk);
 	if( val_bool(pub) )
 		r = mbedtls_pk_parse_public_key( pk, buf, len );
@@ -541,10 +532,8 @@ static value key_from_pem(value data, value pub, value pass){
 		r = mbedtls_pk_parse_key( pk, buf, len, NULL, 0 );
 	else
 		r = mbedtls_pk_parse_key( pk, buf, len, (const unsigned char*)val_string(pass), val_strlen(pass) );
-	free(buf);
 	if( r != 0 ){
 		mbedtls_pk_free(pk);
-		free(pk);
 		return ssl_error(r);
 	}
 	v = alloc_abstract(k_pkey,pk);
@@ -574,7 +563,7 @@ static value dgst_sign(value data, value key, value alg){
 
 	out = alloc_empty_string(MBEDTLS_MPI_MAX_SIZE);
 	buf = (unsigned char *)val_string(out);
-	if( r = mbedtls_pk_sign( val_pkey(key), mbedtls_md_get_type(md), hash, 0, buf, &olen, mbedtls_ctr_drbg_random, &ctr_drbg ) != 0 )
+	if( (r = mbedtls_pk_sign( val_pkey(key), mbedtls_md_get_type(md), hash, 0, buf, &olen, mbedtls_ctr_drbg_random, &ctr_drbg )) != 0 )
 		return ssl_error(r);
 
 	buf[olen] = 0;
@@ -598,10 +587,10 @@ static value dgst_verify( value data, value sign, value key, value alg ){
 		return val_null;
 	}
 
-	if( r = mbedtls_md( md, (const unsigned char *)val_string(data), val_strlen(data), hash ) != 0 )
+	if( (r = mbedtls_md( md, (const unsigned char *)val_string(data), val_strlen(data), hash )) != 0 )
 		return ssl_error(r);
 
-	if( r = mbedtls_pk_verify( val_pkey(key), mbedtls_md_get_type(md), hash, 0, (unsigned char *)val_string(sign), val_strlen(sign) ) != 0 )
+	if( (r = mbedtls_pk_verify( val_pkey(key), mbedtls_md_get_type(md), hash, 0, (unsigned char *)val_string(sign), val_strlen(sign) )) != 0 )
 		return val_false;
 
 	return val_true;
