@@ -14,8 +14,6 @@
 typedef int SOCKET;
 #endif
 
-typedef size_t socket_int;
-
 #define SOCKET_ERROR (-1)
 #define NRETRYS	20
 
@@ -105,11 +103,11 @@ static value ssl_handshake( value ssl ) {
 }
 
 int net_read( void *fd, unsigned char *buf, size_t len ){
-	return recv((SOCKET)fd, (char *)buf, len, 0);
+	return recv((SOCKET)(int_val)fd, (char *)buf, len, 0);
 }
 
 int net_write( void *fd, const unsigned char *buf, size_t len ){
-	return send((SOCKET)fd, (char *)buf, len, 0);
+	return send((SOCKET)(int_val)fd, (char *)buf, len, 0);
 }
 
 static value ssl_set_socket( value ssl, value socket ) {
