@@ -96,8 +96,12 @@ static value ssl_close( value ssl ) {
 static value ssl_handshake( value ssl ) {
 	int r;
 	val_check_kind(ssl,k_ssl);
+	POSIX_LABEL(handshake_again);
 	r = mbedtls_ssl_handshake( val_ssl(ssl) );
-	if( r != 0 )
+	if( r == SOCKET_ERROR ) {
+		HANDLE_EINTR(handshake_again);
+		return block_error();
+	}else if( r != 0 )
 		return ssl_error(r);
 	return val_true;
 }
