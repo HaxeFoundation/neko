@@ -539,6 +539,26 @@ static value key_from_pem(value data, value pub, value pass){
 	return v;
 }
 
+static value dgst_make(value data, value alg){
+	const mbedtls_md_info_t *md;
+	int r = -1;
+	value out;
+	val_check(data, string);
+	val_check(alg, string);
+
+	md = mbedtls_md_info_from_string(val_string(alg));
+	if( md == NULL ){
+		val_throw(alloc_string("Invalid hash algorithm"));
+		return val_null;
+	}
+	
+	out = alloc_empty_string( mbedtls_md_get_size(md) );
+	if( (r = mbedtls_md( md, (const unsigned char *)val_string(data), val_strlen(data), (unsigned char *)val_string(out) )) != 0 )
+		return ssl_error(r);
+
+	return out;
+}
+
 static value dgst_sign(value data, value key, value alg){
 	const mbedtls_md_info_t *md;
 	int r = -1;
@@ -635,6 +655,7 @@ DEFINE_PRIM( cert_get_next, 1 );
 DEFINE_PRIM( key_from_pem, 3 );
 DEFINE_PRIM( key_from_der, 2 );
 
+DEFINE_PRIM( dgst_make, 2 );
 DEFINE_PRIM( dgst_sign, 3 );
 DEFINE_PRIM( dgst_verify, 4 );
 

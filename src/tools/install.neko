@@ -53,7 +53,7 @@ libs = {
 		src => $array("mysql"),
 		inc => "mysql.h",
 		incname => "MySQL 4.+"
-		lib => "libmysqlclient_r.a",
+		lib => $array("libmysqlclient_r.a"),
 		lparams => "-lz -lssl"
 	},
 	mysql5 => {
@@ -98,7 +98,7 @@ libs = {
 		src => $array("ssl"),
 		inc => $array("mbedtls/error.h", "mbedtls/entropy.h", "mbedtls/ctr_drbg.h","mbedtls/md.h","mbedtls/pk.h","mbedtls/oid.h","mbedtls/x509_crt.h","mbedtls/ssl.h","mbedtls/net.h"),
 		incname => "mbedTLS",
-		lparams => "-lmbedtls -lmbedx509 -lmbedcrypto",
+		lib => $array("libmbedtls.a","libmbedx509.a","libmbedcrypto.a"),
 	},
 }
 
@@ -122,9 +122,9 @@ while( i < $asize($loader.args) ) {
 
 		"-static" => {
 			libs.regexp.lparams = null;
-			libs.regexp.lib = "libpcre.a";
+			libs.regexp.lib = $array("libpcre.a");
 			libs.zlib.lparams = null;
-			libs.zlib.lib = "libz.a";
+			libs.zlib.lib = $array("libz.a");
 		}
 
 		"-nolibs" =>
@@ -386,23 +386,25 @@ compile_lib = function(name,data) {
 		dirs = append(dirs,dir);
 		i += 1;
 	}
-	var linklib = data.lib;
+	var linklib = "";
 	var dir = "";
-	if( linklib == null )
-		linklib = "";
-	else {
-		while( (dir = find_file(linklib,libraries)) == null ) {
-			if( silent ) {
-				$print("The file "+linklib+" not found, skipping "+data.incname+" library compilation\n");
-				return;
+	if( data.lib != null ){
+		var i = 0;
+		while( i < $asize(data.lib) ){
+			while( (dir = find_file(data.lib[i],libraries)) == null ) {
+				if( silent ) {
+					$print("The file "+data.lib[i]+" not found, skipping "+data.incname+" library compilation\n");
+					return;
+				}
+				$print("The file "+linklib+" provided when installing "+data.incname+" was not found\n");
+				$print("Please enter a valid include path to look for it\n");
+				$print("Or 's' to skip this library\n");
+				if( $not(request_lib()) )
+					return;
 			}
-			$print("The file "+linklib+" provided when installing "+data.incname+" was not found\n");
-			$print("Please enter a valid include path to look for it\n");
-			$print("Or 's' to skip this library\n");
-			if( $not(request_lib()) )
-				return;
+			linklib += " "+dir + "/" + data.lib[i];
+			i = i + 1;
 		}
-		linklib = dir + "/" + linklib;
 	}
 	var i = 0;
 	var dir = data.realdir;
