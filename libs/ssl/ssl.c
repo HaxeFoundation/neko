@@ -8,6 +8,7 @@
 
 #ifdef _MSC_VER
 #include <winsock2.h>
+#include <wincrypt.h>
 #else
 #include <sys/socket.h>
 #include <strings.h>
@@ -366,6 +367,27 @@ static value cert_load_path(value path){
 	return v;
 }
 
+static value cert_load_defaults(){
+#ifdef NEKO_WINDOWS
+	value v;
+	HCERTSTORE store;
+	PCCERT_CONTEXT cert;
+	mbedtls_x509_crt *chain = (mbedtls_x509_crt *)alloc(sizeof(mbedtls_x509_crt));
+	mbedtls_x509_crt_init( chain );
+	if( store = CertOpenSystemStore(0, (LPCSTR)"Root") ){
+		cert = NULL;
+		while( cert = CertEnumCertificatesInStore(store, cert) )
+			mbedtls_x509_crt_parse_der( chain, (unsigned char *)cert->pbCertEncoded, cert->cbCertEncoded );
+		CertCloseStore(store, 0);
+	}
+	v = alloc_abstract(k_cert, chain);
+	val_gc(v,free_cert);
+	return v;
+#else
+	return val_null;
+#endif
+}
+
 static value asn1_buf_to_string( mbedtls_asn1_buf *dat ){
 	unsigned int i, c;
 	char *b;
@@ -647,6 +669,7 @@ DEFINE_PRIM( conf_set_verify, 2 );
 DEFINE_PRIM( conf_set_cert, 3 );
 DEFINE_PRIM( conf_set_servername_callback, 2 );
 
+DEFINE_PRIM( cert_load_defaults, 0 );
 DEFINE_PRIM( cert_load_file, 1 );
 DEFINE_PRIM( cert_load_path, 1 );
 DEFINE_PRIM( cert_get_subject, 2 );

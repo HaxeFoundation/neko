@@ -92,7 +92,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>../../bin/neko.lib;ws2_32.lib;Advapi32.lib;../include/ssl/mbedTLS.lib</AdditionalDependencies>
+      <AdditionalDependencies>../../bin/neko.lib;ws2_32.lib;Advapi32.lib;Crypt32.lib;../include/ssl/mbedTLS.lib</AdditionalDependencies>
       <OutputFile>../../bin/ssl.ndll</OutputFile>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
