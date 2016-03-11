@@ -23,10 +23,11 @@ install:
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
         sudo apt-get update -qq;
         sudo apt-get install zlib1g-dev libgc-dev -qq;
+        (cd libs/include/ssl/ && wget https://tls.mbed.org/download/mbedtls-2.2.1-apache.tgz && tar xzf mbedtls-2.2.1-apache.tgz && cd mbedtls-2.2.1 && SHARED=1 make lib && sudo make install);
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
         brew tap homebrew/dupes;
         brew update;
-        brew install bdw-gc pcre openssl zlib mariadb;
+        brew install bdw-gc pcre openssl zlib mariadb mbedtls;
         brew link zlib --force;
     fi
 
