@@ -99,6 +99,7 @@ libs = {
 		inc => $array("mbedtls/error.h", "mbedtls/entropy.h", "mbedtls/ctr_drbg.h","mbedtls/md.h","mbedtls/pk.h","mbedtls/oid.h","mbedtls/x509_crt.h","mbedtls/ssl.h","mbedtls/net.h"),
 		incname => "mbedTLS",
 		lib => $array("libmbedtls.a","libmbedx509.a","libmbedcrypto.a"),
+		lparams => switch system { "Mac" => "-framework Security" default => null },
 	},
 }
 
