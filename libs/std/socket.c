@@ -24,6 +24,7 @@
 #include <neko_vm.h>
 #ifdef NEKO_WINDOWS
 #	include <winsock2.h>
+#	include <MSTcpIP.h>
 #	define FDSIZE(n)	(sizeof(u_int) + (n) * sizeof(SOCKET))
 #	define SHUT_WR		SD_SEND
 #	define SHUT_RD		SD_RECEIVE
@@ -963,6 +964,57 @@ static value socket_recv_from( value o, value data, value pos, value len, value 
 }
 
 /**
+	socket_set_keepalive : 'socket -> bool -> time:int? -> interval:int? -> void
+	<doc>
+	Enable or disable TCP_KEEPALIVE flag for the socket
+	</doc>
+**/
+static value socket_set_keepalive( value o, value b, value time, value interval ) {
+	int val;
+	SOCKET s;
+	val_check_kind(o,k_socket);
+	val_check(b,bool);
+	if( !val_is_null(time) || !val_is_null(interval) ){
+		val_check(time,int);
+		val_check(interval,int);
+	}
+	s = val_sock(o);
+	if( !val_bool(b) ) {
+		val = 0;
+		if( setsockopt(s, SOL_SOCKET, SO_KEEPALIVE, (void *)&val, sizeof(val)) != 0 )
+			neko_error();
+	} else {
+		val = 1;
+		if( setsockopt(s, SOL_SOCKET, SO_KEEPALIVE, (void *)&val, sizeof(val)) != 0 )
+			neko_error();
+
+		if( !val_is_null(time) && !val_is_null(interval) ) {
+#			if defined(NEKO_WINDOWS)
+			u_long params[3] = { 1, (unsigned long)val_int(time)*1000, (unsigned long)val_int(interval)*1000 };
+			if( WSAIoctl(s, SIO_KEEPALIVE_VALS, &params, sizeof(params), NULL, 0, &val, NULL, NULL) != 0 )
+				neko_error();
+#			else
+#			if defined(TCP_KEEPIDLE)
+			val = val_int(time);
+			if( setsockopt(s, IPPROTO_TCP, TCP_KEEPIDLE, (void *)&val, sizeof(val)) != 0 )
+				neko_error();
+#			elif defined(TCP_KEEPALIVE)
+			val = val_int(time);
+			if( setsockopt(s, IPPROTO_TCP, TCP_KEEPALIVE, (void *)&val, sizeof(val)) != 0 )
+				neko_error();
+#			endif
+#			if defined(TCP_KEEPINTVL)
+			val = val_int(interval);
+			if( setsockopt(s, IPPROTO_TCP, TCP_KEEPINTVL, (void *)&val, sizeof(val)) != 0 )
+				neko_error();
+#			endif
+#			endif
+		}
+	}
+	return val_null;
+}
+
+/**
 	socket_epoll_alloc : void -> 'epoll
 	<doc>
 	Allocate memory for edge/level-triggered polling (epoll).
@@ -1158,6 +1210,8 @@ DEFINE_PRIM(socket_set_fast_send,2);
 
 DEFINE_PRIM(socket_send_to,5);
 DEFINE_PRIM(socket_recv_from,5);
+
+DEFINE_PRIM(socket_set_keepalive,4);
 
 DEFINE_PRIM(socket_poll_alloc,1);
 DEFINE_PRIM(socket_poll,3);
