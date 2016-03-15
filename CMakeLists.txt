@@ -254,70 +254,70 @@ set_target_properties(ui.ndll
 )
 
 ######################
-# mod_neko.ndll
+# mod_neko2.ndll
 
-project(mod_neko.ndll)
+project(mod_neko2.ndll)
 
 find_package(APACHE REQUIRED)
 find_package(APR REQUIRED)
 
-set(mod_neko.ndll_SRC
+set(mod_neko2.ndll_SRC
 	vm/stats.c
 	libs/mod_neko/mod_neko.c
 	libs/mod_neko/cgi.c
 )
 
-add_library(mod_neko.ndll SHARED ${mod_neko.ndll_SRC})
+add_library(mod_neko2.ndll SHARED ${mod_neko2.ndll_SRC})
 
-target_include_directories(mod_neko.ndll
+target_include_directories(mod_neko2.ndll
 	PRIVATE
 	${APACHE_INCLUDE_DIR}
 	${APR_INCLUDE_DIR}
 	${APRUTIL_INCLUDE_DIR}
 )
 
-target_link_libraries(mod_neko.ndll libneko ${APR_LIBRARIES} ${APRUTIL_LIBRARIES})
+target_link_libraries(mod_neko2.ndll libneko ${APR_LIBRARIES} ${APRUTIL_LIBRARIES})
 
-set_target_properties(mod_neko.ndll
+set_target_properties(mod_neko2.ndll
 	PROPERTIES
 	PREFIX ""
-	OUTPUT_NAME mod_neko
+	OUTPUT_NAME mod_neko2
 	SUFFIX .ndll
 )
 
 if(APPLE)
-	set_target_properties(mod_neko.ndll
+	set_target_properties(mod_neko2.ndll
 		PROPERTIES
 		LINK_FLAGS "-undefined dynamic_lookup ${LINK_FLAGS}"
 	)
 endif(APPLE)
 
 ######################
-# mod_tora.ndll
+# mod_tora2.ndll
 
-project(mod_tora.ndll)
+project(mod_tora2.ndll)
 
-set(mod_tora.ndll_SRC
+set(mod_tora2.ndll_SRC
 	libs/common/socket.c
 	libs/mod_tora/protocol.c
 	libs/mod_tora/mod_tora.c
 )
 
-add_library(mod_tora.ndll SHARED ${mod_tora.ndll_SRC})
+add_library(mod_tora2.ndll SHARED ${mod_tora2.ndll_SRC})
 
-target_include_directories(mod_tora.ndll
+target_include_directories(mod_tora2.ndll
 	PRIVATE
 	${APACHE_INCLUDE_DIR}
 	${APR_INCLUDE_DIR}
 	${APRUTIL_INCLUDE_DIR}
 )
 
-target_link_libraries(mod_tora.ndll ${APR_LIBRARIES} ${APRUTIL_LIBRARIES})
+target_link_libraries(mod_tora2.ndll ${APR_LIBRARIES} ${APRUTIL_LIBRARIES})
 
-set_target_properties(mod_tora.ndll
+set_target_properties(mod_tora2.ndll
 	PROPERTIES
 	PREFIX ""
-	OUTPUT_NAME mod_tora
+	OUTPUT_NAME mod_tora2
 	SUFFIX .ndll
 )
 
@@ -325,8 +325,30 @@ set_target_properties(mod_tora.ndll
 #######################
 
 if(APPLE)
-	set_target_properties(mod_tora.ndll mysql.ndll
+	set_target_properties(mod_tora2.ndll mysql.ndll
 		PROPERTIES
 		LINK_FLAGS "-undefined dynamic_lookup ${LINK_FLAGS}"
 	)
 endif(APPLE)
+
+
+#######################
+
+# project(nekoc)
+
+get_target_property(NEKOVM nekovm OUTPUT_NAME)
+
+function(run_neko args)
+	execute_process(COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${NEKOVM} args)
+endfunction()
+
+run_neko(-version)
+
+# function(run_nekoc file)
+# 	execute_process()
+# endfunction()
+
+# function(run_nekoboot file)
+# 	execute_process(COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${NEKOVM} )
+# endfunction()
+
