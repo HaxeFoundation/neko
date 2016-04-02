@@ -563,6 +563,51 @@ static value cert_get_next( value cert ){
 	return v;
 }
 
+static value cert_add_pem( value cert, value data ){
+	mbedtls_x509_crt *crt;
+	int r, len;
+	unsigned char *buf;
+	val_check(data,string);
+	if( !val_is_null(cert) ){
+		val_check_kind(cert,k_cert);
+		crt = val_cert(cert);
+		if( !crt )
+			neko_error();
+	}else{
+		crt = (mbedtls_x509_crt *)alloc(sizeof(mbedtls_x509_crt));
+		mbedtls_x509_crt_init( crt );
+		cert = alloc_abstract(k_cert, crt);
+		val_gc(cert,free_cert);
+	}
+	len = val_strlen(data)+1;
+	buf = (unsigned char *)alloc(len);
+	memcpy(buf, val_string(data), len-1);
+	buf[len-1] = '\0';
+	if( (r = mbedtls_x509_crt_parse(crt, buf, len)) < 0 )
+		return ssl_error(r);
+	return cert;
+}
+
+static value cert_add_der( value cert, value data ){
+	mbedtls_x509_crt *crt;
+	int r;
+	val_check(data,string);
+	if( !val_is_null(cert) ){
+		val_check_kind(cert,k_cert);
+		crt = val_cert(cert);
+		if( !crt )
+			neko_error();
+	}else{
+		crt = (mbedtls_x509_crt *)alloc(sizeof(mbedtls_x509_crt));
+		mbedtls_x509_crt_init( crt );
+		cert = alloc_abstract(k_cert, crt);
+		val_gc(cert,free_cert);
+	}
+	if( (r = mbedtls_x509_crt_parse_der(crt, (const unsigned char*)val_string(data), val_strlen(data))) < 0 )
+		return ssl_error(r);
+	return cert;
+}
+
 static value key_from_der( value data, value pub ){
 	mbedtls_pk_context *pk;
 	int r;
@@ -726,6 +771,8 @@ DEFINE_PRIM( cert_get_altnames, 1 );
 DEFINE_PRIM( cert_get_notbefore, 1 );
 DEFINE_PRIM( cert_get_notafter, 1 );
 DEFINE_PRIM( cert_get_next, 1 );
+DEFINE_PRIM( cert_add_pem, 2 );
+DEFINE_PRIM( cert_add_der, 2 );
 
 DEFINE_PRIM( key_from_pem, 3 );
 DEFINE_PRIM( key_from_der, 2 );
