@@ -43,7 +43,7 @@ mkdir(dir+"/include");
 cmd("cp ../vm/neko.h ../vm/neko_mod.h ../vm/neko_vm.h "+dir+"/include");
 
 if( sys == "win" )
-	cmd("7za a -tzip "+dir+".zip "+dir);
+	cmd("7z a -tzip "+dir+".zip "+dir);
 else
 	cmd("tar -czf "+dir+".tar.gz "+dir);
 cmd("rm -rf "+dir);

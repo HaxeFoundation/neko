@@ -6,9 +6,6 @@ environment:
 platform: Win32
 configuration: Release
 
-install:
-  - cinst 7zip.commandline -y
-
 build_script:
   - set PATH=%PATH%;%APPVEYOR_BUILD_FOLDER%/bin
   - msbuild vm\nekovm.vcxproj     /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
