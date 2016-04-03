@@ -309,6 +309,36 @@ set_target_properties(mod_tora2.ndll
 	SUFFIX .ndll
 )
 
+######################
+# ssl.ndll
+
+if(APPLE)
+   find_library(SECURITY_LIBRARY Security REQUIRED)
+   find_library(COREFOUNDATION_LIBRARY CoreFoundation REQUIRED)
+endif(APPLE)
+
+set(ssl.ndll_SRC
+	libs/ssl/ssl.c
+)
+
+find_package(MBEDTLS REQUIRED)
+
+add_library(ssl.ndll SHARED ${ssl.ndll_SRC})
+
+target_include_directories(ssl.ndll
+	PRIVATE
+	${MBEDTLS_INCLUDE_DIR}
+)
+
+target_link_libraries(ssl.ndll libneko ${COREFOUNDATION_LIBRARY} ${SECURITY_LIBRARY} ${MBEDTLS_LIBRARIES})
+
+set_target_properties(ssl.ndll
+	PROPERTIES
+	PREFIX ""
+	OUTPUT_NAME ssl
+	SUFFIX .ndll
+)
+
 
 #######################
 
