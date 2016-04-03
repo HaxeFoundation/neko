@@ -733,7 +733,46 @@ static value dgst_verify( value data, value sign, value key, value alg ){
 	return val_true;
 }
 
+#if _MSC_VER
+
+static void threading_mutex_init_alt( mbedtls_threading_mutex_t *mutex ){
+	if( mutex == NULL )
+		return;
+	InitializeCriticalSection( &mutex->cs );
+	mutex->is_valid = 1;
+}
+
+static void threading_mutex_free_alt( mbedtls_threading_mutex_t *mutex ){
+    if( mutex == NULL || !mutex->is_valid )
+        return;
+	DeleteCriticalSection( &mutex->cs );
+	mutex->is_valid = 0;
+}
+
+static int threading_mutex_lock_alt( mbedtls_threading_mutex_t *mutex ){
+    if( mutex == NULL || !mutex->is_valid )
+        return( MBEDTLS_ERR_THREADING_BAD_INPUT_DATA );
+
+	EnterCriticalSection( &mutex->cs );
+    return( 0 );
+}
+
+static int threading_mutex_unlock_alt( mbedtls_threading_mutex_t *mutex ){
+    if( mutex == NULL || !mutex->is_valid )
+        return( MBEDTLS_ERR_THREADING_BAD_INPUT_DATA );
+
+    LeaveCriticalSection( &mutex->cs );
+    return( 0 );
+}
+
+#endif
+
 void ssl_main() {
+#if _MSC_VER
+	mbedtls_threading_set_alt( threading_mutex_init_alt, threading_mutex_free_alt, 
+                           threading_mutex_lock_alt, threading_mutex_unlock_alt );
+#endif
+
 	// Init RNG
 	mbedtls_entropy_init( &entropy );
 	mbedtls_ctr_drbg_init( &ctr_drbg );
