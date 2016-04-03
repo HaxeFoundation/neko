@@ -1,17 +1,21 @@
 cmake_minimum_required(VERSION 2.8)
 cmake_policy(SET CMP0042 NEW)
 
+# TODO: support out-of-source builds by modifying the "compilers" target
+if ( NOT ${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR} )
+    message( FATAL_ERROR "Out-of-source builds not allowed. Please run CMake from the project root." )
+endif()
+
 set(CMAKE_OSX_ARCHITECTURES x86_64)
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-project(libneko)
-project(std.ndll)
-project(nekovm)
-
 set(NEKO_VERSION_MAJOR 2)
 set(NEKO_VERSION_MINOR 0)
+set(NEKO_VERSION_PATCH 0)
+
+project(neko)
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GC REQUIRED bdw-gc)
@@ -93,8 +97,6 @@ set_target_properties(std.ndll
 ######################
 # zlib.ndll
 
-project(zlib.ndll)
-
 find_package(ZLIB REQUIRED)
 if(NOT ZLIB_FOUND)
 	pkg_check_modules(ZLIB REQUIRED zlib)
@@ -117,8 +119,6 @@ set_target_properties(zlib.ndll
 
 ######################
 # mysql.ndll
-
-project(mysql.ndll)
 
 pkg_check_modules(MYSQL REQUIRED mariadb)
 if(NOT MYSQL_FOUND)
@@ -159,8 +159,6 @@ set_target_properties(mysql.ndll
 ######################
 # mysql5.ndll
 
-project(mysql5.ndll)
-
 set(mysql5.ndll_SRC
 	libs/common/sha1.c
 	libs/common/socket.c
@@ -188,8 +186,6 @@ set_target_properties(mysql5.ndll
 ######################
 # regexp.ndll
 
-project(regexp.ndll)
-
 pkg_check_modules(PCRE REQUIRED libpcre)
 
 set(regexp.ndll_SRC
@@ -210,8 +206,6 @@ set_target_properties(regexp.ndll
 ######################
 # sqlite.ndll
 
-project(sqlite.ndll)
-
 pkg_check_modules(SQLITE REQUIRED sqlite3)
 
 set(sqlite.ndll_SRC
@@ -231,8 +225,6 @@ set_target_properties(sqlite.ndll
 
 ######################
 # ui.ndll
-
-project(ui.ndll)
 
 if(APPLE)
    find_library(CARBON_LIBRARY Carbon REQUIRED)
@@ -255,8 +247,6 @@ set_target_properties(ui.ndll
 
 ######################
 # mod_neko2.ndll
-
-project(mod_neko2.ndll)
 
 find_package(APACHE REQUIRED)
 find_package(APR REQUIRED)
@@ -295,8 +285,6 @@ endif(APPLE)
 ######################
 # mod_tora2.ndll
 
-project(mod_tora2.ndll)
-
 set(mod_tora2.ndll_SRC
 	libs/common/socket.c
 	libs/mod_tora/protocol.c
@@ -334,21 +322,21 @@ endif(APPLE)
 
 #######################
 
-# project(nekoc)
+get_target_property(NEKOVM_NAME nekovm OUTPUT_NAME)
+set(NEKO_EXEC LD_LIBRARY_PATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}:${LD_LIBRARY_PATH} NEKOPATH=${CMAKE_SOURCE_DIR}/boot:${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${NEKOVM_NAME})
 
-get_target_property(NEKOVM nekovm OUTPUT_NAME)
+add_custom_target(compilers ALL
+	COMMAND ${NEKO_EXEC} nekoml -nostd neko/Main.nml nekoml/Main.nml
+	COMMAND ${NEKO_EXEC} nekoc -link ../boot/nekoc.n neko/Main
+	COMMAND ${NEKO_EXEC} nekoc -link ../boot/nekoml.n nekoml/Main
+	COMMAND ${NEKO_EXEC} nekoc tools/install.neko
+	COMMAND ${NEKO_EXEC} tools/install
+	DEPENDS nekovm std.ndll zlib.ndll
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src
+)
 
-function(run_neko args)
-	execute_process(COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${NEKOVM} args)
-endfunction()
+#######################
 
-run_neko(-version)
-
-# function(run_nekoc file)
-# 	execute_process()
-# endfunction()
-
-# function(run_nekoboot file)
-# 	execute_process(COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${NEKOVM} )
-# endfunction()
-
+add_custom_target(package
+	COMMAND git archive -o ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/neko-${NEKO_VERSION_MAJOR}.${NEKO_VERSION_MINOR}.${NEKO_VERSION_PATCH}.tar.gz HEAD
+)

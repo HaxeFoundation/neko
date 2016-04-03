@@ -23,285 +23,21 @@
 // PRIMITIVES
 
 system = $loader.loadprim("std@sys_string",0)();
-is64 = $loader.loadprim("std@sys_is64",0)();
 chdir = $loader.loadprim("std@set_cwd",1);
 readdir = $loader.loadprim("std@sys_read_dir",1);
-stdin = $loader.loadprim("std@file_stdin",0)();
-read_char = $loader.loadprim("std@file_read_char",1);
-ftype = $loader.loadprim("std@sys_file_type",1);
 command = $loader.loadprim("std@sys_command",1);
 exists = $loader.loadprim("std@sys_exists",1);
 split = $loader.loadprim("std@string_split",2);
 mkdir = $loader.loadprim("std@sys_create_dir",2);
 delete = $loader.loadprim("std@file_delete",1);
 
-buffer_new = $loader.loadprim("std@buffer_new",0);
-buffer_add_char = $loader.loadprim("std@buffer_add_char",2);
-buffer_string = $loader.loadprim("std@buffer_string",1);
-
-// LIBS DATAS
-
-libs = {
-	mod_neko2 => {
-		src => $array("../../vm/stats","mod_neko","cgi"),
-		inc => $array("httpd.h","apr.h"),
-		incname => "Apache 2.2.x",
-		cflags => "-D_LARGEFILE64_SOURCE",
-		realdir => "mod_neko",
-	},
-	mysql => {
-		src => $array("mysql"),
-		inc => "mysql.h",
-		incname => "MySQL 4.+"
-		lib => $array("libmysqlclient.a"),
-		lparams => "-lz -lssl"
-	},
-	mysql5 => {
-		src => $array("../common/sha1","../common/socket","my_proto/my_proto","my_proto/my_api","mysql"),
-		inc => $array(),
-		realdir => "mysql",
-		cflags => "-Imy_proto -I../common",
-	},
-	regexp => {
-		src => $array("regexp"),
-		inc => "pcre.h",
-		incname => "PCRE",
-		lparams => "-lpcre",
-	},
-	zlib => {
-		src => $array("zlib"),
-		inc => "zlib.h",
-		incname => "LibZ",
-		lparams => "-lz",
-	},
-	sqlite => {
-		src => $array("sqlite"),
-		inc => "sqlite3.h",
-		incname => "Sqlite 3",
-		lparams => "-lsqlite3",
-	},
-	ui => {
-		src => $array("ui"),
-		inc => switch system { "Mac" => "Carbon.h" default => "gtk/gtk.h" },
-		incname => switch system { "Mac" => "Carbon" default => "GTK+2.0" },
-		cflags => switch system { "Mac" => "" default => "`pkg-config --cflags gtk+-2.0`" },
-		lparams => switch system { "Mac" => "-framework Carbon" default => "`pkg-config --libs gtk+-2.0` -lgthread-2.0" },
-	},
-	mod_tora2 => {
-		src => $array("../common/socket","protocol","mod_tora"),
-		inc => $array("httpd.h","apr.h"),
-		incname => "Apache 2.2.x",
-		cflags => "-D_LARGEFILE64_SOURCE -I../common",
-		realdir => "mod_tora",
-	},
-    ssl => {
-		src => $array("ssl"),
-		inc => $array("mbedtls/error.h", "mbedtls/entropy.h", "mbedtls/ctr_drbg.h","mbedtls/md.h","mbedtls/pk.h","mbedtls/oid.h","mbedtls/x509_crt.h","mbedtls/ssl.h","mbedtls/net.h"),
-		incname => "mbedTLS",
-		lib => $array("libmbedtls.a","libmbedx509.a","libmbedcrypto.a"),
-		lparams => switch system { "Mac" => "-framework Security" default => null },
-	},
-}
-
-var silent = false;
-
-var cc = "gcc";
-
-var cflags = "-O3 -fPIC";
-if( system == "Linux" ) cflags += " -pthread";
-
-var linkoptions = switch system {
-	"Mac" => "-bundle -undefined dynamic_lookup -L../../bin"
-	default => "-shared -L../../bin -pthread"
-};
-
-var i = 0;
-while( i < $asize($loader.args) ) {
-	switch $loader.args[i] {
-		"-silent" =>
-			silent = true
-
-		"-static" => {
-			libs.regexp.lparams = null;
-			libs.regexp.lib = $array("libpcre.a");
-			libs.zlib.lparams = null;
-			libs.zlib.lib = $array("libz.a");
-		}
-
-		"-nolibs" =>
-			libs = $new(null)
-
-		// Libs (comma-seperated) to be built.
-		// The lib names are the fields of libs above.
-		// By default all libs will be built.
-		"-libs" => {
-			i = i + 1;
-			var libs_list = split($loader.args[i], ",");
-			var new_libs = $new(null)
-			while( libs_list != null ) {
-				var field_hash = $hash(libs_list[0]);
-				$objset(new_libs, field_hash, $objget(libs, field_hash));
-				libs_list = libs_list[1];
-			}
-			libs = new_libs;
-		}
-
-		"-cc" => {
-			i = i + 1;
-			cc = $loader.args[i];
-		}
-
-		"-cflags" => {
-			i = i + 1;
-			cflags = $loader.args[i];
-		}
-		"-ldflags" => {
-			i = i + 1;
-			linkoptions = $loader.args[i];
-		}
-
-		"-append-cflags" => {
-			i = i + 1;
-			cflags += " " + $loader.args[i];
-		}
-		"-append-ldflags" => {
-			i = i + 1;
-			linkoptions += " " + $loader.args[i];
-		}
-	}
-	i = i + 1;
-}
-
-// PLATFORM
-
-linkcmd = cc;
-linkneko = "-lneko";
 nekovm = switch system { "Windows" => "..\\bin\\neko" default => "../bin/neko" };
-
-// COMMANDS
-
-includes = $array(
-	"../../vm",
-);
-
-search_includes = $array(
-	"/usr/include",
-	"/usr/local/include/mysql",
-	"/usr/include/mysql",
-	"/usr/local/include/mariadb",
-	"/usr/include/mariadb",
-	"/usr/local/include",
-	"/usr/include/gtk-2.0",
-	"/usr/local/include/gtk-2.0",
-	"/opt/local/include",
-	"/opt/local/include/mysql",
-	"/opt/local/include/mysql5/mysql",
-	"/Developer/Headers/FlatCarbon",
-	"/System/Library/Frameworks/Carbon.framework/Versions/A/Headers/",
-	"/usr/local/apache2/include",
-	"/usr/include/apache2",
-	"/opt/local/apache2/include",
-	"/usr/local/include/apache22",
-	"/usr/include/apr-1",
-	"/usr/include/apr-1.0",
-	"/usr/include/apr-0",
-	"/usr/local/include/apr-1",
-	"/usr/local/include/apr-1.0",
-	"/usr/local/include/apr-0",
-	"/opt/local/include/apr-1",
-	"/opt/local/include/apr-1.0",
-	"/opt/local/include/apr-0"
-);
-
-var cwd = $loader.loadprim("std@get_cwd",0)();
-cwd = $ssub(cwd,0,$ssize(cwd)-1);
-libraries = $array(
-	cwd,
-	"/usr/lib",
-	"/usr/lib/mariadb",
-	"/usr/lib/mysql",
-	"/usr/local/lib",
-	"/usr/local/lib/mariadb",
-	"/usr/local/lib/mysql",
-	"/opt/local/lib",
-	"/opt/local/lib/mariadb",
-	"/opt/local/lib/mysql",
-	"/opt/local/lib/mysql5/mysql",
-	"/usr/lib/x86_64-linux-gnu",
-	"/usr/lib/i386-linux-gnu"
-);
 
 exec = function(cmd) {
 	$print(cmd,"\n");
 	var ecode = command(cmd);
 	if( ecode != 0 )
 		$throw("Error "+ecode+" : aborted");
-}
-
-make = function(sep,arr) {
-	var i = 0;
-	var s = "";
-	while( i < $asize(arr) ) {
-		s = s + sep+arr[i]+" ";
-		i = i + 1;
-	}
-	return s;
-}
-
-append = function(arr,s) {
-	var n = $asize(arr);
-	var arr2 = $amake(n+1);
-	$ablit(arr2,0,arr,0,n);
-	arr2[n] = s;
-	return arr2;
-}
-
-readline = function() {
-	$print("> ");
-	var b = buffer_new();
-	do {
-		var c = read_char(stdin);
-		if( c == 10 )
-			break;
-		buffer_add_char(b,c);
-	} while(true);
-	return buffer_string(b);
-}
-
-request_include = function(incl) {
-	var s = readline();
-	if( s == "s" )
-		return null;
-	return append(incl,s);
-}
-
-request_lib = function() {
-	var s = readline();
-	if( s == "s" )
-		return false;
-	libraries = append(libraries,s);
-	return true;
-}
-
-find_file = function(f,arr) {
-	var i = 0;
-	while( i < $asize(arr) ) {
-		if( exists(arr[i]+"/"+f) )
-			return arr[i];
-		i = i + 1;
-	}
-	return null;
-}
-
-map = function(a,f) {
-	var i = 0;
-	var l = $asize(a);
-	var a2 = $amake(l);
-	while( i < l ) {
-		a2[i] = f(a[i]);
-		i = i + 1;
-	}
-	return a2;
 }
 
 copy = function(file,path) {
@@ -325,99 +61,9 @@ copy = function(file,path) {
 	};
 }
 
-compile = function(file,eflags,incl) {
-	exec(cc+" "+cflags+" "+eflags+" -c "+make("-I",includes)+make("-I",incl)+file+".c");
-}
-
 nekoboot = function(file) {
 	exec(nekovm+" tools/nekoboot "+file);
 	delete(file);
-}
-
-link = function(files,target,params1,params2) {
-	files = make("",map(files,function(f) {
-		var dir = split(f,"/");
-		while( dir[1] != null )
-			dir = dir[1];
-		dir[0] + ".o"
-	}));
-	var opt = linkoptions;
-	if( target != "mod_tora" && target != "mod_tora2" )
-		opt += " "+linkneko;
-	var cmd = linkcmd+" "+make("-L",libraries);
-	var out = " -o ../../bin/"+target+".ndll ";
-	try {
-		exec(cmd+out+files+params1+params2+" "+opt);
-	} catch e {
-		$print("Link failure ",e,"\n");
-	}
-}
-
-// COMPILATION
-
-loop_include = function(data,i,incl) {
-	var dir;
-	while( (dir = find_file(data.inc[i],incl)) == null ) {
-		if( silent ) {
-			$print("Include file "+data.inc[i]+" not found, skipping "+data.incname+" library compilation\n");
-			return null;
-		}
-		$print("The file "+data.inc[i]+" provided when installing "+data.incname+" was not found\n");
-		$print("Please enter a valid include path to look for it\n");
-		$print("Or 's' to skip this library\n");
-		incl = request_include(incl);
-		if( incl == null )
-			return null;
-	}
-	return dir;
-}
-
-
-compile_lib = function(name,data) {
-	$print("Compiling ",name,"...\n");
-	var incl = search_includes;
-	var dirs = $array();
-	if( $typeof(data.inc) == $tstring )
-		data.inc = $array(data.inc);
-	var i = 0;
-	while( i < $asize(data.inc) ) {
-		var dir = loop_include(data,i,incl);
-		if( dir == null )
-			return;
-		dirs = append(dirs,dir);
-		i += 1;
-	}
-	var linklib = "";
-	var dir = "";
-	if( data.lib != null ){
-		var i = 0;
-		while( i < $asize(data.lib) ){
-			while( (dir = find_file(data.lib[i],libraries)) == null ) {
-				if( silent ) {
-					$print("The file "+data.lib[i]+" not found, skipping "+data.incname+" library compilation\n");
-					return;
-				}
-				$print("The file "+linklib+" provided when installing "+data.incname+" was not found\n");
-				$print("Please enter a valid include path to look for it\n");
-				$print("Or 's' to skip this library\n");
-				if( $not(request_lib()) )
-					return;
-			}
-			linklib += " "+dir + "/" + data.lib[i];
-			i = i + 1;
-		}
-	}
-	var i = 0;
-	var dir = data.realdir;
-	if( dir == null ) dir = name;
-	chdir(dir);
-	while( i < $asize(data.src) ) {
-		compile(data.src[i],if( data.cflags != null ) data.cflags else "", dirs);
-		i = i + 1;
-	}
-	link(data.src,name,if( data.lparams != null ) { data.lparams+" " } else ""," "+linklib);
-	chdir("..");
-	data.built = true;
 }
 
 // MAIN LOOP
@@ -444,21 +90,10 @@ nekoboot(base+"/nekoc.n");
 nekoboot(base+"/nekoml.n");
 nekoboot(base+"/nekotools.n");
 
-// compile libs
-
-chdir("../libs");
-var liblist = $objfields(libs);
-var i = 0;
-while( i < $asize(liblist) ) {
-	var l = liblist[i];
-	compile_lib($field(l),$objget(libs,l));
-	i += 1;
-}
-
 // rebuild nekoml.std (needs zlib)
 
 chdir("../src");
-if( (libs.zlib != null && libs.zlib.built) || exists("../bin/zlib.ndll") ) {
+if( exists("../bin/zlib.ndll") ) {
 	var cmd = nekovm+" ../boot/nekoml.n -nostd neko/Main.nml nekoml/Main.nml";
 	var core_files = readdir("core");
 	while( core_files != null ) {
