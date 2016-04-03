@@ -355,6 +355,6 @@ add_custom_command(OUTPUT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${source_archive_nam
 	COMMAND git archive -o ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${source_archive_name} HEAD
 )
 
-add_custom_target(package
+add_custom_target(source_archive
 	DEPENDS ${source_archive_name}
 )
