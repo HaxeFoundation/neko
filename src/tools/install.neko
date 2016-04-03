@@ -53,7 +53,7 @@ libs = {
 		src => $array("mysql"),
 		inc => "mysql.h",
 		incname => "MySQL 4.+"
-		lib => $array("libmysqlclient_r.a"),
+		lib => $array("libmysqlclient.a"),
 		lparams => "-lz -lssl"
 	},
 	mysql5 => {
