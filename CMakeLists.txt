@@ -325,18 +325,36 @@ endif(APPLE)
 get_target_property(NEKOVM_NAME nekovm OUTPUT_NAME)
 set(NEKO_EXEC LD_LIBRARY_PATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}:${LD_LIBRARY_PATH} NEKOPATH=${CMAKE_SOURCE_DIR}/boot:${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${NEKOVM_NAME})
 
-add_custom_target(compilers ALL
+set(compilers_outputs
+	${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoc
+	${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoml
+	${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoml.std
+	${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekotools
+	${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test.n
+)
+
+add_custom_command(OUTPUT ${compilers_outputs} 
 	COMMAND ${NEKO_EXEC} nekoml -nostd neko/Main.nml nekoml/Main.nml
 	COMMAND ${NEKO_EXEC} nekoc -link ../boot/nekoc.n neko/Main
 	COMMAND ${NEKO_EXEC} nekoc -link ../boot/nekoml.n nekoml/Main
 	COMMAND ${NEKO_EXEC} nekoc tools/install.neko
 	COMMAND ${NEKO_EXEC} tools/install
-	DEPENDS nekovm std.ndll zlib.ndll
+	DEPENDS nekovm std.ndll zlib.ndll 
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src
+)
+
+add_custom_target(compilers ALL
+	DEPENDS ${compilers_outputs}
 )
 
 #######################
 
+set(source_archive_name neko-${NEKO_VERSION_MAJOR}.${NEKO_VERSION_MINOR}.${NEKO_VERSION_PATCH}.tar.gz)
+
+add_custom_command(OUTPUT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${source_archive_name}
+	COMMAND git archive -o ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${source_archive_name} HEAD
+)
+
 add_custom_target(package
-	COMMAND git archive -o ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/neko-${NEKO_VERSION_MAJOR}.${NEKO_VERSION_MINOR}.${NEKO_VERSION_PATCH}.tar.gz HEAD
+	DEPENDS ${source_archive_name}
 )
