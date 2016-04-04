@@ -15,6 +15,8 @@ set(NEKO_VERSION_MAJOR 2)
 set(NEKO_VERSION_MINOR 0)
 set(NEKO_VERSION_PATCH 0)
 
+option(STATIC_NDLL "Statically link dependencies to the ndll files." OFF)
+
 project(neko)
 
 find_package(PkgConfig REQUIRED)
@@ -120,21 +122,9 @@ set_target_properties(zlib.ndll
 ######################
 # mysql.ndll
 
-pkg_check_modules(MYSQL REQUIRED mariadb)
-if(NOT MYSQL_FOUND)
-	pkg_check_modules(MYSQL REQUIRED mysqlclient)
-endif(NOT MYSQL_FOUND)
+find_package(MariaDBConnector REQUIRED)
 
-add_library(mysql_static STATIC IMPORTED)
-set_target_properties(mysql_static
-	PROPERTIES
-	IMPORTED_LOCATION ${MYSQL_LIBRARY_DIRS}/libmysqlclient_r.a
-)
-
-find_package(OPENSSL REQUIRED)
-if(NOT OPENSSL_FOUND)
-	pkg_check_modules(OPENSSL REQUIRED openssl)
-endif(NOT OPENSSL_FOUND)
+find_package(OpenSSL)
 
 set(mysql.ndll_SRC
 	libs/mysql/mysql.c
@@ -144,10 +134,17 @@ add_library(mysql.ndll SHARED ${mysql.ndll_SRC})
 
 target_include_directories(mysql.ndll
 	PRIVATE
-	${MYSQL_INCLUDE_DIRS}
+	${MARIADB_CONNECTOR_INCLUDE_DIR}
 )
 
-target_link_libraries(mysql.ndll libneko mysql_static ${OPENSSL_LIBRARIES})
+if(STATIC_NDLL)
+	if(NOT MARIADB_CONNECTOR_STATIC_FOUND)
+		message( FATAL_ERROR "Missing MariaDB static library." )
+	endif()
+	target_link_libraries(mysql.ndll libneko ${OPENSSL_LIBRARIES} ${MARIADB_CONNECTOR_STATIC_LIBRARIES})
+else()
+	target_link_libraries(mysql.ndll libneko ${OPENSSL_LIBRARIES} ${MARIADB_CONNECTOR_LIBRARIES})
+endif()
 
 set_target_properties(mysql.ndll
 	PROPERTIES
@@ -321,7 +318,7 @@ set(ssl.ndll_SRC
 	libs/ssl/ssl.c
 )
 
-find_package(MBEDTLS REQUIRED)
+find_package(MbedTLS REQUIRED)
 
 add_library(ssl.ndll SHARED ${ssl.ndll_SRC})
 
