@@ -16,9 +16,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mysql5", "mysql\mysql5.vcxp
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ui", "ui\ui.vcxproj", "{9A36DC8A-8070-4F5D-A401-6889DD652288}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mod_tora22", "mod_tora\mod_tora22.vcxproj", "{0242BA00-FECF-4D6B-80FA-2A9389E9060C}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mod_tora24", "mod_tora\mod_tora24.vcxproj", "{0242BA00-FECF-4D6B-80FA-4A9389E9060C}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mod_tora2", "mod_tora\mod_tora2.vcxproj", "{0242BA00-FECF-4D6B-80FA-2A9389E9060C}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ssl", "ssl\ssl.vcxproj", "{F7CFC026-9693-45FC-BC30-95DB2385B130}"
 EndProject
@@ -94,7 +92,7 @@ Global
 		{F7CFC026-9693-45FC-BC30-95DB2385B130}.Release|Win32.ActiveCfg = Release|Win32
 		{F7CFC026-9693-45FC-BC30-95DB2385B130}.Release|Win32.Build.0 = Release|Win32
 		{F7CFC026-9693-45FC-BC30-95DB2385B130}.ReleaseCrt60|Win32.ActiveCfg = ReleaseCrt60|Win32
-		{F7CFC026-9693-45FC-BC30-95DB2385B130}.ReleaseCrt60|Win32.Build.0
+		{F7CFC026-9693-45FC-BC30-95DB2385B130}.ReleaseCrt60|Win32.Build.0 = ReleaseCrt60|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
