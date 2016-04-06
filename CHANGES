@@ -16,6 +16,8 @@
 	all : libneko.so can now be loaded from current directory
 	vm : comparisons with NaN and Int/Float now always returns false
 	api : added kind_lookup
+	mod_neko/tora : distribute ndlls compiled against Apache 2.4 (can still manually compile against Apache 2.2)
+	mysql : use MariaDB's LGPL connector/c instead of MySQL's GPL connector/c
 	
 2013-02-23 : 2.0.0
 	all : changed license to MIT
