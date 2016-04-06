@@ -129,7 +129,9 @@ set_target_properties(zlib.ndll
 
 find_package(MariaDBConnector REQUIRED)
 
-find_package(OpenSSL)
+if (NOT APPLE)
+	find_package(OpenSSL REQUIRED)
+endif()
 
 set(mysql.ndll_SRC
 	libs/mysql/mysql.c
@@ -396,4 +398,61 @@ add_custom_command(OUTPUT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${source_archive_nam
 
 add_custom_target(source_archive
 	DEPENDS ${source_archive_name}
+)
+
+#######################
+
+# install target
+
+install (TARGETS nekovm DESTINATION bin)
+install (
+	PROGRAMS
+		${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoc
+		${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoml
+		${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekotools
+	DESTINATION bin
+)
+install (
+	FILES
+		${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoml.std
+	DESTINATION bin
+)
+install (TARGETS libneko DESTINATION lib)
+install (
+	TARGETS
+		std.ndll
+		zlib.ndll
+		mysql.ndll
+		mysql5.ndll
+		regexp.ndll
+		sqlite.ndll
+		ui.ndll
+		mod_neko2.ndll
+		mod_tora2.ndll
+		ssl.ndll
+	DESTINATION lib/neko
+)
+install (DIRECTORY vm/ DESTINATION include FILES_MATCHING PATTERN "neko*.h")
+
+# uninstall target
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/uninstall.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/cmake/uninstall.cmake"
+    IMMEDIATE @ONLY)
+
+add_custom_target(uninstall
+    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake/uninstall.cmake)
+
+#######################
+
+# tests
+
+include(CTest)
+
+add_test(NAME -version
+	COMMAND $<TARGET_FILE:nekovm> -version
+)
+
+add_test(NAME test.n
+	COMMAND $<TARGET_FILE:nekovm> ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test.n
 )
