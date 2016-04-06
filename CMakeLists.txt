@@ -80,6 +80,11 @@ target_link_libraries(libneko ${GC_LIBRARIES})
 target_link_libraries(std.ndll libneko)
 target_link_libraries(nekovm libneko)
 
+if(NOT MSVC)
+    target_link_libraries(libneko m)
+endif()
+
+
 set_target_properties(nekovm libneko
 	PROPERTIES
 	OUTPUT_NAME neko
@@ -223,17 +228,24 @@ set_target_properties(sqlite.ndll
 ######################
 # ui.ndll
 
-if(APPLE)
-   find_library(CARBON_LIBRARY Carbon REQUIRED)
-endif(APPLE)
-
 set(ui.ndll_SRC
 	libs/ui/ui.c
 )
 
 add_library(ui.ndll SHARED ${ui.ndll_SRC})
 
-target_link_libraries(ui.ndll libneko ${CARBON_LIBRARY})
+target_link_libraries(ui.ndll libneko)
+
+if(APPLE)
+	find_library(CARBON_LIBRARY Carbon REQUIRED)
+	target_link_libraries(ui.ndll ${CARBON_LIBRARY})
+else()
+	pkg_check_modules(GTK REQUIRED gtk+-2.0)
+	target_include_directories(ui.ndll PRIVATE
+		${GTK_INCLUDE_DIRS}
+	)
+	target_link_libraries(ui.ndll ${GTK_LIBRARIES})
+endif()
 
 set_target_properties(ui.ndll
 	PROPERTIES
