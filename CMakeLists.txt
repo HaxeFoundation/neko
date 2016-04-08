@@ -558,7 +558,7 @@ if (WIN32)
 else()
 	set(DEST_BIN bin)
 	set(DEST_LIB lib)
-	set(DEST_NDLL lib/ndll)
+	set(DEST_NDLL lib/neko)
 endif()
 
 
