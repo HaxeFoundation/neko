@@ -561,6 +561,9 @@ else()
 	set(DEST_NDLL lib/neko)
 endif()
 
+if (UNIX AND NOT APPLE)
+	set(CMAKE_INSTALL_PREFIX /usr)
+endif()
 
 install (
 	TARGETS nekovm
