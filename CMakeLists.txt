@@ -1,26 +1,42 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.8.3)
 cmake_policy(SET CMP0042 NEW)
 
-# TODO: support out-of-source builds by modifying the "compilers" target
-if ( NOT ${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR} )
-    message( FATAL_ERROR "Out-of-source builds not allowed. Please run CMake from the project root." )
-endif()
+project(neko)
 
 set(CMAKE_OSX_ARCHITECTURES x86_64)
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+# put output in "bin"
+
+set(OUTPUT_DIR ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${OUTPUT_DIR})
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_DIR})
+
+# avoid the extra "Debug", "Release" directories
+# http://stackoverflow.com/questions/7747857/in-cmake-how-do-i-work-around-the-debug-and-release-directories-visual-studio-2
+foreach( OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES} )
+    string( TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG )
+    set( CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${OUTPUT_DIR} )
+    set( CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${OUTPUT_DIR} )
+    set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${OUTPUT_DIR} )
+endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
+
 
 set(NEKO_VERSION_MAJOR 2)
 set(NEKO_VERSION_MINOR 0)
 set(NEKO_VERSION_PATCH 0)
 
-option(STATIC_NDLL "Statically link dependencies to the ndll files." OFF)
+include(CMakeDependentOption)
+cmake_dependent_option(STATIC_NDLL "Statically link dependencies to the ndll files." OFF "NOT WIN32" ON)
 
-project(neko)
-
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(GC REQUIRED bdw-gc)
+if (WIN32)
+	find_library(GC_LIBRARIES NAMES gc.lib PATHS "./libs/include/gc" DOC "Boehm GC library")
+	find_path(GC_INCLUDE_DIRS gc/gc.h "./libs/include" DOC "Boehm GC includes")
+else()
+	find_package(PkgConfig REQUIRED)
+	pkg_check_modules(GC REQUIRED bdw-gc)
+endif()
 
 include_directories(
 	vm
@@ -73,17 +89,26 @@ set(lib_SRC
 )
 
 add_library(libneko SHARED ${lib_SRC})
-add_library(std.ndll SHARED ${std_SRC})
+add_library(std.ndll MODULE ${std_SRC})
 add_executable(nekovm ${vm_SRC})
+
+target_include_directories(libneko PRIVATE ${GC_INCLUDE_DIRS})
 
 target_link_libraries(libneko ${GC_LIBRARIES})
 target_link_libraries(std.ndll libneko)
 target_link_libraries(nekovm libneko)
 
-if(NOT MSVC)
-    target_link_libraries(libneko m)
+if(WIN32)
+	target_link_libraries(std.ndll ws2_32)
 endif()
 
+if(MSVC)
+	# seems to cause error in VS2010
+	# find_library(MSVCRT_LIBRARIES NAMES extra.lib PATHS "./libs/include/msvcrt" DOC "msvcrt library")
+	# target_link_libraries(libneko ${MSVCRT_LIBRARIES})
+else()
+    target_link_libraries(libneko m)
+endif()
 
 set_target_properties(nekovm libneko
 	PROPERTIES
@@ -93,6 +118,7 @@ set_target_properties(libneko
 	PROPERTIES
 	VERSION 0.0.0
 	SOVERSION 0
+	COMPILE_DEFINITIONS "_USRDLL;NEKOVM_DLL_EXPORTS;NEKO_SOURCES"
 )
 set_target_properties(std.ndll
 	PROPERTIES
@@ -104,17 +130,23 @@ set_target_properties(std.ndll
 ######################
 # zlib.ndll
 
-find_package(ZLIB REQUIRED)
-if(NOT ZLIB_FOUND)
-	pkg_check_modules(ZLIB REQUIRED zlib)
-endif(NOT ZLIB_FOUND)
-
 set(zlib.ndll_SRC
 	libs/zlib/zlib.c
 )
 
-add_library(zlib.ndll SHARED ${zlib.ndll_SRC})
+add_library(zlib.ndll MODULE ${zlib.ndll_SRC})
 
+if (WIN32)
+	find_library(ZLIB_LIBRARIES NAMES zlib.lib PATHS "./libs/include/zlib" DOC "zlib library")
+	find_path(ZLIB_INCLUDE_DIRS zlib.h "./libs/include/zlib" DOC "zlib includes")
+else()
+	find_package(ZLIB)
+	if(NOT ZLIB_FOUND)
+		pkg_check_modules(ZLIB REQUIRED zlib)
+	endif(NOT ZLIB_FOUND)
+endif()
+
+target_include_directories(zlib.ndll PRIVATE ${ZLIB_INCLUDE_DIRS})
 target_link_libraries(zlib.ndll libneko ${ZLIB_LIBRARIES})
 
 set_target_properties(zlib.ndll
@@ -127,17 +159,23 @@ set_target_properties(zlib.ndll
 ######################
 # mysql.ndll
 
-find_package(MariaDBConnector REQUIRED)
-
-if (NOT APPLE)
-	find_package(OpenSSL REQUIRED)
-endif()
-
 set(mysql.ndll_SRC
 	libs/mysql/mysql.c
 )
 
-add_library(mysql.ndll SHARED ${mysql.ndll_SRC})
+add_library(mysql.ndll MODULE ${mysql.ndll_SRC})
+
+if (WIN32)
+	find_library(MARIADB_CONNECTOR_STATIC_LIBRARIES NAMES mariadbclient.lib PATHS "./libs/include/mysql" DOC "MariaDB library")
+	find_path(MARIADB_CONNECTOR_INCLUDE_DIR mysql.h "./libs/include/mysql" DOC "MariaDB includes")
+	set(MARIADB_CONNECTOR_STATIC_FOUND FOUND)
+	# target_link_libraries(mysql.ndll ws2_32)
+else()
+	find_package(MariaDBConnector REQUIRED)
+	if (NOT APPLE)
+		find_package(OpenSSL REQUIRED)
+	endif()
+endif()
 
 target_include_directories(mysql.ndll
 	PRIVATE
@@ -171,7 +209,7 @@ set(mysql5.ndll_SRC
 	libs/mysql/mysql.c
 )
 
-add_library(mysql5.ndll SHARED ${mysql5.ndll_SRC})
+add_library(mysql5.ndll MODULE ${mysql5.ndll_SRC})
 
 target_include_directories(mysql5.ndll
 	PRIVATE
@@ -179,6 +217,10 @@ target_include_directories(mysql5.ndll
 )
 
 target_link_libraries(mysql5.ndll libneko)
+
+if (WIN32)
+	target_link_libraries(mysql5.ndll ws2_32)
+endif()
 
 set_target_properties(mysql5.ndll
 	PROPERTIES
@@ -190,14 +232,23 @@ set_target_properties(mysql5.ndll
 ######################
 # regexp.ndll
 
-pkg_check_modules(PCRE REQUIRED libpcre)
-
 set(regexp.ndll_SRC
 	libs/regexp/regexp.c
 )
 
-add_library(regexp.ndll SHARED ${regexp.ndll_SRC})
+if (WIN32)
+	file(GLOB PCRE_SRC
+		libs/include/pcre/*.c
+	)
+	list(APPEND regexp.ndll_SRC ${PCRE_SRC})
+	find_path(PCRE_INCLUDE_DIRS pcre.h "./libs/include/pcre" DOC "PCRE includes")
+else()
+	pkg_check_modules(PCRE REQUIRED libpcre)
+endif()
 
+add_library(regexp.ndll MODULE ${regexp.ndll_SRC})
+
+target_include_directories(regexp.ndll PRIVATE ${PCRE_INCLUDE_DIRS})
 target_link_libraries(regexp.ndll libneko ${PCRE_LIBRARIES})
 
 set_target_properties(regexp.ndll
@@ -210,14 +261,20 @@ set_target_properties(regexp.ndll
 ######################
 # sqlite.ndll
 
-pkg_check_modules(SQLITE REQUIRED sqlite3)
+if (WIN32)
+	find_library(SQLITE_LIBRARIES NAMES sqlite3.lib PATHS "./libs/include/sqlite" DOC "SQLite library")
+	find_path(SQLITE_INCLUDE_DIRS sqlite3.h "./libs/include/sqlite" DOC "SQLite includes")
+else()
+	pkg_check_modules(SQLITE REQUIRED sqlite3)
+endif()
 
 set(sqlite.ndll_SRC
 	libs/sqlite/sqlite.c
 )
 
-add_library(sqlite.ndll SHARED ${sqlite.ndll_SRC})
+add_library(sqlite.ndll MODULE ${sqlite.ndll_SRC})
 
+target_include_directories(sqlite.ndll PRIVATE ${SQLITE_INCLUDE_DIRS})
 target_link_libraries(sqlite.ndll libneko ${SQLITE_LIBRARIES})
 
 set_target_properties(sqlite.ndll
@@ -234,11 +291,14 @@ set(ui.ndll_SRC
 	libs/ui/ui.c
 )
 
-add_library(ui.ndll SHARED ${ui.ndll_SRC})
+add_library(ui.ndll MODULE ${ui.ndll_SRC})
 
 target_link_libraries(ui.ndll libneko)
 
-if(APPLE)
+if (WIN32)
+	# find_library(SQLITE_LIBRARIES NAMES sqlite3.lib PATHS "./libs/include/sqlite" DOC "SQLite library")
+	# find_path(SQLITE_INCLUDE_DIRS sqlite3.h "./libs/include/sqlite" DOC "SQLite includes")
+elseif(APPLE)
 	find_library(CARBON_LIBRARY Carbon REQUIRED)
 	target_link_libraries(ui.ndll ${CARBON_LIBRARY})
 else()
@@ -259,8 +319,19 @@ set_target_properties(ui.ndll
 ######################
 # mod_neko2.ndll
 
-find_package(APACHE REQUIRED)
-find_package(APR REQUIRED)
+if (WIN32)
+	find_library(HTTPD_LIBRARY NAMES libhttpd
+		PATHS "./libs/include/apache2" DOC "Apache library")
+	find_library(APR_LIBRARY NAMES libapr-1.lib
+		PATHS "./libs/include/apache2" DOC "Apache library")
+	set(APACHE_LIBRARIES ${HTTPD_LIBRARY} ${APR_LIBRARY})
+	find_path(APACHE_INCLUDE_DIRS httpd.h "./libs/include/apache2" DOC "Apache includes")
+else()
+	find_package(APACHE REQUIRED)
+	find_package(APR REQUIRED)
+	set(APACHE_LIBRARIES ${APR_LIBRARIES} ${APRUTIL_LIBRARIES})
+	set(APACHE_INCLUDE_DIRS ${APACHE_INCLUDE_DIR} ${APR_INCLUDE_DIR} ${APRUTIL_INCLUDE_DIR})
+endif()
 
 set(mod_neko2.ndll_SRC
 	vm/stats.c
@@ -268,16 +339,14 @@ set(mod_neko2.ndll_SRC
 	libs/mod_neko/cgi.c
 )
 
-add_library(mod_neko2.ndll SHARED ${mod_neko2.ndll_SRC})
+add_library(mod_neko2.ndll MODULE ${mod_neko2.ndll_SRC})
 
 target_include_directories(mod_neko2.ndll
 	PRIVATE
-	${APACHE_INCLUDE_DIR}
-	${APR_INCLUDE_DIR}
-	${APRUTIL_INCLUDE_DIR}
+	${APACHE_INCLUDE_DIRS}
 )
 
-target_link_libraries(mod_neko2.ndll libneko ${APR_LIBRARIES} ${APRUTIL_LIBRARIES})
+target_link_libraries(mod_neko2.ndll libneko ${APACHE_LIBRARIES})
 
 set_target_properties(mod_neko2.ndll
 	PROPERTIES
@@ -302,16 +371,17 @@ set(mod_tora2.ndll_SRC
 	libs/mod_tora/mod_tora.c
 )
 
-add_library(mod_tora2.ndll SHARED ${mod_tora2.ndll_SRC})
+add_library(mod_tora2.ndll MODULE ${mod_tora2.ndll_SRC})
 
 target_include_directories(mod_tora2.ndll
 	PRIVATE
-	${APACHE_INCLUDE_DIR}
-	${APR_INCLUDE_DIR}
-	${APRUTIL_INCLUDE_DIR}
+	${APACHE_INCLUDE_DIRS}
 )
 
-target_link_libraries(mod_tora2.ndll ${APR_LIBRARIES} ${APRUTIL_LIBRARIES})
+target_link_libraries(mod_tora2.ndll ${APACHE_LIBRARIES})
+if (WIN32)
+	target_link_libraries(mod_tora2.ndll ws2_32)
+endif()
 
 set_target_properties(mod_tora2.ndll
 	PROPERTIES
@@ -323,25 +393,32 @@ set_target_properties(mod_tora2.ndll
 ######################
 # ssl.ndll
 
-if(APPLE)
-   find_library(SECURITY_LIBRARY Security REQUIRED)
-   find_library(COREFOUNDATION_LIBRARY CoreFoundation REQUIRED)
-endif(APPLE)
-
 set(ssl.ndll_SRC
 	libs/ssl/ssl.c
 )
 
-find_package(MbedTLS REQUIRED)
+add_library(ssl.ndll MODULE ${ssl.ndll_SRC})
 
-add_library(ssl.ndll SHARED ${ssl.ndll_SRC})
+if (WIN32)
+	find_library(MBEDTLS_LIBRARIES NAMES mbedTLS.lib PATHS "./libs/include/ssl" DOC "mbedTLS library")
+	find_path(MBEDTLS_INCLUDE_DIR mbedtls/ssl.h "./libs/include/ssl" DOC "mbedTLS includes")
+	target_link_libraries(ssl.ndll ws2_32 Advapi32 Crypt32)
+else()
+	find_package(MbedTLS REQUIRED)
+endif()
+
+if(APPLE)
+	find_library(SECURITY_LIBRARY Security REQUIRED)
+	find_library(COREFOUNDATION_LIBRARY CoreFoundation REQUIRED)
+	target_link_libraries(ssl.ndll ${COREFOUNDATION_LIBRARY} ${SECURITY_LIBRARY})
+endif()
 
 target_include_directories(ssl.ndll
 	PRIVATE
 	${MBEDTLS_INCLUDE_DIR}
 )
 
-target_link_libraries(ssl.ndll libneko ${COREFOUNDATION_LIBRARY} ${SECURITY_LIBRARY} ${MBEDTLS_LIBRARIES})
+target_link_libraries(ssl.ndll libneko ${MBEDTLS_LIBRARIES})
 
 set_target_properties(ssl.ndll
 	PROPERTIES
@@ -363,36 +440,87 @@ endif(APPLE)
 
 #######################
 
-set(NEKO_EXEC LD_LIBRARY_PATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}:${LD_LIBRARY_PATH} NEKOPATH=${CMAKE_SOURCE_DIR}/boot:${CMAKE_RUNTIME_OUTPUT_DIRECTORY} $<TARGET_FILE:nekovm>)
+if (WIN32)
+	set(compilers_outputs
+		${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoc.exe
+		${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoml.exe
+		${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekotools.exe
+	)
+else()
+	set(compilers_outputs
+		${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoc
+		${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoml
+		${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekotools
+	)
+endif()
 
-set(compilers_outputs
-	${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoc
-	${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoml
-	${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoml.std
-	${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekotools
-	${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test.n
+if (WIN32)
+	set(set_neko_env set NEKOPATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+else()
+	set(set_neko_env export NEKOPATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY} && export LD_LIBRARY_PATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}:${LD_LIBRARY_PATH})
+endif()
+
+add_custom_command(OUTPUT ${compilers_outputs} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test.n
+	COMMAND ${set_neko_env}
+
+	COMMAND $<TARGET_FILE:nekovm> ../boot/nekoml.n -nostd neko/Main.nml nekoml/Main.nml
+	COMMAND $<TARGET_FILE:nekovm> ../boot/nekoc.n -link ../boot/nekoc.n neko/Main
+	COMMAND $<TARGET_FILE:nekovm> ../boot/nekoc.n -link ../boot/nekoml.n nekoml/Main
+
+	COMMAND ${CMAKE_COMMAND} -E copy ../boot/nekoc.n ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+	COMMAND ${CMAKE_COMMAND} -E copy ../boot/nekoml.n ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+
+	# compile some neko sources
+
+	COMMAND $<TARGET_FILE:nekovm> ../boot/nekoc.n tools/test.neko
+	COMMAND ${CMAKE_COMMAND} -E copy tools/test.n ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+	COMMAND ${CMAKE_COMMAND} -E remove tools/test.n
+
+	COMMAND $<TARGET_FILE:nekovm> ../boot/nekoc.n tools/nekoboot.neko
+	COMMAND $<TARGET_FILE:nekovm> ../boot/nekoml.n -nostd -p tools Tools.nml
+	COMMAND $<TARGET_FILE:nekovm> ../boot/nekoc.n -link tools/nekotools.n Tools
+	COMMAND ${CMAKE_COMMAND} -E copy tools/nekotools.n ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+
+	COMMAND $<TARGET_FILE:nekovm> tools/nekoboot ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoc.n
+	COMMAND $<TARGET_FILE:nekovm> tools/nekoboot ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoml.n
+	COMMAND $<TARGET_FILE:nekovm> tools/nekoboot ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekotools.n
+	COMMAND ${CMAKE_COMMAND} -E remove
+		${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoc.n
+		${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoml.n
+		${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekotools.n
+
+	VERBATIM
+	DEPENDS nekovm std.ndll
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src
 )
 
-add_custom_command(OUTPUT ${compilers_outputs} 
-	COMMAND ${NEKO_EXEC} nekoml -nostd neko/Main.nml nekoml/Main.nml
-	COMMAND ${NEKO_EXEC} nekoc -link ../boot/nekoc.n neko/Main
-	COMMAND ${NEKO_EXEC} nekoc -link ../boot/nekoml.n nekoml/Main
-	COMMAND ${NEKO_EXEC} nekoc tools/install.neko
-	COMMAND ${NEKO_EXEC} tools/install
-	DEPENDS nekovm std.ndll zlib.ndll 
+file(GLOB CORE_NMLS RELATIVE ${CMAKE_SOURCE_DIR}/src src/core/*.nml)
+set(nekoml_std ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoml.std)
+add_custom_command(OUTPUT ${nekoml_std}
+	COMMAND ${set_neko_env}
+	COMMAND $<TARGET_FILE:nekovm> ../boot/nekoml.n -nostd neko/Main.nml nekoml/Main.nml ${CORE_NMLS} -pack ${nekoml_std}
+	VERBATIM
+	DEPENDS zlib.ndll ${compilers_outputs}
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src
 )
 
 add_custom_target(compilers ALL
-	DEPENDS ${compilers_outputs}
+	DEPENDS ${compilers_outputs} ${nekoml_std}
 )
 
 #######################
 
-set(source_archive_name neko-${NEKO_VERSION_MAJOR}.${NEKO_VERSION_MINOR}.${NEKO_VERSION_PATCH}.tar.gz)
+if (WIN32)
+	set(source_archive_format zip)
+else()
+	set(source_archive_format tar.gz)
+endif()
+
+set(source_archive_name neko-${NEKO_VERSION_MAJOR}.${NEKO_VERSION_MINOR}.${NEKO_VERSION_PATCH}-source.${source_archive_format})
 
 add_custom_command(OUTPUT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${source_archive_name}
 	COMMAND git archive -o ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${source_archive_name} HEAD
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )
 
 add_custom_target(source_archive
@@ -403,20 +531,43 @@ add_custom_target(source_archive
 
 # install target
 
-install (TARGETS nekovm DESTINATION bin)
+if (WIN32)
+	set(DEST_BIN .)
+	set(DEST_LIB .)
+	set(DEST_NDLL .)
+
+	set(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_NO_WARNINGS ON) # VS2010 Express do not provide the redistributables...
+	include(InstallRequiredSystemLibraries)
+	install (
+		FILES
+			${CMAKE_SOURCE_DIR}/README.md
+			${CMAKE_SOURCE_DIR}/LICENSE
+			${CMAKE_SOURCE_DIR}/CHANGES
+		DESTINATION .
+	)
+else()
+	set(DEST_BIN bin)
+	set(DEST_LIB lib)
+	set(DEST_NDLL lib/ndll)
+endif()
+
+
 install (
-	PROGRAMS
-		${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoc
-		${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoml
-		${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekotools
-	DESTINATION bin
+	TARGETS nekovm
+	DESTINATION ${DEST_BIN}
 )
 install (
-	FILES
-		${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoml.std
-	DESTINATION bin
+	PROGRAMS ${compilers_outputs}
+	DESTINATION ${DEST_BIN}
 )
-install (TARGETS libneko DESTINATION lib)
+install (
+	FILES ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoml.std
+	DESTINATION ${DEST_BIN}
+)
+install (
+	TARGETS libneko
+	DESTINATION ${DEST_LIB}
+)
 install (
 	TARGETS
 		std.ndll
@@ -429,9 +580,13 @@ install (
 		mod_neko2.ndll
 		mod_tora2.ndll
 		ssl.ndll
-	DESTINATION lib/neko
+	DESTINATION ${DEST_NDLL}
 )
-install (DIRECTORY vm/ DESTINATION include FILES_MATCHING PATTERN "neko*.h")
+install (
+	DIRECTORY vm/
+	DESTINATION include
+	FILES_MATCHING PATTERN "neko*.h"
+)
 
 # uninstall target
 configure_file(
@@ -442,6 +597,32 @@ configure_file(
 add_custom_target(uninstall
     COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake/uninstall.cmake)
 
+# package
+
+set(CPACK_OUTPUT_FILE_PREFIX ${OUTPUT_DIR})
+
+set(CPACK_PACKAGE_VERSION_MAJOR ${NEKO_VERSION_MAJOR})
+set(CPACK_PACKAGE_VERSION_MINOR ${NEKO_VERSION_MINOR})
+set(CPACK_PACKAGE_VERSION_PATCH ${NEKO_VERSION_PATCH})
+
+set(CPACK_RESOURCE_FILE_README "${CMAKE_SOURCE_DIR}/README.md")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+
+if (WIN32)
+	set(CPACK_GENERATOR "ZIP")
+	set(CPACK_SOURCE_GENERATOR "ZIP")
+else()
+	set(CPACK_GENERATOR "TGZ")
+	set(CPACK_SOURCE_GENERATOR "TGZ")
+endif()
+
+set(CPACK_PACKAGE_FILE_NAME
+	"${CMAKE_PROJECT_NAME}-${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}-${CMAKE_SYSTEM_NAME}")
+set(CPACK_SOURCE_PACKAGE_FILE_NAME
+	"${CMAKE_PROJECT_NAME}-${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}-source")
+
+include(CPack)
+
 #######################
 
 # tests
@@ -449,9 +630,9 @@ add_custom_target(uninstall
 include(CTest)
 
 add_test(NAME -version
-	COMMAND $<TARGET_FILE:nekovm> -version
+	COMMAND nekovm -version
 )
 
 add_test(NAME test.n
-	COMMAND $<TARGET_FILE:nekovm> ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test.n
+	COMMAND nekovm ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test.n
 )

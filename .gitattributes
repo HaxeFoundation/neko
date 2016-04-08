@@ -5,3 +5,4 @@ appveyor.yml export-ignore
 bin export-ignore
 www export-ignore
 libs/include export-ignore
+*.enc export-ignore

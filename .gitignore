@@ -41,7 +41,3 @@ CMakeScripts
 cmake_install.cmake
 install_manifest.txt
 build
-Testing
-cmake/uninstall.cmake
-CTestTestfile.cmake
-DartConfiguration.tcl
