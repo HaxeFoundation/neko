@@ -30,6 +30,9 @@ set(NEKO_VERSION_PATCH 0)
 include(CMakeDependentOption)
 cmake_dependent_option(STATIC_NDLL "Statically link dependencies to the ndll files." OFF "NOT WIN32" ON)
 
+set(CMAKE_SKIP_RPATH TRUE)
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath,'\$ORIGIN',--enable-new-dtags")
+
 if (WIN32)
 	find_library(GC_LIBRARIES NAMES gc.lib PATHS "./libs/include/gc" DOC "Boehm GC library")
 	find_path(GC_INCLUDE_DIRS gc/gc.h "./libs/include" DOC "Boehm GC includes")
