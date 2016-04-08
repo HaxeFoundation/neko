@@ -30,8 +30,19 @@ set(NEKO_VERSION_PATCH 0)
 include(CMakeDependentOption)
 cmake_dependent_option(STATIC_NDLL "Statically link dependencies to the ndll files." OFF "NOT WIN32" ON)
 
-set(CMAKE_SKIP_RPATH TRUE)
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath,'\$ORIGIN',--enable-new-dtags")
+
+if(UNIX AND NOT APPLE)
+	set(CMAKE_SKIP_RPATH TRUE)
+	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath,'\$ORIGIN',--enable-new-dtags")
+	add_definitions(-DABI_ELF)
+endif()
+
+if(UNIX)
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
+	add_definitions(-D_GNU_SOURCE)
+endif()
+
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-omit-frame-pointer")
 
 if (WIN32)
 	find_library(GC_LIBRARIES NAMES gc.lib PATHS "./libs/include/gc" DOC "Boehm GC library")
@@ -117,7 +128,7 @@ if(MSVC)
 	# find_library(MSVCRT_LIBRARIES NAMES extra.lib PATHS "./libs/include/msvcrt" DOC "msvcrt library")
 	# target_link_libraries(libneko ${MSVCRT_LIBRARIES})
 else()
-	target_link_libraries(libneko m)
+	target_link_libraries(libneko dl m)
 endif()
 
 set_target_properties(nekovm libneko
@@ -677,5 +688,6 @@ add_test(NAME -version
 )
 
 add_test(NAME test.n
-	COMMAND nekovm ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test.n
+	COMMAND nekovm test.n
+	WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
 )
