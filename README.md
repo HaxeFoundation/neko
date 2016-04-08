@@ -49,7 +49,7 @@ Users of other Linux/FreeBSD distributions should build Neko from source. See be
 | Apache 2.2 / 2.4, with apr and apr-util | all         | apache2-dev                                               |
 | MariaDB / MySQL (Connector/C)           | all         | libmariadb-client-lgpl-dev-compat (or libmysqlclient-dev) |
 | SQLite                                  | all         | libsqlite3-dev                                            |
-| GTK+2                                   | Mac/Linux   | libgtk2.0-dev                                             |
+| GTK+2                                   | Linux       | libgtk2.0-dev                                             |
 | mbed TLS                                | Mac/Linux   | libmbedtls-dev                                            |
 
 ## Build instructions

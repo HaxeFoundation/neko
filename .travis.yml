@@ -24,7 +24,9 @@ install:
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
         brew tap homebrew/dupes;
         brew update;
-        brew install bdw-gc pcre openssl mariadb-connector-c mbedtls;
+        brew install bdw-gc pcre mariadb-connector-c mbedtls sqlite zlib;
+        brew link sqlite --force;
+        brew link zlib --force;
     fi
 
 script:
@@ -40,12 +42,12 @@ script:
   - neko -version
   - neko build/bin/test.n
   # package for distribution
-  - mkdir build-dist
-  - pushd build-dist
-  - cmake -DDIST=ON ..
-  - make package
-  - make source_archive
-  - popd
+  # - mkdir build-dist
+  # - pushd build-dist
+  # - cmake -DDIST=ON ..
+  # - make package
+  # - make source_archive
+  # - popd
   # submit to ppa
   - if [ -n "$haxeci_decrypt" ] && [ "${TRAVIS_OS_NAME}" = "linux" ] && [ "${TRAVIS_BRANCH}" = "master" ]; then
       openssl aes-256-cbc -k "$haxeci_decrypt" -in haxeci_ssh.enc -out haxeci_ssh -d;

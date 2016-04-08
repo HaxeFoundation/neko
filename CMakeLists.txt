@@ -39,18 +39,15 @@ if(UNIX AND NOT APPLE)
 endif()
 
 if(UNIX)
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
 	add_definitions(-D_GNU_SOURCE)
+	add_compile_options(-fno-omit-frame-pointer -fPIC)
 endif()
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-omit-frame-pointer")
-
 if (WIN32)
-	find_library(GC_LIBRARIES NAMES gc.lib PATHS "./libs/include/gc" DOC "Boehm GC library")
+	find_library(GC_STATIC_LIBRARIES NAMES gc.lib PATHS "./libs/include/gc" DOC "Boehm GC library")
 	find_path(GC_INCLUDE_DIRS gc/gc.h "./libs/include" DOC "Boehm GC includes")
 else()
-	find_package(PkgConfig REQUIRED)
-	pkg_check_modules(GC REQUIRED bdw-gc)
+	find_package(BoehmGC REQUIRED)
 endif()
 
 include_directories(
@@ -109,7 +106,11 @@ add_executable(nekovm ${vm_SRC})
 
 target_include_directories(libneko PRIVATE ${GC_INCLUDE_DIRS})
 
-target_link_libraries(libneko ${GC_LIBRARIES})
+if (STATIC_NDLL)
+	target_link_libraries(libneko ${GC_STATIC_LIBRARIES})
+else()
+	target_link_libraries(libneko ${GC_LIBRARIES})
+endif()
 target_link_libraries(std.ndll libneko)
 target_link_libraries(nekovm libneko)
 
@@ -159,17 +160,26 @@ set(zlib.ndll_SRC
 add_library(zlib.ndll MODULE ${zlib.ndll_SRC})
 
 if (WIN32)
-	find_library(ZLIB_LIBRARIES NAMES zlib.lib PATHS "./libs/include/zlib" DOC "zlib library")
+	find_library(ZLIB_STATIC_LIBRARIES NAMES zlib.lib PATHS "./libs/include/zlib" DOC "zlib library")
 	find_path(ZLIB_INCLUDE_DIRS zlib.h "./libs/include/zlib" DOC "zlib includes")
 else()
-	find_package(ZLIB)
-	if(NOT ZLIB_FOUND)
-		pkg_check_modules(ZLIB REQUIRED zlib)
-	endif(NOT ZLIB_FOUND)
+	find_package(Zlib REQUIRED)
 endif()
 
 target_include_directories(zlib.ndll PRIVATE ${ZLIB_INCLUDE_DIRS})
-target_link_libraries(zlib.ndll libneko ${ZLIB_LIBRARIES})
+
+if (STATIC_NDLL)
+	target_link_libraries(zlib.ndll libneko ${ZLIB_STATIC_LIBRARIES})
+	if (UNIX AND NOT APPLE)
+		get_target_property(zlib.ndll_COMPILE_OPTIONS zlib.ndll COMPILE_OPTIONS)
+		list(REMOVE_ITEM zlib.ndll_COMPILE_OPTIONS -fPIC)
+		set_target_properties(zlib.ndll
+			PROPERTIES COMPILE_OPTIONS ${zlib.ndll_COMPILE_OPTIONS}
+		)
+	endif()
+else()
+	target_link_libraries(zlib.ndll libneko ${ZLIB_LIBRARIES})
+endif()
 
 set_target_properties(zlib.ndll
 	PROPERTIES
@@ -265,7 +275,10 @@ if (WIN32)
 	list(APPEND regexp.ndll_SRC ${PCRE_SRC})
 	find_path(PCRE_INCLUDE_DIRS pcre.h "./libs/include/pcre" DOC "PCRE includes")
 else()
-	pkg_check_modules(PCRE REQUIRED libpcre)
+	if (STATIC_NDLL)
+		set(PCRE_STATIC_LIBRARY TRUE)
+	endif()
+	find_package(PCRE REQUIRED)
 endif()
 
 add_library(regexp.ndll MODULE ${regexp.ndll_SRC})
@@ -284,10 +297,10 @@ set_target_properties(regexp.ndll
 # sqlite.ndll
 
 if (WIN32)
-	find_library(SQLITE_LIBRARIES NAMES sqlite3.lib PATHS "./libs/include/sqlite" DOC "SQLite library")
-	find_path(SQLITE_INCLUDE_DIRS sqlite3.h "./libs/include/sqlite" DOC "SQLite includes")
+	find_library(SQLITE3_STATIC_LIBRARIES NAMES sqlite3.lib PATHS "./libs/include/sqlite" DOC "SQLite library")
+	find_path(SQLITE3_INCLUDE_DIRS sqlite3.h "./libs/include/sqlite" DOC "SQLite includes")
 else()
-	pkg_check_modules(SQLITE REQUIRED sqlite3)
+	find_package(Sqlite3 REQUIRED)
 endif()
 
 set(sqlite.ndll_SRC
@@ -296,8 +309,13 @@ set(sqlite.ndll_SRC
 
 add_library(sqlite.ndll MODULE ${sqlite.ndll_SRC})
 
-target_include_directories(sqlite.ndll PRIVATE ${SQLITE_INCLUDE_DIRS})
-target_link_libraries(sqlite.ndll libneko ${SQLITE_LIBRARIES})
+target_include_directories(sqlite.ndll PRIVATE ${SQLITE3_INCLUDE_DIRS})
+
+if (STATIC_NDLL)
+	target_link_libraries(sqlite.ndll libneko ${SQLITE3_STATIC_LIBRARIES})
+else()
+	target_link_libraries(sqlite.ndll libneko ${SQLITE3_LIBRARIES})
+endif()
 
 set_target_properties(sqlite.ndll
 	PROPERTIES
@@ -317,18 +335,16 @@ add_library(ui.ndll MODULE ${ui.ndll_SRC})
 
 target_link_libraries(ui.ndll libneko)
 
-if (WIN32)
-	# find_library(SQLITE_LIBRARIES NAMES sqlite3.lib PATHS "./libs/include/sqlite" DOC "SQLite library")
-	# find_path(SQLITE_INCLUDE_DIRS sqlite3.h "./libs/include/sqlite" DOC "SQLite includes")
-elseif(APPLE)
+if(APPLE)
 	find_library(CARBON_LIBRARY Carbon REQUIRED)
 	target_link_libraries(ui.ndll ${CARBON_LIBRARY})
-else()
-	pkg_check_modules(GTK REQUIRED gtk+-2.0)
+elseif(UNIX)
+	find_package(PkgConfig REQUIRED)
+	pkg_check_modules(GTK2 REQUIRED gtk+-2.0)
 	target_include_directories(ui.ndll PRIVATE
-		${GTK_INCLUDE_DIRS}
+		${GTK2_INCLUDE_DIRS}
 	)
-	target_link_libraries(ui.ndll ${GTK_LIBRARIES})
+	target_link_libraries(ui.ndll ${GTK2_LIBRARIES})
 endif()
 
 set_target_properties(ui.ndll
@@ -422,17 +438,11 @@ set(ssl.ndll_SRC
 add_library(ssl.ndll MODULE ${ssl.ndll_SRC})
 
 if (WIN32)
-	find_library(MBEDTLS_LIBRARIES NAMES mbedTLS.lib PATHS "./libs/include/ssl" DOC "mbedTLS library")
+	find_library(MBEDTLS_STATIC_LIBRARIES NAMES mbedTLS.lib PATHS "./libs/include/ssl" DOC "mbedTLS library")
 	find_path(MBEDTLS_INCLUDE_DIR mbedtls/ssl.h "./libs/include/ssl" DOC "mbedTLS includes")
 	target_link_libraries(ssl.ndll ws2_32 Advapi32 Crypt32)
 else()
 	find_package(MbedTLS REQUIRED)
-endif()
-
-if(APPLE)
-	find_library(SECURITY_LIBRARY Security REQUIRED)
-	find_library(COREFOUNDATION_LIBRARY CoreFoundation REQUIRED)
-	target_link_libraries(ssl.ndll ${COREFOUNDATION_LIBRARY} ${SECURITY_LIBRARY})
 endif()
 
 target_include_directories(ssl.ndll
@@ -440,7 +450,17 @@ target_include_directories(ssl.ndll
 	${MBEDTLS_INCLUDE_DIR}
 )
 
-target_link_libraries(ssl.ndll libneko ${MBEDTLS_LIBRARIES})
+if(APPLE)
+	find_library(SECURITY_LIBRARY Security REQUIRED)
+	find_library(COREFOUNDATION_LIBRARY CoreFoundation REQUIRED)
+	target_link_libraries(ssl.ndll ${COREFOUNDATION_LIBRARY} ${SECURITY_LIBRARY})
+endif()
+
+if (STATIC_NDLL)
+	target_link_libraries(ssl.ndll libneko ${MBEDTLS_STATIC_LIBRARIES})
+else()
+	target_link_libraries(ssl.ndll libneko ${MBEDTLS_LIBRARIES})
+endif()
 
 set_target_properties(ssl.ndll
 	PROPERTIES
