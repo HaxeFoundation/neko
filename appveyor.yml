@@ -7,7 +7,6 @@ platform: Win32
 configuration: Release
 
 build_script:
-  - set PATH=%PATH%;%APPVEYOR_BUILD_FOLDER%/build/bin
   - mkdir build
   - cd build
   - cmake -G "Visual Studio 10 2010" ..
@@ -17,7 +16,9 @@ build_script:
   - cd ..
 
 test_script:
-  - neko -version
+  - cd build
+  - msbuild RUN_TESTS.vcxproj       /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
+  - cd ..
 
 artifacts:
   - path: build/bin/*.zip
