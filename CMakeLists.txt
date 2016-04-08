@@ -543,10 +543,10 @@ if (WIN32)
 	set(DEST_LIB .)
 	set(DEST_NDLL .)
 
-	set(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_NO_WARNINGS ON) # VS2010 Express do not provide the redistributables...
 	include(InstallRequiredSystemLibraries)
 	install (
 		FILES
+			${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS}
 			${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/gc.dll
 			${CMAKE_SOURCE_DIR}/README.md
 			${CMAKE_SOURCE_DIR}/LICENSE
