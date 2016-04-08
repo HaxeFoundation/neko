@@ -32,16 +32,15 @@ install:
     fi
 
 script:
-  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
-        make;
-        make test;
-        sudo make install;
-    elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
-        make os=osx LIB_PREFIX=/usr/local;
-        make test;
-        sudo make os=osx install;
-    fi
+  - mkdir build
+  - pushd build
+  - cmake ..
+  - make
   - make package
+  - make source_archive
+  - make test
+  - sudo make install
+  - popd
   - neko -version
   - neko src/tools/test.n
   # submit to ppa
@@ -53,7 +52,7 @@ script:
       openssl aes-256-cbc -k "$haxeci_decrypt" -in haxeci_sec.gpg.enc -out haxeci_sec.gpg -d;
       gpg --allow-secret-key-import --import haxeci_sec.gpg;
       sudo apt-get install devscripts git-buildpackage ubuntu-dev-tools dh-make dh-apache2 -y;
-      cp bin/neko-*.tar.gz ..;
+      cp build/bin/neko-*-source.tar.gz ..;
       export COMMIT_SHA=`git rev-parse --short HEAD`;
       export COMMIT_TIME=`git show -s --format=%ct HEAD`;
       cd ..;
