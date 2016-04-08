@@ -16,10 +16,10 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_DIR})
 # avoid the extra "Debug", "Release" directories
 # http://stackoverflow.com/questions/7747857/in-cmake-how-do-i-work-around-the-debug-and-release-directories-visual-studio-2
 foreach( OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES} )
-    string( TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG )
-    set( CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${OUTPUT_DIR} )
-    set( CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${OUTPUT_DIR} )
-    set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${OUTPUT_DIR} )
+	string( TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG )
+	set( CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${OUTPUT_DIR} )
+	set( CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${OUTPUT_DIR} )
+	set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${OUTPUT_DIR} )
 endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
 
 
@@ -74,18 +74,18 @@ set(std_SRC
 )
 
 set(lib_SRC
-    vm/alloc.c
-    vm/builtins.c
-    vm/callback.c
-    vm/elf.c
-    vm/interp.c
-    vm/load.c
-    vm/objtable.c
-    vm/others.c
-    vm/hash.c
-    vm/module.c
-    vm/jit_x86.c
-    vm/threads.c
+	vm/alloc.c
+	vm/builtins.c
+	vm/callback.c
+	vm/elf.c
+	vm/interp.c
+	vm/load.c
+	vm/objtable.c
+	vm/others.c
+	vm/hash.c
+	vm/module.c
+	vm/jit_x86.c
+	vm/threads.c
 )
 
 add_library(libneko SHARED ${lib_SRC})
@@ -114,7 +114,7 @@ if(MSVC)
 	# find_library(MSVCRT_LIBRARIES NAMES extra.lib PATHS "./libs/include/msvcrt" DOC "msvcrt library")
 	# target_link_libraries(libneko ${MSVCRT_LIBRARIES})
 else()
-    target_link_libraries(libneko m)
+	target_link_libraries(libneko m)
 endif()
 
 set_target_properties(nekovm libneko
@@ -523,7 +523,7 @@ else()
 	set(source_archive_format tar.gz)
 endif()
 
-set(source_archive_name neko-${NEKO_VERSION_MAJOR}.${NEKO_VERSION_MINOR}.${NEKO_VERSION_PATCH}-source.${source_archive_format})
+set(source_archive_name neko-${NEKO_VERSION_MAJOR}.${NEKO_VERSION_MINOR}.${NEKO_VERSION_PATCH}-src.${source_archive_format})
 
 add_custom_command(OUTPUT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${source_archive_name}
 	COMMAND git archive -o ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${source_archive_name} HEAD
@@ -531,7 +531,7 @@ add_custom_command(OUTPUT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${source_archive_nam
 )
 
 add_custom_target(source_archive
-	DEPENDS ${source_archive_name}
+	DEPENDS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${source_archive_name}
 )
 
 #######################
@@ -598,12 +598,12 @@ install (
 
 # uninstall target
 configure_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/uninstall.cmake.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/cmake/uninstall.cmake"
-    IMMEDIATE @ONLY)
+	"${CMAKE_SOURCE_DIR}/cmake/uninstall.cmake.in"
+	"${CMAKE_BINARY_DIR}/cmake/uninstall.cmake"
+	IMMEDIATE @ONLY)
 
 add_custom_target(uninstall
-    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake/uninstall.cmake)
+	COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/cmake/uninstall.cmake)
 
 # package
 
@@ -614,7 +614,7 @@ set(CPACK_PACKAGE_VERSION_MINOR ${NEKO_VERSION_MINOR})
 set(CPACK_PACKAGE_VERSION_PATCH ${NEKO_VERSION_PATCH})
 
 set(CPACK_RESOURCE_FILE_README "${CMAKE_SOURCE_DIR}/README.md")
-set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
 
 if (WIN32)
 	set(CPACK_GENERATOR "ZIP")
@@ -624,10 +624,37 @@ else()
 	set(CPACK_SOURCE_GENERATOR "TGZ")
 endif()
 
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
+	if (${CMAKE_OSX_ARCHITECTURES} STREQUAL "i386")
+		set(arch_64 "")
+	elseif (${CMAKE_OSX_ARCHITECTURES} STREQUAL "x86_64")
+		set(arch_64 "64")
+	else()
+		message( FATAL_ERROR "CMAKE_OSX_ARCHITECTURES should be i386 or x86_64." )
+	endif()
+else()
+	if(CMAKE_SIZEOF_VOID_P EQUAL 8) 
+		set(arch_64 "64")
+	else() 
+		set(arch_64 "")
+	endif() 
+endif()
+
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+	set(OS_NAME "win")
+elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
+	set(OS_NAME "osx")
+elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+	set(OS_NAME "linux")
+else()
+	message( WARNING "unknown ${CMAKE_SYSTEM_NAME}" )
+	set(OS_NAME "")
+endif()
+
 set(CPACK_PACKAGE_FILE_NAME
-	"${CMAKE_PROJECT_NAME}-${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}-${CMAKE_SYSTEM_NAME}")
+	"${CMAKE_PROJECT_NAME}-${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}-${OS_NAME}${arch_64}")
 set(CPACK_SOURCE_PACKAGE_FILE_NAME
-	"${CMAKE_PROJECT_NAME}-${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}-source")
+	"${CMAKE_PROJECT_NAME}-${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}-src")
 
 include(CPack)
 
