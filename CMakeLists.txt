@@ -461,36 +461,38 @@ else()
 	)
 endif()
 
-if (WIN32)
+if (CMAKE_HOST_WIN32)
 	set(set_neko_env set NEKOPATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+	set(neko_exec $<TARGET_FILE:nekovm>)
 else()
-	set(set_neko_env export NEKOPATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY} && export LD_LIBRARY_PATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}:${LD_LIBRARY_PATH})
+	set(set_neko_env "")
+	set(neko_exec NEKOPATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY} LD_LIBRARY_PATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}:${LD_LIBRARY_PATH} $<TARGET_FILE:nekovm>)
 endif()
 
 add_custom_command(OUTPUT ${compilers_outputs} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test.n
 	COMMAND ${set_neko_env}
 
-	COMMAND $<TARGET_FILE:nekovm> ../boot/nekoml.n -nostd neko/Main.nml nekoml/Main.nml
-	COMMAND $<TARGET_FILE:nekovm> ../boot/nekoc.n -link ../boot/nekoc.n neko/Main
-	COMMAND $<TARGET_FILE:nekovm> ../boot/nekoc.n -link ../boot/nekoml.n nekoml/Main
+	COMMAND ${neko_exec} ../boot/nekoml.n -nostd neko/Main.nml nekoml/Main.nml
+	COMMAND ${neko_exec} ../boot/nekoc.n -link ../boot/nekoc.n neko/Main
+	COMMAND ${neko_exec} ../boot/nekoc.n -link ../boot/nekoml.n nekoml/Main
 
 	COMMAND ${CMAKE_COMMAND} -E copy ../boot/nekoc.n ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
 	COMMAND ${CMAKE_COMMAND} -E copy ../boot/nekoml.n ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
 
 	# compile some neko sources
 
-	COMMAND $<TARGET_FILE:nekovm> ../boot/nekoc.n tools/test.neko
+	COMMAND ${neko_exec} ../boot/nekoc.n tools/test.neko
 	COMMAND ${CMAKE_COMMAND} -E copy tools/test.n ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
 	COMMAND ${CMAKE_COMMAND} -E remove tools/test.n
 
-	COMMAND $<TARGET_FILE:nekovm> ../boot/nekoc.n tools/nekoboot.neko
-	COMMAND $<TARGET_FILE:nekovm> ../boot/nekoml.n -nostd -p tools Tools.nml
-	COMMAND $<TARGET_FILE:nekovm> ../boot/nekoc.n -link tools/nekotools.n Tools
+	COMMAND ${neko_exec} ../boot/nekoc.n tools/nekoboot.neko
+	COMMAND ${neko_exec} ../boot/nekoml.n -nostd -p tools Tools.nml
+	COMMAND ${neko_exec} ../boot/nekoc.n -link tools/nekotools.n Tools
 	COMMAND ${CMAKE_COMMAND} -E copy tools/nekotools.n ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
 
-	COMMAND $<TARGET_FILE:nekovm> tools/nekoboot ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoc.n
-	COMMAND $<TARGET_FILE:nekovm> tools/nekoboot ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoml.n
-	COMMAND $<TARGET_FILE:nekovm> tools/nekoboot ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekotools.n
+	COMMAND ${neko_exec} tools/nekoboot ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoc.n
+	COMMAND ${neko_exec} tools/nekoboot ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoml.n
+	COMMAND ${neko_exec} tools/nekoboot ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekotools.n
 	COMMAND ${CMAKE_COMMAND} -E remove
 		${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoc.n
 		${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoml.n
@@ -505,7 +507,7 @@ file(GLOB CORE_NMLS RELATIVE ${CMAKE_SOURCE_DIR}/src src/core/*.nml)
 set(nekoml_std ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoml.std)
 add_custom_command(OUTPUT ${nekoml_std}
 	COMMAND ${set_neko_env}
-	COMMAND $<TARGET_FILE:nekovm> ../boot/nekoml.n -nostd neko/Main.nml nekoml/Main.nml ${CORE_NMLS} -pack ${nekoml_std}
+	COMMAND ${neko_exec} ../boot/nekoml.n -nostd neko/Main.nml nekoml/Main.nml ${CORE_NMLS} -pack ${nekoml_std}
 	VERBATIM
 	DEPENDS zlib.ndll ${compilers_outputs}
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src
