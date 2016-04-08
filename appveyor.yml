@@ -9,12 +9,12 @@ configuration: Release
 build_script:
   - set PATH=%PATH%;%APPVEYOR_BUILD_FOLDER%/build/bin
   - mkdir build
-  - pushd build
+  - cd build
   - cmake -G "Visual Studio 10 2010" ..
   - msbuild ALL_BUILD.vcxproj       /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
   - msbuild PACKAGE.vcxproj         /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
   - msbuild source_archive.vcxproj  /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
-  - popd
+  - cd ..
 
 test_script:
   - neko -version
