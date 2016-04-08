@@ -22,7 +22,7 @@ install:
   # Install dependencies
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
         sudo apt-get update -qq;
-        sudo apt-get install zlib1g-dev libgc-dev -qq;
+        sudo apt-get install libgc-dev libssl-dev libpcre3-dev zlib1g-dev apache2-dev libmariadb-client-lgpl-dev-compat libsqlite3-dev libgtk2.0-dev -qq;
         (cd libs/include/ssl/ && wget https://tls.mbed.org/download/mbedtls-2.2.1-apache.tgz && tar xzf mbedtls-2.2.1-apache.tgz && cd mbedtls-2.2.1 && sed -i "s/\/\/#define MBEDTLS_THREADING_PTHREAD/#define MBEDTLS_THREADING_PTHREAD/; s/\/\/#define MBEDTLS_THREADING_C/#define MBEDTLS_THREADING_C/; s/#define MBEDTLS_SSL_PROTO_SSL3/\/\/#define MBEDTLS_SSL_PROTO_SSL3/" include/mbedtls/config.h && SHARED=1 make lib && sudo make install);
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
         brew tap homebrew/dupes;
@@ -42,7 +42,7 @@ script:
   - sudo make install
   - popd
   - neko -version
-  - neko src/tools/test.n
+  - neko build/bin/test.n
   # submit to ppa
   - if [ -n "$haxeci_decrypt" ] && [ "${TRAVIS_OS_NAME}" = "linux" ] && [ "${TRAVIS_BRANCH}" = "master" ]; then
       openssl aes-256-cbc -k "$haxeci_decrypt" -in haxeci_ssh.enc -out haxeci_ssh -d;
