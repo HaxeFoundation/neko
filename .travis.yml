@@ -28,17 +28,24 @@ install:
     fi
 
 script:
+  # build, test, and install
   - mkdir build
   - pushd build
   - cmake ..
   - make
-  - make package
-  - make source_archive
   - make test
   - sudo make install
   - popd
+  # test installed version
   - neko -version
   - neko build/bin/test.n
+  # package for distribution
+  - mkdir build-dist
+  - pushd build-dist
+  - cmake -DDIST=ON ..
+  - make package
+  - make source_archive
+  - popd
   # submit to ppa
   - if [ -n "$haxeci_decrypt" ] && [ "${TRAVIS_OS_NAME}" = "linux" ] && [ "${TRAVIS_BRANCH}" = "master" ]; then
       openssl aes-256-cbc -k "$haxeci_decrypt" -in haxeci_ssh.enc -out haxeci_ssh -d;
@@ -48,7 +55,7 @@ script:
       openssl aes-256-cbc -k "$haxeci_decrypt" -in haxeci_sec.gpg.enc -out haxeci_sec.gpg -d;
       gpg --allow-secret-key-import --import haxeci_sec.gpg;
       sudo apt-get install devscripts git-buildpackage ubuntu-dev-tools dh-make dh-apache2 -y;
-      cp build/bin/neko-*-source.tar.gz ..;
+      cp build-dist/bin/neko-*-source.tar.gz ..;
       export COMMIT_SHA=`git rev-parse --short HEAD`;
       export COMMIT_TIME=`git show -s --format=%ct HEAD`;
       cd ..;

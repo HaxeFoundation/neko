@@ -1,36 +1,4 @@
-/bin/*.ndll
-/bin/nekoml.std
-/bin/neko
-/bin/nekoc
-/bin/nekoml
-/bin/nekotools
-/bin/*.tar.gz
-*.dll
-*.exe
-*.user
-*.exp
-*.lib
-!libs/**/*.lib
-*.suo
-*.sdf
-Debug
-Debug2
-Debug5
-Release
-Release2
-Release5
-*.n
-*.ipch
-*.opensdf
-*.o
-*.so
-*.so.*
-*.dylib
-*~
-*.bak
-*.ilk
-*.pdb
-ipch
+/src/**/*.n
 *_sec.gpg
 *_ssh
 
@@ -40,4 +8,6 @@ CMakeFiles
 CMakeScripts
 cmake_install.cmake
 install_manifest.txt
-build
+
+# build directories
+/build*/

@@ -28,7 +28,8 @@ set(NEKO_VERSION_MINOR 0)
 set(NEKO_VERSION_PATCH 0)
 
 include(CMakeDependentOption)
-cmake_dependent_option(STATIC_NDLL "Statically link dependencies to the ndll files." OFF "NOT WIN32" ON)
+cmake_dependent_option(DIST "Build portable binaries for distribution. Implies STATIC_NDLL." OFF "NOT WIN32" ON)
+cmake_dependent_option(STATIC_NDLL "Statically link dependencies to the ndll files." OFF "NOT WIN32;NOT DIST" ON)
 
 
 if(UNIX AND NOT APPLE)
@@ -554,7 +555,7 @@ add_custom_target(source_archive
 
 # install target
 
-if (WIN32)
+if (WIN32) # implies DIST
 	set(DEST_BIN .)
 	set(DEST_LIB .)
 	set(DEST_NDLL .)
@@ -570,9 +571,22 @@ if (WIN32)
 		DESTINATION .
 	)
 else()
-	set(DEST_BIN bin)
-	set(DEST_LIB lib)
-	set(DEST_NDLL lib/neko)
+	if (DIST)
+		set(DEST_BIN .)
+		set(DEST_LIB .)
+		set(DEST_NDLL .)
+		install (
+			FILES
+				${CMAKE_SOURCE_DIR}/README.md
+				${CMAKE_SOURCE_DIR}/LICENSE
+				${CMAKE_SOURCE_DIR}/CHANGES
+			DESTINATION .
+		)
+	else()
+		set(DEST_BIN bin)
+		set(DEST_LIB lib)
+		set(DEST_NDLL lib/neko)
+	endif()
 endif()
 
 if (UNIX AND NOT APPLE)
