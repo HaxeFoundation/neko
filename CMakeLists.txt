@@ -100,6 +100,13 @@ target_link_libraries(nekovm libneko)
 
 if(WIN32)
 	target_link_libraries(std.ndll ws2_32)
+	add_custom_command(OUTPUT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/gc.dll
+		COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/libs/include/gc/gc.dll ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+	)
+	add_custom_target(gc.dll ALL
+		DEPENDS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/gc.dll
+	)
+	add_dependencies(nekovm gc.dll)
 endif()
 
 if(MSVC)
@@ -540,6 +547,7 @@ if (WIN32)
 	include(InstallRequiredSystemLibraries)
 	install (
 		FILES
+			${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/gc.dll
 			${CMAKE_SOURCE_DIR}/README.md
 			${CMAKE_SOURCE_DIR}/LICENSE
 			${CMAKE_SOURCE_DIR}/CHANGES
