@@ -49,7 +49,7 @@ script:
   # - make source_archive
   # - popd
   # submit to ppa
-  - if [ -n "$haxeci_decrypt" ] && [ "${TRAVIS_OS_NAME}" = "linux" ] && [ "${TRAVIS_BRANCH}" = "master" ]; then
+  - if false && [ -n "$haxeci_decrypt" ] && [ "${TRAVIS_OS_NAME}" = "linux" ] && [ "${TRAVIS_BRANCH}" = "master" ]; then
       openssl aes-256-cbc -k "$haxeci_decrypt" -in haxeci_ssh.enc -out haxeci_ssh -d;
       chmod 600 haxeci_ssh;
       eval `ssh-agent -s`;
