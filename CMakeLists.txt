@@ -310,19 +310,14 @@ set_target_properties(mysql5.ndll
 ######################
 # regexp.ndll
 
-set(regexp.ndll_SRC
-	libs/regexp/regexp.c
-)
-
-add_library(regexp.ndll MODULE ${regexp.ndll_SRC})
-
 if (WIN32)
 	file(GLOB PCRE_SRC
 		libs/include/pcre/*.c
 	)
-	list(APPEND regexp.ndll_SRC ${PCRE_SRC})
+	add_library(regexp.ndll MODULE libs/regexp/regexp.c ${PCRE_SRC})
 	find_path(PCRE_INCLUDE_DIRS pcre.h "./libs/include/pcre" DOC "PCRE includes")
 else()
+	add_library(regexp.ndll MODULE libs/regexp/regexp.c)
 	if (STATIC_NDLL)
 		ExternalProject_Add(PCRE
 			PREFIX ${CMAKE_BINARY_DIR}/libs
