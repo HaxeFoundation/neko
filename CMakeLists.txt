@@ -31,6 +31,14 @@ include(CMakeDependentOption)
 cmake_dependent_option(DIST "Build portable binaries for distribution. Implies STATIC_NDLL." OFF "NOT WIN32" ON)
 cmake_dependent_option(STATIC_NDLL "Statically link dependencies to the ndll files." OFF "NOT WIN32;NOT DIST" ON)
 
+if (STATIC_NDLL)
+	include(ExternalProject)
+
+	# file(DOWNLOAD ...) at build time
+	# usage: ${CMAKE_COMMAND} -Durl=url -Dfile=path/to/output_file -P ${CMAKE_BINARY_DIR}/download.cmake
+	# https://cmake.org/pipermail/cmake/2013-March/053915.html
+	file(WRITE ${CMAKE_BINARY_DIR}/download.cmake "file(DOWNLOAD \${url} \${file})")
+endif()
 
 if(UNIX AND NOT APPLE)
 	set(CMAKE_SKIP_RPATH TRUE)
@@ -41,13 +49,6 @@ endif()
 if(UNIX)
 	add_definitions(-D_GNU_SOURCE)
 	add_compile_options(-fno-omit-frame-pointer -fPIC)
-endif()
-
-if (WIN32)
-	find_library(GC_STATIC_LIBRARIES NAMES gc.lib PATHS "./libs/include/gc" DOC "Boehm GC library")
-	find_path(GC_INCLUDE_DIRS gc/gc.h "./libs/include" DOC "Boehm GC includes")
-else()
-	find_package(BoehmGC REQUIRED)
 endif()
 
 include_directories(
@@ -104,13 +105,36 @@ add_library(libneko SHARED ${lib_SRC})
 add_library(std.ndll MODULE ${std_SRC})
 add_executable(nekovm ${vm_SRC})
 
+if (WIN32)
+	find_library(GC_LIBRARIES NAMES gc.lib PATHS "./libs/include/gc" DOC "Boehm GC library")
+	find_path(GC_INCLUDE_DIRS gc/gc.h "./libs/include" DOC "Boehm GC includes")
+else()
+	if (STATIC_NDLL)
+		ExternalProject_Add(BoehmGC
+			PREFIX ${CMAKE_BINARY_DIR}/libs
+			URL http://hboehm.info/gc/gc_source/gc-7.4.2.tar.gz
+			PATCH_COMMAND
+				${CMAKE_COMMAND} -Durl=http://www.ivmaisoft.com/_bin/atomic_ops/libatomic_ops-7.4.2.tar.gz -Dfile=${CMAKE_BINARY_DIR}/libs/src/BoehmGC/libatomic_ops-7.4.2.tar.gz -P ${CMAKE_BINARY_DIR}/download.cmake &&
+				${CMAKE_COMMAND} -E tar x ${CMAKE_BINARY_DIR}/libs/src/BoehmGC/libatomic_ops-7.4.2.tar.gz &&
+				${CMAKE_COMMAND} -E rename libatomic_ops-7.4.2 libatomic_ops
+			CMAKE_ARGS
+				-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
+				-Denable_threads=ON
+			INSTALL_COMMAND ""
+		)
+		set(GC_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/BoehmGC/include)
+		set(GC_LIBRARIES
+			${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/libgc-lib.a
+		)
+		add_dependencies(libneko BoehmGC)
+	else()
+		find_package(BoehmGC REQUIRED)
+	endif()
+endif()
+
 target_include_directories(libneko PRIVATE ${GC_INCLUDE_DIRS})
 
-if (STATIC_NDLL)
-	target_link_libraries(libneko ${GC_STATIC_LIBRARIES})
-else()
-	target_link_libraries(libneko ${GC_LIBRARIES})
-endif()
+target_link_libraries(libneko ${GC_LIBRARIES})
 target_link_libraries(std.ndll libneko)
 target_link_libraries(nekovm libneko)
 
