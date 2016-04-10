@@ -149,11 +149,7 @@ if(WIN32)
 	add_dependencies(nekovm gc.dll)
 endif()
 
-if(MSVC)
-	# seems to cause error in VS2010
-	# find_library(MSVCRT_LIBRARIES NAMES extra.lib PATHS "./libs/include/msvcrt" DOC "msvcrt library")
-	# target_link_libraries(libneko ${MSVCRT_LIBRARIES})
-else()
+if(UNIX)
 	target_link_libraries(libneko dl m)
 endif()
 
