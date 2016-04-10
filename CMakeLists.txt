@@ -118,6 +118,7 @@ else()
 				${CMAKE_COMMAND} -E tar x ${CMAKE_BINARY_DIR}/libs/src/BoehmGC/libatomic_ops-7.4.2.tar.gz &&
 				${CMAKE_COMMAND} -E rename libatomic_ops-7.4.2 libatomic_ops
 			CMAKE_ARGS
+				-Wno-dev
 				-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
 				-Denable_threads=ON
 			INSTALL_COMMAND ""
@@ -180,26 +181,30 @@ set(zlib.ndll_SRC
 add_library(zlib.ndll MODULE ${zlib.ndll_SRC})
 
 if (WIN32)
-	find_library(ZLIB_STATIC_LIBRARIES NAMES zlib.lib PATHS "./libs/include/zlib" DOC "zlib library")
+	find_library(ZLIB_LIBRARIES NAMES zlib.lib PATHS "./libs/include/zlib" DOC "zlib library")
 	find_path(ZLIB_INCLUDE_DIRS zlib.h "./libs/include/zlib" DOC "zlib includes")
 else()
-	find_package(Zlib REQUIRED)
+	if (STATIC_NDLL)
+		ExternalProject_Add(Zlib
+			PREFIX ${CMAKE_BINARY_DIR}/libs
+			URL http://zlib.net/zlib-1.2.8.tar.gz
+			CMAKE_ARGS
+				-Wno-dev
+				-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
+			INSTALL_COMMAND ""
+		)
+		set(ZLIB_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/Zlib)
+		set(ZLIB_LIBRARIES
+			${CMAKE_BINARY_DIR}/libs/src/Zlib-build/libz.a
+		)
+		add_dependencies(zlib.ndll Zlib)
+	else()
+		find_package(Zlib REQUIRED)
+	endif()
 endif()
 
 target_include_directories(zlib.ndll PRIVATE ${ZLIB_INCLUDE_DIRS})
-
-if (STATIC_NDLL)
-	target_link_libraries(zlib.ndll libneko ${ZLIB_STATIC_LIBRARIES})
-	if (UNIX AND NOT APPLE)
-		get_target_property(zlib.ndll_COMPILE_OPTIONS zlib.ndll COMPILE_OPTIONS)
-		list(REMOVE_ITEM zlib.ndll_COMPILE_OPTIONS -fPIC)
-		set_target_properties(zlib.ndll
-			PROPERTIES COMPILE_OPTIONS ${zlib.ndll_COMPILE_OPTIONS}
-		)
-	endif()
-else()
-	target_link_libraries(zlib.ndll libneko ${ZLIB_LIBRARIES})
-endif()
+target_link_libraries(zlib.ndll libneko ${ZLIB_LIBRARIES})
 
 set_target_properties(zlib.ndll
 	PROPERTIES
