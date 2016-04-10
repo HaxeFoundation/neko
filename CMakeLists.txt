@@ -510,11 +510,33 @@ set(ssl.ndll_SRC
 add_library(ssl.ndll MODULE ${ssl.ndll_SRC})
 
 if (WIN32)
-	find_library(MBEDTLS_STATIC_LIBRARIES NAMES mbedTLS.lib PATHS "./libs/include/ssl" DOC "mbedTLS library")
+	find_library(MBEDTLS_LIBRARIES NAMES mbedTLS.lib PATHS "./libs/include/ssl" DOC "mbedTLS library")
 	find_path(MBEDTLS_INCLUDE_DIR mbedtls/ssl.h "./libs/include/ssl" DOC "mbedTLS includes")
 	target_link_libraries(ssl.ndll ws2_32 Advapi32 Crypt32)
 else()
-	find_package(MbedTLS REQUIRED)
+	if (STATIC_NDLL)
+		ExternalProject_Add(MbedTLS
+			PREFIX ${CMAKE_BINARY_DIR}/libs
+			URL https://tls.mbed.org/download/mbedtls-2.2.1-apache.tgz
+			CMAKE_ARGS
+				-Wno-dev
+				-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
+				-DLINK_WITH_PTHREAD=ON
+				-DENABLE_PROGRAMS=OFF
+				-DENABLE_TESTING=OFF
+				-DUSE_STATIC_MBEDTLS_LIBRARY=ON
+			INSTALL_COMMAND ""
+		)
+		set(MBEDTLS_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libs/src/MbedTLS/include)
+		set(MBEDTLS_LIBRARIES
+			${CMAKE_BINARY_DIR}/libs/src/MbedTLS-build/library/libmbedx509.a
+			${CMAKE_BINARY_DIR}/libs/src/MbedTLS-build/library/libmbedtls.a
+			${CMAKE_BINARY_DIR}/libs/src/MbedTLS-build/library/libmbedcrypto.a
+		)
+		add_dependencies(ssl.ndll MbedTLS)
+	else()
+		find_package(MbedTLS REQUIRED)
+	endif()
 endif()
 
 target_include_directories(ssl.ndll
@@ -528,11 +550,7 @@ if(APPLE)
 	target_link_libraries(ssl.ndll ${COREFOUNDATION_LIBRARY} ${SECURITY_LIBRARY})
 endif()
 
-if (STATIC_NDLL)
-	target_link_libraries(ssl.ndll libneko ${MBEDTLS_STATIC_LIBRARIES})
-else()
-	target_link_libraries(ssl.ndll libneko ${MBEDTLS_LIBRARIES})
-endif()
+target_link_libraries(ssl.ndll libneko ${MBEDTLS_LIBRARIES})
 
 set_target_properties(ssl.ndll
 	PROPERTIES
