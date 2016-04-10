@@ -429,6 +429,14 @@ set_target_properties(ui.ndll
 ######################
 # mod_neko2.ndll
 
+set(mod_neko2.ndll_SRC
+	vm/stats.c
+	libs/mod_neko/mod_neko.c
+	libs/mod_neko/cgi.c
+)
+
+add_library(mod_neko2.ndll MODULE ${mod_neko2.ndll_SRC})
+
 if (WIN32)
 	find_library(HTTPD_LIBRARY NAMES libhttpd
 		PATHS "./libs/include/apache2" DOC "Apache library")
@@ -437,19 +445,60 @@ if (WIN32)
 	set(APACHE_LIBRARIES ${HTTPD_LIBRARY} ${APR_LIBRARY})
 	find_path(APACHE_INCLUDE_DIRS httpd.h "./libs/include/apache2" DOC "Apache includes")
 else()
-	find_package(APACHE REQUIRED)
-	find_package(APR REQUIRED)
-	set(APACHE_LIBRARIES ${APR_LIBRARIES} ${APRUTIL_LIBRARIES})
-	set(APACHE_INCLUDE_DIRS ${APACHE_INCLUDE_DIR} ${APR_INCLUDE_DIR} ${APRUTIL_INCLUDE_DIR})
+	if (STATIC_NDLL)
+		ExternalProject_Add(APR
+			PREFIX ${CMAKE_BINARY_DIR}/libs
+			URL http://apache.communilink.net/apr/apr-1.5.2.tar.gz
+			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APR &&
+				./configure --prefix=${CMAKE_BINARY_DIR}/libs/src/APR-build
+			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APR &&
+				make
+			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APR && 
+				make install
+		)
+		ExternalProject_Add(APR-util
+			PREFIX ${CMAKE_BINARY_DIR}/libs
+			DEPENDS APR OpenSSL
+			URL http://apache.communilink.net/apr/apr-util-1.5.4.tar.gz
+			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APR-util &&
+				./configure
+					--prefix=${CMAKE_BINARY_DIR}/libs/src/APR-util-build
+					--with-apr=${CMAKE_BINARY_DIR}/libs/src/APR-build
+					--with-openssl=${CMAKE_BINARY_DIR}/libs/src/OpenSSL-build
+			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APR-util &&
+				make
+			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APR-util && 
+				make install
+		)
+		ExternalProject_Add(Apache
+			DEPENDS APR APR-util
+			PREFIX ${CMAKE_BINARY_DIR}/libs
+			URL http://apache.communilink.net/httpd/httpd-2.4.18.tar.bz2
+			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/Apache &&
+				./configure --prefix=${CMAKE_BINARY_DIR}/libs/src/Apache-build
+					--with-apr=${CMAKE_BINARY_DIR}/libs/src/APR-build
+					--with-apr-util=${CMAKE_BINARY_DIR}/libs/src/APR-util-build
+					--with-openssl=${CMAKE_BINARY_DIR}/libs/src/OpenSSL-build
+			BUILD_COMMAND ""
+			INSTALL_COMMAND ""
+		)
+		set(APACHE_INCLUDE_DIRS
+			${CMAKE_BINARY_DIR}/libs/src/APR-build/include/apr-1
+			${CMAKE_BINARY_DIR}/libs/src/APR-util-build/include/apr-1
+			${CMAKE_BINARY_DIR}/libs/src/Apache/include
+			${CMAKE_BINARY_DIR}/libs/src/Apache/os/unix
+		)
+		set(APACHE_LIBRARIES
+
+		)
+		add_dependencies(mod_neko2.ndll Apache APR APR-util)
+	else()
+		find_package(APACHE REQUIRED)
+		find_package(APR REQUIRED)
+		set(APACHE_LIBRARIES ${APR_LIBRARIES} ${APRUTIL_LIBRARIES})
+		set(APACHE_INCLUDE_DIRS ${APACHE_INCLUDE_DIR} ${APR_INCLUDE_DIR} ${APRUTIL_INCLUDE_DIR})
+	endif()
 endif()
-
-set(mod_neko2.ndll_SRC
-	vm/stats.c
-	libs/mod_neko/mod_neko.c
-	libs/mod_neko/cgi.c
-)
-
-add_library(mod_neko2.ndll MODULE ${mod_neko2.ndll_SRC})
 
 target_include_directories(mod_neko2.ndll
 	PRIVATE
@@ -482,6 +531,7 @@ set(mod_tora2.ndll_SRC
 )
 
 add_library(mod_tora2.ndll MODULE ${mod_tora2.ndll_SRC})
+add_dependencies(mod_tora2.ndll mod_neko2.ndll)
 
 target_include_directories(mod_tora2.ndll
 	PRIVATE
