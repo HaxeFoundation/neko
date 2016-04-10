@@ -223,12 +223,40 @@ set(mysql.ndll_SRC
 add_library(mysql.ndll MODULE ${mysql.ndll_SRC})
 
 if (WIN32)
-	find_library(MARIADB_CONNECTOR_STATIC_LIBRARIES NAMES mariadbclient.lib PATHS "./libs/include/mysql" DOC "MariaDB library")
+	find_library(MARIADB_CONNECTOR_LIBRARIES NAMES mariadbclient.lib PATHS "./libs/include/mysql" DOC "MariaDB library")
 	find_path(MARIADB_CONNECTOR_INCLUDE_DIR mysql.h "./libs/include/mysql" DOC "MariaDB includes")
-	set(MARIADB_CONNECTOR_STATIC_FOUND FOUND)
-	# target_link_libraries(mysql.ndll ws2_32)
 else()
-	find_package(MariaDBConnector REQUIRED)
+	if (STATIC_NDLL)
+		ExternalProject_Add(OpenSSL
+			PREFIX ${CMAKE_BINARY_DIR}/libs
+			URL https://www.openssl.org/source/openssl-1.0.2g.tar.gz
+			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
+				./config --prefix=${CMAKE_BINARY_DIR}/libs/src/OpenSSL-build
+			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
+				make
+			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL && 
+				make install
+		)
+		ExternalProject_Add(MariaDBConnector
+			DEPENDS OpenSSL
+			PREFIX ${CMAKE_BINARY_DIR}/libs
+			URL https://downloads.mariadb.org/f/connector-c-2.2.2/mariadb-connector-c-2.2.2-src.tar.gz
+			CMAKE_ARGS
+				-Wno-dev
+				-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
+				-DOPENSSL_ROOT_DIR=${CMAKE_BINARY_DIR}/libs/src/OpenSSL-build
+			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector-build &&
+				${CMAKE_COMMAND} --build . --target mariadbclient
+			INSTALL_COMMAND ""
+		)
+		set(MARIADB_CONNECTOR_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector/include)
+		set(MARIADB_CONNECTOR_LIBRARIES
+			${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector-build/libmariadb/libmariadbclient.a
+		)
+		add_dependencies(mysql.ndll MariaDBConnector)
+	else()
+		find_package(MariaDBConnector REQUIRED)
+	endif()
 	if (NOT APPLE)
 		find_package(OpenSSL REQUIRED)
 	endif()
@@ -239,14 +267,7 @@ target_include_directories(mysql.ndll
 	${MARIADB_CONNECTOR_INCLUDE_DIR}
 )
 
-if(STATIC_NDLL)
-	if(NOT MARIADB_CONNECTOR_STATIC_FOUND)
-		message( FATAL_ERROR "Missing MariaDB static library." )
-	endif()
-	target_link_libraries(mysql.ndll libneko ${OPENSSL_LIBRARIES} ${MARIADB_CONNECTOR_STATIC_LIBRARIES})
-else()
-	target_link_libraries(mysql.ndll libneko ${OPENSSL_LIBRARIES} ${MARIADB_CONNECTOR_LIBRARIES})
-endif()
+target_link_libraries(mysql.ndll libneko ${OPENSSL_LIBRARIES} ${MARIADB_CONNECTOR_LIBRARIES})
 
 set_target_properties(mysql.ndll
 	PROPERTIES
