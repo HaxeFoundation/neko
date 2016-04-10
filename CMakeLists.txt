@@ -314,6 +314,8 @@ set(regexp.ndll_SRC
 	libs/regexp/regexp.c
 )
 
+add_library(regexp.ndll MODULE ${regexp.ndll_SRC})
+
 if (WIN32)
 	file(GLOB PCRE_SRC
 		libs/include/pcre/*.c
@@ -322,12 +324,23 @@ if (WIN32)
 	find_path(PCRE_INCLUDE_DIRS pcre.h "./libs/include/pcre" DOC "PCRE includes")
 else()
 	if (STATIC_NDLL)
-		set(PCRE_STATIC_LIBRARY TRUE)
+		ExternalProject_Add(PCRE
+			PREFIX ${CMAKE_BINARY_DIR}/libs
+			URL ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre/pcre-8.38.tar.gz
+			CMAKE_ARGS
+				-Wno-dev
+				-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
+			INSTALL_COMMAND ""
+		)
+		set(PCRE_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/PCRE-build)
+		set(PCRE_LIBRARIES
+			${CMAKE_BINARY_DIR}/libs/src/PCRE-build/libpcre.a
+		)
+		add_dependencies(regexp.ndll PCRE)
+	else()
+		find_package(PCRE REQUIRED)
 	endif()
-	find_package(PCRE REQUIRED)
 endif()
-
-add_library(regexp.ndll MODULE ${regexp.ndll_SRC})
 
 target_include_directories(regexp.ndll PRIVATE ${PCRE_INCLUDE_DIRS})
 target_link_libraries(regexp.ndll libneko ${PCRE_LIBRARIES})
