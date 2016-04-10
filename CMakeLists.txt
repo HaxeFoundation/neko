@@ -117,15 +117,27 @@ else()
 				${CMAKE_COMMAND} -Durl=http://www.ivmaisoft.com/_bin/atomic_ops/libatomic_ops-7.4.2.tar.gz -Dfile=${CMAKE_BINARY_DIR}/libs/src/BoehmGC/libatomic_ops-7.4.2.tar.gz -P ${CMAKE_BINARY_DIR}/download.cmake &&
 				${CMAKE_COMMAND} -E tar x ${CMAKE_BINARY_DIR}/libs/src/BoehmGC/libatomic_ops-7.4.2.tar.gz &&
 				${CMAKE_COMMAND} -E rename libatomic_ops-7.4.2 libatomic_ops
-			CMAKE_ARGS
-				-Wno-dev
-				-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
-				-Denable_threads=ON
-			INSTALL_COMMAND ""
+			#CMAKE_ARGS
+			#	-Wno-dev
+			#	-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
+			#	-Denable_threads=posix
+			#	-DCMAKE_C_FLAGS="-fPIC"
+			#BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build &&
+			#	${CMAKE_COMMAND} --build . --target gc-lib
+			#INSTALL_COMMAND ""
+			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/BoehmGC &&
+				./configure
+					--prefix=${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build
+					--enable-threads=posix
+			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/BoehmGC &&
+				make "CFLAGS=-fPIC"
+			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/BoehmGC && 
+				make install
 		)
 		set(GC_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/BoehmGC/include)
 		set(GC_LIBRARIES
-			${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/libgc-lib.a
+			#${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/libgc-lib.a
+			${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/lib/libgc.a
 		)
 		add_dependencies(libneko BoehmGC)
 	else()
@@ -151,7 +163,8 @@ if(WIN32)
 endif()
 
 if(UNIX)
-	target_link_libraries(libneko dl m)
+	find_package(Threads)
+	target_link_libraries(libneko dl m ${CMAKE_THREAD_LIBS_INIT})
 endif()
 
 set_target_properties(nekovm libneko
@@ -191,6 +204,7 @@ else()
 			CMAKE_ARGS
 				-Wno-dev
 				-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
+				-DCMAKE_C_FLAGS="-fPIC"
 			INSTALL_COMMAND ""
 		)
 		set(ZLIB_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/Zlib)
@@ -325,6 +339,7 @@ else()
 			CMAKE_ARGS
 				-Wno-dev
 				-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
+				-DCMAKE_C_FLAGS="-fPIC"
 			INSTALL_COMMAND ""
 		)
 		set(PCRE_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/PCRE-build)
@@ -367,7 +382,7 @@ else()
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/Sqlite3 &&
 				./configure --prefix=${CMAKE_BINARY_DIR}/libs/src/Sqlite3-build
 			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/Sqlite3 &&
-				make "CFLAGS=-DSQLITE_MAX_VARIABLE_NUMBER=250000 -DSQLITE_ENABLE_RTREE=1"
+				make "CFLAGS=-DSQLITE_MAX_VARIABLE_NUMBER=250000 -DSQLITE_ENABLE_RTREE=1 -fPIC"
 			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/Sqlite3 &&
 				make install
 		)
@@ -570,6 +585,7 @@ else()
 				-DENABLE_PROGRAMS=OFF
 				-DENABLE_TESTING=OFF
 				-DUSE_STATIC_MBEDTLS_LIBRARY=ON
+				-DCMAKE_C_FLAGS="-fPIC"
 			INSTALL_COMMAND ""
 		)
 		set(MBEDTLS_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libs/src/MbedTLS/include)
