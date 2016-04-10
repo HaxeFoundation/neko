@@ -372,8 +372,8 @@ else()
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/Sqlite3 &&
 				./configure --prefix=${CMAKE_BINARY_DIR}/libs/src/Sqlite3-build
 			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/Sqlite3 &&
-				make CFLAGS="-DSQLITE_MAX_VARIABLE_NUMBER=250000 -DSQLITE_ENABLE_RTREE=1"
-			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/Sqlite3 && 
+				make "CFLAGS=-DSQLITE_MAX_VARIABLE_NUMBER=250000 -DSQLITE_ENABLE_RTREE=1"
+			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/Sqlite3 &&
 				make install
 		)
 		set(SQLITE3_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/Sqlite3-build/include)
