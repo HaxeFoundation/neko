@@ -60,6 +60,7 @@ endif()
 if(UNIX)
 	add_definitions(-D_GNU_SOURCE)
 	add_compile_options(-fno-omit-frame-pointer -fPIC)
+	find_package(PkgConfig REQUIRED)
 endif()
 
 include_directories(
@@ -145,7 +146,7 @@ else()
 			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/BoehmGC && 
 				make install
 		)
-		set(GC_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/BoehmGC/include)
+		set(GC_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/include)
 		set(GC_LIBRARIES
 			#${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/libgc-lib.a
 			${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/lib/libgc.a
@@ -213,10 +214,10 @@ else()
 			PREFIX ${CMAKE_BINARY_DIR}/libs
 			URL http://zlib.net/zlib-1.2.8.tar.gz
 			CMAKE_ARGS
+				-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/Zlib-install
 				-Wno-dev
 				-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
 				-DCMAKE_C_FLAGS="-fPIC"
-			INSTALL_COMMAND ""
 		)
 		set(ZLIB_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/Zlib)
 		set(ZLIB_LIBRARIES
@@ -224,7 +225,7 @@ else()
 		)
 		add_dependencies(zlib.ndll Zlib)
 	else()
-		find_package(Zlib REQUIRED)
+		pkg_check_modules(ZLIB REQUIRED zlib)
 	endif()
 endif()
 
@@ -348,10 +349,10 @@ else()
 			PREFIX ${CMAKE_BINARY_DIR}/libs
 			URL ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre/pcre-8.38.tar.gz
 			CMAKE_ARGS
+				-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/PCRE-install
 				-Wno-dev
 				-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
 				-DCMAKE_C_FLAGS="-fPIC"
-			INSTALL_COMMAND ""
 		)
 		set(PCRE_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/PCRE-build)
 		set(PCRE_LIBRARIES
@@ -403,7 +404,7 @@ else()
 		)
 		add_dependencies(sqlite.ndll Sqlite3)
 	else()
-		find_package(Sqlite3 REQUIRED)
+		pkg_check_modules(SQLITE3 REQUIRED sqlite3)
 	endif()
 endif()
 
@@ -432,7 +433,6 @@ if(APPLE)
 	find_library(CARBON_LIBRARY Carbon REQUIRED)
 	target_link_libraries(ui.ndll ${CARBON_LIBRARY})
 elseif(UNIX)
-	find_package(PkgConfig REQUIRED)
 	pkg_check_modules(GTK2 REQUIRED gtk+-2.0)
 	target_include_directories(ui.ndll PRIVATE
 		${GTK2_INCLUDE_DIRS}
@@ -492,7 +492,7 @@ else()
 				make install
 		)
 		ExternalProject_Add(Apache
-			DEPENDS APR APR-util
+			DEPENDS APR APR-util OpenSSL PCRE
 			PREFIX ${CMAKE_BINARY_DIR}/libs
 			URL http://apache.communilink.net/httpd/httpd-2.4.18.tar.bz2
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/Apache &&
@@ -500,6 +500,8 @@ else()
 					--with-apr=${CMAKE_BINARY_DIR}/libs/src/APR-build
 					--with-apr-util=${CMAKE_BINARY_DIR}/libs/src/APR-util-build
 					--with-openssl=${CMAKE_BINARY_DIR}/libs/src/OpenSSL-build
+					--with-pcre=${CMAKE_BINARY_DIR}/libs/src/PCRE-install
+					--with-z=${CMAKE_BINARY_DIR}/libs/src/Zlib-install
 			BUILD_COMMAND ""
 			INSTALL_COMMAND ""
 		)

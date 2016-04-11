@@ -33,11 +33,11 @@ install:
       elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
           brew tap homebrew/dupes;
           brew update;
-          brew install bdw-gc pcre mariadb-connector-c mbedtls;
+          brew install bdw-gc pcre mariadb-connector-c mbedtls sqlite zlib;
+          brew link sqlite --force;
+          brew link zlib --force;
       fi;
     fi
-
-script:
   # build, test, and install
   - mkdir build
   - pushd build
@@ -54,6 +54,8 @@ script:
       sudo make install;
     fi
   - popd
+
+script:
   # test installed version
   - neko -version
   - neko build/bin/test.n
