@@ -41,7 +41,7 @@ endif()
 
 
 set(CMAKE_SKIP_BUILD_RPATH FALSE)
-set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 if (UNIX)
 	if(APPLE)
 		set(CMAKE_MACOSX_RPATH TRUE)
@@ -709,7 +709,7 @@ if (CMAKE_HOST_WIN32)
 	set(neko_exec $<TARGET_FILE:nekovm>)
 else()
 	set(set_neko_env "")
-	set(neko_exec LD_LIBRARY_PATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY} NEKOPATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY} $<TARGET_FILE:nekovm>)
+	set(neko_exec NEKOPATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY} $<TARGET_FILE:nekovm>)
 endif()
 
 add_custom_command(OUTPUT ${compilers_outputs} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test.n
