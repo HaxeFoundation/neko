@@ -47,8 +47,8 @@ install:
   - if [ "${DIST}" = "ON" ]; then
       make source_archive &&
       make package &&
-      tar xf bin/neko-*tar.gz &&
-      cd neko-* &&
+      tar xf bin/neko-*-${TRAVIS_OS_NAME}*.tar.gz &&
+      cd neko-*-${TRAVIS_OS_NAME}* &&
       export PATH=`pwd`:$PATH;
     else
       sudo make install;

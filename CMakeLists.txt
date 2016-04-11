@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-cmake_policy(SET CMP0042 NEW)
+cmake_policy(SET CMP0042 OLD)
 
 project(neko)
 
@@ -373,6 +373,7 @@ else()
 					--disable-cpp
 					--enable-shared=no
 					--enable-static=yes
+					--silent
 			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/PCRE &&
 				make
 			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/PCRE &&
