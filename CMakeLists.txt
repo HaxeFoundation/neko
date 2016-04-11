@@ -520,6 +520,7 @@ else()
 		)
 		ExternalProject_Add(APR-util
 			${EP_CONFIGS}
+			DEPENDS APR-util OpenSSL
 			URL http://apache.communilink.net/apr/apr-util-1.5.4.tar.gz
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APR-util &&
 				./configure
