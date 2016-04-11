@@ -41,6 +41,7 @@ install:
   # build, test, and install
   - mkdir build
   - pushd build
+  - cmake --version
   - cmake -DDIST=${DIST} ..
   - make
   - make test ARGS="-V"

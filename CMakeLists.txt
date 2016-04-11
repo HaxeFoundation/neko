@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 2.8.3)
-cmake_policy(SET CMP0042 OLD)
 
 project(neko)
 
@@ -44,12 +43,13 @@ endif()
 set(CMAKE_SKIP_BUILD_RPATH FALSE)
 set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 if (UNIX)
-   if(APPLE)
-      set (ORIGIN @executable_path)
-   else()
-      set (ORIGIN \$ORIGIN)
-   endif()
-   set(CMAKE_INSTALL_RPATH ${ORIGIN};${ORIGIN}/lib;${ORIGIN}/../lib)
+	if(APPLE)
+		set(CMAKE_MACOSX_RPATH TRUE)
+		set(ORIGIN @executable_path)
+	else()
+		set(ORIGIN \$ORIGIN)
+	endif()
+	set(CMAKE_INSTALL_RPATH ${ORIGIN};${ORIGIN}/lib;${ORIGIN}/../lib)
 endif()
 
 
@@ -707,7 +707,7 @@ if (CMAKE_HOST_WIN32)
 	set(neko_exec $<TARGET_FILE:nekovm>)
 else()
 	set(set_neko_env "")
-	set(neko_exec NEKOPATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY} LD_LIBRARY_PATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}:${LD_LIBRARY_PATH} $<TARGET_FILE:nekovm>)
+	set(neko_exec NEKOPATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY} $<TARGET_FILE:nekovm>)
 endif()
 
 add_custom_command(OUTPUT ${compilers_outputs} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test.n
