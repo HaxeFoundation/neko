@@ -159,7 +159,7 @@ else()
 					--enable-silent-rules
 					--silent
 			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/BoehmGC &&
-				make
+				make CFLAGS=-w
 			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/BoehmGC && 
 				make install
 		)
@@ -276,7 +276,7 @@ else()
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
 				./config --prefix=${CMAKE_BINARY_DIR}/libs/src/OpenSSL-build
 			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
-				make
+				make CFLAGS=-w
 			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL && 
 				make install
 		)
@@ -382,7 +382,7 @@ else()
 					--enable-static=yes
 					--silent
 			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/PCRE &&
-				make
+				make CFLAGS=-w
 			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/PCRE &&
 				make install
 		)
@@ -432,7 +432,7 @@ else()
 					--silent
 					--enable-silent-rules
 			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/Sqlite3 &&
-				make "CFLAGS=-DSQLITE_MAX_VARIABLE_NUMBER=250000 -DSQLITE_ENABLE_RTREE=1"
+				make "CFLAGS=-w -DSQLITE_MAX_VARIABLE_NUMBER=250000 -DSQLITE_ENABLE_RTREE=1"
 			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/Sqlite3 &&
 				make install
 		)
@@ -514,7 +514,7 @@ else()
 				--enable-static=yes
 				--silent
 			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APR &&
-				make
+				make CFLAGS=-w
 			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APR && 
 				make install
 		)
@@ -528,7 +528,7 @@ else()
 					--with-openssl=${CMAKE_BINARY_DIR}/libs/src/OpenSSL-build
 					--silent
 			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APR-util &&
-				make
+				make CFLAGS=-w
 			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APR-util && 
 				make install
 		)
