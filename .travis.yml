@@ -14,40 +14,49 @@ env:
     - DEBEMAIL="haxe-ci@onthewings.net"
     # haxeci_decrypt
     - secure: "fwuuwLcJ8vjCT9RI6DeV+k41+Atxf3EldWHNCREeSJ2FeeBgAQ0aePvx2Bgw6HkTzUWmj2YKVUV8RNrpkN4HQNO0gncYSOLBzXNuL1GAc657YXQcHmeZd4z6Ung+IpyphaThRE0ZwFzgLrj7sA7tfJ4YXxskfCBZNrnJBQU4K2A="
+  matrix:
+    - DIST=ON
+    - DIST=OFF
 
 install:
   # Install dependencies
-  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
-        sudo apt-get update -qq;
-        sudo apt-get install pkg-config libgc-dev libssl-dev libpcre3-dev zlib1g-dev apache2-dev libmysqlclient-dev libsqlite3-dev libgtk2.0-dev -qq;
-        (cd libs/include/ssl/ && wget https://tls.mbed.org/download/mbedtls-2.2.1-apache.tgz && tar xzf mbedtls-2.2.1-apache.tgz && cd mbedtls-2.2.1 && sed -i "s/\/\/#define MBEDTLS_THREADING_PTHREAD/#define MBEDTLS_THREADING_PTHREAD/; s/\/\/#define MBEDTLS_THREADING_C/#define MBEDTLS_THREADING_C/; s/#define MBEDTLS_SSL_PROTO_SSL3/\/\/#define MBEDTLS_SSL_PROTO_SSL3/" include/mbedtls/config.h && SHARED=1 make lib && sudo make install);
-    elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
-        brew tap homebrew/dupes;
-        brew update;
-        brew install bdw-gc pcre mariadb-connector-c mbedtls sqlite zlib;
-        brew link sqlite --force;
-        brew link zlib --force;
+  - if [ "${DIST}" = "ON" ]; then
+      if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
+          sudo apt-get update -qq;
+          sudo apt-get install pkg-config libgtk2.0-dev -qq;
+      fi;
+    else
+      if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
+          sudo apt-get update -qq;
+          sudo apt-get install pkg-config libgc-dev libssl-dev libpcre3-dev zlib1g-dev apache2-dev libmysqlclient-dev libsqlite3-dev libgtk2.0-dev -qq;
+          (cd libs/include/ssl/ && wget https://tls.mbed.org/download/mbedtls-2.2.1-apache.tgz && tar xzf mbedtls-2.2.1-apache.tgz && cd mbedtls-2.2.1 && sed -i "s/\/\/#define MBEDTLS_THREADING_PTHREAD/#define MBEDTLS_THREADING_PTHREAD/; s/\/\/#define MBEDTLS_THREADING_C/#define MBEDTLS_THREADING_C/; s/#define MBEDTLS_SSL_PROTO_SSL3/\/\/#define MBEDTLS_SSL_PROTO_SSL3/" include/mbedtls/config.h && SHARED=1 make lib && sudo make install);
+      elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
+          brew tap homebrew/dupes;
+          brew update;
+          brew install bdw-gc pcre mariadb-connector-c mbedtls;
+      fi;
     fi
 
 script:
   # build, test, and install
   - mkdir build
   - pushd build
-  - cmake ..
+  - cmake -DDIST=${DIST} ..
   - make
   - make test
-  - sudo make install
+  - if [ "${DIST}" = "ON" ]; then
+      make source_archive &&
+      make package &&
+      tar xf bin/neko-*tar.gz &&
+      cd neko-* &&
+      export PATH=`pwd`:$PATH;
+    else
+      sudo make install;
+    fi
   - popd
   # test installed version
   - neko -version
   - neko build/bin/test.n
-  # package for distribution
-  # - mkdir build-dist
-  # - pushd build-dist
-  # - cmake -DDIST=ON ..
-  # - make package
-  # - make source_archive
-  # - popd
   # submit to ppa
   - if false && [ -n "$haxeci_decrypt" ] && [ "${TRAVIS_OS_NAME}" = "linux" ] && [ "${TRAVIS_BRANCH}" = "master" ]; then
       openssl aes-256-cbc -k "$haxeci_decrypt" -in haxeci_ssh.enc -out haxeci_ssh -d;
