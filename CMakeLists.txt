@@ -270,11 +270,20 @@ if (WIN32)
 	find_path(MARIADB_CONNECTOR_INCLUDE_DIR mysql.h "./libs/include/mysql" DOC "MariaDB includes")
 else()
 	if (STATIC_NDLL)
+		if (APPLE)
+			if (${CMAKE_OSX_ARCHITECTURES} STREQUAL "i386")
+				set(OPENSSL_CONF ./Configure darwin-i386-cc)
+			elseif (${CMAKE_OSX_ARCHITECTURES} STREQUAL "x86_64")
+				set(OPENSSL_CONF ./Configure darwin64-x86_64-cc)
+			endif()
+		else()
+			set(OPENSSL_CONF ./config)
+		endif()
 		ExternalProject_Add(OpenSSL
 			${EP_CONFIGS}
 			URL https://www.openssl.org/source/openssl-1.0.2g.tar.gz
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
-				./config --prefix=${CMAKE_BINARY_DIR}/libs/src/OpenSSL-build
+				${OPENSSL_CONF} --prefix=${CMAKE_BINARY_DIR}/libs/src/OpenSSL-install
 			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
 				make
 			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL && 
@@ -287,7 +296,7 @@ else()
 			CMAKE_ARGS
 				-Wno-dev
 				-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
-				-DOPENSSL_ROOT_DIR=${CMAKE_BINARY_DIR}/libs/src/OpenSSL-build
+				-DOPENSSL_ROOT_DIR=${CMAKE_BINARY_DIR}/libs/src/OpenSSL-install
 			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector-build &&
 				${CMAKE_COMMAND} --build . --target mariadbclient
 			INSTALL_COMMAND ""
@@ -386,7 +395,7 @@ else()
 			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/PCRE &&
 				make install
 		)
-		set(PCRE_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/PCRE-install)
+		set(PCRE_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/PCRE-install/include)
 		set(PCRE_LIBRARIES
 			${CMAKE_BINARY_DIR}/libs/src/PCRE-install/lib/libpcre.a
 		)
@@ -526,7 +535,7 @@ else()
 				./configure
 					--prefix=${CMAKE_BINARY_DIR}/libs/src/APR-util-build
 					--with-apr=${CMAKE_BINARY_DIR}/libs/src/APR-build
-					--with-openssl=${CMAKE_BINARY_DIR}/libs/src/OpenSSL-build
+					--with-openssl=${CMAKE_BINARY_DIR}/libs/src/OpenSSL-install
 					--silent
 			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APR-util &&
 				make CFLAGS=-w
@@ -542,7 +551,7 @@ else()
 					--prefix=${CMAKE_BINARY_DIR}/libs/src/Apache-build
 					--with-apr=${CMAKE_BINARY_DIR}/libs/src/APR-build
 					--with-apr-util=${CMAKE_BINARY_DIR}/libs/src/APR-util-build
-					--with-openssl=${CMAKE_BINARY_DIR}/libs/src/OpenSSL-build
+					--with-openssl=${CMAKE_BINARY_DIR}/libs/src/OpenSSL-install
 					--with-pcre=${CMAKE_BINARY_DIR}/libs/src/PCRE-install
 					--with-z=${CMAKE_BINARY_DIR}/libs/src/Zlib-install
 					--silent
