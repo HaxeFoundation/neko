@@ -43,7 +43,7 @@ install:
   - pushd build
   - cmake -DDIST=${DIST} ..
   - make
-  - make test
+  - make test ARGS="-V"
   - if [ "${DIST}" = "ON" ]; then
       make source_archive &&
       make package &&

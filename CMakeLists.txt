@@ -141,8 +141,9 @@ else()
 				./configure
 					--prefix=${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build
 					--enable-threads=posix
+					--with-pic
 			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/BoehmGC &&
-				make "CFLAGS=-fPIC"
+				make
 			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/BoehmGC && 
 				make install
 		)
@@ -348,15 +349,29 @@ else()
 		ExternalProject_Add(PCRE
 			PREFIX ${CMAKE_BINARY_DIR}/libs
 			URL ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre/pcre-8.38.tar.gz
-			CMAKE_ARGS
-				-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/PCRE-install
-				-Wno-dev
-				-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
-				-DCMAKE_C_FLAGS="-fPIC"
+			# CMAKE_ARGS
+			# 	-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/PCRE-install
+			# 	-Wno-dev
+			# 	-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
+			# 	-DCMAKE_C_FLAGS="-fPIC"
+			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/PCRE &&
+				./configure
+					--prefix=${CMAKE_BINARY_DIR}/libs/src/PCRE-install
+					--with-pic
+					--enable-unicode-properties
+					--enable-silent-rules
+					--enable-jit
+					--disable-cpp
+					--enable-shared=no
+					--enable-static=yes
+			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/PCRE &&
+				make
+			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/PCRE &&
+				make install
 		)
-		set(PCRE_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/PCRE-build)
+		set(PCRE_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/PCRE-install)
 		set(PCRE_LIBRARIES
-			${CMAKE_BINARY_DIR}/libs/src/PCRE-build/libpcre.a
+			${CMAKE_BINARY_DIR}/libs/src/PCRE-install/lib/libpcre.a
 		)
 		add_dependencies(regexp.ndll PCRE)
 	else()
@@ -392,9 +407,11 @@ else()
 			PREFIX ${CMAKE_BINARY_DIR}/libs
 			URL https://www.sqlite.org/2016/sqlite-autoconf-3120100.tar.gz
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/Sqlite3 &&
-				./configure --prefix=${CMAKE_BINARY_DIR}/libs/src/Sqlite3-build
+				./configure
+					--prefix=${CMAKE_BINARY_DIR}/libs/src/Sqlite3-build
+					--with-pic
 			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/Sqlite3 &&
-				make "CFLAGS=-DSQLITE_MAX_VARIABLE_NUMBER=250000 -DSQLITE_ENABLE_RTREE=1 -fPIC"
+				make "CFLAGS=-DSQLITE_MAX_VARIABLE_NUMBER=250000 -DSQLITE_ENABLE_RTREE=1"
 			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/Sqlite3 &&
 				make install
 		)
