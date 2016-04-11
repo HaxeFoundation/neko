@@ -236,9 +236,9 @@ else()
 				-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
 				-DCMAKE_C_FLAGS="-fPIC"
 		)
-		set(ZLIB_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/Zlib)
+		set(ZLIB_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/Zlib-install/include)
 		set(ZLIB_LIBRARIES
-			${CMAKE_BINARY_DIR}/libs/src/Zlib-build/libz.a
+			${CMAKE_BINARY_DIR}/libs/src/Zlib-install/lib/libz.a
 		)
 		add_dependencies(zlib.ndll Zlib)
 	else()
