@@ -276,7 +276,7 @@ else()
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
 				./config --prefix=${CMAKE_BINARY_DIR}/libs/src/OpenSSL-build
 			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
-				make CFLAGS=-w
+				make
 			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL && 
 				make install
 		)
