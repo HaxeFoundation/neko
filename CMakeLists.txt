@@ -63,6 +63,18 @@ if(UNIX)
 	find_package(PkgConfig REQUIRED)
 endif()
 
+
+# ExternalProject configs
+set(EP_CONFIGS
+	PREFIX ${CMAKE_BINARY_DIR}/libs
+)
+if(${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION} GREATER 3.0)
+	list(APPEND EP_CONFIGS
+		DOWNLOAD_NO_PROGRESS 1
+	)
+endif()
+
+
 include_directories(
 	vm
 	libs/common
@@ -123,8 +135,7 @@ if (WIN32)
 else()
 	if (STATIC_NDLL)
 		ExternalProject_Add(BoehmGC
-			PREFIX ${CMAKE_BINARY_DIR}/libs
-			DOWNLOAD_NO_PROGRESS 1
+			${EP_CONFIGS}
 			URL http://hboehm.info/gc/gc_source/gc-7.4.2.tar.gz
 			PATCH_COMMAND
 				${CMAKE_COMMAND} -Durl=http://www.ivmaisoft.com/_bin/atomic_ops/libatomic_ops-7.4.2.tar.gz -Dfile=${CMAKE_BINARY_DIR}/libs/src/BoehmGC/libatomic_ops-7.4.2.tar.gz -P ${CMAKE_BINARY_DIR}/download.cmake &&
@@ -217,8 +228,7 @@ if (WIN32)
 else()
 	if (STATIC_NDLL)
 		ExternalProject_Add(Zlib
-			PREFIX ${CMAKE_BINARY_DIR}/libs
-			DOWNLOAD_NO_PROGRESS 1
+			${EP_CONFIGS}
 			URL http://zlib.net/zlib-1.2.8.tar.gz
 			CMAKE_ARGS
 				-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/Zlib-install
@@ -261,8 +271,7 @@ if (WIN32)
 else()
 	if (STATIC_NDLL)
 		ExternalProject_Add(OpenSSL
-			PREFIX ${CMAKE_BINARY_DIR}/libs
-			DOWNLOAD_NO_PROGRESS 1
+			${EP_CONFIGS}
 			URL https://www.openssl.org/source/openssl-1.0.2g.tar.gz
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
 				./config --prefix=${CMAKE_BINARY_DIR}/libs/src/OpenSSL-build
@@ -272,9 +281,8 @@ else()
 				make install
 		)
 		ExternalProject_Add(MariaDBConnector
+			${EP_CONFIGS}
 			DEPENDS OpenSSL
-			PREFIX ${CMAKE_BINARY_DIR}/libs
-			DOWNLOAD_NO_PROGRESS 1
 			URL https://downloads.mariadb.org/f/connector-c-2.2.2/mariadb-connector-c-2.2.2-src.tar.gz
 			CMAKE_ARGS
 				-Wno-dev
@@ -355,8 +363,7 @@ else()
 	add_library(regexp.ndll MODULE libs/regexp/regexp.c)
 	if (STATIC_NDLL)
 		ExternalProject_Add(PCRE
-			PREFIX ${CMAKE_BINARY_DIR}/libs
-			DOWNLOAD_NO_PROGRESS 1
+			${EP_CONFIGS}
 			URL ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre/pcre-8.38.tar.gz
 			# CMAKE_ARGS
 			# 	-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/PCRE-install
@@ -414,8 +421,7 @@ if (WIN32)
 else()
 	if (STATIC_NDLL)
 		ExternalProject_Add(Sqlite3
-			PREFIX ${CMAKE_BINARY_DIR}/libs
-			DOWNLOAD_NO_PROGRESS 1
+			${EP_CONFIGS}
 			URL https://www.sqlite.org/2016/sqlite-autoconf-3120100.tar.gz
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/Sqlite3 &&
 				./configure
@@ -500,8 +506,7 @@ if (WIN32)
 else()
 	if (STATIC_NDLL)
 		ExternalProject_Add(APR
-			PREFIX ${CMAKE_BINARY_DIR}/libs
-			DOWNLOAD_NO_PROGRESS 1
+			${EP_CONFIGS}
 			URL http://apache.communilink.net/apr/apr-1.5.2.tar.gz
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APR &&
 				./configure --prefix=${CMAKE_BINARY_DIR}/libs/src/APR-build
@@ -514,9 +519,7 @@ else()
 				make install
 		)
 		ExternalProject_Add(APR-util
-			PREFIX ${CMAKE_BINARY_DIR}/libs
-			DEPENDS APR OpenSSL
-			DOWNLOAD_NO_PROGRESS 1
+			${EP_CONFIGS}
 			URL http://apache.communilink.net/apr/apr-util-1.5.4.tar.gz
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APR-util &&
 				./configure
@@ -530,9 +533,8 @@ else()
 				make install
 		)
 		ExternalProject_Add(Apache
+			${EP_CONFIGS}
 			DEPENDS APR APR-util OpenSSL PCRE
-			PREFIX ${CMAKE_BINARY_DIR}/libs
-			DOWNLOAD_NO_PROGRESS 1
 			URL http://apache.communilink.net/httpd/httpd-2.4.18.tar.bz2
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/Apache &&
 				./configure
@@ -630,8 +632,7 @@ if (WIN32)
 else()
 	if (STATIC_NDLL)
 		ExternalProject_Add(MbedTLS
-			PREFIX ${CMAKE_BINARY_DIR}/libs
-			DOWNLOAD_NO_PROGRESS 1
+			${EP_CONFIGS}
 			URL https://tls.mbed.org/download/mbedtls-2.2.1-apache.tgz
 			CMAKE_ARGS
 				-Wno-dev
