@@ -50,14 +50,7 @@ include(CMakeDependentOption)
 cmake_dependent_option(DIST "Build portable binaries for distribution. Implies STATIC_NDLL." OFF "NOT WIN32" ON)
 cmake_dependent_option(STATIC_NDLL "Statically link dependencies to the ndll files." OFF "NOT WIN32;NOT DIST" ON)
 
-if (STATIC_NDLL)
-	include(ExternalProject)
-
-	# file(DOWNLOAD ...) at build time
-	# usage: ${CMAKE_COMMAND} -Durl=url -Dfile=path/to/output_file -P ${CMAKE_BINARY_DIR}/download.cmake
-	# https://cmake.org/pipermail/cmake/2013-March/053915.html
-	file(WRITE ${CMAKE_BINARY_DIR}/download.cmake "file(DOWNLOAD \${url} \${file})")
-endif()
+include(ExternalProject)
 
 
 set(CMAKE_SKIP_BUILD_RPATH FALSE)
@@ -154,7 +147,7 @@ else()
 			URL http://hboehm.info/gc/gc_source/gc-7.4.2.tar.gz
 			URL_MD5 12c05fd2811d989341d8c6d81f66af87
 			PATCH_COMMAND
-				${CMAKE_COMMAND} -Durl=http://www.ivmaisoft.com/_bin/atomic_ops/libatomic_ops-7.4.2.tar.gz -Dfile=${CMAKE_BINARY_DIR}/libs/src/BoehmGC/libatomic_ops-7.4.2.tar.gz -P ${CMAKE_BINARY_DIR}/download.cmake &&
+				${CMAKE_COMMAND} -Durl=http://www.ivmaisoft.com/_bin/atomic_ops/libatomic_ops-7.4.2.tar.gz -Dfile=${CMAKE_BINARY_DIR}/libs/src/BoehmGC/libatomic_ops-7.4.2.tar.gz -P ${CMAKE_SOURCE_DIR}/cmake/download.cmake &&
 				${CMAKE_COMMAND} -E tar x ${CMAKE_BINARY_DIR}/libs/src/BoehmGC/libatomic_ops-7.4.2.tar.gz &&
 				${CMAKE_COMMAND} -E rename libatomic_ops-7.4.2 libatomic_ops
 			#CMAKE_ARGS
