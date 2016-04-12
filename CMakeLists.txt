@@ -99,12 +99,22 @@ include_directories(
 	libs/common
 )
 
-set(vm_SRC
-	vm/stats.c
-	vm/main.c
+add_library(libneko SHARED
+	vm/alloc.c
+	vm/builtins.c
+	vm/callback.c
+	vm/elf.c
+	vm/interp.c
+	vm/load.c
+	vm/objtable.c
+	vm/others.c
+	vm/hash.c
+	vm/module.c
+	vm/jit_x86.c
+	vm/threads.c
 )
 
-set(std_SRC
+add_library(std.ndll MODULE
 	libs/std/buffer.c
 	libs/std/date.c
 	libs/std/file.c
@@ -129,24 +139,10 @@ set(std_SRC
 	libs/std/elf_update.c
 )
 
-set(lib_SRC
-	vm/alloc.c
-	vm/builtins.c
-	vm/callback.c
-	vm/elf.c
-	vm/interp.c
-	vm/load.c
-	vm/objtable.c
-	vm/others.c
-	vm/hash.c
-	vm/module.c
-	vm/jit_x86.c
-	vm/threads.c
+add_executable(nekovm
+	vm/stats.c
+	vm/main.c
 )
-
-add_library(libneko SHARED ${lib_SRC})
-add_library(std.ndll MODULE ${std_SRC})
-add_executable(nekovm ${vm_SRC})
 
 if (WIN32)
 	find_library(GC_LIBRARIES NAMES gc.lib PATHS "./libs/include/gc" DOC "Boehm GC library")
@@ -244,11 +240,7 @@ set_target_properties(std.ndll
 ######################
 # zlib.ndll
 
-set(zlib.ndll_SRC
-	libs/zlib/zlib.c
-)
-
-add_library(zlib.ndll MODULE ${zlib.ndll_SRC})
+add_library(zlib.ndll MODULE libs/zlib/zlib.c)
 
 if (WIN32)
 	find_library(ZLIB_LIBRARIES NAMES zlib.lib PATHS "./libs/include/zlib" DOC "zlib library")
@@ -288,11 +280,7 @@ set_target_properties(zlib.ndll
 ######################
 # mysql.ndll
 
-set(mysql.ndll_SRC
-	libs/mysql/mysql.c
-)
-
-add_library(mysql.ndll MODULE ${mysql.ndll_SRC})
+add_library(mysql.ndll MODULE libs/mysql/mysql.c)
 
 if (WIN32)
 	find_library(MARIADB_CONNECTOR_LIBRARIES NAMES mariadbclient.lib PATHS "./libs/include/mysql" DOC "MariaDB library")
@@ -362,15 +350,13 @@ set_target_properties(mysql.ndll
 ######################
 # mysql5.ndll
 
-set(mysql5.ndll_SRC
+add_library(mysql5.ndll MODULE
 	libs/common/sha1.c
 	libs/common/socket.c
 	libs/mysql/my_proto/my_proto.c
 	libs/mysql/my_proto/my_api.c
 	libs/mysql/mysql.c
 )
-
-add_library(mysql5.ndll MODULE ${mysql5.ndll_SRC})
 
 target_include_directories(mysql5.ndll
 	PRIVATE
@@ -450,11 +436,7 @@ set_target_properties(regexp.ndll
 ######################
 # sqlite.ndll
 
-set(sqlite.ndll_SRC
-	libs/sqlite/sqlite.c
-)
-
-add_library(sqlite.ndll MODULE ${sqlite.ndll_SRC})
+add_library(sqlite.ndll MODULE libs/sqlite/sqlite.c)
 
 if (WIN32)
 	find_library(SQLITE3_LIBRARIES NAMES sqlite3.lib PATHS "./libs/include/sqlite" DOC "SQLite library")
@@ -501,11 +483,7 @@ set_target_properties(sqlite.ndll
 ######################
 # ui.ndll
 
-set(ui.ndll_SRC
-	libs/ui/ui.c
-)
-
-add_library(ui.ndll MODULE ${ui.ndll_SRC})
+add_library(ui.ndll MODULE libs/ui/ui.c)
 
 target_link_libraries(ui.ndll libneko)
 
@@ -530,13 +508,11 @@ set_target_properties(ui.ndll
 ######################
 # mod_neko2.ndll
 
-set(mod_neko2.ndll_SRC
+add_library(mod_neko2.ndll MODULE
 	vm/stats.c
 	libs/mod_neko/mod_neko.c
 	libs/mod_neko/cgi.c
 )
-
-add_library(mod_neko2.ndll MODULE ${mod_neko2.ndll_SRC})
 
 if (WIN32)
 	find_library(HTTPD_LIBRARY NAMES libhttpd
@@ -636,13 +612,12 @@ endif(APPLE)
 ######################
 # mod_tora2.ndll
 
-set(mod_tora2.ndll_SRC
+add_library(mod_tora2.ndll MODULE
 	libs/common/socket.c
 	libs/mod_tora/protocol.c
 	libs/mod_tora/mod_tora.c
 )
 
-add_library(mod_tora2.ndll MODULE ${mod_tora2.ndll_SRC})
 add_dependencies(mod_tora2.ndll mod_neko2.ndll)
 
 target_include_directories(mod_tora2.ndll
@@ -665,11 +640,7 @@ set_target_properties(mod_tora2.ndll
 ######################
 # ssl.ndll
 
-set(ssl.ndll_SRC
-	libs/ssl/ssl.c
-)
-
-add_library(ssl.ndll MODULE ${ssl.ndll_SRC})
+add_library(ssl.ndll MODULE libs/ssl/ssl.c)
 
 if (WIN32)
 	find_library(MBEDTLS_LIBRARIES NAMES mbedTLS.lib PATHS "./libs/include/ssl" DOC "mbedTLS library")
