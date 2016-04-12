@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 2.8.7)
 
 project(neko)
 
@@ -21,6 +21,26 @@ foreach( OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES} )
 	set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${OUTPUT_DIR} )
 endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
 
+# target_include_directories for old cmake versions
+if (${CMAKE_VERSION} VERSION_LESS 2.8.8)
+	function(target_include_directories target visibility)
+		include_directories(${ARGN})
+	endfunction()
+elseif (${CMAKE_VERSION} VERSION_LESS 2.8.11)
+	function(target_include_directories target visibility)
+		set_target_properties(${target}
+			PROPERTIES
+			INCLUDE_DIRECTORIES "${INCLUDE_DIRECTORIES} ${ARGN}"
+		)
+	endfunction()
+endif()
+
+# add_compile_options for old cmake versions
+if (${CMAKE_VERSION} VERSION_LESS 2.8.12)
+	function(add_compile_options)
+		list(APPEND CMAKE_C_FLAGS ${ARGN})
+	endfunction()
+endif()
 
 set(NEKO_VERSION_MAJOR 2)
 set(NEKO_VERSION_MINOR 0)
