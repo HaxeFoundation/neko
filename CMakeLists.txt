@@ -41,13 +41,13 @@ endif()
 
 
 set(CMAKE_SKIP_BUILD_RPATH FALSE)
-set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 if(APPLE)
 	set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 	set(CMAKE_MACOSX_RPATH TRUE)
 	set(ORIGIN @executable_path)
 	set(CMAKE_INSTALL_RPATH "${ORIGIN}/;${ORIGIN}/lib;${ORIGIN}/../lib")
 elseif(UNIX)
+	set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 	set(ORIGIN \$ORIGIN)
 	set(CMAKE_INSTALL_RPATH "${ORIGIN};${ORIGIN}/lib;${ORIGIN}/../lib")
 endif()
@@ -136,6 +136,7 @@ else()
 		ExternalProject_Add(BoehmGC
 			${EP_CONFIGS}
 			URL http://hboehm.info/gc/gc_source/gc-7.4.2.tar.gz
+			URL_MD5 12c05fd2811d989341d8c6d81f66af87
 			PATCH_COMMAND
 				${CMAKE_COMMAND} -Durl=http://www.ivmaisoft.com/_bin/atomic_ops/libatomic_ops-7.4.2.tar.gz -Dfile=${CMAKE_BINARY_DIR}/libs/src/BoehmGC/libatomic_ops-7.4.2.tar.gz -P ${CMAKE_BINARY_DIR}/download.cmake &&
 				${CMAKE_COMMAND} -E tar x ${CMAKE_BINARY_DIR}/libs/src/BoehmGC/libatomic_ops-7.4.2.tar.gz &&
@@ -237,6 +238,7 @@ else()
 		ExternalProject_Add(Zlib
 			${EP_CONFIGS}
 			URL http://zlib.net/zlib-1.2.8.tar.gz
+			URL_MD5 44d667c142d7cda120332623eab69f40
 			CMAKE_ARGS
 				-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/Zlib-install
 				-Wno-dev
@@ -289,10 +291,11 @@ else()
 		ExternalProject_Add(OpenSSL
 			${EP_CONFIGS}
 			URL https://www.openssl.org/source/openssl-1.0.2g.tar.gz
+			URL_MD5 f3c710c045cdee5fd114feb69feba7aa
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
 				${OPENSSL_CONF} --prefix=${CMAKE_BINARY_DIR}/libs/src/OpenSSL-install
 			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
-				make
+				make depend && make
 			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL && 
 				make install
 		)
@@ -300,6 +303,7 @@ else()
 			${EP_CONFIGS}
 			DEPENDS OpenSSL
 			URL https://downloads.mariadb.org/f/connector-c-2.2.2/mariadb-connector-c-2.2.2-src.tar.gz
+			URL_MD5 a9767a8ed295f3d0ca3d9241ccde4c3f
 			CMAKE_ARGS
 				-Wno-dev
 				-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
@@ -381,6 +385,7 @@ else()
 		ExternalProject_Add(PCRE
 			${EP_CONFIGS}
 			URL ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre/pcre-8.38.tar.gz
+			URL_MD5 8a353fe1450216b6655dfcf3561716d9
 			# CMAKE_ARGS
 			# 	-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/PCRE-install
 			# 	-Wno-dev
@@ -439,6 +444,7 @@ else()
 		ExternalProject_Add(Sqlite3
 			${EP_CONFIGS}
 			URL https://www.sqlite.org/2016/sqlite-autoconf-3120100.tar.gz
+			URL_MD5 9727cabe516a8f51fed3977340934846
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/Sqlite3 &&
 				./configure
 					--prefix=${CMAKE_BINARY_DIR}/libs/src/Sqlite3-install
@@ -523,7 +529,8 @@ else()
 	if (STATIC_NDLL)
 		ExternalProject_Add(APR
 			${EP_CONFIGS}
-			URL http://apache.communilink.net/apr/apr-1.5.2.tar.gz
+			URL http://archive.apache.org/dist/apr/apr-1.5.2.tar.gz
+			URL_MD5 98492e965963f852ab29f9e61b2ad700
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APR &&
 				./configure --prefix=${CMAKE_BINARY_DIR}/libs/src/APR-build
 				--enable-shared=no
@@ -537,7 +544,8 @@ else()
 		ExternalProject_Add(APR-util
 			${EP_CONFIGS}
 			DEPENDS APR OpenSSL
-			URL http://apache.communilink.net/apr/apr-util-1.5.4.tar.gz
+			URL http://archive.apache.org/dist/apr/apr-util-1.5.4.tar.gz
+			URL_MD5 866825c04da827c6e5f53daff5569f42
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APR-util &&
 				./configure
 					--prefix=${CMAKE_BINARY_DIR}/libs/src/APR-util-build
@@ -552,7 +560,8 @@ else()
 		ExternalProject_Add(Apache
 			${EP_CONFIGS}
 			DEPENDS APR APR-util OpenSSL PCRE
-			URL http://apache.communilink.net/httpd/httpd-2.4.18.tar.bz2
+			URL http://archive.apache.org/dist/httpd/httpd-2.4.20.tar.gz
+			URL_MD5 e725c268624737a163dc844e28f720d1
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/Apache &&
 				./configure
 					--prefix=${CMAKE_BINARY_DIR}/libs/src/Apache-build
@@ -651,6 +660,7 @@ else()
 		ExternalProject_Add(MbedTLS
 			${EP_CONFIGS}
 			URL https://tls.mbed.org/download/mbedtls-2.2.1-apache.tgz
+			URL_MD5 77751c0e370ed2ab01934e4c5e1d380f
 			CMAKE_ARGS
 				-Wno-dev
 				-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
