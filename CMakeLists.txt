@@ -42,16 +42,15 @@ endif()
 
 set(CMAKE_SKIP_BUILD_RPATH FALSE)
 set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
-if (UNIX)
-	if(APPLE)
-		set(CMAKE_MACOSX_RPATH TRUE)
-		set(ORIGIN @executable_path)
-	else()
-		set(ORIGIN \$ORIGIN)
-	endif()
-	set(CMAKE_INSTALL_RPATH ${ORIGIN};${ORIGIN}/lib;${ORIGIN}/../lib)
+if(APPLE)
+	set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+	set(CMAKE_MACOSX_RPATH TRUE)
+	set(ORIGIN @executable_path)
+	set(CMAKE_INSTALL_RPATH "${ORIGIN}/;${ORIGIN}/lib;${ORIGIN}/../lib")
+elseif(UNIX)
+	set(ORIGIN \$ORIGIN)
+	set(CMAKE_INSTALL_RPATH "${ORIGIN};${ORIGIN}/lib;${ORIGIN}/../lib")
 endif()
-
 
 if(UNIX AND NOT APPLE)
 	add_definitions(-DABI_ELF)
@@ -195,6 +194,14 @@ if(UNIX)
 	find_package(Threads)
 	target_link_libraries(libneko dl m ${CMAKE_THREAD_LIBS_INIT})
 endif()
+
+set_target_properties(nekovm
+	PROPERTIES
+	OUTPUT_NAME neko
+	# MACOSX_RPATH TRUE
+	# INSTALL_RPATH @executable_path
+	# LINK_FLAGS "${LINK_FLAGS} @executable_path"
+)
 
 set_target_properties(nekovm libneko
 	PROPERTIES
