@@ -47,8 +47,7 @@ set(NEKO_VERSION_MINOR 0)
 set(NEKO_VERSION_PATCH 0)
 
 include(CMakeDependentOption)
-cmake_dependent_option(DIST "Build portable binaries for distribution. Implies STATIC_NDLL." OFF "NOT WIN32" ON)
-cmake_dependent_option(STATIC_NDLL "Statically link dependencies to the ndll files." OFF "NOT WIN32;NOT DIST" ON)
+cmake_dependent_option(STATIC_NDLL "Statically link dependencies to the ndll files." OFF "NOT WIN32" ON)
 
 include(ExternalProject)
 
@@ -793,7 +792,7 @@ add_custom_target(source_archive
 
 # install target
 
-if (WIN32) # implies DIST
+if (WIN32)
 	set(DEST_BIN .)
 	set(DEST_LIB .)
 	set(DEST_NDLL .)
@@ -809,22 +808,9 @@ if (WIN32) # implies DIST
 		DESTINATION .
 	)
 else()
-	if (DIST)
-		set(DEST_BIN .)
-		set(DEST_LIB .)
-		set(DEST_NDLL .)
-		install (
-			FILES
-				${CMAKE_SOURCE_DIR}/README.md
-				${CMAKE_SOURCE_DIR}/LICENSE
-				${CMAKE_SOURCE_DIR}/CHANGES
-			DESTINATION .
-		)
-	else()
-		set(DEST_BIN bin)
-		set(DEST_LIB lib)
-		set(DEST_NDLL lib/neko)
-	endif()
+	set(DEST_BIN bin)
+	set(DEST_LIB lib)
+	set(DEST_NDLL lib/neko)
 endif()
 
 if (UNIX AND NOT APPLE)
@@ -889,10 +875,8 @@ set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
 
 if (WIN32)
 	set(CPACK_GENERATOR "ZIP")
-	set(CPACK_SOURCE_GENERATOR "ZIP")
 else()
 	set(CPACK_GENERATOR "TGZ")
-	set(CPACK_SOURCE_GENERATOR "TGZ")
 endif()
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
@@ -928,6 +912,8 @@ set(CPACK_SOURCE_PACKAGE_FILE_NAME
 	"${CMAKE_PROJECT_NAME}-${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}-src")
 
 include(CPack)
+
+install (SCRIPT "${CMAKE_SOURCE_DIR}/cmake/post_install.cmake")
 
 #######################
 
