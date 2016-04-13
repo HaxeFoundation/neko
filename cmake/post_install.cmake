@@ -3,7 +3,7 @@ if (${CMAKE_INSTALL_PREFIX} MATCHES "/_CPack_Packages/.*/(TGZ|ZIP)/")
 
 	# Flatten the directory structure such that everything except the header files is placed in root.
 	file(GLOB bin_files ${CMAKE_INSTALL_PREFIX}/bin/*)
-	file(GLOB lib_files ${CMAKE_INSTALL_PREFIX}/lib/**/*)
+	file(GLOB lib_files ${CMAKE_INSTALL_PREFIX}/lib/* ${CMAKE_INSTALL_PREFIX}/lib/**/*)
 	foreach(file ${bin_files} ${lib_files})
 		get_filename_component(file_name ${file} NAME)
 		execute_process(
@@ -14,4 +14,5 @@ if (${CMAKE_INSTALL_PREFIX} MATCHES "/_CPack_Packages/.*/(TGZ|ZIP)/")
 	endforeach()
 	execute_process( COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_INSTALL_PREFIX}/bin)
 	execute_process( COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_INSTALL_PREFIX}/lib)
+
 endif()
