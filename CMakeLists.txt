@@ -47,21 +47,23 @@ set(NEKO_VERSION_MINOR 0)
 set(NEKO_VERSION_PATCH 0)
 
 include(CMakeDependentOption)
-cmake_dependent_option(STATIC_NDLL "Statically link dependencies to the ndll files." OFF "NOT WIN32" ON)
+cmake_dependent_option(STATIC_NDLL "Statically link dependencies to the ndll files." OFF "UNIX" ON)
+cmake_dependent_option(RELOCATABLE "Set RPATH to $ORIGIN (Linux) / @executable_path (Mac)." ON "UNIX" ON)
 
 include(ExternalProject)
 
 
-set(CMAKE_SKIP_BUILD_RPATH FALSE)
-if(APPLE)
+if (RELOCATABLE)
+	# https://cmake.org/Wiki/CMake_RPATH_handling
+	set(CMAKE_SKIP_BUILD_RPATH FALSE)
+	set(CMAKE_SKIP_INSTALL_RPATH FALSE)
 	set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
-	set(CMAKE_MACOSX_RPATH TRUE)
-	set(ORIGIN @executable_path)
-	set(CMAKE_INSTALL_RPATH "${ORIGIN}/;${ORIGIN}/lib;${ORIGIN}/../lib")
-elseif(UNIX)
-	set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
-	set(ORIGIN \$ORIGIN)
-	set(CMAKE_INSTALL_RPATH "${ORIGIN};${ORIGIN}/lib;${ORIGIN}/../lib")
+	if(APPLE)
+		set(CMAKE_MACOSX_RPATH TRUE)
+		set(CMAKE_INSTALL_RPATH @executable_path/)
+	elseif(UNIX)
+		set(CMAKE_INSTALL_RPATH \$ORIGIN)
+	endif()
 endif()
 
 if(UNIX AND NOT APPLE)
@@ -207,9 +209,6 @@ endif()
 set_target_properties(nekovm
 	PROPERTIES
 	OUTPUT_NAME neko
-	# MACOSX_RPATH TRUE
-	# INSTALL_RPATH @executable_path
-	# LINK_FLAGS "${LINK_FLAGS} @executable_path"
 )
 
 set_target_properties(nekovm libneko
