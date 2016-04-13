@@ -37,9 +37,11 @@ endif()
 
 # add_compile_options for old cmake versions
 if (${CMAKE_VERSION} VERSION_LESS 2.8.12)
-	function(add_compile_options)
-		list(APPEND CMAKE_C_FLAGS ${ARGN})
-	endfunction()
+	macro(add_compile_options)
+		foreach(opt ${ARGN})
+			set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${opt}")
+		endforeach()
+	endmacro()
 endif()
 
 set(NEKO_VERSION_MAJOR 2)
@@ -73,6 +75,12 @@ endif()
 if(UNIX)
 	add_definitions(-D_GNU_SOURCE)
 	add_compile_options(-fno-omit-frame-pointer -fPIC)
+
+	# https://github.com/HaxeFoundation/neko/pull/17
+	if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+		add_compile_options(-mincoming-stack-boundary=2)
+	endif()
+
 	find_package(PkgConfig REQUIRED)
 endif()
 
