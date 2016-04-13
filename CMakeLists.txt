@@ -715,9 +715,12 @@ endif()
 if (CMAKE_HOST_WIN32)
 	set(set_neko_env set NEKOPATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 	set(neko_exec $<TARGET_FILE:nekovm>)
+elseif(CMAKE_HOST_APPLE)
+	set(set_neko_env "")
+	set(neko_exec DYLD_FALLBACK_LIBRARY_PATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY} NEKOPATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY} $<TARGET_FILE:nekovm>)
 else()
 	set(set_neko_env "")
-	set(neko_exec NEKOPATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY} $<TARGET_FILE:nekovm>)
+	set(neko_exec LD_LIBRARY_PATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY} NEKOPATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY} $<TARGET_FILE:nekovm>)
 endif()
 
 add_custom_command(OUTPUT ${compilers_outputs} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test.n
@@ -810,10 +813,6 @@ else()
 	set(DEST_BIN bin)
 	set(DEST_LIB lib)
 	set(DEST_NDLL lib/neko)
-endif()
-
-if (UNIX AND NOT APPLE)
-	set(CMAKE_INSTALL_PREFIX /usr)
 endif()
 
 install (
