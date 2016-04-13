@@ -20,6 +20,7 @@ endif()
 mark_as_advanced(
   GC_INCLUDE_DIR
   GC_LIBRARIES
+  GC_STATIC_LIBRARIES
   GC_STATIC
   GC_STATIC_FOUND
 )
