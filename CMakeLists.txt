@@ -415,32 +415,23 @@ if (WIN32)
 else()
 	if (STATIC_MARIADBCONNECTOR)
 		if (STATIC_OPENSSL)
-			ExternalProject_Add(MariaDBConnector
-				${EP_CONFIGS}
-				DEPENDS OpenSSL
-				URL https://downloads.mariadb.org/f/connector-c-2.2.2/mariadb-connector-c-2.2.2-src.tar.gz
-				URL_MD5 a9767a8ed295f3d0ca3d9241ccde4c3f
-				CMAKE_ARGS
-					-Wno-dev
-					-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
-					-DOPENSSL_ROOT_DIR=${CMAKE_BINARY_DIR}/libs/src/OpenSSL-install
-				BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector-build &&
-					${CMAKE_COMMAND} --build . --target mariadbclient
-				INSTALL_COMMAND ""
-			)
-		else()
-			ExternalProject_Add(MariaDBConnector
-				${EP_CONFIGS}
-				URL https://downloads.mariadb.org/f/connector-c-2.2.2/mariadb-connector-c-2.2.2-src.tar.gz
-				URL_MD5 a9767a8ed295f3d0ca3d9241ccde4c3f
-				CMAKE_ARGS
-					-Wno-dev
-					-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
-				BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector-build &&
-					${CMAKE_COMMAND} --build . --target mariadbclient
-				INSTALL_COMMAND ""
-			)
+			set(OPENSSL_CONF -DOPENSSL_ROOT_DIR=${CMAKE_BINARY_DIR}/libs/src/OpenSSL-install)
+		elseif()
+			set(OPENSSL_CONF "")
 		endif()
+		ExternalProject_Add(MariaDBConnector
+			${EP_CONFIGS}
+			DEPENDS OpenSSL
+			URL https://downloads.mariadb.org/f/connector-c-2.2.2/mariadb-connector-c-2.2.2-src.tar.gz
+			URL_MD5 a9767a8ed295f3d0ca3d9241ccde4c3f
+			CMAKE_ARGS
+				-Wno-dev
+				-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
+				${OPENSSL_CONF}
+			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector-build &&
+				${CMAKE_COMMAND} --build . --target mariadbclient
+			INSTALL_COMMAND ""
+		)
 		set_target_properties(MariaDBConnector PROPERTIES ${EP_PROPS})
 		set(MARIADB_CONNECTOR_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector/include)
 		set(MARIADB_CONNECTOR_LIBRARIES
