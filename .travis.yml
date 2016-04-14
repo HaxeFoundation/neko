@@ -15,12 +15,12 @@ env:
     # haxeci_decrypt
     - secure: "fwuuwLcJ8vjCT9RI6DeV+k41+Atxf3EldWHNCREeSJ2FeeBgAQ0aePvx2Bgw6HkTzUWmj2YKVUV8RNrpkN4HQNO0gncYSOLBzXNuL1GAc657YXQcHmeZd4z6Ung+IpyphaThRE0ZwFzgLrj7sA7tfJ4YXxskfCBZNrnJBQU4K2A="
   matrix:
-    - STATIC_NDLL=ON
-    - STATIC_NDLL=OFF
+    - STATIC_DEPS=all
+    - STATIC_DEPS=none
 
 install:
   # Install dependencies
-  - if [ "${STATIC_NDLL}" = "ON" ]; then
+  - if [ "${STATIC_DEPS}" = "all" ]; then
       if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
           sudo apt-get update -qq;
           sudo apt-get install pkg-config libgtk2.0-dev -qq;
@@ -46,10 +46,10 @@ install:
   - mkdir build
   - pushd build
   - cmake --version
-  - cmake -DSTATIC_NDLL=${STATIC_NDLL} ..
+  - cmake -DSTATIC_DEPS=${STATIC_DEPS} ..
   - make
   - make test ARGS="-V"
-  - if [ "${STATIC_NDLL}" = "ON" ]; then
+  - if [ "${STATIC_DEPS}" = "all" ]; then
       make source_archive &&
       make package &&
       tar xf bin/neko-*-${TRAVIS_OS_NAME}*.tar.gz &&
