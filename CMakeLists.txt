@@ -184,13 +184,15 @@ endif()
 # ExternalProject configs
 set(EP_CONFIGS
 	PREFIX ${CMAKE_BINARY_DIR}/libs
-	EXCLUDE_FROM_ALL 1
 )
 if(${CMAKE_VERSION} VERSION_GREATER 3.0)
 	list(APPEND EP_CONFIGS
 		DOWNLOAD_NO_PROGRESS 1
 	)
 endif()
+set(EP_PROPS
+	EXCLUDE_FROM_ALL 1
+)
 
 
 include_directories(
@@ -260,7 +262,7 @@ else()
 			#	-Wno-dev
 			#	-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
 			#	-Denable_threads=posix
-			#	-DCMAKE_C_FLAGS="-fPIC"
+			#	-DCMAKE_C_FLAGS=-fPIC
 			#BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build &&
 			#	${CMAKE_COMMAND} --build . --target gc-lib
 			#INSTALL_COMMAND ""
@@ -278,6 +280,7 @@ else()
 			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/BoehmGC && 
 				make install
 		)
+		set_target_properties(BoehmGC PROPERTIES ${EP_PROPS})
 		set(GC_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/include)
 		set(GC_LIBRARIES
 			#${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/libgc-lib.a
@@ -357,6 +360,7 @@ if (STATIC_OPENSSL)
 		INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL && 
 			make install
 	)
+	set_target_properties(OpenSSL PROPERTIES ${EP_PROPS})
 endif()
 
 ######################
@@ -377,8 +381,9 @@ else()
 				-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/Zlib-install
 				-Wno-dev
 				-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
-				-DCMAKE_C_FLAGS="-fPIC"
+				-DCMAKE_C_FLAGS=-fPIC
 		)
+		set_target_properties(Zlib PROPERTIES ${EP_PROPS})
 		set(ZLIB_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/Zlib-install/include)
 		set(ZLIB_LIBRARIES
 			${CMAKE_BINARY_DIR}/libs/src/Zlib-install/lib/libz.a
@@ -436,6 +441,7 @@ else()
 				INSTALL_COMMAND ""
 			)
 		endif()
+		set_target_properties(MariaDBConnector PROPERTIES ${EP_PROPS})
 		set(MARIADB_CONNECTOR_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector/include)
 		set(MARIADB_CONNECTOR_LIBRARIES
 			${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector-build/libmariadb/libmariadbclient.a
@@ -512,7 +518,7 @@ else()
 			# 	-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/PCRE-install
 			# 	-Wno-dev
 			# 	-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
-			# 	-DCMAKE_C_FLAGS="-fPIC"
+			# 	-DCMAKE_C_FLAGS=-fPIC
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/PCRE &&
 				./configure
 					--prefix=${CMAKE_BINARY_DIR}/libs/src/PCRE-install
@@ -529,6 +535,7 @@ else()
 			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/PCRE &&
 				make install
 		)
+		set_target_properties(PCRE PROPERTIES ${EP_PROPS})
 		set(PCRE_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/PCRE-install/include)
 		set(PCRE_LIBRARIES
 			${CMAKE_BINARY_DIR}/libs/src/PCRE-install/lib/libpcre.a
@@ -576,6 +583,7 @@ else()
 			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/Sqlite3 &&
 				make install
 		)
+		set_target_properties(Sqlite3 PROPERTIES ${EP_PROPS})
 		set(SQLITE3_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/Sqlite3-install/include)
 		set(SQLITE3_LIBRARIES
 			${CMAKE_BINARY_DIR}/libs/src/Sqlite3-install/lib/libsqlite3.a
@@ -678,6 +686,7 @@ else()
 			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APR && 
 				make install
 		)
+		set_target_properties(APR PROPERTIES ${EP_PROPS})
 		ExternalProject_Add(APRutil
 			${EP_CONFIGS}
 			DEPENDS APR OpenSSL
@@ -694,6 +703,7 @@ else()
 			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APRutil && 
 				make install
 		)
+		set_target_properties(APRutil PROPERTIES ${EP_PROPS})
 		ExternalProject_Add(Apache
 			${EP_CONFIGS}
 			DEPENDS APR APRutil OpenSSL PCRE
@@ -711,6 +721,7 @@ else()
 			BUILD_COMMAND ""
 			INSTALL_COMMAND ""
 		)
+		set_target_properties(Apache PROPERTIES ${EP_PROPS})
 		set(APACHE_INCLUDE_DIRS
 			${CMAKE_BINARY_DIR}/libs/src/APR-build/include/apr-1
 			${CMAKE_BINARY_DIR}/libs/src/APRutil-build/include/apr-1
@@ -800,9 +811,10 @@ else()
 				-DENABLE_PROGRAMS=OFF
 				-DENABLE_TESTING=OFF
 				-DUSE_STATIC_MBEDTLS_LIBRARY=ON
-				-DCMAKE_C_FLAGS="-fPIC"
+				-DCMAKE_C_FLAGS=-fPIC
 			INSTALL_COMMAND ""
 		)
+		set_target_properties(MbedTLS PROPERTIES ${EP_PROPS})
 		set(MBEDTLS_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libs/src/MbedTLS/include)
 		set(MBEDTLS_LIBRARIES
 			${CMAKE_BINARY_DIR}/libs/src/MbedTLS-build/library/libmbedx509.a
