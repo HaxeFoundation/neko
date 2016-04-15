@@ -416,12 +416,14 @@ else()
 	if (STATIC_MARIADBCONNECTOR)
 		if (STATIC_OPENSSL)
 			set(OPENSSL_CONF -DOPENSSL_ROOT_DIR=${CMAKE_BINARY_DIR}/libs/src/OpenSSL-install)
+			set(OPENSSL_DEP OpenSSL)
 		elseif()
 			set(OPENSSL_CONF "")
+			set(OPENSSL_DEP "")
 		endif()
 		ExternalProject_Add(MariaDBConnector
 			${EP_CONFIGS}
-			DEPENDS OpenSSL
+			DEPENDS ${OPENSSL_DEP}
 			URL https://downloads.mariadb.org/f/connector-c-2.2.2/mariadb-connector-c-2.2.2-src.tar.gz
 			URL_MD5 a9767a8ed295f3d0ca3d9241ccde4c3f
 			CMAKE_ARGS
@@ -640,28 +642,38 @@ else()
 	if (STATIC_APACHE)
 		if (STATIC_OPENSSL)
 			set(OPENSSL_CONF --with-openssl=${CMAKE_BINARY_DIR}/libs/src/OpenSSL-install)
+			set(OPENSSL_DEP OpenSSL)
 		elseif()
 			set(OPENSSL_CONF "")
+			set(OPENSSL_DEP "")
 		endif()
 		if (STATIC_APR)
 			set(APR_CONF --with-apr=${CMAKE_BINARY_DIR}/libs/src/APR-build)
+			set(APR_DEP APR)
 		elseif()
 			set(APR_CONF "")
+			set(APR_DEP "")
 		endif()
 		if (STATIC_APRUTIL)
 			set(APRUTIL_CONF --with-apr-util=${CMAKE_BINARY_DIR}/libs/src/APRutil-build)
+			set(APRUTIL_DEP APRutil)
 		elseif()
 			set(APRUTIL_CONF "")
+			set(APRUTIL_DEP "")
 		endif()
 		if (STATIC_PCRE)
 			set(PCRE_CONF --with-pcre=${CMAKE_BINARY_DIR}/libs/src/PCRE-install)
+			set(PCRE_DEP PCRE)
 		elseif()
 			set(PCRE_CONF "")
+			set(PCRE_DEP "")
 		endif()
 		if (STATIC_ZLIB)
 			set(ZLIB_CONF --with-z=${CMAKE_BINARY_DIR}/libs/src/Zlib-install)
+			set(ZLIB_DEP Zlib)
 		elseif()
 			set(ZLIB_CONF "")
+			set(ZLIB_DEP "")
 		endif()
 		ExternalProject_Add(APR
 			${EP_CONFIGS}
@@ -680,7 +692,7 @@ else()
 		set_target_properties(APR PROPERTIES ${EP_PROPS})
 		ExternalProject_Add(APRutil
 			${EP_CONFIGS}
-			DEPENDS APR OpenSSL
+			DEPENDS ${APR_DEP} ${OPENSSL_DEP}
 			URL http://archive.apache.org/dist/apr/apr-util-1.5.4.tar.gz
 			URL_MD5 866825c04da827c6e5f53daff5569f42
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APRutil &&
@@ -697,7 +709,7 @@ else()
 		set_target_properties(APRutil PROPERTIES ${EP_PROPS})
 		ExternalProject_Add(Apache
 			${EP_CONFIGS}
-			DEPENDS APR APRutil OpenSSL PCRE
+			DEPENDS ${APR_DEP} ${APRUTIL_DEP} ${OPENSSL_DEP} ${PCRE_DEP}
 			URL http://archive.apache.org/dist/httpd/httpd-2.4.20.tar.gz
 			URL_MD5 e725c268624737a163dc844e28f720d1
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/Apache &&
