@@ -815,6 +815,7 @@ else()
 				-DENABLE_TESTING=OFF
 				-DUSE_STATIC_MBEDTLS_LIBRARY=ON
 				-DCMAKE_C_FLAGS=-fPIC
+			PATCH_COMMAND ${CMAKE_COMMAND} -Dconfig=${CMAKE_BINARY_DIR}/libs/src/MbedTLS/include/mbedtls/config.h -P ${CMAKE_SOURCE_DIR}/cmake/patch_mbedtls.cmake
 			INSTALL_COMMAND ""
 		)
 		set_target_properties(MbedTLS PROPERTIES ${EP_PROPS})
