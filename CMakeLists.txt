@@ -362,16 +362,33 @@ if (STATIC_OPENSSL)
 	else()
 		set(OPENSSL_CONF ./config)
 	endif()
+	if (WIN32)
+		# perl is needed to run the openssl Configure script...
+		find_package(Perl REQUIRED)
+		set(OPENSSL_CONFS
+			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
+				${PERL_EXECUTABLE} Configure VC-WIN32 no-asm --prefix=${CMAKE_BINARY_DIR}/libs/src/OpenSSL-install &&
+				call ms/do_ms.bat
+			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
+				nmake -f ms/nt.mak
+			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL && 
+				nmake -f ms/nt.mak install
+		)
+	else()
+		set(OPENSSL_CONFS
+			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
+				${OPENSSL_CONF} --prefix=${CMAKE_BINARY_DIR}/libs/src/OpenSSL-install
+			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
+				make depend && make
+			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL && 
+				make install
+		)
+	endif()
 	ExternalProject_Add(OpenSSL
 		${EP_CONFIGS}
 		URL https://www.openssl.org/source/openssl-1.0.2g.tar.gz
 		URL_MD5 f3c710c045cdee5fd114feb69feba7aa
-		CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
-			${OPENSSL_CONF} --prefix=${CMAKE_BINARY_DIR}/libs/src/OpenSSL-install
-		BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
-			make depend && make
-		INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL && 
-			make install
+		${OPENSSL_CONFS}
 	)
 	set_target_properties(OpenSSL PROPERTIES ${EP_PROPS})
 endif()
@@ -580,15 +597,17 @@ set_target_properties(regexp.ndll
 # sqlite.ndll
 
 if (STATIC_SQLITE3)
-	message(STATUS "Downloading sqlite...")
-	file(DOWNLOAD https://www.sqlite.org/2016/sqlite-autoconf-3120100.tar.gz ${CMAKE_BINARY_DIR}/libs/src/sqlite-autoconf-3120100.tar.gz)
-	execute_process(
-		COMMAND ${CMAKE_COMMAND} -E tar x sqlite-autoconf-3120100.tar.gz
-		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/libs/src
-	)
-	file(REMOVE_RECURSE ${CMAKE_BINARY_DIR}/libs/src/Sqlite3)
-	file(RENAME ${CMAKE_BINARY_DIR}/libs/src/sqlite-autoconf-3120100 ${CMAKE_BINARY_DIR}/libs/src/Sqlite3)
-	message(STATUS "Downloading sqlite... done")
+	if (NOT EXISTS ${CMAKE_BINARY_DIR}/libs/src/Sqlite3)
+		message(STATUS "Downloading sqlite...")
+		file(DOWNLOAD https://www.sqlite.org/2016/sqlite-autoconf-3120100.tar.gz ${CMAKE_BINARY_DIR}/libs/src/sqlite-autoconf-3120100.tar.gz)
+		execute_process(
+			COMMAND ${CMAKE_COMMAND} -E tar x sqlite-autoconf-3120100.tar.gz
+			WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/libs/src
+		)
+		file(REMOVE_RECURSE ${CMAKE_BINARY_DIR}/libs/src/Sqlite3)
+		file(RENAME ${CMAKE_BINARY_DIR}/libs/src/sqlite-autoconf-3120100 ${CMAKE_BINARY_DIR}/libs/src/Sqlite3)
+		message(STATUS "Downloading sqlite... done")
+	endif()
 
 	add_library(sqlite.ndll MODULE ${EXCLUDE_SQLITE_NDLL_FROM_ALL}
 		libs/sqlite/sqlite.c
