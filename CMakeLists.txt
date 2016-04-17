@@ -579,43 +579,31 @@ set_target_properties(regexp.ndll
 ######################
 # sqlite.ndll
 
-add_library(sqlite.ndll MODULE ${EXCLUDE_SQLITE_NDLL_FROM_ALL} libs/sqlite/sqlite.c)
+if (STATIC_SQLITE3)
+	message(STATUS "Downloading sqlite...")
+	file(DOWNLOAD https://www.sqlite.org/2016/sqlite-autoconf-3120100.tar.gz ${CMAKE_BINARY_DIR}/libs/src/sqlite-autoconf-3120100.tar.gz)
+	execute_process(
+		COMMAND ${CMAKE_COMMAND} -E tar x sqlite-autoconf-3120100.tar.gz
+		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/libs/src
+	)
+	file(REMOVE_RECURSE ${CMAKE_BINARY_DIR}/libs/src/Sqlite3)
+	file(RENAME ${CMAKE_BINARY_DIR}/libs/src/sqlite-autoconf-3120100 ${CMAKE_BINARY_DIR}/libs/src/Sqlite3)
+	message(STATUS "Downloading sqlite... done")
 
-if (WIN32)
-	find_library(SQLITE3_LIBRARIES NAMES sqlite3.lib PATHS "./libs/include/sqlite" DOC "SQLite library")
-	find_path(SQLITE3_INCLUDE_DIRS sqlite3.h "./libs/include/sqlite" DOC "SQLite includes")
+	add_library(sqlite.ndll MODULE ${EXCLUDE_SQLITE_NDLL_FROM_ALL}
+		libs/sqlite/sqlite.c
+		${CMAKE_BINARY_DIR}/libs/src/Sqlite3/sqlite3.c
+	)
+	target_include_directories(sqlite.ndll PRIVATE ${CMAKE_BINARY_DIR}/libs/src/Sqlite3)
+	target_link_libraries(sqlite.ndll libneko)
+	target_compile_definitions(sqlite.ndll PRIVATE SQLITE_MAX_VARIABLE_NUMBER=250000 SQLITE_ENABLE_RTREE=1)
 else()
-	if (STATIC_SQLITE3)
-		ExternalProject_Add(Sqlite3
-			${EP_CONFIGS}
-			URL https://www.sqlite.org/2016/sqlite-autoconf-3120100.tar.gz
-			URL_MD5 9727cabe516a8f51fed3977340934846
-			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/Sqlite3 &&
-				./configure
-					--prefix=${CMAKE_BINARY_DIR}/libs/src/Sqlite3-install
-					--with-pic
-					--enable-shared=no
-					--enable-static=yes
-					--silent
-					--enable-silent-rules
-			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/Sqlite3 &&
-				make "CFLAGS=-w -DSQLITE_MAX_VARIABLE_NUMBER=250000 -DSQLITE_ENABLE_RTREE=1"
-			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/Sqlite3 &&
-				make install
-		)
-		set_target_properties(Sqlite3 PROPERTIES ${EP_PROPS})
-		set(SQLITE3_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/Sqlite3-install/include)
-		set(SQLITE3_LIBRARIES
-			${CMAKE_BINARY_DIR}/libs/src/Sqlite3-install/lib/libsqlite3.a
-		)
-		add_dependencies(sqlite.ndll Sqlite3)
-	else()
-		pkg_check_modules(SQLITE3 REQUIRED sqlite3)
-	endif()
+	add_library(sqlite.ndll MODULE ${EXCLUDE_SQLITE_NDLL_FROM_ALL} libs/sqlite/sqlite.c)
+	pkg_check_modules(SQLITE3 REQUIRED sqlite3)
+	target_include_directories(sqlite.ndll PRIVATE ${SQLITE3_INCLUDE_DIRS})
+	target_link_libraries(sqlite.ndll libneko ${SQLITE3_LIBRARIES})
 endif()
 
-target_include_directories(sqlite.ndll PRIVATE ${SQLITE3_INCLUDE_DIRS})
-target_link_libraries(sqlite.ndll libneko ${SQLITE3_LIBRARIES})
 
 set_target_properties(sqlite.ndll
 	PROPERTIES
