@@ -245,11 +245,40 @@ add_executable(nekovm
 	vm/main.c
 )
 
-if (WIN32)
-	find_library(GC_LIBRARIES NAMES gc.lib PATHS "./libs/include/gc" DOC "Boehm GC library")
-	find_path(GC_INCLUDE_DIRS gc/gc.h "./libs/include" DOC "Boehm GC includes")
-else()
-	if (STATIC_BOEHMGC)
+if (STATIC_BOEHMGC)
+	if (WIN32)
+		ExternalProject_Add(BoehmGC
+			${EP_CONFIGS}
+			URL http://www.hboehm.info/gc/gc_source/gc-7.1.tar.gz
+			URL_MD5 2ff9924c7249ef7f736ecfe6f08f3f9b
+			CMAKE_ARGS
+				-Wno-dev
+				-Denable_threads=ON
+				-DCMAKE_USE_WIN32_THREADS_INIT=ON
+			PATCH_COMMAND
+				${CMAKE_COMMAND} -E copy
+					${CMAKE_SOURCE_DIR}/libs/include/gc/CMakeLists.txt
+					${CMAKE_BINARY_DIR}/libs/src/BoehmGC/CMakeLists.txt
+				&& cd ${CMAKE_BINARY_DIR}/libs/src/BoehmGC &&
+				git apply --ignore-space-change --ignore-whitespace --whitespace=nowarn --unsafe-paths ${CMAKE_SOURCE_DIR}/libs/include/gc/av_safety.patch
+			INSTALL_COMMAND
+				${CMAKE_COMMAND} -E copy_directory
+					${CMAKE_BINARY_DIR}/libs/src/BoehmGC/include
+					${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/include/gc
+		)
+		set(GC_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/include)
+		set(GC_LIBRARIES
+			${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/${CMAKE_CFG_INTDIR}/gcmt-dll.lib
+		)
+		add_custom_command(OUTPUT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/gcmt-dll.dll
+			DEPENDS BoehmGC
+			COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/${CMAKE_CFG_INTDIR}/gcmt-dll.dll ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+		)
+		add_custom_target(gcmt-dll.dll ALL
+			DEPENDS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/gcmt-dll.dll
+		)
+		add_dependencies(nekovm gcmt-dll.dll)
+	else()
 		ExternalProject_Add(BoehmGC
 			${EP_CONFIGS}
 			URL http://hboehm.info/gc/gc_source/gc-7.4.2.tar.gz
@@ -258,14 +287,6 @@ else()
 				${CMAKE_COMMAND} -Durl=http://www.ivmaisoft.com/_bin/atomic_ops/libatomic_ops-7.4.2.tar.gz -Dfile=${CMAKE_BINARY_DIR}/libs/src/BoehmGC/libatomic_ops-7.4.2.tar.gz -P ${CMAKE_SOURCE_DIR}/cmake/download.cmake &&
 				${CMAKE_COMMAND} -E tar x ${CMAKE_BINARY_DIR}/libs/src/BoehmGC/libatomic_ops-7.4.2.tar.gz &&
 				${CMAKE_COMMAND} -E rename libatomic_ops-7.4.2 libatomic_ops
-			#CMAKE_ARGS
-			#	-Wno-dev
-			#	-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
-			#	-Denable_threads=posix
-			#	-DCMAKE_C_FLAGS=-fPIC
-			#BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build &&
-			#	${CMAKE_COMMAND} --build . --target gc-lib
-			#INSTALL_COMMAND ""
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/BoehmGC &&
 				./configure
 					--prefix=${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build
@@ -280,16 +301,15 @@ else()
 			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/BoehmGC && 
 				make install
 		)
-		set_target_properties(BoehmGC PROPERTIES ${EP_PROPS})
 		set(GC_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/include)
 		set(GC_LIBRARIES
-			#${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/libgc-lib.a
 			${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/lib/libgc.a
 		)
-		add_dependencies(libneko BoehmGC)
-	else()
-		find_package(BoehmGC REQUIRED)
 	endif()
+	set_target_properties(BoehmGC PROPERTIES ${EP_PROPS})
+	add_dependencies(libneko BoehmGC)
+else()
+	find_package(BoehmGC REQUIRED)
 endif()
 
 target_include_directories(libneko PRIVATE ${GC_INCLUDE_DIRS})
@@ -300,13 +320,6 @@ target_link_libraries(nekovm libneko)
 
 if(WIN32)
 	target_link_libraries(std.ndll ws2_32)
-	add_custom_command(OUTPUT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/gc.dll
-		COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/libs/include/gc/gc.dll ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
-	)
-	add_custom_target(gc.dll ALL
-		DEPENDS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/gc.dll
-	)
-	add_dependencies(nekovm gc.dll)
 endif()
 
 if(UNIX)
@@ -969,7 +982,7 @@ if (WIN32)
 	install (
 		FILES
 			${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS}
-			${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/gc.dll
+			${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/gcmt-dll.dll
 			${CMAKE_SOURCE_DIR}/README.md
 			${CMAKE_SOURCE_DIR}/LICENSE
 			${CMAKE_SOURCE_DIR}/CHANGES
