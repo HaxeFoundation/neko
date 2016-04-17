@@ -381,30 +381,37 @@ endif()
 
 add_library(zlib.ndll MODULE ${EXCLUDE_ZLIB_NDLL_FROM_ALL} libs/zlib/zlib.c)
 
-if (WIN32)
-	find_library(ZLIB_LIBRARIES NAMES zlib.lib PATHS "./libs/include/zlib" DOC "zlib library")
-	find_path(ZLIB_INCLUDE_DIRS zlib.h "./libs/include/zlib" DOC "zlib includes")
-else()
-	if (STATIC_ZLIB)
-		ExternalProject_Add(Zlib
-			${EP_CONFIGS}
-			URL http://zlib.net/zlib-1.2.8.tar.gz
-			URL_MD5 44d667c142d7cda120332623eab69f40
-			CMAKE_ARGS
-				-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/Zlib-install
-				-Wno-dev
-				-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
-				-DCMAKE_C_FLAGS=-fPIC
+
+if (STATIC_ZLIB)
+	set(ZLIB_CMAKE_ARGS
+		-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/Zlib-install
+		-Wno-dev
+	)
+	if (UNIX)
+		list(APPEND ZLIB_CMAKE_ARGS
+			-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
+			-DCMAKE_C_FLAGS=-fPIC
 		)
-		set_target_properties(Zlib PROPERTIES ${EP_PROPS})
-		set(ZLIB_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/Zlib-install/include)
-		set(ZLIB_LIBRARIES
-			${CMAKE_BINARY_DIR}/libs/src/Zlib-install/lib/libz.a
-		)
-		add_dependencies(zlib.ndll Zlib)
-	else()
-		pkg_check_modules(ZLIB REQUIRED zlib)
 	endif()
+	ExternalProject_Add(Zlib
+		${EP_CONFIGS}
+		URL http://zlib.net/zlib-1.2.8.tar.gz
+		URL_MD5 44d667c142d7cda120332623eab69f40
+		CMAKE_ARGS ${ZLIB_CMAKE_ARGS}
+	)
+	set_target_properties(Zlib PROPERTIES ${EP_PROPS})
+	set(ZLIB_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/Zlib-install/include)
+	if (WIN32)
+		set(ZLIB_LIBRARIES
+			optimized ${CMAKE_BINARY_DIR}/libs/src/Zlib-install/lib/zlibstatic.lib
+			debug ${CMAKE_BINARY_DIR}/libs/src/Zlib-install/lib/zlibstaticd.lib
+		)
+	else()
+		set(ZLIB_LIBRARIES ${CMAKE_BINARY_DIR}/libs/src/Zlib-install/lib/libz.a)
+	endif()
+	add_dependencies(zlib.ndll Zlib)
+else()
+	pkg_check_modules(ZLIB REQUIRED zlib)
 endif()
 
 target_include_directories(zlib.ndll PRIVATE ${ZLIB_INCLUDE_DIRS})
