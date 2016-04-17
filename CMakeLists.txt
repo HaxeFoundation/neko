@@ -514,24 +514,31 @@ set_target_properties(mysql5.ndll
 ######################
 # regexp.ndll
 
-if (WIN32)
-	file(GLOB PCRE_SRC
-		libs/include/pcre/*.c
-	)
-	add_library(regexp.ndll MODULE ${EXCLUDE_REGEXP_NDLL_FROM_ALL} libs/regexp/regexp.c ${PCRE_SRC})
-	find_path(PCRE_INCLUDE_DIRS pcre.h "./libs/include/pcre" DOC "PCRE includes")
-else()
-	add_library(regexp.ndll MODULE ${EXCLUDE_REGEXP_NDLL_FROM_ALL} libs/regexp/regexp.c)
-	if (STATIC_PCRE)
+add_library(regexp.ndll MODULE ${EXCLUDE_REGEXP_NDLL_FROM_ALL} libs/regexp/regexp.c)
+if (STATIC_PCRE)
+	if (WIN32)
 		ExternalProject_Add(PCRE
 			${EP_CONFIGS}
 			URL ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre/pcre-8.38.tar.gz
 			URL_MD5 8a353fe1450216b6655dfcf3561716d9
-			# CMAKE_ARGS
-			# 	-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/PCRE-install
-			# 	-Wno-dev
-			# 	-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
-			# 	-DCMAKE_C_FLAGS=-fPIC
+			CMAKE_ARGS
+				-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/PCRE-install
+				-Wno-dev
+				-DPCRE_BUILD_PCRECPP=OFF
+				-DPCRE_BUILD_PCREGREP=OFF
+				-DPCRE_BUILD_TESTS=OFF
+				-DPCRE_SUPPORT_JIT=ON
+				-DPCRE_SUPPORT_UNICODE_PROPERTIES=ON
+		)
+		set(PCRE_LIBRARIES
+			optimized ${CMAKE_BINARY_DIR}/libs/src/PCRE-install/lib/pcre.lib
+			debug ${CMAKE_BINARY_DIR}/libs/src/PCRE-install/lib/pcred.lib
+		)
+	else()
+		ExternalProject_Add(PCRE
+			${EP_CONFIGS}
+			URL ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre/pcre-8.38.tar.gz
+			URL_MD5 8a353fe1450216b6655dfcf3561716d9
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/PCRE &&
 				./configure
 					--prefix=${CMAKE_BINARY_DIR}/libs/src/PCRE-install
@@ -548,15 +555,15 @@ else()
 			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/PCRE &&
 				make install
 		)
-		set_target_properties(PCRE PROPERTIES ${EP_PROPS})
-		set(PCRE_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/PCRE-install/include)
 		set(PCRE_LIBRARIES
 			${CMAKE_BINARY_DIR}/libs/src/PCRE-install/lib/libpcre.a
 		)
-		add_dependencies(regexp.ndll PCRE)
-	else()
-		find_package(PCRE REQUIRED)
 	endif()
+	set_target_properties(PCRE PROPERTIES ${EP_PROPS})
+	set(PCRE_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/PCRE-install/include)
+	add_dependencies(regexp.ndll PCRE)
+else()
+	find_package(PCRE REQUIRED)
 endif()
 
 target_include_directories(regexp.ndll PRIVATE ${PCRE_INCLUDE_DIRS})
