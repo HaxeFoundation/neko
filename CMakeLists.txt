@@ -180,6 +180,8 @@ if(UNIX)
 	find_package(PkgConfig REQUIRED)
 endif()
 
+# git is used for source_archive and for applying patch
+find_package(Git REQUIRED)
 
 # ExternalProject configs
 set(EP_CONFIGS
@@ -260,7 +262,7 @@ if (STATIC_BOEHMGC)
 					${CMAKE_SOURCE_DIR}/libs/include/gc/CMakeLists.txt
 					${CMAKE_BINARY_DIR}/libs/src/BoehmGC/CMakeLists.txt
 				&& cd ${CMAKE_BINARY_DIR}/libs/src/BoehmGC &&
-				git apply --ignore-space-change --ignore-whitespace --whitespace=nowarn --unsafe-paths ${CMAKE_SOURCE_DIR}/libs/include/gc/av_safety.patch
+				${GIT_EXECUTABLE} apply --ignore-space-change --ignore-whitespace --whitespace=nowarn --unsafe-paths ${CMAKE_SOURCE_DIR}/libs/include/gc/av_safety.patch
 			INSTALL_COMMAND
 				${CMAKE_COMMAND} -E copy_directory
 					${CMAKE_BINARY_DIR}/libs/src/BoehmGC/include
@@ -1002,7 +1004,7 @@ endif()
 set(source_archive_name neko-${NEKO_VERSION_MAJOR}.${NEKO_VERSION_MINOR}.${NEKO_VERSION_PATCH}-src.${source_archive_format})
 
 add_custom_command(OUTPUT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${source_archive_name}
-	COMMAND git archive -o ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${source_archive_name} HEAD
+	COMMAND ${GIT_EXECUTABLE} archive -o ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${source_archive_name} HEAD
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )
 
