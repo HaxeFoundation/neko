@@ -370,9 +370,9 @@ if (STATIC_OPENSSL)
 				${PERL_EXECUTABLE} Configure VC-WIN32 no-asm --prefix=${CMAKE_BINARY_DIR}/libs/src/OpenSSL-install &&
 				call ms/do_ms.bat
 			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
-				nmake -f ms/nt.mak
+				nmake /S -f ms/nt.mak
 			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL && 
-				nmake -f ms/nt.mak install
+				nmake /S -f ms/nt.mak install
 		)
 	else()
 		set(OPENSSL_CONFS
@@ -391,6 +391,13 @@ if (STATIC_OPENSSL)
 		${OPENSSL_CONFS}
 	)
 	set_target_properties(OpenSSL PROPERTIES ${EP_PROPS})
+	if (WIN32)
+		set(OPENSSL_LIBRARIES
+			Crypt32
+			${CMAKE_BINARY_DIR}/libs/src/OpenSSL-install/lib/libeay32.lib
+			${CMAKE_BINARY_DIR}/libs/src/OpenSSL-install/lib/ssleay32.lib
+		)
+	endif()
 endif()
 
 ######################
@@ -446,42 +453,45 @@ set_target_properties(zlib.ndll
 
 add_library(mysql.ndll MODULE ${EXCLUDE_MYSQL_NDLL_FROM_ALL} libs/mysql/mysql.c)
 
-if (WIN32)
-	find_library(MARIADB_CONNECTOR_LIBRARIES NAMES mariadbclient.lib PATHS "./libs/include/mysql" DOC "MariaDB library")
-	find_path(MARIADB_CONNECTOR_INCLUDE_DIR mysql.h "./libs/include/mysql" DOC "MariaDB includes")
-else()
-	if (STATIC_MARIADBCONNECTOR)
-		if (STATIC_OPENSSL)
-			set(OPENSSL_CONF -DOPENSSL_ROOT_DIR=${CMAKE_BINARY_DIR}/libs/src/OpenSSL-install)
-			set(OPENSSL_DEP OpenSSL)
-		elseif()
-			set(OPENSSL_CONF "")
-			set(OPENSSL_DEP "")
-		endif()
-		ExternalProject_Add(MariaDBConnector
-			${EP_CONFIGS}
-			DEPENDS ${OPENSSL_DEP}
-			URL https://downloads.mariadb.org/f/connector-c-2.2.2/mariadb-connector-c-2.2.2-src.tar.gz
-			URL_MD5 a9767a8ed295f3d0ca3d9241ccde4c3f
-			CMAKE_ARGS
-				-Wno-dev
-				-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
-				${OPENSSL_CONF}
-			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector-build &&
-				${CMAKE_COMMAND} --build . --target mariadbclient
-			INSTALL_COMMAND ""
+if (STATIC_MARIADBCONNECTOR)
+	if (STATIC_OPENSSL)
+		set(OPENSSL_CONF -DOPENSSL_ROOT_DIR=${CMAKE_BINARY_DIR}/libs/src/OpenSSL-install)
+		set(OPENSSL_DEP OpenSSL)
+	elseif()
+		set(OPENSSL_CONF "")
+		set(OPENSSL_DEP "")
+	endif()
+	ExternalProject_Add(MariaDBConnector
+		${EP_CONFIGS}
+		DEPENDS ${OPENSSL_DEP}
+		URL https://downloads.mariadb.org/f/connector-c-2.2.2/mariadb-connector-c-2.2.2-src.tar.gz
+		URL_MD5 a9767a8ed295f3d0ca3d9241ccde4c3f
+		CMAKE_ARGS
+			-Wno-dev
+			-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
+			-DWITH_OPENSSL=ON
+			${OPENSSL_CONF}
+		PATCH_COMMAND ${CMAKE_COMMAND} -Dmariadb_source=${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector -P ${CMAKE_SOURCE_DIR}/cmake/patch_mariadb.cmake
+		BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector-build &&
+			${CMAKE_COMMAND} --build . --target mariadbclient --config ${CMAKE_CFG_INTDIR}
+		INSTALL_COMMAND echo skip install
+	)
+	set_target_properties(MariaDBConnector PROPERTIES ${EP_PROPS})
+	set(MARIADB_CONNECTOR_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector/include)
+	if (WIN32)
+		set(MARIADB_CONNECTOR_LIBRARIES
+			${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector-build/libmariadb/${CMAKE_CFG_INTDIR}/mariadbclient.lib
 		)
-		set_target_properties(MariaDBConnector PROPERTIES ${EP_PROPS})
-		set(MARIADB_CONNECTOR_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector/include)
+	else()
 		set(MARIADB_CONNECTOR_LIBRARIES
 			${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector-build/libmariadb/libmariadbclient.a
 		)
-		add_dependencies(mysql.ndll MariaDBConnector)
-	else()
-		find_package(MariaDBConnector REQUIRED)
-		if (NOT APPLE)
-			find_package(OpenSSL REQUIRED)
-		endif()
+	endif()
+	add_dependencies(mysql.ndll MariaDBConnector)
+else()
+	find_package(MariaDBConnector REQUIRED)
+	if (NOT APPLE)
+		find_package(OpenSSL REQUIRED)
 	endif()
 endif()
 
