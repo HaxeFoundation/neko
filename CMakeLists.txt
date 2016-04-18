@@ -548,7 +548,7 @@ if (STATIC_PCRE)
 	if (WIN32)
 		ExternalProject_Add(PCRE
 			${EP_CONFIGS}
-			URL ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre/pcre-8.38.tar.gz
+			URL http://downloads.sourceforge.net/project/pcre/pcre/8.38/pcre-8.38.tar.gz
 			URL_MD5 8a353fe1450216b6655dfcf3561716d9
 			CMAKE_ARGS
 				-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/install-prefix
