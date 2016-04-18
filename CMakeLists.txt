@@ -369,7 +369,7 @@ if (STATIC_OPENSSL)
 		find_package(Perl REQUIRED)
 		set(OPENSSL_CONFS
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
-				${PERL_EXECUTABLE} Configure VC-WIN32 no-asm --prefix=${CMAKE_BINARY_DIR}/libs/src/OpenSSL-install &&
+				${PERL_EXECUTABLE} Configure VC-WIN32 no-asm --prefix=${CMAKE_BINARY_DIR}/libs/src/install-prefix &&
 				call ms/do_ms.bat
 			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
 				nmake /S -f ms/nt.mak
@@ -379,7 +379,7 @@ if (STATIC_OPENSSL)
 	else()
 		set(OPENSSL_CONFS
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
-				${OPENSSL_CONF} --prefix=${CMAKE_BINARY_DIR}/libs/src/OpenSSL-install
+				${OPENSSL_CONF} --prefix=${CMAKE_BINARY_DIR}/libs/src/install-prefix
 			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
 				make depend && make
 			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL && 
@@ -396,8 +396,8 @@ if (STATIC_OPENSSL)
 	if (WIN32)
 		set(OPENSSL_LIBRARIES
 			Crypt32
-			${CMAKE_BINARY_DIR}/libs/src/OpenSSL-install/lib/libeay32.lib
-			${CMAKE_BINARY_DIR}/libs/src/OpenSSL-install/lib/ssleay32.lib
+			${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/libeay32.lib
+			${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/ssleay32.lib
 		)
 	endif()
 endif()
@@ -410,7 +410,7 @@ add_library(zlib.ndll MODULE ${EXCLUDE_ZLIB_NDLL_FROM_ALL} libs/zlib/zlib.c)
 
 if (STATIC_ZLIB)
 	set(ZLIB_CMAKE_ARGS
-		-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/Zlib-install
+		-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/install-prefix
 		-Wno-dev
 	)
 	if (UNIX)
@@ -426,14 +426,14 @@ if (STATIC_ZLIB)
 		CMAKE_ARGS ${ZLIB_CMAKE_ARGS}
 	)
 	set_target_properties(Zlib PROPERTIES ${EP_PROPS})
-	set(ZLIB_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/Zlib-install/include)
+	set(ZLIB_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/install-prefix/include)
 	if (WIN32)
 		set(ZLIB_LIBRARIES
-			optimized ${CMAKE_BINARY_DIR}/libs/src/Zlib-install/lib/zlibstatic.lib
-			debug ${CMAKE_BINARY_DIR}/libs/src/Zlib-install/lib/zlibstaticd.lib
+			optimized ${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/zlibstatic.lib
+			debug ${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/zlibstaticd.lib
 		)
 	else()
-		set(ZLIB_LIBRARIES ${CMAKE_BINARY_DIR}/libs/src/Zlib-install/lib/libz.a)
+		set(ZLIB_LIBRARIES ${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/libz.a)
 	endif()
 	add_dependencies(zlib.ndll Zlib)
 else()
@@ -457,7 +457,7 @@ add_library(mysql.ndll MODULE ${EXCLUDE_MYSQL_NDLL_FROM_ALL} libs/mysql/mysql.c)
 
 if (STATIC_MARIADBCONNECTOR)
 	if (STATIC_OPENSSL)
-		set(OPENSSL_CONF -DOPENSSL_ROOT_DIR=${CMAKE_BINARY_DIR}/libs/src/OpenSSL-install)
+		set(OPENSSL_CONF -DOPENSSL_ROOT_DIR=${CMAKE_BINARY_DIR}/libs/src/install-prefix)
 		set(OPENSSL_DEP OpenSSL)
 	elseif()
 		set(OPENSSL_CONF "")
@@ -551,7 +551,7 @@ if (STATIC_PCRE)
 			URL ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre/pcre-8.38.tar.gz
 			URL_MD5 8a353fe1450216b6655dfcf3561716d9
 			CMAKE_ARGS
-				-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/PCRE-install
+				-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/install-prefix
 				-Wno-dev
 				-DPCRE_BUILD_PCRECPP=OFF
 				-DPCRE_BUILD_PCREGREP=OFF
@@ -560,8 +560,8 @@ if (STATIC_PCRE)
 				-DPCRE_SUPPORT_UNICODE_PROPERTIES=ON
 		)
 		set(PCRE_LIBRARIES
-			optimized ${CMAKE_BINARY_DIR}/libs/src/PCRE-install/lib/pcre.lib
-			debug ${CMAKE_BINARY_DIR}/libs/src/PCRE-install/lib/pcred.lib
+			optimized ${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/pcre.lib
+			debug ${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/pcred.lib
 		)
 	else()
 		ExternalProject_Add(PCRE
@@ -570,7 +570,7 @@ if (STATIC_PCRE)
 			URL_MD5 8a353fe1450216b6655dfcf3561716d9
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/PCRE &&
 				./configure
-					--prefix=${CMAKE_BINARY_DIR}/libs/src/PCRE-install
+					--prefix=${CMAKE_BINARY_DIR}/libs/src/install-prefix
 					--with-pic
 					--enable-unicode-properties
 					--enable-silent-rules
@@ -585,11 +585,11 @@ if (STATIC_PCRE)
 				make install
 		)
 		set(PCRE_LIBRARIES
-			${CMAKE_BINARY_DIR}/libs/src/PCRE-install/lib/libpcre.a
+			${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/libpcre.a
 		)
 	endif()
 	set_target_properties(PCRE PROPERTIES ${EP_PROPS})
-	set(PCRE_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/PCRE-install/include)
+	set(PCRE_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/install-prefix/include)
 	add_dependencies(regexp.ndll PCRE)
 else()
 	find_package(PCRE REQUIRED)
@@ -677,56 +677,55 @@ add_library(mod_neko2.ndll MODULE ${EXCLUDE_MOD_NEKO2_NDLL_FROM_ALL}
 	libs/mod_neko/cgi.c
 )
 
-if (WIN32)
-	find_library(HTTPD_LIBRARY NAMES libhttpd
-		PATHS "./libs/include/apache2" DOC "Apache library")
-	find_library(APR_LIBRARY NAMES libapr-1.lib
-		PATHS "./libs/include/apache2" DOC "Apache library")
-	set(APACHE_LIBRARIES ${HTTPD_LIBRARY} ${APR_LIBRARY})
-	find_path(APACHE_INCLUDE_DIRS httpd.h "./libs/include/apache2" DOC "Apache includes")
-else()
-	if (STATIC_APACHE)
-		if (STATIC_OPENSSL)
-			set(OPENSSL_CONF --with-openssl=${CMAKE_BINARY_DIR}/libs/src/OpenSSL-install)
-			set(OPENSSL_DEP OpenSSL)
-		elseif()
-			set(OPENSSL_CONF "")
-			set(OPENSSL_DEP "")
-		endif()
-		if (STATIC_APR)
-			set(APR_CONF --with-apr=${CMAKE_BINARY_DIR}/libs/src/APR-build)
-			set(APR_DEP APR)
-		elseif()
-			set(APR_CONF "")
-			set(APR_DEP "")
-		endif()
-		if (STATIC_APRUTIL)
-			set(APRUTIL_CONF --with-apr-util=${CMAKE_BINARY_DIR}/libs/src/APRutil-build)
-			set(APRUTIL_DEP APRutil)
-		elseif()
-			set(APRUTIL_CONF "")
-			set(APRUTIL_DEP "")
-		endif()
-		if (STATIC_PCRE)
-			set(PCRE_CONF --with-pcre=${CMAKE_BINARY_DIR}/libs/src/PCRE-install)
-			set(PCRE_DEP PCRE)
-		elseif()
-			set(PCRE_CONF "")
-			set(PCRE_DEP "")
-		endif()
-		if (STATIC_ZLIB)
-			set(ZLIB_CONF --with-z=${CMAKE_BINARY_DIR}/libs/src/Zlib-install)
-			set(ZLIB_DEP Zlib)
-		elseif()
-			set(ZLIB_CONF "")
-			set(ZLIB_DEP "")
-		endif()
-		ExternalProject_Add(APR
-			${EP_CONFIGS}
-			URL http://archive.apache.org/dist/apr/apr-1.5.2.tar.gz
-			URL_MD5 98492e965963f852ab29f9e61b2ad700
+
+if (STATIC_APACHE)
+	if (STATIC_OPENSSL)
+		set(OPENSSL_CONF --with-openssl=${CMAKE_BINARY_DIR}/libs/src/install-prefix)
+		set(OPENSSL_DEP OpenSSL)
+	elseif()
+		set(OPENSSL_CONF "")
+		set(OPENSSL_DEP "")
+	endif()
+	if (STATIC_APR)
+		set(APR_CONF --with-apr=${CMAKE_BINARY_DIR}/libs/src/install-prefix)
+		set(APR_DEP APR)
+	elseif()
+		set(APR_CONF "")
+		set(APR_DEP "")
+	endif()
+	if (STATIC_APRUTIL)
+		set(APRUTIL_CONF --with-apr-util=${CMAKE_BINARY_DIR}/libs/src/install-prefix)
+		set(APRUTIL_DEP APRutil)
+	elseif()
+		set(APRUTIL_CONF "")
+		set(APRUTIL_DEP "")
+	endif()
+	if (STATIC_PCRE)
+		set(PCRE_CONF --with-pcre=${CMAKE_BINARY_DIR}/libs/src/install-prefix)
+		set(PCRE_DEP PCRE)
+	elseif()
+		set(PCRE_CONF "")
+		set(PCRE_DEP "")
+	endif()
+	if (STATIC_ZLIB)
+		set(ZLIB_CONF --with-z=${CMAKE_BINARY_DIR}/libs/src/install-prefix)
+		set(ZLIB_DEP Zlib)
+	elseif()
+		set(ZLIB_CONF "")
+		set(ZLIB_DEP "")
+	endif()
+
+	if(WIN32)
+		set(APR_CONFIGS
+			CMAKE_ARGS
+				-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/install-prefix
+				-Wno-dev
+				-DAPR_INSTALL_PRIVATE_H=ON
+		)
+	else()
+		set(APR_CONFIGS
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APR &&
-				./configure --prefix=${CMAKE_BINARY_DIR}/libs/src/APR-build
+				./configure --prefix=${CMAKE_BINARY_DIR}/libs/src/install-prefix
 				--enable-shared=no
 				--enable-static=yes
 				--silent
@@ -735,15 +734,28 @@ else()
 			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APR && 
 				make install
 		)
-		set_target_properties(APR PROPERTIES ${EP_PROPS})
-		ExternalProject_Add(APRutil
-			${EP_CONFIGS}
-			DEPENDS ${APR_DEP} ${OPENSSL_DEP}
-			URL http://archive.apache.org/dist/apr/apr-util-1.5.4.tar.gz
-			URL_MD5 866825c04da827c6e5f53daff5569f42
+	endif()
+	ExternalProject_Add(APR
+		${EP_CONFIGS}
+		URL http://archive.apache.org/dist/apr/apr-1.5.2.tar.gz
+		URL_MD5 98492e965963f852ab29f9e61b2ad700
+		${APR_CONFIGS}
+	)
+	set_target_properties(APR PROPERTIES ${EP_PROPS})
+
+
+	if(WIN32)
+		set(APRutil_CONFIGS
+			CMAKE_ARGS
+				-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/install-prefix
+				-Wno-dev
+				-DOPENSSL_ROOT_DIR=${CMAKE_BINARY_DIR}/libs/src/install-prefix
+		)
+	else()
+		set(APRutil_CONFIGS
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APRutil &&
 				./configure
-					--prefix=${CMAKE_BINARY_DIR}/libs/src/APRutil-build
+					--prefix=${CMAKE_BINARY_DIR}/libs/src/install-prefix
 					--silent
 					${APR_CONF}
 					${OPENSSL_CONF}
@@ -752,12 +764,41 @@ else()
 			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APRutil && 
 				make install
 		)
-		set_target_properties(APRutil PROPERTIES ${EP_PROPS})
-		ExternalProject_Add(Apache
-			${EP_CONFIGS}
-			DEPENDS ${APR_DEP} ${APRUTIL_DEP} ${OPENSSL_DEP} ${PCRE_DEP}
-			URL http://archive.apache.org/dist/httpd/httpd-2.4.20.tar.gz
-			URL_MD5 e725c268624737a163dc844e28f720d1
+	endif()
+	ExternalProject_Add(APRutil
+		${EP_CONFIGS}
+		DEPENDS ${APR_DEP} ${OPENSSL_DEP}
+		URL http://archive.apache.org/dist/apr/apr-util-1.5.4.tar.gz
+		URL_MD5 866825c04da827c6e5f53daff5569f42
+		${APRutil_CONFIGS}
+	)
+	set_target_properties(APRutil PROPERTIES ${EP_PROPS})
+
+
+	if(WIN32)
+		set(Apache_CONFIGS
+			CMAKE_ARGS
+				-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/install-prefix
+				-Wno-dev
+				-DOPENSSL_ROOT_DIR=${CMAKE_BINARY_DIR}/libs/src/install-prefix
+				"-DEXTRA_COMPILE_FLAGS=/D PCRE_STATIC"
+				-DEXTRA_LIBS=Ws2_32
+			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/Apache-build &&
+				${CMAKE_COMMAND} --build . --target libhttpd --config ${CMAKE_CFG_INTDIR}
+			INSTALL_COMMAND echo skip install
+		)
+		set(APACHE_INCLUDE_DIRS
+			${CMAKE_BINARY_DIR}/libs/src/install-prefix/include
+			${CMAKE_BINARY_DIR}/libs/src/Apache/include
+			${CMAKE_BINARY_DIR}/libs/src/Apache/os/win32
+			${CMAKE_BINARY_DIR}/libs/src/Apache-build
+		)
+		set(APACHE_LIBRARIES
+			${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/libapr-1.lib
+			${CMAKE_BINARY_DIR}/libs/src/Apache-build/${CMAKE_CFG_INTDIR}/libhttpd.lib
+		)
+	else()
+		set(Apache_CONFIGS
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/Apache &&
 				./configure
 					--prefix=${CMAKE_BINARY_DIR}/libs/src/Apache-build
@@ -767,26 +808,32 @@ else()
 					${OPENSSL_CONF}
 					${PCRE_CONF}
 					${ZLIB_CONF}
-			BUILD_COMMAND ""
-			INSTALL_COMMAND ""
+			BUILD_COMMAND echo skip build
+			INSTALL_COMMAND echo skip install
 		)
-		set_target_properties(Apache PROPERTIES ${EP_PROPS})
 		set(APACHE_INCLUDE_DIRS
-			${CMAKE_BINARY_DIR}/libs/src/APR-build/include/apr-1
-			${CMAKE_BINARY_DIR}/libs/src/APRutil-build/include/apr-1
+			${CMAKE_BINARY_DIR}/libs/src/install-prefix/include/apr-1
 			${CMAKE_BINARY_DIR}/libs/src/Apache/include
 			${CMAKE_BINARY_DIR}/libs/src/Apache/os/unix
 		)
 		set(APACHE_LIBRARIES
 
 		)
-		add_dependencies(mod_neko2.ndll Apache APR APRutil)
-	else()
-		find_package(APACHE REQUIRED)
-		find_package(APR REQUIRED)
-		set(APACHE_LIBRARIES ${APR_LIBRARIES} ${APRUTIL_LIBRARIES})
-		set(APACHE_INCLUDE_DIRS ${APACHE_INCLUDE_DIR} ${APR_INCLUDE_DIR} ${APRUTIL_INCLUDE_DIR})
 	endif()
+	ExternalProject_Add(Apache
+		${EP_CONFIGS}
+		DEPENDS ${APR_DEP} ${APRUTIL_DEP} ${OPENSSL_DEP} ${PCRE_DEP}
+		URL http://archive.apache.org/dist/httpd/httpd-2.4.20.tar.gz
+		URL_MD5 e725c268624737a163dc844e28f720d1
+		${Apache_CONFIGS}
+	)
+	set_target_properties(Apache PROPERTIES ${EP_PROPS})
+	add_dependencies(mod_neko2.ndll Apache APR APRutil)
+else()
+	find_package(APACHE REQUIRED)
+	find_package(APR REQUIRED)
+	set(APACHE_LIBRARIES ${APR_LIBRARIES} ${APRUTIL_LIBRARIES})
+	set(APACHE_INCLUDE_DIRS ${APACHE_INCLUDE_DIR} ${APR_INCLUDE_DIR} ${APRUTIL_INCLUDE_DIR})
 endif()
 
 target_include_directories(mod_neko2.ndll
