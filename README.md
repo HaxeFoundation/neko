@@ -118,6 +118,8 @@ It defines the dependencies that should be linked statically. Can be `all`, `non
 
 CMake will automatically download and build the specified dependencies into the build folder. If a library is not present in this list, it should be installed manually, and it will be linked dynamically.
 
+All third-party libraries, except GTK+2 (Linux), can be linked statically. The reason we do not support statically linking GTK+2 is the diffculty of building it and its own dependencies.
+
 #### `RELOCATABLE`
 
 Available on Mac/Linux. Default value: `ON`
