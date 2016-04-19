@@ -55,7 +55,7 @@ Various third-party libraries are needed to be linked with Neko. They are summer
 | mbed TLS                                | all         | libmbedtls-dev                                            |
 | GTK+2                                   | Linux       | libgtk2.0-dev                                             |
 
-On Windows, CMake will automatically download and build the libraries in the build folder during the build process. On Mac/Linux, you should install them manaully to your system before building Neko, or use the `STATIC_DEPS` CMake option, which will be explained in [CMake options](#CMake-options).
+On Windows, CMake will automatically download and build the libraries in the build folder during the build process. On Mac/Linux, you should install them manaully to your system before building Neko, or use the `STATIC_DEPS` CMake option, which will be explained in [CMake options](#cmake-options).
 
 ### Building on Mac/Linux
 
