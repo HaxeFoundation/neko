@@ -1068,16 +1068,20 @@ if (WIN32)
 	set(DEST_LIB .)
 	set(DEST_NDLL .)
 
+	set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION .)
 	include(InstallRequiredSystemLibraries)
 	install (
 		FILES
-			${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS}
 			${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/gcmt-dll.dll
 			${CMAKE_SOURCE_DIR}/README.md
 			${CMAKE_SOURCE_DIR}/LICENSE
 			${CMAKE_SOURCE_DIR}/CHANGES
 		DESTINATION .
 	)
+
+	if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+		set (CMAKE_INSTALL_PREFIX "C:/HaxeToolkit/neko" CACHE PATH "default install path" FORCE)
+	endif()
 else()
 	set(DEST_BIN bin)
 	set(DEST_LIB lib)
