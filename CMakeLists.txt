@@ -721,6 +721,7 @@ if (STATIC_APACHE)
 				-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/install-prefix
 				-Wno-dev
 				-DAPR_INSTALL_PRIVATE_H=ON
+				-DINSTALL_PDB=OFF
 		)
 	else()
 		set(APR_CONFIGS
@@ -750,6 +751,7 @@ if (STATIC_APACHE)
 				-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/install-prefix
 				-Wno-dev
 				-DOPENSSL_ROOT_DIR=${CMAKE_BINARY_DIR}/libs/src/install-prefix
+				-DINSTALL_PDB=OFF
 		)
 	else()
 		set(APRutil_CONFIGS
