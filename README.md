@@ -11,16 +11,15 @@ See http://nekovm.org/
 
 ### Windows
 
-Compiled binaries can be found in the "artifacts" tab of each AppVeyor build. The most recent one is
-https://ci.appveyor.com/project/HaxeFoundation/neko/build/artifacts
+Compiled binaries can be found in the "artifacts" tab of each [AppVeyor build](https://ci.appveyor.com/project/HaxeFoundation/neko/history).
 
-Note that you may need to install [Microsoft Visual C++ 2010 Redistributable Package (x86)](https://www.microsoft.com/en-us/download/details.aspx?id=5555), in case it complains "MSVCR100.dll" is missing.
+We recommand to use the artifacts from the builds of Visual Studio 12 2013. For the ones of Visual Studio 10 2010, you may need to install [Microsoft Visual C++ 2010 Redistributable Package (x86)](https://www.microsoft.com/en-us/download/details.aspx?id=5555), in case it complains "MSVCR100.dll" is missing.
 
 ### Mac
 
 Neko snapshot of the latest master branch can be built using [homebrew](http://brew.sh/) in a single command: `brew install neko --HEAD`. It will install required dependencies, build, and install Neko to the system. The binaries can be found at `brew --prefix neko`.
 
-Use `brew reinstall haxe --HEAD` to upgrade in the future.
+Use `brew reinstall neko --HEAD` to upgrade in the future.
 
 ### Linux
 
@@ -41,7 +40,7 @@ Neko can be built using CMake (version 3.x is recommended) and one of the C comp
  * Mac: XCode (with its "Command line tools")
  * Linux: gcc (can be obtained by installing the "build-essential" Debian/Ubuntu package)
 
-Various third-party libraries are needed to be linked with Neko. They are summerized as follows:
+Neko needs to link with various third-party libraries, which are summerized as follows:
 
 | library / tool                          | OS          | Debian/Ubuntu package                                     |
 |-----------------------------------------|-------------|-----------------------------------------------------------|
@@ -118,7 +117,7 @@ It defines the dependencies that should be linked statically. Can be `all`, `non
 
 CMake will automatically download and build the specified dependencies into the build folder. If a library is not present in this list, it should be installed manually, and it will be linked dynamically.
 
-All third-party libraries, except GTK+2 (Linux), can be linked statically. The reason we do not support statically linking GTK+2 is the diffculty of building it and its own dependencies.
+All third-party libraries, except GTK+2 (Linux), can be linked statically. We do not support statically linking GTK+2 due to the diffculty of building it and its own dependencies.
 
 #### `RELOCATABLE`
 
