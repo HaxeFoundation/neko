@@ -37,9 +37,7 @@ install:
           brew tap homebrew/dupes;
           brew update;
           brew upgrade cmake;
-          brew install bdw-gc pcre mariadb-connector-c mbedtls sqlite zlib;
-          brew link sqlite --force;
-          brew link zlib --force;
+          brew install bdw-gc pcre mariadb-connector-c mbedtls;
       fi;
     fi
   # build, test, and install
