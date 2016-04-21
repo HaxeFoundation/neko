@@ -1,27 +1,28 @@
 version: "{build}"
 
 environment:
-  VisualStudioVersion: 10.0
+  matrix:
+    - VisualStudioVersion: 10.0
+      CMAKE_GENERATOR: "Visual Studio 10 2010"
+    - VisualStudioVersion: 12.0
+      CMAKE_GENERATOR: "Visual Studio 12 2013"
 
 platform: Win32
 configuration: Release
 
 build_script:
-  - set PATH=%PATH%;%APPVEYOR_BUILD_FOLDER%/bin
-  - msbuild vm\nekovm.vcxproj     /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
-  - msbuild vm\nekovm_dll.vcxproj /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
-  - msbuild libs\libs_vc10.sln    /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
-  - copy /y libs\include\gc\gc.dll bin
-  - cd %APPVEYOR_BUILD_FOLDER%/src
-  - neko ../boot/nekoc tools/install.neko
-  - neko tools/install -nolibs
-  - cd %APPVEYOR_BUILD_FOLDER%/bin
-  - nekoc release.neko
-  - neko release.n
-  - cd %APPVEYOR_BUILD_FOLDER%
+  - mkdir build
+  - cd build
+  - cmake -G "%CMAKE_GENERATOR%" ..
+  - msbuild ALL_BUILD.vcxproj       /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
+  - msbuild PACKAGE.vcxproj         /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
+  - msbuild source_archive.vcxproj  /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
+  - cd ..
 
 test_script:
-  - neko -version
+  - cd build
+  - msbuild RUN_TESTS.vcxproj       /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
+  - cd ..
 
 artifacts:
-  - path: bin/neko-*.zip
+  - path: build/bin/*.zip
