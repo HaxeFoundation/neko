@@ -611,13 +611,14 @@ set_target_properties(regexp.ndll
 if (STATIC_SQLITE3)
 	if (NOT EXISTS ${CMAKE_BINARY_DIR}/libs/src/Sqlite3)
 		message(STATUS "Downloading sqlite...")
-		file(DOWNLOAD https://www.sqlite.org/2016/sqlite-autoconf-3120100.tar.gz ${CMAKE_BINARY_DIR}/libs/src/sqlite-autoconf-3120100.tar.gz)
+		set(sqlite_version sqlite-autoconf-3120200)
+		file(DOWNLOAD https://www.sqlite.org/2016/${sqlite_version}.tar.gz ${CMAKE_BINARY_DIR}/libs/src/${sqlite_version}.tar.gz)
 		execute_process(
-			COMMAND ${CMAKE_COMMAND} -E tar x sqlite-autoconf-3120100.tar.gz
+			COMMAND ${CMAKE_COMMAND} -E tar x ${sqlite_version}.tar.gz
 			WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/libs/src
 		)
 		file(REMOVE_RECURSE ${CMAKE_BINARY_DIR}/libs/src/Sqlite3)
-		file(RENAME ${CMAKE_BINARY_DIR}/libs/src/sqlite-autoconf-3120100 ${CMAKE_BINARY_DIR}/libs/src/Sqlite3)
+		file(RENAME ${CMAKE_BINARY_DIR}/libs/src/${sqlite_version} ${CMAKE_BINARY_DIR}/libs/src/Sqlite3)
 		message(STATUS "Downloading sqlite... done")
 	endif()
 
