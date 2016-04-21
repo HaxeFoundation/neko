@@ -13,8 +13,6 @@ See http://nekovm.org/
 
 Compiled binaries can be found in the "artifacts" tab of each [AppVeyor build](https://ci.appveyor.com/project/HaxeFoundation/neko/history).
 
-We recommand to use the artifacts from the builds of Visual Studio 12 2013. For the ones of Visual Studio 10 2010, you may need to install [Microsoft Visual C++ 2010 Redistributable Package (x86)](https://www.microsoft.com/en-us/download/details.aspx?id=5555), in case it complains "MSVCR100.dll" is missing.
-
 ### Mac
 
 Neko snapshot of the latest master branch can be built using [homebrew](http://brew.sh/) in a single command: `brew install neko --HEAD`. It will install required dependencies, build, and install Neko to the system. The binaries can be found at `brew --prefix neko`.
