@@ -1099,15 +1099,15 @@ install (
 	DESTINATION ${DEST_BIN}
 )
 install (
-	FILES ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoml.std
-	DESTINATION ${DEST_BIN}
-)
-install (
 	TARGETS libneko
 	DESTINATION ${DEST_LIB}
 )
 install (
 	TARGETS ${WITH_NDLLS}
+	DESTINATION ${DEST_NDLL}
+)
+install (
+	FILES ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoml.std
 	DESTINATION ${DEST_NDLL}
 )
 install (
