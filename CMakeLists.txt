@@ -76,10 +76,12 @@ set(external_deps
 
 set(WITH_NDLLS ${ndll_targets} CACHE STRING "A list of ndll files to be built.")
 
+set(STATIC_DEPS_DOC "Dependencies that should be linked statically. Can be \"all\", \"none\", or a list of library names (e.g. \"${external_deps}\").")
+
 if (WIN32)
 	set(STATIC_DEPS "all")
 else()
-	set(STATIC_DEPS "none" CACHE STRING "Dependencies that should be linked statically. Can be \"all\", \"none\", or a list of library names (e.g. \"${external_deps}\").")
+	set(STATIC_DEPS "none" CACHE STRING "${STATIC_DEPS_DOC}")
 
 	option(RELOCATABLE "Set RPATH to $ORIGIN (Linux) / @executable_path (Mac)." ON)
 
@@ -96,14 +98,19 @@ set(core_ndll_targets
 )
 
 # Validate STATIC_DEPS
-if (NOT STATIC_DEPS STREQUAL "all" AND NOT STATIC_DEPS STREQUAL "none")
-	foreach(dep ${STATIC_DEPS})
-		list(FIND external_deps ${dep} idx)
-		if(idx EQUAL -1)
-			message(FATAL_ERROR "Invalid STATIC_DEPS. There is no ${dep} in the list of ${external_deps}")
-		endif()
-	endforeach()
+if (STATIC_DEPS STREQUAL "all")
+	set(STATIC_DEPS ${external_deps} CACHE STRING "${STATIC_DEPS_DOC}" FORCE)
+elseif (STATIC_DEPS STREQUAL "none")
+	message(STATUS "set STATIC_DEPS to nothing")
+	set(STATIC_DEPS CACHE STRING "${STATIC_DEPS_DOC}" FORCE)
 endif()
+
+foreach(dep ${STATIC_DEPS})
+	list(FIND external_deps ${dep} idx)
+	if(idx EQUAL -1)
+		message(FATAL_ERROR "Invalid STATIC_DEPS. There is no ${dep} in the list of ${external_deps}")
+	endif()
+endforeach()
 
 # Validate WITH_NDLLS
 foreach(ndll ${WITH_NDLLS})
@@ -122,17 +129,11 @@ endforeach()
 # Set STATIC_* variables according to STATIC_DEPS.
 foreach(dep ${external_deps})
 	string(TOUPPER ${dep} var)
-	if (STATIC_DEPS STREQUAL "all")
-		set(STATIC_${var} TRUE)
-	elseif (STATIC_DEPS STREQUAL "none")
+	list(FIND STATIC_DEPS ${dep} static_idx)
+	if (static_idx EQUAL -1)
 		set(STATIC_${var} FALSE)
 	else()
-		list(FIND STATIC_DEPS ${dep} static_idx)
-		if (static_idx EQUAL -1)
-			set(STATIC_${var} FALSE)
-		else()
-			set(STATIC_${var} TRUE)
-		endif()
+		set(STATIC_${var} TRUE)
 	endif()
 endforeach()
 
