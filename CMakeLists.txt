@@ -187,6 +187,7 @@ find_package(Git REQUIRED)
 # ExternalProject configs
 set(EP_CONFIGS
 	PREFIX ${CMAKE_BINARY_DIR}/libs
+	STEP_TARGETS download patch
 )
 if(${CMAKE_VERSION} VERSION_GREATER 3.0)
 	list(APPEND EP_CONFIGS
@@ -1043,6 +1044,16 @@ add_custom_command(OUTPUT ${nekoml_std}
 add_custom_target(compilers ALL
 	DEPENDS ${compilers_outputs} ${nekoml_std}
 )
+
+#######################
+
+add_custom_target(download_static_deps)
+
+foreach(dep ${STATIC_DEPS})
+	if (NOT dep STREQUAL Sqlite3)
+		add_dependencies(download_static_deps ${dep}-download ${dep}-patch)
+	endif()
+endforeach()
 
 #######################
 
