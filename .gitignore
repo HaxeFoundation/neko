@@ -16,8 +16,11 @@ DartConfiguration.tcl
 
 # build files
 /build*/
+/libs/src
+/libs/tmp
 *.sln
 *.vcxproj
 *.vcxproj.filters
-libs/src
-libs/tmp
+*.opensdf
+*.suo
+Win32

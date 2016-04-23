@@ -187,7 +187,7 @@ find_package(Git REQUIRED)
 # ExternalProject configs
 set(EP_CONFIGS
 	PREFIX ${CMAKE_BINARY_DIR}/libs
-	STEP_TARGETS download patch
+	INDEPENDENT_STEP_TARGETS download
 )
 if(${CMAKE_VERSION} VERSION_GREATER 3.0)
 	list(APPEND EP_CONFIGS
@@ -283,14 +283,20 @@ if (STATIC_BOEHMGC)
 		)
 		add_dependencies(nekovm gcmt-dll.dll)
 	else()
+		ExternalProject_Add(libatomic_ops
+			${EP_CONFIGS}
+			URL http://www.ivmaisoft.com/_bin/atomic_ops/libatomic_ops-7.4.2.tar.gz
+			URL_MD5 1d6538604b314d2fccdf86915e5c0857
+			CONFIGURE_COMMAND echo skip config
+			BUILD_COMMAND echo skip build
+			INSTALL_COMMAND echo skip install
+		)
 		ExternalProject_Add(BoehmGC
 			${EP_CONFIGS}
+			DEPENDS libatomic_ops
 			URL http://hboehm.info/gc/gc_source/gc-7.4.2.tar.gz
 			URL_MD5 12c05fd2811d989341d8c6d81f66af87
-			PATCH_COMMAND
-				${CMAKE_COMMAND} -Durl=http://www.ivmaisoft.com/_bin/atomic_ops/libatomic_ops-7.4.2.tar.gz -Dfile=${CMAKE_BINARY_DIR}/libs/src/BoehmGC/libatomic_ops-7.4.2.tar.gz -P ${CMAKE_SOURCE_DIR}/cmake/download.cmake &&
-				${CMAKE_COMMAND} -E tar x ${CMAKE_BINARY_DIR}/libs/src/BoehmGC/libatomic_ops-7.4.2.tar.gz &&
-				${CMAKE_COMMAND} -E rename libatomic_ops-7.4.2 libatomic_ops
+			PATCH_COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/libs/src/libatomic_ops ${CMAKE_BINARY_DIR}/libs/src/BoehmGC/libatomic_ops
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/BoehmGC &&
 				./configure
 					--prefix=${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build
@@ -1051,7 +1057,7 @@ add_custom_target(download_static_deps)
 
 foreach(dep ${STATIC_DEPS})
 	if (NOT dep STREQUAL Sqlite3)
-		add_dependencies(download_static_deps ${dep}-download ${dep}-patch)
+		add_dependencies(download_static_deps ${dep}-download)
 	endif()
 endforeach()
 
