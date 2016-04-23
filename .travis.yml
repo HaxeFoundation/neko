@@ -54,10 +54,12 @@ install:
   - pushd build
   - cmake --version
   - cmake -DSTATIC_DEPS=${STATIC_DEPS} ..
+  # download static dependencies before actual build, with 3 chances to deal with network issues
+  - make download_static_deps || make download_static_deps || make download_static_deps
   - make
   - make test ARGS="-V"
+  - make source_archive
   - if [ "${STATIC_DEPS}" = "all" ]; then
-      make source_archive &&
       make package &&
       tar xf bin/neko-*-${TRAVIS_OS_NAME}*.tar.gz &&
       cd neko-*-${TRAVIS_OS_NAME}* &&
