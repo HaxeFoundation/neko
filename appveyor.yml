@@ -12,18 +12,13 @@ platform: Win32
 configuration: Release
 
 build_script:
-  - mkdir build
-  - cd build
-  - cmake -G "%CMAKE_GENERATOR%" ..
+  - cmake -G "%CMAKE_GENERATOR%" .
   - msbuild ALL_BUILD.vcxproj       /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
   - msbuild PACKAGE.vcxproj         /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
   - msbuild source_archive.vcxproj  /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
-  - cd ..
 
 test_script:
-  - cd build
   - msbuild RUN_TESTS.vcxproj       /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
-  - cd ..
 
 artifacts:
-  - path: build/bin/*.zip
+  - path: bin/*.zip

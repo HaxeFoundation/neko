@@ -8,6 +8,16 @@ CMakeFiles
 CMakeScripts
 cmake_install.cmake
 install_manifest.txt
+CPackConfig.cmake
+CPackSourceConfig.cmake
+CTestTestfile.cmake
+DartConfiguration.tcl
+/cmake/uninstall.cmake
 
-# build directories
+# build files
 /build*/
+*.sln
+*.vcxproj
+*.vcxproj.filters
+libs/src
+libs/tmp
