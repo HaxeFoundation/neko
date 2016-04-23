@@ -986,6 +986,9 @@ endif(APPLE)
 
 #######################
 
+# compilers
+# nekoc, nekoml, nekotools, and test.n
+
 if (WIN32)
 	set(compilers_outputs
 		${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoc.exe
@@ -1071,21 +1074,52 @@ endforeach()
 
 #######################
 
+# source_archive
+# We create our own source package target instead of using CPack's package_source.
+# One reason is that the CPack VS generator doesn't generate package_source target.
+# See https://cmake.org/Bug/view.php?id=13058
+
 if (WIN32)
 	set(source_archive_format zip)
 else()
 	set(source_archive_format tar.gz)
 endif()
 
-set(source_archive_name neko-${NEKO_VERSION_MAJOR}.${NEKO_VERSION_MINOR}.${NEKO_VERSION_PATCH}-src.${source_archive_format})
+set(source_archive_name_we neko-${NEKO_VERSION_MAJOR}.${NEKO_VERSION_MINOR}.${NEKO_VERSION_PATCH}-src)
+set(source_archive_name ${source_archive_name_we}.${source_archive_format})
 
 add_custom_command(OUTPUT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${source_archive_name}
-	COMMAND ${GIT_EXECUTABLE} archive -o ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${source_archive_name} HEAD
+	COMMAND ${GIT_EXECUTABLE} archive --prefix=${source_archive_name_we}/ -o ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${source_archive_name} HEAD
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+	VERBATIM
 )
 
 add_custom_target(source_archive
 	DEPENDS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${source_archive_name}
+)
+
+# source_archive_fat
+# It is source_archive + STATIC_DEPS placed in libs/src.
+
+set(source_archive_fat_name_we neko-${NEKO_VERSION_MAJOR}.${NEKO_VERSION_MINOR}.${NEKO_VERSION_PATCH}-src-fat)
+set(source_archive_fat_name ${source_archive_fat_name_we}.${source_archive_format})
+
+add_custom_command(OUTPUT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${source_archive_fat_name}
+	COMMAND ${CMAKE_COMMAND}
+		-Dsource_archive_name_we=${source_archive_name_we}
+		-Dsource_archive=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${source_archive_name}
+		-Dsource_archive_fat_name_we=${source_archive_fat_name_we}
+		-Dsource_archive_fat_name=${source_archive_fat_name}
+		-Dbin_dir=${CMAKE_BINARY_DIR}
+		-Dsrc_dir=${CMAKE_SOURCE_DIR}
+		-Dlib_src_dir=libs/src
+		-P ${CMAKE_SOURCE_DIR}/cmake/source_archive_fat.cmake
+	DEPENDS source_archive
+	VERBATIM
+)
+
+add_custom_target(source_archive_fat
+	DEPENDS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${source_archive_fat_name}
 )
 
 #######################
