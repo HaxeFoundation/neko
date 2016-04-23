@@ -27,7 +27,7 @@ if (WIN32)
 		content ${content}
 	)
 
-	file(COPY ${source}/libs/include/ssl/threading_alt.h
+	file(COPY ${source}/libs/ssl/threading_alt.h
 		DESTINATION ${MbedTLS_source}/include/mbedtls/
 	)
 else()

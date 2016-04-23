@@ -261,10 +261,10 @@ if (STATIC_BOEHMGC)
 				-DCMAKE_USE_WIN32_THREADS_INIT=ON
 			PATCH_COMMAND
 				${CMAKE_COMMAND} -E copy
-					${CMAKE_SOURCE_DIR}/libs/include/gc/CMakeLists.txt
+					${CMAKE_SOURCE_DIR}/libs/gc/CMakeLists.txt
 					${CMAKE_BINARY_DIR}/libs/src/BoehmGC/CMakeLists.txt
 				&& cd ${CMAKE_BINARY_DIR}/libs/src/BoehmGC &&
-				${GIT_EXECUTABLE} apply --ignore-space-change --ignore-whitespace --whitespace=nowarn --unsafe-paths ${CMAKE_SOURCE_DIR}/libs/include/gc/av_safety.patch
+				${GIT_EXECUTABLE} apply --ignore-space-change --ignore-whitespace --whitespace=nowarn --unsafe-paths ${CMAKE_SOURCE_DIR}/libs/gc/av_safety.patch
 			INSTALL_COMMAND
 				${CMAKE_COMMAND} -E copy_directory
 					${CMAKE_BINARY_DIR}/libs/src/BoehmGC/include

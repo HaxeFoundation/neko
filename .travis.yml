@@ -32,7 +32,16 @@ install:
       if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
           sudo apt-get update -qq;
           sudo apt-get install pkg-config libgc-dev libssl-dev libpcre3-dev zlib1g-dev apache2-dev libmysqlclient-dev libsqlite3-dev libgtk2.0-dev -qq;
-          (cd libs/include/ssl/ && wget https://tls.mbed.org/download/mbedtls-2.2.1-apache.tgz && tar xzf mbedtls-2.2.1-apache.tgz && cd mbedtls-2.2.1 && sed -i "s/\/\/#define MBEDTLS_THREADING_PTHREAD/#define MBEDTLS_THREADING_PTHREAD/; s/\/\/#define MBEDTLS_THREADING_C/#define MBEDTLS_THREADING_C/; s/#define MBEDTLS_SSL_PROTO_SSL3/\/\/#define MBEDTLS_SSL_PROTO_SSL3/" include/mbedtls/config.h && SHARED=1 make lib && sudo make install);
+          (
+            mkdir ~/mbedtls &&
+            pushd ~/mbedtls &&
+            wget https://tls.mbed.org/download/mbedtls-2.2.1-apache.tgz &&
+            tar xzf mbedtls-2.2.1-apache.tgz &&
+            cd mbedtls-2.2.1 && sed -i "s/\/\/#define MBEDTLS_THREADING_PTHREAD/#define MBEDTLS_THREADING_PTHREAD/; s/\/\/#define MBEDTLS_THREADING_C/#define MBEDTLS_THREADING_C/; s/#define MBEDTLS_SSL_PROTO_SSL3/\/\/#define MBEDTLS_SSL_PROTO_SSL3/" include/mbedtls/config.h &&
+            SHARED=1 make lib &&
+            sudo make install &&
+            popd
+          );
       elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
           brew tap homebrew/dupes;
           brew update;
@@ -71,7 +80,7 @@ script:
       openssl aes-256-cbc -k "$haxeci_decrypt" -in haxeci_sec.gpg.enc -out haxeci_sec.gpg -d;
       gpg --allow-secret-key-import --import haxeci_sec.gpg;
       sudo apt-get install devscripts git-buildpackage ubuntu-dev-tools dh-make dh-apache2 -y;
-      cp build-dist/bin/neko-*-source.tar.gz ..;
+      cp build/bin/neko-*-src.tar.gz ..;
       export COMMIT_SHA=`git rev-parse --short HEAD`;
       export COMMIT_TIME=`git show -s --format=%ct HEAD`;
       cd ..;
