@@ -299,9 +299,6 @@ if (STATIC_BOEHMGC)
 			BUILD_COMMAND echo skip build
 			INSTALL_COMMAND echo skip install
 		)
-		# don't want to add libatomic_ops to external_deps,
-		# but want download_static_deps depends on it
-		add_dependencies(BoehmGC-download libatomic_ops-download)
 
 		ExternalProject_Add(BoehmGC
 			${EP_CONFIGS}
@@ -323,6 +320,11 @@ if (STATIC_BOEHMGC)
 			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/BoehmGC && 
 				make install
 		)
+
+		# don't want to add libatomic_ops to external_deps,
+		# but want download_static_deps depends on it
+		add_dependencies(BoehmGC-download libatomic_ops-download)
+
 		set(GC_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/include)
 		set(GC_LIBRARIES
 			${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/lib/libgc.a
