@@ -299,6 +299,10 @@ if (STATIC_BOEHMGC)
 			BUILD_COMMAND echo skip build
 			INSTALL_COMMAND echo skip install
 		)
+		# don't want to add libatomic_ops to external_deps,
+		# but want download_static_deps depends on it
+		add_dependencies(BoehmGC-download libatomic_ops-download)
+
 		ExternalProject_Add(BoehmGC
 			${EP_CONFIGS}
 			DEPENDS libatomic_ops
