@@ -1126,7 +1126,7 @@ add_custom_command(OUTPUT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${source_archive_fat
 		-Dsrc_dir=${CMAKE_SOURCE_DIR}
 		-Dlib_src_dir=libs/src
 		-P ${CMAKE_SOURCE_DIR}/cmake/source_archive_fat.cmake
-	DEPENDS source_archive
+	DEPENDS source_archive download_static_deps
 	VERBATIM
 )
 
