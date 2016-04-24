@@ -1263,3 +1263,20 @@ add_test(NAME test.n
 	COMMAND nekovm test.n
 	WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
 )
+
+
+#######################
+
+# debian source packages
+
+if(UNIX AND NOT APPLE)
+	add_custom_target(upload_to_ppa
+		COMMAND ${CMAKE_COMMAND}
+			-Dsource_dir=${CMAKE_SOURCE_DIR}
+			-Dbin_dir=${CMAKE_BINARY_DIR}
+			-Dsource_archive=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${source_archive_fat_name}
+			-DNEKO_VERSION=${NEKO_VERSION_MAJOR}.${NEKO_VERSION_MINOR}.${NEKO_VERSION_PATCH}
+			-P ${CMAKE_SOURCE_DIR}/cmake/upload_to_ppa.cmake
+		DEPENDS source_archive_fat
+	)
+endif()
