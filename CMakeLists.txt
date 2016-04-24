@@ -184,6 +184,12 @@ endif()
 # git is used for source_archive and for applying patch
 find_package(Git REQUIRED)
 
+# copy the lib/src folder to build directory
+# (if it is a fat archive, there will be external libraries)
+if(EXISTS ${CMAKE_SOURCE_DIR}/libs/src)
+	file(COPY ${CMAKE_SOURCE_DIR}/libs/src DESTINATION ${CMAKE_BINARY_DIR}/libs)
+endif()
+
 # ExternalProject configs
 set(EP_CONFIGS
 	PREFIX ${CMAKE_BINARY_DIR}/libs
