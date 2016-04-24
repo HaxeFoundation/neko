@@ -9,7 +9,6 @@ dist: trusty
 
 env:
   global:
-    - PPA="ppa:haxe/snapshots"
     - DEBFULLNAME="Haxe CI Bot"
     - DEBEMAIL="haxe-ci@onthewings.net"
     # haxeci_decrypt
@@ -75,7 +74,7 @@ script:
   - neko -version
   - neko build/bin/test.n
   # submit to ppa
-  - if false && [ -n "$haxeci_decrypt" ] && [ "${TRAVIS_OS_NAME}" = "linux" ] && [ "${TRAVIS_BRANCH}" = "master" ]; then
+  - if [ -n "$haxeci_decrypt" ] && [ "${TRAVIS_OS_NAME}" = "linux" ] && [ "${TRAVIS_BRANCH}" = "master" ] && [ "${STATIC_DEPS}" = "all" ]; then
       openssl aes-256-cbc -k "$haxeci_decrypt" -in haxeci_ssh.enc -out haxeci_ssh -d;
       chmod 600 haxeci_ssh;
       eval `ssh-agent -s`;
@@ -83,30 +82,9 @@ script:
       openssl aes-256-cbc -k "$haxeci_decrypt" -in haxeci_sec.gpg.enc -out haxeci_sec.gpg -d;
       gpg --allow-secret-key-import --import haxeci_sec.gpg;
       sudo apt-get install devscripts git-buildpackage ubuntu-dev-tools dh-make dh-apache2 -y;
-      cp build/bin/neko-*-src.tar.gz ..;
-      export COMMIT_SHA=`git rev-parse --short HEAD`;
-      export COMMIT_TIME=`git show -s --format=%ct HEAD`;
-      cd ..;
-      git clone https://github.com/HaxeFoundation/neko-debian.git;
-      cd neko-debian;
-      git checkout upstream;
-      git checkout next;
-      export SNAPSHOT_VERSION=`neko -version`+1SNAPSHOT`date -u -d @${COMMIT_TIME} +%Y%m%d%H%M%S`+${COMMIT_SHA};
-      mv ../neko-*.tar.gz "../neko_${SNAPSHOT_VERSION}.orig.tar.gz";
-      gbp import-orig ../neko_${SNAPSHOT_VERSION}.orig.tar.gz -u ${SNAPSHOT_VERSION} --debian-branch=next;
-      dch -v "${SNAPSHOT_VERSION}-1" --urgency low "snapshot build";
-      debuild -S -sa;
-      backportpackage -d xenial  --upload ${PPA} --yes ../neko_*.dsc;
-      backportpackage -d wily    --upload ${PPA} --yes ../neko_*.dsc;
-      backportpackage -d vivid   --upload ${PPA} --yes ../neko_*.dsc;
-      backportpackage -d trusty  --upload ${PPA} --yes ../neko_*.dsc;
-      git checkout debian/changelog;
-      git merge origin/backport-precise;
-      git rm -r debian/patches;
       git config --global user.name "${DEBFULLNAME}";
       git config --global user.email "${DEBEMAIL}";
-      git commit -m "backport to precise";
-      dch -v "${SNAPSHOT_VERSION}-1" --urgency low "snapshot build";
-      debuild -S -sa;
-      backportpackage -d precise --upload ${PPA} --yes ../neko_*.dsc;
+      pushd build;
+      make upload_to_ppa;
+      popd;
     fi
