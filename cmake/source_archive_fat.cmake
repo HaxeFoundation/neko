@@ -15,7 +15,7 @@ file(GLOB archives
 file(COPY ${archives} DESTINATION ${source_archive_dir}/${source_archive_fat_name_we}/${lib_src_dir})
 
 execute_process(
-	COMMAND ${CMAKE_COMMAND} -E tar cf ${source_archive_fat_name} ${source_archive_dir}/${source_archive_fat_name_we}
+	COMMAND ${CMAKE_COMMAND} -E tar czf ${source_archive_fat_name} ${source_archive_dir}/${source_archive_fat_name_we}
 	WORKING_DIRECTORY ${source_archive_dir}
 )
 
