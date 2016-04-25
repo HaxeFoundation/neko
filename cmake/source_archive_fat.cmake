@@ -7,12 +7,22 @@ execute_process(
 
 file(RENAME ${source_archive_dir}/${source_archive_name_we} ${source_archive_dir}/${source_archive_fat_name_we})
 
-file(GLOB archives
-	LIST_DIRECTORIES FALSE
-	${bin_dir}/${lib_src_dir}/*
-)
 
-file(COPY ${archives} DESTINATION ${source_archive_dir}/${source_archive_fat_name_we}/${lib_src_dir})
+if (${CMAKE_VERSION} VERSION_LESS 3.3)
+	file(GLOB archives
+		${bin_dir}/${lib_src_dir}/*
+	)
+	foreach(file ${archives})
+		if(NOT IS_DIRECTORY ${file})
+			file(COPY ${file} DESTINATION ${source_archive_dir}/${source_archive_fat_name_we}/${lib_src_dir})
+		endif()
+	endforeach()
+else()
+	file(GLOB archives
+		LIST_DIRECTORIES FALSE
+		${bin_dir}/${lib_src_dir}/*
+	)
+endif()
 
 execute_process(
 	COMMAND ${CMAKE_COMMAND} -E tar czf ${source_archive_fat_name} ${source_archive_dir}/${source_archive_fat_name_we}
