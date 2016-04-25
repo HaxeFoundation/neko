@@ -152,11 +152,14 @@ endforeach()
 include(ExternalProject)
 
 
+# CMAKE_BUILD_WITH_INSTALL_RPATH should be set to true.
+# It is because `nekotools boot` will use the neko in build dir during build.
+set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+
 if (RELOCATABLE)
 	# https://cmake.org/Wiki/CMake_RPATH_handling
 	set(CMAKE_SKIP_BUILD_RPATH FALSE)
 	set(CMAKE_SKIP_INSTALL_RPATH FALSE)
-	set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 	if(APPLE)
 		set(CMAKE_MACOSX_RPATH TRUE)
 		set(CMAKE_INSTALL_RPATH @executable_path/)
@@ -1269,6 +1272,13 @@ add_test(NAME test.n
 	COMMAND nekovm test.n
 	WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
 )
+
+if (UNIX AND NOT APPLE)
+	set_tests_properties(-version test.n
+		PROPERTIES
+		ENVIRONMENT LD_LIBRARY_PATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+	)
+endif()
 
 
 #######################
