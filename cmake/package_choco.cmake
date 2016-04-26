@@ -11,7 +11,7 @@ execute_process(
 	OUTPUT_VARIABLE COMMIT_TIME
 	OUTPUT_STRIP_TRAILING_WHITESPACE
 )
-string(SUBSTRING ${COMMIT_TIME} 0 17 COMMIT_TIME)
+string(SUBSTRING ${COMMIT_TIME} 0 19 COMMIT_TIME)
 string(REGEX REPLACE [^0-9] "" COMMIT_TIME ${COMMIT_TIME})
 set(SNAPSHOT_VERSION ${NEKO_VERSION}-SNAP${COMMIT_TIME})
 
@@ -55,3 +55,11 @@ message(STATUS "created ${nupkg_name}")
 file(COPY ${nupkg} DESTINATION ${bin_archive_dir})
 
 file(REMOVE_RECURSE ${bin_archive_dir}/${bin_archive_name_we})
+
+if(DEFINED ENV{APPVEYOR})
+	message(STATUS "pushing ${nupkg_name} to AppVeyor feeds")
+	execute_process(
+		COMMAND appveyor PushArtifact ${nupkg_name}
+		WORKING_DIRECTORY ${bin_archive_dir}
+	)
+endif()
