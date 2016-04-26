@@ -1220,8 +1220,10 @@ set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
 
 if (WIN32)
 	set(CPACK_GENERATOR "ZIP")
+	set(bin_archive_format zip)
 else()
 	set(CPACK_GENERATOR "TGZ")
+	set(bin_archive_format tar.gz)
 endif()
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
@@ -1251,10 +1253,11 @@ else()
 	set(OS_NAME "")
 endif()
 
-set(CPACK_PACKAGE_FILE_NAME
-	"${CMAKE_PROJECT_NAME}-${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}-${OS_NAME}${arch_64}")
-set(CPACK_SOURCE_PACKAGE_FILE_NAME
-	"${CMAKE_PROJECT_NAME}-${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}-src")
+set(bin_archive_name_we "${CMAKE_PROJECT_NAME}-${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}-${OS_NAME}${arch_64}")
+set(bin_archive_name "${bin_archive_name_we}.${bin_archive_format}")
+set(CPACK_PACKAGE_FILE_NAME ${bin_archive_name_we})
+# set(CPACK_SOURCE_PACKAGE_FILE_NAME
+# 	"${CMAKE_PROJECT_NAME}-${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}-src")
 
 include(CPack)
 
@@ -1294,5 +1297,22 @@ if(UNIX AND NOT APPLE)
 			-DNEKO_VERSION=${NEKO_VERSION_MAJOR}.${NEKO_VERSION_MINOR}.${NEKO_VERSION_PATCH}
 			-P ${CMAKE_SOURCE_DIR}/cmake/upload_to_ppa.cmake
 		DEPENDS source_archive_fat
+	)
+endif()
+
+
+#######################
+
+# chocolatey
+if(WIN32)
+	add_custom_target(package_choco
+		COMMAND ${CMAKE_COMMAND}
+			-Dsource_dir=${CMAKE_SOURCE_DIR}
+			-Dbin_dir=${CMAKE_BINARY_DIR}
+			-Dbin_archive=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${bin_archive_name}
+			-Dbin_archive_name_we=${bin_archive_name_we}
+			-DNEKO_VERSION=${NEKO_VERSION_MAJOR}.${NEKO_VERSION_MINOR}.${NEKO_VERSION_PATCH}
+			-P ${CMAKE_SOURCE_DIR}/cmake/package_choco.cmake
+		DEPENDS package
 	)
 endif()

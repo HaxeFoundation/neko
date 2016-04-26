@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+    <metadata>
+        <id>neko</id>
+        <version>@SNAPSHOT_VERSION@</version>
+        <title>Neko</title>
+        <authors>Haxe Foundation</authors>
+        <owners>Haxe Foundation</owners>
+        <licenseUrl>https://github.com/HaxeFoundation/neko/blob/master/LICENSE</licenseUrl>
+        <projectUrl>http://nekovm.org/</projectUrl>
+        <iconUrl>https://cdn.rawgit.com/andyli/cc07575f598351e0ad74/raw/6a9cae9a136670c0052356b773f8e13bf37c13dd/logo.png</iconUrl>
+        <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <description>Neko is a lightweight and yet well optimized virtual machine. The VM can be easily embedded into any application and your libraries can be accessed using the C foreign function interface.</description>
+        <tags>neko haxe vm</tags>
+        <dependencies>
+            <dependency id="vcredist2013" />
+        </dependencies>
+    </metadata>
+</package>
