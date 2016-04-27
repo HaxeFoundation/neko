@@ -371,8 +371,8 @@ set_target_properties(nekovm libneko
 )
 set_target_properties(libneko
 	PROPERTIES
-	VERSION 0.0.0
-	SOVERSION 0
+	VERSION ${NEKO_VERSION_MAJOR}.${NEKO_VERSION_MINOR}.${NEKO_VERSION_PATCH}
+	SOVERSION ${NEKO_VERSION_MAJOR}
 	COMPILE_DEFINITIONS "_USRDLL;NEKOVM_DLL_EXPORTS;NEKO_SOURCES"
 )
 set_target_properties(std.ndll
