@@ -1029,6 +1029,14 @@ else()
 	set(neko_exec LD_LIBRARY_PATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY} NEKOPATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY} $<TARGET_FILE:nekovm>)
 endif()
 
+file(GLOB neko_files
+	src/**/*.neko
+)
+
+file(GLOB nml_files
+	src/**/*.nml
+)
+
 add_custom_command(OUTPUT ${compilers_outputs} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test.n
 	COMMAND ${set_neko_env}
 
@@ -1059,7 +1067,7 @@ add_custom_command(OUTPUT ${compilers_outputs} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
 		${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekotools.n
 
 	VERBATIM
-	DEPENDS nekovm std.ndll
+	DEPENDS nekovm std.ndll ${nml_files} ${neko_files}
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src
 )
 
