@@ -277,7 +277,7 @@ int main( int argc, char *argv[] ) {
 			if( strcmp(argv[1],"-version") == 0 ) {
 				argc--;
 				argv++;
-				printf("%d.%d.%d\n",NEKO_VERSION/100,(NEKO_VERSION/10)%10,NEKO_VERSION%10);
+				printf("%d.%d.%d\n",NEKO_VERSION_MAJOR,NEKO_VERSION_MINOR,NEKO_VERSION_PATCH);
 				return 0;
 			}
 			break;
@@ -297,7 +297,7 @@ int main( int argc, char *argv[] ) {
 #			ifdef NEKO_STANDALONE
 			report(vm,alloc_string("No embedded module in this executable"),0);
 #			else
-			printf("NekoVM %d.%d.%d (c)2005-2016 Haxe Foundation\n  Usage : neko <file>\n",NEKO_VERSION/100,(NEKO_VERSION/10)%10,NEKO_VERSION%10);
+			printf("NekoVM %d.%d.%d (c)2005-2016 Haxe Foundation\n  Usage : neko <file>\n",NEKO_VERSION_MAJOR,NEKO_VERSION_MINOR,NEKO_VERSION_PATCH);
 #			endif
 			mload = NULL;
 			r = 1;

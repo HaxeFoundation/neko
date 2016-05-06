@@ -45,8 +45,13 @@ if (${CMAKE_VERSION} VERSION_LESS 2.8.12)
 endif()
 
 set(NEKO_VERSION_MAJOR 2)
-set(NEKO_VERSION_MINOR 0)
+set(NEKO_VERSION_MINOR 1)
 set(NEKO_VERSION_PATCH 0)
+
+configure_file (
+	"${CMAKE_SOURCE_DIR}/vm/neko.h.in"
+	"${CMAKE_BINARY_DIR}/neko.h"
+)
 
 set(ndll_targets
 	std.ndll
@@ -217,6 +222,7 @@ set(EP_PROPS
 
 
 include_directories(
+	${CMAKE_BINARY_DIR}
 	vm
 	libs/common
 )
@@ -1198,6 +1204,10 @@ install (
 	DIRECTORY vm/
 	DESTINATION include
 	FILES_MATCHING PATTERN "neko*.h"
+)
+install (
+	FILES ${CMAKE_BINARY_DIR}/neko.h
+	DESTINATION include
 )
 
 if (RUN_LDCONFIG)
