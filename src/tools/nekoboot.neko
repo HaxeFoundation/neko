@@ -30,6 +30,9 @@ file_write_char = $loader.loadprim("std@file_write_char",2);
 file_close = $loader.loadprim("std@file_close",1);
 command = $loader.loadprim("std@sys_command",1);
 system = $loader.loadprim("std@sys_string",0)();
+cwd = $loader.loadprim("std@get_cwd",0)();
+get_env = $loader.loadprim("std@get_env",1);
+string_split = $loader.loadprim("std@string_split",2);
 
 // find a substring from then end
 
@@ -61,6 +64,19 @@ find_exe_in_path = function(path,file) {
 	$throw("The bootable executable file was not found : "+file);
 }
 
+find_exe_in_paths = function(paths,file) {
+	var i = 0;
+	var len = $asize(paths);
+	while( i < len ) {
+		try {
+			return find_exe_in_path(paths[i],file);
+		} catch e {
+			i ++= 1;
+		}
+	}
+	$throw("The bootable executable file was not found : "+file);
+}
+
 // bytecode = first argument
 
 var args = $loader.args;
@@ -76,8 +92,12 @@ var file = args[0];
 var bytecode = file_contents(file);
 
 // load boot binary
-
-var boot = find_exe_in_path($loader.path,boot_exe);
+var path_sep = switch system {
+	"Windows" => ";"
+	default => ":"
+}
+var path = string_split(get_env("PATH"), path_sep);
+var boot = find_exe_in_paths($array($array(cwd,null),$loader.path,path),boot_exe);
 var boot_size = $ssize(boot);
 
 var dot_pos = find(file,".",1);

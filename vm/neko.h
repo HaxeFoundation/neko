@@ -361,6 +361,7 @@ typedef struct _mt_lock mt_lock;
 #define val_hash			neko_val_hash
 #define k_hash				neko_k_hash
 #define kind_share			neko_kind_share
+#define kind_lookup			neko_kind_lookup
 
 #define alloc_local			neko_alloc_local
 #define local_get			neko_local_get
@@ -431,6 +432,7 @@ C_FUNCTION_BEGIN
 	EXTERN int val_hash( value v );
 
 	EXTERN void kind_share( vkind *k, const char *name );
+	EXTERN vkind kind_lookup( const char *name );
 	EXTERN void _neko_failure( value msg, const char *file, int line );
 
 	// MULTITHREADING API

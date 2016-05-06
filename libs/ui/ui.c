@@ -151,7 +151,6 @@ void ui_main() {
 	EventTypeSpec ets = { UIEvent, eCall };
 	InstallEventHandler(GetApplicationEventTarget(),NewEventHandlerUPP(handleEvents),1,&ets,0,0);
 #	elif defined(NEKO_LINUX)
-	g_thread_init(NULL);
 	gdk_threads_init();
 	gtk_init(NULL,NULL);
 	setlocale(LC_NUMERIC,"POSIX"); // prevent broking atof()

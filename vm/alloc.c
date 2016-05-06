@@ -430,6 +430,16 @@ EXTERN void neko_set_stack_base( void *s ) {
 	// deprecated
 }
 
+EXTERN vkind kind_lookup( const char *name ) {
+	kind_list *l = *kind_names;
+	while( l != NULL ) {
+		if( strcmp(l->name,name) == 0 )
+			return l->k;
+		l = l->next;
+	}
+	return NULL;
+}
+
 EXTERN void kind_share( vkind *k, const char *name ) {
 	kind_list *l = *kind_names;
 	while( l != NULL ) {

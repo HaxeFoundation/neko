@@ -4,34 +4,87 @@ os:
   - linux
   - osx
 
-addons:
-  mariadb: '10.1'
+sudo: required
+dist: trusty
+
+env:
+  global:
+    - DEBFULLNAME="Haxe CI Bot"
+    - DEBEMAIL="haxe-ci@onthewings.net"
+    # haxeci_decrypt
+    - secure: "fwuuwLcJ8vjCT9RI6DeV+k41+Atxf3EldWHNCREeSJ2FeeBgAQ0aePvx2Bgw6HkTzUWmj2YKVUV8RNrpkN4HQNO0gncYSOLBzXNuL1GAc657YXQcHmeZd4z6Ung+IpyphaThRE0ZwFzgLrj7sA7tfJ4YXxskfCBZNrnJBQU4K2A="
+  matrix:
+    - STATIC_DEPS=all
+    - STATIC_DEPS=none
 
 install:
-  # For our forks that do not have mult-os enabled...
-  - if [ -z "${TRAVIS_OS_NAME}" ]; then
-    export TRAVIS_OS_NAME=linux;
-    fi
   # Install dependencies
-  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
-        sudo apt-get update -qq;
-        sudo apt-get install zlib1g-dev libgc-dev -qq;
-    elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
-        brew tap homebrew/dupes;
-        brew update;
-        brew install bdw-gc pcre openssl zlib mariadb;
-        brew link zlib --force;
+  - if [ "${STATIC_DEPS}" = "all" ]; then
+      if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
+          sudo apt-get update -qq;
+          sudo apt-get install pkg-config libgtk2.0-dev -qq;
+      elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
+          brew update;
+          brew upgrade cmake;
+      fi;
+    else
+      if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
+          sudo apt-get update -qq;
+          sudo apt-get install pkg-config libgc-dev libssl-dev libpcre3-dev zlib1g-dev apache2-dev libmysqlclient-dev libsqlite3-dev libgtk2.0-dev -qq;
+          (
+            mkdir ~/mbedtls &&
+            pushd ~/mbedtls &&
+            wget https://tls.mbed.org/download/mbedtls-2.2.1-apache.tgz &&
+            tar xzf mbedtls-2.2.1-apache.tgz &&
+            cd mbedtls-2.2.1 && sed -i "s/\/\/#define MBEDTLS_THREADING_PTHREAD/#define MBEDTLS_THREADING_PTHREAD/; s/\/\/#define MBEDTLS_THREADING_C/#define MBEDTLS_THREADING_C/; s/#define MBEDTLS_SSL_PROTO_SSL3/\/\/#define MBEDTLS_SSL_PROTO_SSL3/" include/mbedtls/config.h &&
+            SHARED=1 make lib &&
+            sudo make install &&
+            popd
+          );
+      elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
+          brew tap homebrew/dupes;
+          brew update;
+          brew upgrade cmake;
+          brew install bdw-gc pcre mariadb-connector-c mbedtls;
+      fi;
     fi
+  # build, test, and install
+  - mkdir build
+  - pushd build
+  - cmake --version
+  - cmake -DSTATIC_DEPS=${STATIC_DEPS} ..
+  # download static dependencies before actual build, with 3 chances to deal with network issues
+  - make download_static_deps || make download_static_deps || make download_static_deps
+  - make
+  - make test ARGS="-V"
+  - make source_archive
+  - if [ "${STATIC_DEPS}" = "all" ]; then
+      make package &&
+      make source_archive_fat &&
+      tar xf bin/neko-*-${TRAVIS_OS_NAME}*.tar.gz &&
+      cd neko-*-${TRAVIS_OS_NAME}* &&
+      export PATH=`pwd`:$PATH;
+    else
+      sudo make install;
+    fi
+  - popd
 
 script:
-  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
-        make;
-        make test;
-        sudo make install;
-    elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
-        make os=osx LIB_PREFIX=/usr/local;
-        make test;
-        sudo make os=osx install;
-    fi
+  # test installed version
   - neko -version
-  - neko src/tools/test.n
+  - neko build/bin/test.n
+  # submit to ppa
+  - if [ -n "$haxeci_decrypt" ] && [ "${TRAVIS_OS_NAME}" = "linux" ] && [ "${TRAVIS_BRANCH}" = "master" ] && [ "${STATIC_DEPS}" = "all" ]; then
+      openssl aes-256-cbc -k "$haxeci_decrypt" -in haxeci_ssh.enc -out haxeci_ssh -d;
+      chmod 600 haxeci_ssh;
+      eval `ssh-agent -s`;
+      ssh-add haxeci_ssh;
+      openssl aes-256-cbc -k "$haxeci_decrypt" -in haxeci_sec.gpg.enc -out haxeci_sec.gpg -d;
+      gpg --allow-secret-key-import --import haxeci_sec.gpg;
+      sudo apt-get install devscripts git-buildpackage ubuntu-dev-tools dh-make dh-apache2 -y;
+      git config --global user.name "${DEBFULLNAME}";
+      git config --global user.email "${DEBEMAIL}";
+      pushd build;
+      make upload_to_ppa;
+      popd;
+    fi
