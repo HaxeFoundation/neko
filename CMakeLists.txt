@@ -1165,9 +1165,6 @@ if (WIN32)
 	install (
 		FILES
 			${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/gcmt-dll.dll
-			${CMAKE_SOURCE_DIR}/README.md
-			${CMAKE_SOURCE_DIR}/LICENSE
-			${CMAKE_SOURCE_DIR}/CHANGES
 		DESTINATION .
 	)
 
@@ -1214,7 +1211,12 @@ if (RUN_LDCONFIG)
 	install(SCRIPT "${CMAKE_SOURCE_DIR}/cmake/ldconfig.cmake")
 endif()
 
-install(SCRIPT "${CMAKE_SOURCE_DIR}/cmake/flatten.cmake")
+configure_file(
+	"${CMAKE_SOURCE_DIR}/cmake/flatten.cmake.in"
+	"${CMAKE_BINARY_DIR}/cmake/flatten.cmake"
+	IMMEDIATE @ONLY)
+
+install(SCRIPT "${CMAKE_BINARY_DIR}/cmake/flatten.cmake")
 
 # uninstall target
 configure_file(

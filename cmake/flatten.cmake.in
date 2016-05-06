@@ -13,4 +13,13 @@ if (${CMAKE_INSTALL_PREFIX} MATCHES "/_CPack_Packages/.*/(TGZ|ZIP)/")
 	endforeach()
 	execute_process( COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_INSTALL_PREFIX}/bin)
 	execute_process( COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_INSTALL_PREFIX}/lib)
+
+	# install additional files
+	file (
+		INSTALL
+			@CMAKE_SOURCE_DIR@/README.md
+			@CMAKE_SOURCE_DIR@/LICENSE
+			@CMAKE_SOURCE_DIR@/CHANGES
+		DESTINATION ${CMAKE_INSTALL_PREFIX}
+	)
 endif()
