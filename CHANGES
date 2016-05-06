@@ -1,6 +1,5 @@
-2015-??-?? : 2.1.0
-	all : silent libs compilation by default
-	all : installation by default in /usr instead of /usr/local + some rights fixes
+2016-??-?? : 2.1.0
+	all : switched to use CMake for building (#122)
 	mod_neko/tora : use remote_ip (fixes Apache 2.2 returning 0.0.0.0 in 64 bits ?)
 	std : added buffer_get_length
 	std : added socket_send_to and socket_recv_from for UDP, added socket_set_keepalive
@@ -10,14 +9,17 @@
 	vm : added $sget16/$sget32/$sgetf/$sgetd, $sset16/$sset32/$ssetf/$ssetd, and $itof/$itod/$ftoi/$dtoi
 	vm : bugfix with arrays/strings having length >128MB 
 	jit : bugfix on some GCC versions causing invalid array access
-	std : fixed escaping of arguments in process_run on Windows
-	all : nekotools boot executable can now be safely striped on Linux
-	std : added epoll support
-	all : libneko.so can now be loaded from current directory
+	std : fixed escaping of arguments in process_run
+	all : nekotools boot executable can now be safely striped on Linux (#86)
+	all : nekotools boot now looks for the Neko VM binary in cwd, $loader.path, and PATH in order (#110)
+	std : added epoll support (#67)
+	all : libneko can now be loaded from current directory
+	all : libneko is now versioned
 	vm : comparisons with NaN and Int/Float now always returns false
-	api : added kind_lookup
+	api : added kind_lookup (#6)
 	mod_neko/tora : distribute ndlls compiled against Apache 2.4 (can still manually compile against Apache 2.2)
-	mysql : use MariaDB's LGPL connector/c instead of MySQL's GPL connector/c
+	mysql : use MariaDB's LGPL connector/c instead of MySQL's GPL connector/c (can still use MySQL for compilation)
+	all : copyright to Haxe Foundation instead of Nicolas and other license clean up (#102)
 	
 2013-02-23 : 2.0.0
 	all : changed license to MIT
