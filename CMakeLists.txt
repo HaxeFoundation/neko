@@ -179,7 +179,8 @@ endif()
 
 if(UNIX)
 	add_definitions(-D_GNU_SOURCE)
-	add_compile_options(-fno-omit-frame-pointer -fPIC)
+	add_compile_options(-fno-omit-frame-pointer)
+	set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 
 	# https://github.com/HaxeFoundation/neko/pull/17
 	if(CMAKE_SIZEOF_VOID_P EQUAL 4)
@@ -453,7 +454,7 @@ if (STATIC_ZLIB)
 	if (UNIX)
 		list(APPEND ZLIB_CMAKE_ARGS
 			-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
-			-DCMAKE_C_FLAGS=-fPIC
+			-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE
 		)
 	endif()
 	ExternalProject_Add(Zlib
@@ -941,7 +942,7 @@ if (STATIC_MBEDTLS)
 		list(APPEND MBEDTLS_CMAKE_ARGS
 			-DLINK_WITH_PTHREAD=ON
 			-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
-			-DCMAKE_C_FLAGS=-fPIC
+			-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE
 		)
 	endif()
 	ExternalProject_Add(MbedTLS
