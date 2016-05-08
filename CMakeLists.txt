@@ -349,7 +349,7 @@ target_include_directories(libneko PRIVATE ${GC_INCLUDE_DIR})
 
 target_link_libraries(libneko ${GC_LIBRARIES})
 target_link_libraries(std.ndll libneko)
-target_link_libraries(nekovm libneko ${GC_LIBRARIES})
+target_link_libraries(nekovm libneko)
 
 if(WIN32)
 	target_link_libraries(std.ndll ws2_32)
