@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
     <metadata>
         <id>neko</id>
@@ -8,12 +8,19 @@
         <owners>Haxe Foundation</owners>
         <licenseUrl>https://github.com/HaxeFoundation/neko/blob/master/LICENSE</licenseUrl>
         <projectUrl>http://nekovm.org/</projectUrl>
+        <docsUrl>http://nekovm.org/doc</docsUrl>
+        <mailingListUrl>https://groups.google.com/forum/#!forum/haxelang</mailingListUrl>
+        <bugTrackerUrl>https://github.com/HaxeFoundation/neko/issues</bugTrackerUrl>
+        <projectSourceUrl>https://github.com/HaxeFoundation/neko</projectSourceUrl>
+        <packageSourceUrl>https://github.com/HaxeFoundation/neko/tree/master/extra</packageSourceUrl>
         <iconUrl>https://cdn.rawgit.com/andyli/cc07575f598351e0ad74/raw/6a9cae9a136670c0052356b773f8e13bf37c13dd/logo.png</iconUrl>
         <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <summary>Neko is a lightweight and yet well optimized virtual machine.</summary>
         <description>Neko is a lightweight and yet well optimized virtual machine. The VM can be easily embedded into any application and your libraries can be accessed using the C foreign function interface.</description>
-        <tags>neko haxe vm</tags>
+        <releaseNotes>https://github.com/HaxeFoundation/neko/blob/master/CHANGES</releaseNotes>
+        <tags>neko haxe vm admin</tags>
         <dependencies>
-            <dependency id="vcredist2013" />
+            <dependency id="vcredist2013" version="12.0.30501" />
         </dependencies>
     </metadata>
 </package>
