@@ -10,7 +10,7 @@
 #
 find_path(APACHE_INCLUDE_DIR
           NAMES httpd.h 
-          PATH_SUFFIXES httpd apache apache2
+          PATH_SUFFIXES httpd apache apache2 apache22 apache24
 )
 
 if(NOT DEFINED APACHE_MODULE_DIR)
