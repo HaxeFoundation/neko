@@ -301,7 +301,7 @@ if (STATIC_BOEHMGC)
 					${CMAKE_BINARY_DIR}/libs/src/BoehmGC/include
 					${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/include/gc
 		)
-		set(GC_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/include)
+		set(GC_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/include)
 		set(GC_LIBRARIES
 			${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/${CMAKE_CFG_INTDIR}/gcmt-dll.lib
 		)
@@ -348,7 +348,7 @@ if (STATIC_BOEHMGC)
 		# but want download_static_deps depends on it
 		add_dependencies(BoehmGC-download libatomic_ops-download)
 
-		set(GC_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/include)
+		set(GC_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/include)
 		set(GC_LIBRARIES
 			${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/lib/libgc.a
 		)
@@ -359,7 +359,7 @@ else()
 	find_package(BoehmGC REQUIRED)
 endif()
 
-target_include_directories(libneko PRIVATE ${GC_INCLUDE_DIRS})
+target_include_directories(libneko PRIVATE ${GC_INCLUDE_DIR})
 
 target_link_libraries(libneko ${GC_LIBRARIES})
 target_link_libraries(std.ndll libneko)
@@ -370,8 +370,11 @@ if(WIN32)
 endif()
 
 if(UNIX)
+	if (NOT ${OS_NAME} STREQUAL freebsd)
+		set(DL_LIB dl)
+	endif()
 	find_package(Threads)
-	target_link_libraries(libneko dl m ${CMAKE_THREAD_LIBS_INIT})
+	target_link_libraries(libneko ${DL_LIB} m ${CMAKE_THREAD_LIBS_INIT})
 endif()
 
 set_target_properties(nekovm
@@ -684,7 +687,7 @@ else()
 	add_library(sqlite.ndll MODULE ${EXCLUDE_SQLITE_NDLL_FROM_ALL} libs/sqlite/sqlite.c)
 	pkg_check_modules(SQLITE3 REQUIRED sqlite3)
 	target_include_directories(sqlite.ndll PRIVATE ${SQLITE3_INCLUDE_DIRS})
-	target_link_libraries(sqlite.ndll libneko ${SQLITE3_LIBRARIES})
+	target_link_libraries(sqlite.ndll libneko ${SQLITE3_LIBRARY})
 endif()
 
 
@@ -1282,6 +1285,8 @@ elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
 	set(OS_NAME "osx")
 elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 	set(OS_NAME "linux")
+elseif (${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
+	set(OS_NAME "freebsd")
 else()
 	message( WARNING "unknown ${CMAKE_SYSTEM_NAME}" )
 	set(OS_NAME "")
