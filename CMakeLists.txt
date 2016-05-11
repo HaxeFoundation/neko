@@ -657,18 +657,18 @@ set_target_properties(regexp.ndll
 # sqlite.ndll
 
 if (STATIC_SQLITE3)
-	if (NOT EXISTS ${CMAKE_BINARY_DIR}/libs/src/Sqlite3)
-		message(STATUS "Downloading sqlite...")
-		set(sqlite_version sqlite-autoconf-3120200)
-		file(DOWNLOAD https://www.sqlite.org/2016/${sqlite_version}.tar.gz ${CMAKE_BINARY_DIR}/libs/src/${sqlite_version}.tar.gz)
-		execute_process(
-			COMMAND ${CMAKE_COMMAND} -E tar x ${sqlite_version}.tar.gz
-			WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/libs/src
-		)
-		file(REMOVE_RECURSE ${CMAKE_BINARY_DIR}/libs/src/Sqlite3)
-		file(RENAME ${CMAKE_BINARY_DIR}/libs/src/${sqlite_version} ${CMAKE_BINARY_DIR}/libs/src/Sqlite3)
-		message(STATUS "Downloading sqlite... done")
-	endif()
+	ExternalProject_Add(Sqlite3
+		${EP_CONFIGS}
+		URL https://www.sqlite.org/2016/sqlite-autoconf-3120200.tar.gz
+		URL_MD5 c552a133aca1ce1d647163d9e43bbcb1
+		CONFIGURE_COMMAND echo skip config
+		BUILD_COMMAND echo skip build
+		INSTALL_COMMAND echo skip install
+	)
+	add_custom_command(
+		OUTPUT ${CMAKE_BINARY_DIR}/libs/src/Sqlite3/sqlite3.c
+		DEPENDS Sqlite3
+	)
 
 	add_library(sqlite.ndll MODULE ${EXCLUDE_SQLITE_NDLL_FROM_ALL}
 		libs/sqlite/sqlite.c
@@ -1146,9 +1146,7 @@ add_custom_target(nekoml.std ALL DEPENDS ${nekoml_std})
 add_custom_target(download_static_deps)
 
 foreach(dep ${STATIC_DEPS})
-	if (NOT dep STREQUAL Sqlite3)
-		add_dependencies(download_static_deps ${dep}-download)
-	endif()
+	add_dependencies(download_static_deps ${dep}-download)
 endforeach()
 
 #######################
