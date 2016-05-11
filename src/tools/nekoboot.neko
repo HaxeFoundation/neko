@@ -22,21 +22,158 @@
 
 // primitives
 
-elf_update_section_header = $loader.loadprim("std@elf_update_section_header_for_bytecode",3);
-file_contents = $loader.loadprim("std@file_contents",1);
-file_open = $loader.loadprim("std@file_open",2);
-file_write = $loader.loadprim("std@file_write",4);
-file_write_char = $loader.loadprim("std@file_write_char",2);
-file_close = $loader.loadprim("std@file_close",1);
-command = $loader.loadprim("std@sys_command",1);
-system = $loader.loadprim("std@sys_string",0)();
-cwd = $loader.loadprim("std@get_cwd",0)();
-get_env = $loader.loadprim("std@get_env",1);
-string_split = $loader.loadprim("std@string_split",2);
+var c_src = "#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include \"neko_vm.h\"
+#include \"neko_elf.h\"
+#ifdef NEKO_WINDOWS
+#	include <windows.h>
+#else
+#	include <unistd.h>
+#endif
+#ifdef NEKO_MAC
+#	include <sys/param.h>
+#	include <mach-o/dyld.h>
+#endif
+#ifdef NEKO_BSD
+#	include <sys/param.h>
+#	include <sys/sysctl.h>
+#endif
+#ifdef NEKO_POSIX
+#	include <signal.h>
+#endif
+
+#define default_loader neko_default_loader
+static FILE *self;
+unsigned char program[] = %s;
+unsigned int program_len = %d;
+unsigned int program_pos = 0;
+
+static void report( neko_vm *vm, value exc, int isexc ) {
+	int i;
+	buffer b = alloc_buffer(NULL);
+	value st = neko_exc_stack(vm);
+	for(i=0;i<val_array_size(st);i++) {
+		value s = val_array_ptr(st)[i];
+		buffer_append(b,\"Called from \");
+		if( val_is_null(s) )
+			buffer_append(b,\"a C function\");
+		else if( val_is_string(s) ) {
+			buffer_append(b,val_string(s));
+			buffer_append(b,\" (no debug available)\");
+		} else if( val_is_array(s) && val_array_size(s) == 2 && val_is_string(val_array_ptr(s)[0]) && val_is_int(val_array_ptr(s)[1]) ) {
+			val_buffer(b,val_array_ptr(s)[0]);
+			buffer_append(b,\" line \");
+			val_buffer(b,val_array_ptr(s)[1]);
+		} else
+			val_buffer(b,s);
+		buffer_append_char(b,'\\n');
+	}
+	if( isexc )
+		buffer_append(b,\"Uncaught exception - \");
+	val_buffer(b,exc);
+	fprintf(stderr,\"%s\\n\",val_string(buffer_to_string(b)));
+}
+
+static value read_bytecode( value str, value pos, value len ) {
+	unsigned char* prog = program + program_pos;
+	unsigned int available = program_len - program_pos;
+	unsigned int mlen = val_int(len);
+	if (mlen > available) mlen = available;
+	memcpy(val_string(str)+val_int(pos), prog, mlen);
+	program_pos += mlen;
+	return alloc_int(mlen);
+}
+
+/*
+	C functions corresponding to the following Neko code :
+
+	module_read = $loader.loadprim(\"std@module_read\",2);
+	module_exec = $loader.loadprim(\"std@module_exec\",1);
+	module_val = module_read(read_bytecode,$loader);
+	module_exec(module_val);
+
+*/
+
+int neko_execute_self( neko_vm *vm, value mload ) {
+	value args[] = { alloc_string(\"std@module_read\"), alloc_int(2) };
+	value args2[] = { alloc_string(\"std@module_exec\"), alloc_int(1) };
+	value args3[] = { alloc_function(read_bytecode,3,\"boot_read_bytecode\"), mload };
+	value exc = NULL;
+	value module_read, module_exec, module_val;
+	module_read = val_callEx(mload,val_field(mload,val_id(\"loadprim\")),args,2,&exc);
+	if( exc != NULL ) {
+		report(vm,exc,1);
+		return 1;
+	}
+	module_exec = val_callEx(mload,val_field(mload,val_id(\"loadprim\")),args2,2,&exc);
+	if( exc != NULL ) {
+		report(vm,exc,1);
+		return 1;
+	}
+	module_val = val_callEx(val_null,module_read,args3,2,&exc);
+	fclose(self);
+	if( exc != NULL ) {
+		report(vm,exc,1);
+		return 1;
+	}
+	alloc_field(val_field(mload,val_id(\"cache\")),val_id(\"_self\"),module_val);
+	val_callEx(val_null,module_exec,&module_val,1,&exc);
+	if( exc != NULL ) {
+		report(vm,exc,1);
+		return 1;
+	}
+	return 0;
+}
+
+#ifdef NEKO_POSIX
+static void handle_signal( int signal ) {
+	if( signal == SIGPIPE )
+		val_throw(alloc_string(\"Broken pipe\"));
+	else
+		val_throw(alloc_string(\"Segmentation fault\"));
+}
+#endif
+
+int main( int argc, char *argv[] ) {
+	neko_vm *vm;
+	value mload;
+	int r;
+	neko_global_init();
+	vm = neko_vm_alloc(NULL);
+	neko_vm_select(vm);
+	
+	mload = default_loader(argv+1,argc-1);
+	r = neko_execute_self(vm,mload);
+	if( mload != NULL && val_field(mload,val_id(\"dump_prof\")) != val_null )
+		val_ocall0(mload,val_id(\"dump_prof\"));
+	vm = NULL;
+	mload = NULL;
+	neko_vm_select(NULL);
+	neko_global_free();
+	return r;
+}";
+
+var elf_update_section_header = $loader.loadprim("std@elf_update_section_header_for_bytecode",3);
+var file_contents = $loader.loadprim("std@file_contents",1);
+var file_open = $loader.loadprim("std@file_open",2);
+var file_write = $loader.loadprim("std@file_write",4);
+var file_write_char = $loader.loadprim("std@file_write_char",2);
+var file_close = $loader.loadprim("std@file_close",1);
+var command = $loader.loadprim("std@sys_command",1);
+var system = $loader.loadprim("std@sys_string",0)();
+var cwd = $loader.loadprim("std@get_cwd",0)();
+var get_env = $loader.loadprim("std@get_env",1);
+var string_split = $loader.loadprim("std@string_split",2);
+var buffer_new = $loader.loadprim("std@buffer_new",0);
+var buffer_add = $loader.loadprim("std@buffer_add",2);
+var buffer_string = $loader.loadprim("std@buffer_string",1);
+var sprintf = $loader.loadprim("std@sprintf",2);
 
 // find a substring from then end
 
-find = function(str,sub,pos) {
+var find = function(str,sub,pos) {
 	var l1 = $ssize(str);
 	var l2 = $ssize(sub);
 	var i = l1 - pos;
@@ -50,7 +187,7 @@ find = function(str,sub,pos) {
 
 // find a file in a path
 
-find_exe_in_path = function(path,file) {
+var find_exe_in_path = function(path,file) {
 	while( path != null ) {
 		try {
 			var s = file_contents(path[0]+file);
@@ -64,7 +201,7 @@ find_exe_in_path = function(path,file) {
 	$throw("The bootable executable file was not found : "+file);
 }
 
-find_exe_in_paths = function(paths,file) {
+var find_exe_in_paths = function(paths,file) {
 	var i = 0;
 	var len = $asize(paths);
 	while( i < len ) {
@@ -80,62 +217,94 @@ find_exe_in_paths = function(paths,file) {
 // bytecode = first argument
 
 var args = $loader.args;
-var exe_ext = switch system { "Windows" => ".exe" default => "" };
-var boot_exe = "neko" + exe_ext;
-if( args[0] == "-b" ) {
-	boot_exe = args[1];
-	args = $asub(args,2,$asize(args)-2);
-}
-if( $asize(args) != 1 )
-	$throw("Need bytecode argument");
-var file = args[0];
-var bytecode = file_contents(file);
+if( args[0] == "-c" ) {
 
-// load boot binary
-var path_sep = switch system {
-	"Windows" => ";"
-	default => ":"
-}
-var path = string_split(get_env("PATH"), path_sep);
-var boot = find_exe_in_paths($array($array(cwd,null),$loader.path,path),boot_exe);
-var boot_size = $ssize(boot);
+	var file = args[1];
+	var bytecode = file_contents(file);
+	var bytecode_len = $ssize(bytecode);
+	var program_buf = buffer_new();
+	buffer_add(program_buf, "{");
+	var i = 0;
+	while(true) {
+		buffer_add(program_buf, $sget(bytecode, i));
+		i += 1;
+		if (i < bytecode_len) {
+			buffer_add(program_buf, ",");
+		} else {
+			break;
+		}
+	}
+	buffer_add(program_buf, "}");
 
-var dot_pos = find(file,".",1);
-if( dot_pos != null )
-	file = $ssub(file,0,dot_pos);
+	// write a C source that run the module using neko
+	var c_name = if ($ssub(file, $ssize(file)-2, 2) == ".n")
+		$ssub(file, 0, $ssize(file)-2) + ".c";
+	else
+		file+".c";
+	var c_file = file_open(c_name,"wb");
+	c_src = sprintf(c_src, $array(buffer_string(program_buf), bytecode_len, "%s"));
+	file_write(c_file, c_src, 0, $ssize(c_src));
+	file_close(c_file);
 
-//  create executable file :
-//  this is the content of boot.bin where is appended
-//  the neko bytecode followed by 'NEKO' and the original exe size
+} else {
 
-var out_name = file+exe_ext;
-var out = file_open(out_name,"wb");
-var bytecode_size = $ssize(bytecode);
-var pad_size = (4-(boot_size&0x3)) & 0x3;
+	var exe_ext = switch system { "Windows" => ".exe" default => "" };
+	var boot_exe = "neko" + exe_ext;
+	if( args[0] == "-b" ) {
+		boot_exe = args[1];
+		args = $asub(args,2,$asize(args)-2);
+	}
+	if( $asize(args) != 1 )
+		$throw("Need bytecode argument");
+	var file = args[0];
+	var bytecode = file_contents(file);
 
-file_write(out,boot,0,boot_size);
-boot_size += pad_size;
-if( pad_size >= 3 ) file_write_char(out,0x00);
-if( pad_size >= 2 ) file_write_char(out,0x00);
-if( pad_size >= 1 ) file_write_char(out,0x00);
-file_write(out,bytecode,0,bytecode_size)
-file_write(out,"NEKO",0,4);
-file_write_char(out,boot_size & 0xFF);
-file_write_char(out,(boot_size >> 8) & 0xFF);
-file_write_char(out,(boot_size >> 16) & 0xFF);
-file_write_char(out,boot_size >>> 24);
-file_close(out);
+	// load boot binary
+	var path_sep = switch system {
+		"Windows" => ";"
+		default => ":"
+	}
+	var path = string_split(get_env("PATH"), path_sep);
+	var boot = find_exe_in_paths($array($array(cwd,null),$loader.path,path),boot_exe);
+	var boot_size = $ssize(boot);
 
-// set execution rights
+	var dot_pos = find(file,".",1);
+	if( dot_pos != null )
+		file = $ssub(file,0,dot_pos);
 
-switch system {
-	"Windows" => null
-	default => command("chmod 755 "+out_name)
-}
+	//  create executable file :
+	//  this is the content of boot.bin where is appended
+	//  the neko bytecode followed by 'NEKO' and the original exe size
 
-// Update ELF section header (on platforms where that is appropriate) to protect
-// binary's bytecode from being removed by the strip program
+	var out_name = file+exe_ext;
+	var out = file_open(out_name,"wb");
+	var bytecode_size = $ssize(bytecode);
+	var pad_size = (4-(boot_size&0x3)) & 0x3;
 
-var res = elf_update_section_header(out_name,boot_size,bytecode_size+8);
-if( res == 0 )
+	file_write(out,boot,0,boot_size);
+	boot_size += pad_size;
+	if( pad_size >= 3 ) file_write_char(out,0x00);
+	if( pad_size >= 2 ) file_write_char(out,0x00);
+	if( pad_size >= 1 ) file_write_char(out,0x00);
+	file_write(out,bytecode,0,bytecode_size)
+	file_write(out,"NEKO",0,4);
+	file_write_char(out,boot_size & 0xFF);
+	file_write_char(out,(boot_size >> 8) & 0xFF);
+	file_write_char(out,(boot_size >> 16) & 0xFF);
+	file_write_char(out,boot_size >>> 24);
+	file_close(out);
+
+	// set execution rights
+
+	switch system {
+		"Windows" => null
+		default => command("chmod 755 "+out_name)
+	}
+
+	// Update ELF section header (on platforms where that is appropriate) to protect
+	// binary's bytecode from being removed by the strip program
+
+	var res = elf_update_section_header(out_name,boot_size,bytecode_size+8);
+	if( res == 0 )
 	$print("Trouble updating elf section header; stripping binary may lead to problems!")
+}
