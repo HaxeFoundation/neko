@@ -377,11 +377,6 @@ if(UNIX)
 	target_link_libraries(libneko ${DL_LIB} m ${CMAKE_THREAD_LIBS_INIT})
 endif()
 
-set_target_properties(nekovm
-	PROPERTIES
-	OUTPUT_NAME neko
-)
-
 set_target_properties(nekovm libneko
 	PROPERTIES
 	OUTPUT_NAME neko
@@ -1346,8 +1341,23 @@ add_test(NAME test.n
 	WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
 )
 
+add_test(NAME nekoc
+	COMMAND nekoc
+	WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+)
+
+add_test(NAME nekoml
+	COMMAND nekoc
+	WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+)
+
+add_test(NAME nekotools
+	COMMAND nekoc
+	WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+)
+
 if (UNIX AND NOT APPLE)
-	set_tests_properties(-version test.n
+	set_tests_properties(-version test.n nekoc nekoml nekotools
 		PROPERTIES
 		ENVIRONMENT LD_LIBRARY_PATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
 	)
