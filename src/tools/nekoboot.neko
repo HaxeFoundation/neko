@@ -45,7 +45,6 @@ var c_src = "#include <stdio.h>
 #endif
 
 #define default_loader neko_default_loader
-static FILE *self;
 unsigned char program[] = %s;
 unsigned int program_len = %d;
 unsigned int program_pos = 0;
@@ -113,7 +112,6 @@ int neko_execute_self( neko_vm *vm, value mload ) {
 		return 1;
 	}
 	module_val = val_callEx(val_null,module_read,args3,2,&exc);
-	fclose(self);
 	if( exc != NULL ) {
 		report(vm,exc,1);
 		return 1;
