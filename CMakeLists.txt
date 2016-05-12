@@ -1347,12 +1347,12 @@ add_test(NAME nekoc
 )
 
 add_test(NAME nekoml
-	COMMAND nekoc
+	COMMAND nekoml
 	WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
 )
 
 add_test(NAME nekotools
-	COMMAND nekoc
+	COMMAND nekotools
 	WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
 )
 
