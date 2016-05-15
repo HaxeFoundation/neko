@@ -1,10 +1,16 @@
 find_path(GC_INCLUDE_DIR gc.h
   PATH_SUFFIXES include)
 
-find_library(GC_STATIC_LIBRARIES libgc.a
+if (${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD")
+  set(GC_NAME "gc-threaded")
+else()
+  set(GC_NAME "gc")
+endif()
+
+find_library(GC_STATIC_LIBRARIES "lib${GC_NAME}.a"
   PATH_SUFFIXES lib lib64)
 
-find_library(GC_LIBRARIES gc
+find_library(GC_LIBRARIES "${GC_NAME}"
   PATH_SUFFIXES lib lib64)
 
 if (NOT GC_LIBRARIES AND NOT GC_STATIC_LIBRARIES)
