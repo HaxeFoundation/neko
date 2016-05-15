@@ -5,6 +5,11 @@ project(neko C)
 set(CMAKE_OSX_ARCHITECTURES x86_64)
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 
+if (${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
+  # FreeBSD puts all thirdparty libraries in /usr/local
+  link_directories(/usr/local/lib)
+endif()
+
 # put output in "bin"
 
 set(OUTPUT_DIR ${CMAKE_BINARY_DIR}/bin)
