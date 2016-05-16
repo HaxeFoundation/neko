@@ -1203,10 +1203,23 @@ add_custom_target(source_archive_fat
 
 # install target
 
+if (NOT DEFINED LIB_INSTALL_DIR)
+	if (DEFINED CMAKE_INSTALL_LIBDIR)
+		set(LIB_INSTALL_DIR ${CMAKE_INSTALL_LIBDIR})
+	else (DEFINED LIB_INSTALL_DIR)
+		set(LIB_INSTALL_DIR "lib")
+	endif()
+endif()
+
+if (NOT DEFINED INCLUDE_INSTALL_DIR)
+	set(INCLUDE_INSTALL_DIR "include")
+endif()
+
 if (WIN32)
 	set(DEST_BIN .)
 	set(DEST_LIB .)
 	set(DEST_NDLL .)
+	set(DEST_INCLUDE "include")
 
 	set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION .)
 	include(InstallRequiredSystemLibraries)
@@ -1221,8 +1234,9 @@ if (WIN32)
 	endif()
 else()
 	set(DEST_BIN bin)
-	set(DEST_LIB lib)
-	set(DEST_NDLL lib/neko)
+	set(DEST_LIB ${LIB_INSTALL_DIR})
+	set(DEST_NDLL ${LIB_INSTALL_DIR}/neko)
+	set(DEST_INCLUDE ${INCLUDE_INSTALL_DIR})
 endif()
 
 install (
@@ -1247,12 +1261,12 @@ install (
 )
 install (
 	DIRECTORY vm/
-	DESTINATION include
+	DESTINATION ${DEST_INCLUDE}
 	FILES_MATCHING PATTERN "neko*.h"
 )
 install (
 	FILES ${CMAKE_BINARY_DIR}/neko.h
-	DESTINATION include
+	DESTINATION ${DEST_INCLUDE}
 )
 
 if (RUN_LDCONFIG)
