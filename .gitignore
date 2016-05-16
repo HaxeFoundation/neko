@@ -24,3 +24,8 @@ DartConfiguration.tcl
 *.opensdf
 *.suo
 Win32
+Release
+Debug
+neko.sln
+*.dir
+bin
