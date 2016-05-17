@@ -11,6 +11,9 @@ environment:
 platform: Win32
 configuration: Release
 
+cache:
+  - libs\src -> CMakeLists.txt
+
 build_script:
   - cmake -G "%CMAKE_GENERATOR%" .
   # download static dependencies before actual build, with 3 chances to deal with network issues
