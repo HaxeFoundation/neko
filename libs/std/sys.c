@@ -198,6 +198,8 @@ static value sys_string() {
 	return alloc_string("Linux");
 #elif defined(NEKO_BSD)
 	return alloc_string("BSD");
+#elif defined(NEKO_HURD)
+	return alloc_string("GNU/Hurd");
 #elif defined(NEKO_MAC)
 	return alloc_string("Mac");
 #else
@@ -537,6 +539,14 @@ static value file_full_path( value path ) {
 	if( GetFullPathName(val_string(path),MAX_PATH+1,buf,NULL) == 0 )
 		neko_error();
 	return alloc_string(buf);
+#elif defined(__GLIBC__)
+	val_check(path,string);
+	char *buf = realpath(val_string(path), NULL);
+	if( buf == NULL )
+		neko_error();
+	value ret = alloc_string(buf);
+	free(buf);
+	return ret;
 #else
 	char buf[PATH_MAX];
 	val_check(path,string);
@@ -562,7 +572,7 @@ static value sys_exe_path() {
 	if( _NSGetExecutablePath(path, &path_len) )
 		neko_error();
 	return alloc_string(path);
-#else
+#elif defined(NEKO_LINUX)
 	const char *p = getenv("_");
 	if( p != NULL )
 		return alloc_string(p);
@@ -574,6 +584,11 @@ static value sys_exe_path() {
 	    path[length] = '\0';
 		return alloc_string(path);
 	}
+#else
+	const char *p = getenv("_");
+	if( p != NULL )
+		return alloc_string(p);
+	neko_error();
 #endif
 }
 

@@ -91,7 +91,7 @@ static char *executable_path() {
         sysctl(mib, 4, path, &cb, NULL, 0);
         if (!cb) return NULL;
         return path;
-#else
+#elif defined(NEKO_LINUX)
 	static char path[200];
 	int length = readlink("/proc/self/exe", path, sizeof(path));
 	if( length < 0 || length >= 200 ) {
@@ -102,6 +102,8 @@ static char *executable_path() {
 	}
 	path[length] = '\0';
 	return path;
+#else
+	return getenv("_");
 #endif
 }
 

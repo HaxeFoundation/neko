@@ -26,7 +26,7 @@
 #	define OS_WINDOWS
 #endif
 
-#if defined(__APPLE__) || defined(__MACH__) || defined(macintosh)
+#if defined(__APPLE__) || defined(macintosh)
 #	define OS_MAC
 #endif
 
@@ -38,7 +38,11 @@
 #	define OS_BSD
 #endif
 
-#if defined(NEKO_LINUX) || defined(NEKO_MAC) || defined(NEKO_BSD) || defined(NEKO_GNUKBSD)
+#if defined(__GNU__)
+#	define OS_HURD
+#endif
+
+#if defined(OS_LINUX) || defined(OS_MAC) || defined(OS_BSD) || defined(OS_GNUKBSD) || defined (OS_HURD)
 #	define OS_POSIX
 #endif
 
