@@ -1203,18 +1203,6 @@ add_custom_target(source_archive_fat
 
 # install target
 
-if (NOT DEFINED LIB_INSTALL_DIR)
-	if (DEFINED CMAKE_INSTALL_LIBDIR)
-		set(LIB_INSTALL_DIR ${CMAKE_INSTALL_LIBDIR})
-	else (DEFINED LIB_INSTALL_DIR)
-		set(LIB_INSTALL_DIR "lib")
-	endif()
-endif()
-
-if (NOT DEFINED INCLUDE_INSTALL_DIR)
-	set(INCLUDE_INSTALL_DIR "include")
-endif()
-
 if (WIN32)
 	set(DEST_BIN .)
 	set(DEST_LIB .)
@@ -1233,10 +1221,11 @@ if (WIN32)
 		set (CMAKE_INSTALL_PREFIX "C:/HaxeToolkit/neko" CACHE PATH "default install path" FORCE)
 	endif()
 else()
-	set(DEST_BIN bin)
-	set(DEST_LIB ${LIB_INSTALL_DIR})
-	set(DEST_NDLL ${LIB_INSTALL_DIR}/neko)
-	set(DEST_INCLUDE ${INCLUDE_INSTALL_DIR})
+	include(GNUInstallDirs)
+	set(DEST_BIN ${CMAKE_INSTALL_BINDIR})
+	set(DEST_LIB ${CMAKE_INSTALL_LIBDIR})
+	set(DEST_NDLL ${CMAKE_INSTALL_LIBDIR}/neko)
+	set(DEST_INCLUDE ${CMAKE_INSTALL_INCLUDEDIR})
 endif()
 
 install (
