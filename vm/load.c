@@ -284,7 +284,7 @@ static value init_path( const char *path ) {
 	}
 #else
 	if( path == NULL ) {
-		allocated = strdup("/usr/local/lib/neko:/usr/lib/neko:/usr/local/bin:/usr/bin");
+		allocated = strdup(NEKO_MODULE_PATH ":/usr/local/lib/neko:/usr/lib/neko:/usr/local/bin:/usr/bin");
 		path = allocated;
 	}
 #endif

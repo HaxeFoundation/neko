@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 2.8.7)
 
+include(GNUInstallDirs)
 project(neko C)
 
 set(CMAKE_OSX_ARCHITECTURES x86_64)
@@ -57,6 +58,15 @@ endif()
 set(NEKO_VERSION_MAJOR 2)
 set(NEKO_VERSION_MINOR 1)
 set(NEKO_VERSION_PATCH 0)
+
+if(WIN32)
+	if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+		set (CMAKE_INSTALL_PREFIX "C:/HaxeToolkit/neko" CACHE PATH "default install path" FORCE)
+	endif()
+	set(NEKO_MODULE_PATH ${CMAKE_INSTALL_PREFIX})
+else()
+	set(NEKO_MODULE_PATH ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/neko)
+endif()
 
 configure_file (
 	"${CMAKE_SOURCE_DIR}/vm/neko.h.in"
@@ -1221,16 +1231,11 @@ if (WIN32)
 			${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/gcmt-dll.dll
 		DESTINATION .
 	)
-
-	if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-		set (CMAKE_INSTALL_PREFIX "C:/HaxeToolkit/neko" CACHE PATH "default install path" FORCE)
-	endif()
 else()
-	include(GNUInstallDirs)
 	set(DEST_BIN ${CMAKE_INSTALL_BINDIR})
 	set(DEST_LIB ${CMAKE_INSTALL_LIBDIR})
-	set(DEST_NDLL ${CMAKE_INSTALL_LIBDIR}/neko)
-	set(DEST_INCLUDE ${CMAKE_INSTALL_INCLUDEDIR})
+	set(DEST_NDLL ${CMAKE_INSTALL_LIBDIR}/neko) # should match NEKO_MODULE_PATH
+	set(DEST_INCLUDE ${CMAKE_INSTALL_INCLUDEDIR}/${CMAKE_LIBRARY_ARCHITECTURE})
 endif()
 
 install (
