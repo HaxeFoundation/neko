@@ -33,9 +33,14 @@ if (${CMAKE_VERSION} VERSION_LESS 2.8.8)
 	endfunction()
 elseif (${CMAKE_VERSION} VERSION_LESS 2.8.11)
 	function(target_include_directories target visibility)
+		get_target_property(DIRS ${target} INCLUDE_DIRECTORIES)
+		foreach(PATH ${ARGN})
+			get_filename_component(ABS_PATH ${PATH} ABSOLUTE)
+			list(APPEND DIRS ${ABS_PATH})
+		endforeach()
 		set_target_properties(${target}
 			PROPERTIES
-			INCLUDE_DIRECTORIES "${INCLUDE_DIRECTORIES} ${ARGN}"
+			INCLUDE_DIRECTORIES "${DIRS}"
 		)
 	endfunction()
 endif()
