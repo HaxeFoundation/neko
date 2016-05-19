@@ -463,6 +463,8 @@ if (STATIC_OPENSSL)
 			${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/ssleay32.lib
 		)
 	endif()
+else()
+	find_package(OpenSSL)
 endif()
 
 ######################
@@ -545,6 +547,7 @@ if (STATIC_MARIADBCONNECTOR)
 	set(MARIADB_CONNECTOR_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector/include)
 	if (WIN32)
 		set(MARIADB_CONNECTOR_LIBRARIES
+			${OPENSSL_LIBRARIES}
 			${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector-build/libmariadb/${CMAKE_CFG_INTDIR}/mariadbclient.lib
 		)
 	else()
@@ -555,9 +558,6 @@ if (STATIC_MARIADBCONNECTOR)
 	add_dependencies(mysql.ndll MariaDBConnector)
 else()
 	find_package(MariaDBConnector REQUIRED)
-	if (NOT APPLE)
-		find_package(OpenSSL REQUIRED)
-	endif()
 endif()
 
 target_include_directories(mysql.ndll
@@ -565,7 +565,7 @@ target_include_directories(mysql.ndll
 	${MARIADB_CONNECTOR_INCLUDE_DIR}
 )
 
-target_link_libraries(mysql.ndll libneko ${OPENSSL_LIBRARIES} ${MARIADB_CONNECTOR_LIBRARIES})
+target_link_libraries(mysql.ndll libneko ${MARIADB_CONNECTOR_LIBRARIES})
 
 set_target_properties(mysql.ndll
 	PROPERTIES
