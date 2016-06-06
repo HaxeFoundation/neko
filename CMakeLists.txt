@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 2.8.7)
 
 include(GNUInstallDirs)
+include(CheckCCompilerFlag)
 project(neko C)
 
 set(CMAKE_OSX_ARCHITECTURES x86_64)
@@ -211,7 +212,13 @@ if(UNIX)
 
 	# https://github.com/HaxeFoundation/neko/pull/17
 	if(CMAKE_SIZEOF_VOID_P EQUAL 4)
-		add_compile_options(-mincoming-stack-boundary=2)
+		check_c_compiler_flag(-mincoming-stack-boundary=2 HAS_MINCOMING_STACK_BOUNDARY)
+		check_c_compiler_flag(-mstack-alignment=2 HAS_MSTACK_ALIGNMENT)
+		if(HAS_MINCOMING_STACK_BOUNDARY)
+			add_compile_options(-mincoming-stack-boundary=2)
+		elseif(HAS_MSTACK_ALIGNMENT)
+			add_compile_options(-mstack-alignment=2)
+		endif()
 	endif()
 
 	find_package(PkgConfig REQUIRED)
