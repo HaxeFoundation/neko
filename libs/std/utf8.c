@@ -404,7 +404,7 @@ static value utf8_compare( value str1, value str2 ) {
 		unsigned char c1 = *s1++;
 		unsigned char c2 = *s2++;
 		if( c1 != c2 )
-			return alloc_int((c1 > c2)?-1:1);
+			return alloc_int((c1 > c2)?1:-1);
 		if( c1 < 0x7F )
 			continue;
 		else if( c1 < 0xC0 )
@@ -414,25 +414,25 @@ static value utf8_compare( value str1, value str2 ) {
 			if( l < 0 )
 				neko_error();
 			if( *s1++ != *s2++ )
-				return alloc_int((s1[-1] > s2[-1])?-1:1);
+				return alloc_int((s1[-1] > s2[-1])?1:-1);
 		} else if( c1 < 0xF0 ) {
 			l-=2;
 			if( l < 0 )
 				neko_error();
 			if( *s1++ != *s2++ )
-				return alloc_int((s1[-1] > s2[-1])?-1:1);
+				return alloc_int((s1[-1] > s2[-1])?1:-1);
 			if( *s1++ != *s2++ )
-				return alloc_int((s1[-1] > s2[-1])?-1:1);
+				return alloc_int((s1[-1] > s2[-1])?1:-1);
 		} else {
 			l -= 3;
 			if( l < 0 )
 				neko_error();
 			if( *s1++ != *s2++ )
-				return alloc_int((s1[-1] > s2[-1])?-1:1);
+				return alloc_int((s1[-1] > s2[-1])?1:-1);
 			if( *s1++ != *s2++ )
-				return alloc_int((s1[-1] > s2[-1])?-1:1);
+				return alloc_int((s1[-1] > s2[-1])?1:-1);
 			if( *s1++ != *s2++ )
-				return alloc_int((s1[-1] > s2[-1])?-1:1);
+				return alloc_int((s1[-1] > s2[-1])?1:-1);
 		}
 	}
 	if( l1 != l2 )
