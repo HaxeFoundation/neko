@@ -22,6 +22,7 @@ typedef int SOCKET;
 #define SOCKET_ERROR (-1)
 #define NRETRYS	20
 
+#include "mbedtls/platform.h"
 #include "mbedtls/error.h"
 #include "mbedtls/entropy.h"
 #include "mbedtls/ctr_drbg.h"
