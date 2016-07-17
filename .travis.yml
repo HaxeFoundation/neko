@@ -25,7 +25,7 @@ install:
           sudo apt-get install pkg-config libgtk2.0-dev -qq;
       elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
           brew update;
-          brew upgrade cmake;
+          brew upgrade pkg-config cmake;
       fi;
     else
       if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
@@ -44,7 +44,7 @@ install:
       elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
           brew tap homebrew/dupes;
           brew update;
-          brew upgrade cmake;
+          brew upgrade pkg-config cmake;
           brew install bdw-gc pcre mariadb-connector-c mbedtls;
       fi;
     fi
