@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.7)
 
 include(GNUInstallDirs)
 include(CheckCCompilerFlag)
-project(neko C)
+project(Neko C)
 
 set(CMAKE_OSX_ARCHITECTURES x86_64)
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
@@ -1243,7 +1243,7 @@ export(TARGETS
 	libneko
 	FILE "${CMAKE_BINARY_DIR}/NekoTargets.cmake")
 
-export(PACKAGE neko)
+export(PACKAGE Neko)
 
 if (WIN32)
 	set(DEST_BIN .)
@@ -1268,7 +1268,7 @@ endif()
 if(WIN32 AND NOT CYGWIN)
 	set(DEF_INSTALL_CMAKE_DIR CMake)
 else()
-	set(DEF_INSTALL_CMAKE_DIR lib/CMake/neko)
+	set(DEF_INSTALL_CMAKE_DIR lib/CMake/Neko)
 endif()
 set(INSTALL_CMAKE_DIR ${DEF_INSTALL_CMAKE_DIR} CACHE PATH
 	"Installation directory for CMake files")
