@@ -17,8 +17,8 @@ if(NOT TARGET neko AND NOT Neko_BINARY_DIR)
 endif()
  
 # These are IMPORTED targets created by NekoTargets.cmake
-set(NEKO_LIBRARIES libneko)
-set(NEKO_EXECUTABLE nekovm)
+set(NEKO_LIBRARIES neko)
+set(NEKO_EXECUTABLE neko)
 set(NEKOC_EXECUTABLE nekoc)
 set(NEKOML_EXECUTABLE nekoml)
 set(NEKOTOOLS_EXECUTABLE nekotools)
