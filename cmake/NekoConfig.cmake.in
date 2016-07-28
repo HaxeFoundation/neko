@@ -1,0 +1,24 @@
+# - Config file for the Neko package
+# It defines the following variables
+#  NEKO_INCLUDE_DIRS    - include directories for Neko
+#  NEKO_LIBRARIES       - libraries to link against
+#  NEKO_EXECUTABLE      - the Neko VM executable
+#  NEKOC_EXECUTABLE     - the Neko compiler executable
+#  NEKOML_EXECUTABLE    - the NekoML compiler executable
+#  NEKOTOOLS_EXECUTABLE - the nekotools executable
+ 
+# Compute paths
+get_filename_component(NEKO_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+set(NEKO_INCLUDE_DIRS "@CONF_INCLUDE_DIRS@")
+ 
+# Our library dependencies (contains definitions for IMPORTED targets)
+if(NOT TARGET neko AND NOT Neko_BINARY_DIR)
+  include("${NEKO_CMAKE_DIR}/NekoTargets.cmake")
+endif()
+ 
+# These are IMPORTED targets created by NekoTargets.cmake
+set(NEKO_LIBRARIES libneko)
+set(NEKO_EXECUTABLE nekovm)
+set(NEKOC_EXECUTABLE nekoc)
+set(NEKOML_EXECUTABLE nekoml)
+set(NEKOTOOLS_EXECUTABLE nekotools)

@@ -59,6 +59,7 @@ endif()
 set(NEKO_VERSION_MAJOR 2)
 set(NEKO_VERSION_MINOR 1)
 set(NEKO_VERSION_PATCH 0)
+set(NEKO_VERSION ${NEKO_VERSION_MAJOR}.${NEKO_VERSION_MINOR}.${NEKO_VERSION_PATCH})
 
 if(WIN32)
 	if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -262,6 +263,13 @@ include_directories(
 	libs/common
 )
 
+file(GLOB libneko_public_headers
+	vm/neko*.h
+)
+list(APPEND libneko_public_headers
+	${CMAKE_BINARY_DIR}/neko.h
+)
+
 add_library(libneko SHARED
 	vm/alloc.c
 	vm/builtins.c
@@ -408,11 +416,13 @@ set_target_properties(nekovm libneko
 	PROPERTIES
 	OUTPUT_NAME neko
 )
+
 set_target_properties(libneko
 	PROPERTIES
-	VERSION ${NEKO_VERSION_MAJOR}.${NEKO_VERSION_MINOR}.${NEKO_VERSION_PATCH}
+	VERSION ${NEKO_VERSION}
 	SOVERSION ${NEKO_VERSION_MAJOR}
 	COMPILE_DEFINITIONS "_USRDLL;NEKOVM_DLL_EXPORTS;NEKO_SOURCES"
+	PUBLIC_HEADER "${libneko_public_headers}"
 )
 set_target_properties(std.ndll
 	PROPERTIES
@@ -1184,7 +1194,7 @@ else()
 	set(source_archive_format tar.gz)
 endif()
 
-set(source_archive_name_we neko-${NEKO_VERSION_MAJOR}.${NEKO_VERSION_MINOR}.${NEKO_VERSION_PATCH}-src)
+set(source_archive_name_we neko-${NEKO_VERSION}-src)
 set(source_archive_name ${source_archive_name_we}.${source_archive_format})
 
 add_custom_command(OUTPUT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${source_archive_name}
@@ -1200,7 +1210,7 @@ add_custom_target(source_archive
 # source_archive_fat
 # It is source_archive + STATIC_DEPS placed in libs/src.
 
-set(source_archive_fat_name_we neko-${NEKO_VERSION_MAJOR}.${NEKO_VERSION_MINOR}.${NEKO_VERSION_PATCH}-src-fat)
+set(source_archive_fat_name_we neko-${NEKO_VERSION}-src-fat)
 set(source_archive_fat_name ${source_archive_fat_name_we}.${source_archive_format})
 
 add_custom_command(OUTPUT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${source_archive_fat_name}
@@ -1225,6 +1235,11 @@ add_custom_target(source_archive_fat
 
 # install target
 
+export(TARGETS libneko
+	FILE "${CMAKE_BINARY_DIR}/NekoTargets.cmake")
+
+export(PACKAGE neko)
+
 if (WIN32)
 	set(DEST_BIN .)
 	set(DEST_LIB .)
@@ -1245,17 +1260,25 @@ else()
 	set(DEST_INCLUDE ${CMAKE_INSTALL_INCLUDEDIR}/${CMAKE_LIBRARY_ARCHITECTURE})
 endif()
 
+if(WIN32 AND NOT CYGWIN)
+	set(DEF_INSTALL_CMAKE_DIR CMake)
+else()
+	set(DEF_INSTALL_CMAKE_DIR lib/CMake/neko)
+endif()
+set(INSTALL_CMAKE_DIR ${DEF_INSTALL_CMAKE_DIR} CACHE PATH
+	"Installation directory for CMake files")
+
 install (
 	TARGETS
 		nekovm
 		nekoc
 		nekoml
 		nekotools
-	DESTINATION ${DEST_BIN}
-)
-install (
-	TARGETS libneko
-	DESTINATION ${DEST_LIB}
+		libneko
+	EXPORT NekoTargets
+	RUNTIME DESTINATION ${DEST_BIN}
+	LIBRARY DESTINATION ${DEST_LIB}
+	PUBLIC_HEADER DESTINATION ${DEST_INCLUDE}
 )
 install (
 	TARGETS ${WITH_NDLLS}
@@ -1264,15 +1287,6 @@ install (
 install (
 	FILES ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoml.std
 	DESTINATION ${DEST_NDLL}
-)
-install (
-	DIRECTORY vm/
-	DESTINATION ${DEST_INCLUDE}
-	FILES_MATCHING PATTERN "neko*.h"
-)
-install (
-	FILES ${CMAKE_BINARY_DIR}/neko.h
-	DESTINATION ${DEST_INCLUDE}
 )
 
 if (RUN_LDCONFIG)
@@ -1285,6 +1299,30 @@ configure_file(
 	IMMEDIATE @ONLY)
 
 install(SCRIPT "${CMAKE_BINARY_DIR}/cmake/flatten.cmake")
+
+# Create the NekoConfig.cmake and NekoConfigVersion files
+file(RELATIVE_PATH REL_INCLUDE_DIR "${CMAKE_INSTALL_PREFIX}/${INSTALL_CMAKE_DIR}"
+	"${CMAKE_INSTALL_PREFIX}/${DEST_INCLUDE}")
+# ... for the build tree
+set(CONF_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}" "${PROJECT_BINARY_DIR}")
+configure_file(cmake/NekoConfig.cmake.in
+	"${PROJECT_BINARY_DIR}/NekoConfig.cmake" @ONLY)
+# ... for the install tree
+set(CONF_INCLUDE_DIRS "\${NEKO_CMAKE_DIR}/${REL_INCLUDE_DIR}")
+configure_file(cmake/NekoConfig.cmake.in
+	"${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/NekoConfig.cmake" @ONLY)
+# ... for both
+configure_file(cmake/NekoConfigVersion.cmake.in
+	"${PROJECT_BINARY_DIR}/NekoConfigVersion.cmake" @ONLY)
+ 
+# Install the NekoConfig.cmake and NekoConfigVersion.cmake
+install(FILES
+	"${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/NekoConfig.cmake"
+	"${PROJECT_BINARY_DIR}/NekoConfigVersion.cmake"
+	DESTINATION "${INSTALL_CMAKE_DIR}" COMPONENT dev)
+
+install(EXPORT NekoTargets DESTINATION
+	"${INSTALL_CMAKE_DIR}" COMPONENT dev)
 
 # uninstall target
 configure_file(
@@ -1399,7 +1437,7 @@ if(UNIX AND NOT APPLE)
 			-Dsource_dir=${CMAKE_SOURCE_DIR}
 			-Dbin_dir=${CMAKE_BINARY_DIR}
 			-Dsource_archive=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${source_archive_fat_name}
-			-DNEKO_VERSION=${NEKO_VERSION_MAJOR}.${NEKO_VERSION_MINOR}.${NEKO_VERSION_PATCH}
+			-DNEKO_VERSION=${NEKO_VERSION}
 			-P ${CMAKE_SOURCE_DIR}/cmake/upload_to_ppa.cmake
 		DEPENDS source_archive_fat
 	)
@@ -1416,7 +1454,7 @@ if(WIN32)
 			-Dbin_dir=${CMAKE_BINARY_DIR}
 			-Dbin_archive=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${bin_archive_name}
 			-Dbin_archive_name_we=${bin_archive_name_we}
-			-DNEKO_VERSION=${NEKO_VERSION_MAJOR}.${NEKO_VERSION_MINOR}.${NEKO_VERSION_PATCH}
+			-DNEKO_VERSION=${NEKO_VERSION}
 			-P ${CMAKE_SOURCE_DIR}/cmake/package_choco.cmake
 		DEPENDS package
 	)
