@@ -1235,7 +1235,12 @@ add_custom_target(source_archive_fat
 
 # install target
 
-export(TARGETS libneko
+export(TARGETS
+	nekovm
+	nekoc
+	nekoml
+	nekotools
+	libneko
 	FILE "${CMAKE_BINARY_DIR}/NekoTargets.cmake")
 
 export(PACKAGE neko)
