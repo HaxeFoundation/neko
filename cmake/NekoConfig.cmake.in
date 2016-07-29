@@ -11,7 +11,7 @@
 
 # Our library dependencies (contains definitions for IMPORTED targets)
 if(NOT TARGET neko)
-  include("@NEKO_TARGETS_FILE@")
+  include("@PACKAGE_NEKO_TARGETS_FILE@")
 endif()
 
 # Use set instead of set_and_check, which doesn't handle lists properly
