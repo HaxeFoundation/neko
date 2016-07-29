@@ -1276,18 +1276,6 @@ install (
 	DESTINATION ${DEST_NDLL}
 )
 
-if (RUN_LDCONFIG)
-	install(SCRIPT "${CMAKE_SOURCE_DIR}/cmake/ldconfig.cmake")
-endif()
-
-configure_file(
-	"${CMAKE_SOURCE_DIR}/cmake/flatten.cmake.in"
-	"${CMAKE_BINARY_DIR}/cmake/flatten.cmake"
-	IMMEDIATE @ONLY)
-
-install(SCRIPT "${CMAKE_BINARY_DIR}/cmake/flatten.cmake")
-
-
 if (NOT ${CMAKE_VERSION} VERSION_LESS 2.8.8)
 	include(CMakePackageConfigHelpers)
 
@@ -1354,6 +1342,17 @@ if (NOT ${CMAKE_VERSION} VERSION_LESS 2.8.8)
 		COMPONENT dev
 	)
 endif()
+
+if (RUN_LDCONFIG)
+	install(SCRIPT "${CMAKE_SOURCE_DIR}/cmake/ldconfig.cmake")
+endif()
+
+configure_file(
+	"${CMAKE_SOURCE_DIR}/cmake/flatten.cmake.in"
+	"${CMAKE_BINARY_DIR}/cmake/flatten.cmake"
+	IMMEDIATE @ONLY)
+
+install(SCRIPT "${CMAKE_BINARY_DIR}/cmake/flatten.cmake")
 
 # uninstall target
 configure_file(
