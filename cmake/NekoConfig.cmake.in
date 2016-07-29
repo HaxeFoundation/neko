@@ -6,19 +6,23 @@
 #  NEKOC_EXECUTABLE     - the Neko compiler executable
 #  NEKOML_EXECUTABLE    - the NekoML compiler executable
 #  NEKOTOOLS_EXECUTABLE - the nekotools executable
- 
-# Compute paths
-get_filename_component(NEKO_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
-set(NEKO_INCLUDE_DIRS "@CONF_INCLUDE_DIRS@")
- 
+
+@PACKAGE_INIT@
+
 # Our library dependencies (contains definitions for IMPORTED targets)
-if(NOT TARGET neko AND NOT Neko_BINARY_DIR)
-  include("${NEKO_CMAKE_DIR}/NekoTargets.cmake")
+if(NOT TARGET neko)
+  include("@NEKO_TARGETS_FILE@")
 endif()
- 
+
+# Use set instead of set_and_check, which doesn't handle lists properly
+# https://gitlab.kitware.com/cmake/cmake/issues/16219
+set(NEKO_INCLUDE_DIRS "@PACKAGE_NEKO_INCLUDE_DIRS@")
+
 # These are IMPORTED targets created by NekoTargets.cmake
 set(NEKO_LIBRARIES libneko)
 set(NEKO_EXECUTABLE nekovm)
 set(NEKOC_EXECUTABLE nekoc)
 set(NEKOML_EXECUTABLE nekoml)
 set(NEKOTOOLS_EXECUTABLE nekotools)
+
+check_required_components(Neko)

@@ -1235,16 +1235,6 @@ add_custom_target(source_archive_fat
 
 # install target
 
-export(TARGETS
-	nekovm
-	nekoc
-	nekoml
-	nekotools
-	libneko
-	FILE "${CMAKE_BINARY_DIR}/NekoTargets.cmake")
-
-export(PACKAGE Neko)
-
 if (WIN32)
 	set(DEST_BIN .)
 	set(DEST_LIB .)
@@ -1264,14 +1254,6 @@ else()
 	set(DEST_NDLL ${CMAKE_INSTALL_LIBDIR}/neko) # should match NEKO_MODULE_PATH
 	set(DEST_INCLUDE ${CMAKE_INSTALL_INCLUDEDIR}/${CMAKE_LIBRARY_ARCHITECTURE})
 endif()
-
-if(WIN32 AND NOT CYGWIN)
-	set(DEF_INSTALL_CMAKE_DIR CMake)
-else()
-	set(DEF_INSTALL_CMAKE_DIR lib/CMake/Neko)
-endif()
-set(INSTALL_CMAKE_DIR ${DEF_INSTALL_CMAKE_DIR} CACHE PATH
-	"Installation directory for CMake files")
 
 install (
 	TARGETS
@@ -1305,29 +1287,73 @@ configure_file(
 
 install(SCRIPT "${CMAKE_BINARY_DIR}/cmake/flatten.cmake")
 
-# Create the NekoConfig.cmake and NekoConfigVersion files
-file(RELATIVE_PATH REL_INCLUDE_DIR "${CMAKE_INSTALL_PREFIX}/${INSTALL_CMAKE_DIR}"
-	"${CMAKE_INSTALL_PREFIX}/${DEST_INCLUDE}")
-# ... for the build tree
-set(CONF_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}" "${PROJECT_BINARY_DIR}")
-configure_file(cmake/NekoConfig.cmake.in
-	"${PROJECT_BINARY_DIR}/NekoConfig.cmake" @ONLY)
-# ... for the install tree
-set(CONF_INCLUDE_DIRS "\${NEKO_CMAKE_DIR}/${REL_INCLUDE_DIR}")
-configure_file(cmake/NekoConfig.cmake.in
-	"${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/NekoConfig.cmake" @ONLY)
-# ... for both
-configure_file(cmake/NekoConfigVersion.cmake.in
-	"${PROJECT_BINARY_DIR}/NekoConfigVersion.cmake" @ONLY)
- 
-# Install the NekoConfig.cmake and NekoConfigVersion.cmake
-install(FILES
-	"${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/NekoConfig.cmake"
-	"${PROJECT_BINARY_DIR}/NekoConfigVersion.cmake"
-	DESTINATION "${INSTALL_CMAKE_DIR}" COMPONENT dev)
 
-install(EXPORT NekoTargets DESTINATION
-	"${INSTALL_CMAKE_DIR}" COMPONENT dev)
+if (NOT ${CMAKE_VERSION} VERSION_LESS 2.8.8)
+	include(CMakePackageConfigHelpers)
+
+	if(WIN32 AND NOT CYGWIN)
+		set(DEF_INSTALL_CMAKE_DIR CMake)
+	else()
+		set(DEF_INSTALL_CMAKE_DIR lib/cmake/Neko)
+	endif()
+	set(INSTALL_CMAKE_DIR ${DEF_INSTALL_CMAKE_DIR} CACHE PATH
+		"Installation directory for CMake files")
+
+
+	export(TARGETS
+		nekovm
+		nekoc
+		nekoml
+		nekotools
+		libneko
+		FILE "${CMAKE_BINARY_DIR}/NekoTargets.cmake")
+
+	export(PACKAGE Neko)
+
+	# NekoConfig referencing build dir
+
+	set(NEKO_INCLUDE_DIRS "${CMAKE_BINARY_DIR};${CMAKE_SOURCE_DIR}/vm")
+	set(NEKO_TARGETS_FILE "${CMAKE_BINARY_DIR}/NekoTargets.cmake")
+
+	configure_package_config_file(
+		cmake/NekoConfig.cmake.in
+		"${CMAKE_BINARY_DIR}/NekoConfig.cmake"
+		INSTALL_DESTINATION ${INSTALL_CMAKE_DIR}
+		PATH_VARS NEKO_INCLUDE_DIRS NEKO_TARGETS_FILE
+	)
+
+	# NekoConfig referencing install dirs
+
+	set(NEKO_INCLUDE_DIRS "${DEST_INCLUDE}")
+	set(NEKO_TARGETS_FILE "${INSTALL_CMAKE_DIR}/NekoTargets.cmake")
+
+	configure_package_config_file(
+		cmake/NekoConfig.cmake.in
+		"${OUTPUT_DIR}/NekoConfig.cmake"
+		INSTALL_DESTINATION ${INSTALL_CMAKE_DIR}
+		PATH_VARS NEKO_INCLUDE_DIRS NEKO_TARGETS_FILE
+	)
+
+
+	write_basic_package_version_file(
+		NekoConfigVersion.cmake
+		VERSION ${NEKO_VERSION}
+		COMPATIBILITY SameMajorVersion
+	)
+
+	install(FILES
+		${OUTPUT_DIR}/NekoConfig.cmake
+		${CMAKE_BINARY_DIR}/NekoConfigVersion.cmake
+		DESTINATION ${INSTALL_CMAKE_DIR}
+		COMPONENT dev
+	)
+
+	install(
+		EXPORT NekoTargets
+		DESTINATION "${INSTALL_CMAKE_DIR}"
+		COMPONENT dev
+	)
+endif()
 
 # uninstall target
 configure_file(
