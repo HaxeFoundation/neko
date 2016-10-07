@@ -195,7 +195,6 @@ var find_exe_in_path = function(path,file) {
 				if ( last != "/" || last != "\\" )
 					p = p + "/";
 			}
-			var p = path[0];
 			var s = file_contents(p + file);
 			if( $sget(s,0) == 35 ) // '#'
 				$throw("Is a script");
