@@ -242,6 +242,8 @@ static value ssl_recv( value ssl, value data, value pos, value len ) {
 		HANDLE_EINTR(recv_again);
 		return block_error();
 	}
+	if( dlen == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY )
+		return alloc_int(0);
 	if( dlen < 0 )
 		neko_error();
 	return alloc_int( dlen );
