@@ -188,7 +188,7 @@ var find = function(str,sub,pos) {
 var find_exe_in_path = function(path,file) {
 	while( path != null ) {
 		try {
-			var s = file_contents(path[0]+file);
+			var s = file_contents(path[0]+"/"+file);
 			if( $sget(s,0) == 35 ) // '#'
 				$throw("Is a script");
 			return s;
