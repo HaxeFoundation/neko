@@ -141,7 +141,7 @@ int main( int argc, char *argv[] ) {
 	neko_global_init();
 	vm = neko_vm_alloc(NULL);
 	neko_vm_select(vm);
-	
+
 	mload = default_loader(argv+1,argc-1);
 	r = neko_execute_self(vm,mload);
 	if( mload != NULL && val_field(mload,val_id(\"dump_prof\")) != val_null )
@@ -188,7 +188,14 @@ var find = function(str,sub,pos) {
 var find_exe_in_path = function(path,file) {
 	while( path != null ) {
 		try {
-			var s = file_contents(path[0]+file);
+			var p = path[0];
+			var l = $ssize(p);
+			if ( l > 0 ) { // add trailing slash
+				var last = $ssub(p,l-1,1);
+				if ( last != "/" || last != "\\" )
+					p = p + "/";
+			}
+			var s = file_contents(p + file);
 			if( $sget(s,0) == 35 ) // '#'
 				$throw("Is a script");
 			return s;
