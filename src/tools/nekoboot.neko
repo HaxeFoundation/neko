@@ -191,7 +191,7 @@ var find_exe_in_path = function(path,file) {
 			var p = path[0];
 			var l = $ssize(p);
 			if ( l > 0 ) { // add trailing slash
-				var last = $ssub(p,l-1,1);
+				var last = $sget(p,l-1);
 				if ( last != "/" || last != "\\" )
 					p = p + "/";
 			}
