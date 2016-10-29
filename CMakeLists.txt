@@ -28,6 +28,11 @@ foreach( OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES} )
 	set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${OUTPUT_DIR} )
 endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
 
+# Make sure CMAKE_INSTALL_LIBDIR is relative
+if(IS_ABSOLUTE ${CMAKE_INSTALL_LIBDIR})
+	file(RELATIVE_PATH CMAKE_INSTALL_LIBDIR ${CMAKE_INSTALL_PREFIX} ${CMAKE_INSTALL_LIBDIR})
+endif()
+
 # target_include_directories for old cmake versions
 if (${CMAKE_VERSION} VERSION_LESS 2.8.8)
 	function(target_include_directories target visibility)
