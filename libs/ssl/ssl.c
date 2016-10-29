@@ -264,6 +264,8 @@ static  value ssl_read( value ssl ) {
 			HANDLE_EINTR(read_again);
 			return block_error();
 		}
+		if( len == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY )
+			break;
 		if( len == 0 )
 			break;
 		buffer_append_sub(b,(const char *)buf,len);
