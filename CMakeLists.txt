@@ -518,11 +518,12 @@ if (STATIC_ZLIB)
 		set(ZLIB_LIBRARIES ${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/libz.a)
 	endif()
 	add_dependencies(zlib.ndll Zlib)
+	target_include_directories(zlib.ndll PRIVATE ${ZLIB_INCLUDE_DIRS})
 else()
 	pkg_check_modules(ZLIB REQUIRED zlib)
+	target_include_directories(zlib.ndll PRIVATE ${ZLIB_INCLUDEDIR} ${ZLIB_INCLUDE_DIRS})
 endif()
 
-target_include_directories(zlib.ndll PRIVATE ${ZLIB_INCLUDE_DIRS})
 target_link_libraries(zlib.ndll libneko ${ZLIB_LIBRARIES})
 
 set_target_properties(zlib.ndll
@@ -718,7 +719,7 @@ if (STATIC_SQLITE3)
 else()
 	add_library(sqlite.ndll MODULE ${EXCLUDE_SQLITE_NDLL_FROM_ALL} libs/sqlite/sqlite.c)
 	pkg_check_modules(SQLITE3 REQUIRED sqlite3)
-	target_include_directories(sqlite.ndll PRIVATE ${SQLITE3_INCLUDE_DIRS})
+	target_include_directories(sqlite.ndll PRIVATE ${SQLITE3_INCLUDEDIR} ${SQLITE3_INCLUDE_DIRS})
 	target_link_libraries(sqlite.ndll libneko ${SQLITE3_LIBRARIES})
 endif()
 
@@ -743,6 +744,7 @@ if(APPLE)
 elseif(UNIX)
 	pkg_check_modules(GTK2 REQUIRED gtk+-2.0)
 	target_include_directories(ui.ndll PRIVATE
+		${GTK2_INCLUDEDIR}
 		${GTK2_INCLUDE_DIRS}
 	)
 	target_link_libraries(ui.ndll ${GTK2_LIBRARIES})
