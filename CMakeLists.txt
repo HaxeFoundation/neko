@@ -554,8 +554,8 @@ if (STATIC_MARIADBCONNECTOR)
 	ExternalProject_Add(MariaDBConnector
 		${EP_CONFIGS}
 		DEPENDS ${OPENSSL_DEP}
-		URL https://downloads.mariadb.org/f/connector-c-2.2.3/mariadb-connector-c-2.2.3-src.tar.gz
-		URL_MD5 07d068bf6b6b3406a6cd65edee4211f5
+		URL https://downloads.mariadb.org/f/connector-c-2.3.1/mariadb-connector-c-2.3.1-src.tar.gz
+		URL_MD5 26a491253bd93a3831cdfc077a83ccc7
 		CMAKE_ARGS
 			-Wno-dev
 			-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
@@ -634,8 +634,8 @@ if (STATIC_PCRE)
 	if (WIN32)
 		ExternalProject_Add(PCRE
 			${EP_CONFIGS}
-			URL http://downloads.sourceforge.net/project/pcre/pcre/8.38/pcre-8.38.tar.gz
-			URL_MD5 8a353fe1450216b6655dfcf3561716d9
+			URL http://downloads.sourceforge.net/project/pcre/pcre/8.39/pcre-8.39.tar.gz
+			URL_MD5 26a76d97e04c89fe9ce22ecc1cd0b315
 			CMAKE_ARGS
 				-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/install-prefix
 				-Wno-dev
@@ -652,8 +652,8 @@ if (STATIC_PCRE)
 	else()
 		ExternalProject_Add(PCRE
 			${EP_CONFIGS}
-			URL ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre/pcre-8.38.tar.gz
-			URL_MD5 8a353fe1450216b6655dfcf3561716d9
+			URL http://downloads.sourceforge.net/project/pcre/pcre/8.39/pcre-8.39.tar.gz
+			URL_MD5 26a76d97e04c89fe9ce22ecc1cd0b315
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/PCRE &&
 				./configure
 					--prefix=${CMAKE_BINARY_DIR}/libs/src/install-prefix
