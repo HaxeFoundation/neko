@@ -1002,8 +1002,8 @@ if (STATIC_MBEDTLS)
 	endif()
 	ExternalProject_Add(MbedTLS
 		${EP_CONFIGS}
-		URL https://tls.mbed.org/download/mbedtls-2.2.1-apache.tgz
-		URL_MD5 77751c0e370ed2ab01934e4c5e1d380f
+		URL https://tls.mbed.org/download/mbedtls-2.4.0-apache.tgz
+		URL_MD5 4debf0e0eed7e75a00b7780830c9688e
 		CMAKE_ARGS ${MBEDTLS_CMAKE_ARGS}
 		PATCH_COMMAND ${CMAKE_COMMAND} -Dsource=${CMAKE_SOURCE_DIR} -DMbedTLS_source=${CMAKE_BINARY_DIR}/libs/src/MbedTLS -P ${CMAKE_SOURCE_DIR}/cmake/patch_mbedtls.cmake
 		INSTALL_COMMAND echo skip install
