@@ -473,8 +473,8 @@ if (STATIC_OPENSSL)
 	endif()
 	ExternalProject_Add(OpenSSL
 		${EP_CONFIGS}
-		URL https://www.openssl.org/source/openssl-1.0.2h.tar.gz
-		URL_MD5 9392e65072ce4b614c1392eefc1f23d0
+		URL https://www.openssl.org/source/openssl-1.0.2j.tar.gz
+		URL_MD5 96322138f0b69e61b7212bc53d5e912b
 		${OPENSSL_CONFS}
 	)
 	set_target_properties(OpenSSL PROPERTIES ${EP_PROPS})
