@@ -508,8 +508,8 @@ if (STATIC_ZLIB)
 	endif()
 	ExternalProject_Add(Zlib
 		${EP_CONFIGS}
-		URL http://zlib.net/zlib-1.2.10.tar.gz
-		URL_MD5 d9794246f853d15ce0fcbf79b9a3cf13
+		URL http://zlib.net/zlib-1.2.11.tar.gz
+		URL_MD5 1c9f62f0778697a09d36121ead88e08e
 		CMAKE_ARGS ${ZLIB_CMAKE_ARGS}
 	)
 	set_target_properties(Zlib PROPERTIES ${EP_PROPS})
