@@ -85,7 +85,7 @@ extern value neko_alloc_module_function( void *m, int_val pos, int nargs );
 extern void neko_module_jit( neko_module *m );
 
 EXTERN int neko_is_big_endian() {
-#if BYTE_ORDER == LITTLE_ENDIAN
+#ifdef TARGET_LITTLE_ENDIAN
 	return 0;
 #else
 	return 1;
