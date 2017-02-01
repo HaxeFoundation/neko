@@ -7,3 +7,5 @@ foreach ($file in $dllFiles) {
     $dllFile = Join-Path $chocoBin $file
     del "$dllFile"
 }
+
+Uninstall-ChocolateyEnvironmentVariable -VariableName NEKOPATH

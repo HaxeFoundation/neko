@@ -10,4 +10,4 @@ foreach ($file in $dllFiles) {
 }
 
 # Set NEKOPATH such that the ndll files can be loaded.
-Install-ChocolateyEnvironmentVariable NEKOPATH $scriptPath
+Install-ChocolateyEnvironmentVariable -VariableName NEKOPATH -VariableValue $scriptPath
