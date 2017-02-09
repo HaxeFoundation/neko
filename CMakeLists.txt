@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.8.7)
 
 include(GNUInstallDirs)
 include(CheckCCompilerFlag)
+include(TestBigEndian)
 project(Neko C)
 
 set(CMAKE_OSX_ARCHITECTURES x86_64)
@@ -65,6 +66,13 @@ set(NEKO_VERSION_MAJOR 2)
 set(NEKO_VERSION_MINOR 1)
 set(NEKO_VERSION_PATCH 0)
 set(NEKO_VERSION ${NEKO_VERSION_MAJOR}.${NEKO_VERSION_MINOR}.${NEKO_VERSION_PATCH})
+
+# Determine target endianness
+TEST_BIG_ENDIAN(TARGET_BIG_ENDIAN)
+
+# Process common headers in libraries
+# TODO libraries should not be built from this file, but rather by traversing the tree using add_subdirectory
+add_subdirectory(libs)
 
 if(WIN32)
 	if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
