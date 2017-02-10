@@ -70,9 +70,16 @@ set(NEKO_VERSION ${NEKO_VERSION_MAJOR}.${NEKO_VERSION_MINOR}.${NEKO_VERSION_PATC
 # Determine target endianness
 TEST_BIG_ENDIAN(TARGET_BIG_ENDIAN)
 
+set(WITH_REGEXPON CACHE BOOL "Build Perl-compatible regex support.")
+set(WITH_UI ON CACHE BOOL "Build GTK-2 UI support.")
+set(WITH_SSL ON CACHE BOOL "Build SSL support.")
+set(WITH_MYSQL ON CACHE BOOL "Build MySQL support.")
+set(WITH_SQLITE ON CACHE BOOL "Build Sqlite support.")
+set(WITH_APACHE ON CACHE BOOL "Build Apach modules.")
+
 # Process common headers in libraries
 # TODO libraries should not be built from this file, but rather by traversing the tree using add_subdirectory
-add_subdirectory(libs)
+#add_subdirectory(libs)
 
 if(WIN32)
 	if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -89,16 +96,6 @@ configure_file (
 )
 
 set(ndll_targets
-	std.ndll
-	zlib.ndll
-	mysql.ndll
-	mysql5.ndll
-	regexp.ndll
-	sqlite.ndll
-	ui.ndll
-	mod_neko2.ndll
-	mod_tora2.ndll
-	ssl.ndll
 )
 
 set(external_deps
@@ -113,8 +110,6 @@ set(external_deps
 	Apache
 	MbedTLS
 )
-
-set(WITH_NDLLS ${ndll_targets} CACHE STRING "A list of ndll files to be built.")
 
 set(STATIC_DEPS_DOC "Dependencies that should be linked statically. Can be \"all\", \"none\", or a list of library names (e.g. \"${external_deps}\").")
 
@@ -133,8 +128,6 @@ endif()
 
 # These ndll cannot be skipped.
 set(core_ndll_targets
-	std.ndll
-	zlib.ndll
 )
 
 # Validate STATIC_DEPS
@@ -152,20 +145,6 @@ foreach(dep ${STATIC_DEPS})
 	endif()
 endforeach()
 
-# Validate WITH_NDLLS
-foreach(ndll ${WITH_NDLLS})
-	list(FIND ndll_targets ${ndll} idx)
-	if(idx EQUAL -1)
-		message(FATAL_ERROR "Invalid WITH_NDLLS. There is no ${ndll} in the list of ${idx}.")
-	endif()
-endforeach()
-foreach(ndll ${core_ndll_targets})
-	list(FIND WITH_NDLLS ${ndll} idx)
-	if(idx EQUAL -1)
-		message(FATAL_ERROR "${ndll} must be built. Add it to WITH_NDLLS.")
-	endif()
-endforeach()
-
 # Set STATIC_* variables according to STATIC_DEPS.
 foreach(dep ${external_deps})
 	string(TOUPPER ${dep} var)
@@ -174,18 +153,6 @@ foreach(dep ${external_deps})
 		set(STATIC_${var} FALSE)
 	else()
 		set(STATIC_${var} TRUE)
-	endif()
-endforeach()
-
-# Set EXCLUDE_*_NDLL_FROM_ALL variables according to WITH_NDLLS.
-foreach(ndll ${ndll_targets})
-	string(REPLACE . _ var ${ndll})
-	string(TOUPPER ${var} var)
-	list(FIND WITH_NDLLS ${ndll} ndll_idx)
-	if (ndll_idx EQUAL -1)
-		set(EXCLUDE_${var}_FROM_ALL EXCLUDE_FROM_ALL)
-	else()
-		set(EXCLUDE_${var}_FROM_ALL "")
 	endif()
 endforeach()
 
@@ -298,31 +265,6 @@ add_library(libneko SHARED
 	vm/threads.c
 )
 
-add_library(std.ndll MODULE
-	libs/std/buffer.c
-	libs/std/date.c
-	libs/std/file.c
-	libs/std/init.c
-	libs/std/int32.c
-	libs/std/math.c
-	libs/std/string.c
-	libs/std/random.c
-	libs/std/serialize.c
-	libs/std/socket.c
-	libs/std/sys.c
-	libs/std/xml.c
-	libs/std/module.c
-	libs/common/sha1.c
-	libs/std/md5.c
-	libs/std/unicode.c
-	libs/std/utf8.c
-	libs/std/memory.c
-	libs/std/misc.c
-	libs/std/thread.c
-	libs/std/process.c
-	libs/std/elf_update.c
-)
-
 add_executable(nekovm
 	vm/stats.c
 	vm/main.c
@@ -410,12 +352,7 @@ endif()
 target_include_directories(libneko PRIVATE ${GC_INCLUDE_DIR})
 
 target_link_libraries(libneko ${GC_LIBRARIES})
-target_link_libraries(std.ndll libneko)
 target_link_libraries(nekovm libneko)
-
-if(WIN32)
-	target_link_libraries(std.ndll ws2_32)
-endif()
 
 if(UNIX)
         if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
@@ -436,12 +373,6 @@ set_target_properties(libneko
 	SOVERSION ${NEKO_VERSION_MAJOR}
 	COMPILE_DEFINITIONS "_USRDLL;NEKOVM_DLL_EXPORTS;NEKO_SOURCES"
 	PUBLIC_HEADER "${libneko_public_headers}"
-)
-set_target_properties(std.ndll
-	PROPERTIES
-	PREFIX ""
-	OUTPUT_NAME std
-	SUFFIX .ndll
 )
 
 ######################
@@ -496,578 +427,6 @@ if (STATIC_OPENSSL)
 else()
 	find_package(OpenSSL)
 endif()
-
-######################
-# zlib.ndll
-
-add_library(zlib.ndll MODULE ${EXCLUDE_ZLIB_NDLL_FROM_ALL} libs/zlib/zlib.c)
-
-
-if (STATIC_ZLIB)
-	set(ZLIB_CMAKE_ARGS
-		-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/install-prefix
-		-Wno-dev
-	)
-	if (UNIX)
-		list(APPEND ZLIB_CMAKE_ARGS
-			-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
-			${ARG_PIC}
-		)
-	endif()
-	ExternalProject_Add(Zlib
-		${EP_CONFIGS}
-		URL http://zlib.net/zlib-1.2.11.tar.gz
-		URL_MD5 1c9f62f0778697a09d36121ead88e08e
-		CMAKE_ARGS ${ZLIB_CMAKE_ARGS}
-	)
-	set_target_properties(Zlib PROPERTIES ${EP_PROPS})
-	set(ZLIB_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/install-prefix/include)
-	if (WIN32)
-		set(ZLIB_LIBRARIES
-			optimized ${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/zlibstatic.lib
-			debug ${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/zlibstaticd.lib
-		)
-	else()
-		set(ZLIB_LIBRARIES ${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/libz.a)
-	endif()
-	add_dependencies(zlib.ndll Zlib)
-	target_include_directories(zlib.ndll PRIVATE ${ZLIB_INCLUDE_DIRS})
-else()
-	pkg_check_modules(ZLIB REQUIRED zlib)
-	target_include_directories(zlib.ndll PRIVATE ${ZLIB_INCLUDEDIR} ${ZLIB_INCLUDE_DIRS})
-endif()
-
-target_link_libraries(zlib.ndll libneko ${ZLIB_LIBRARIES})
-
-set_target_properties(zlib.ndll
-	PROPERTIES
-	PREFIX ""
-	OUTPUT_NAME zlib
-	SUFFIX .ndll
-)
-
-######################
-# mysql.ndll
-
-add_library(mysql.ndll MODULE ${EXCLUDE_MYSQL_NDLL_FROM_ALL} libs/mysql/mysql.c)
-
-if (STATIC_MARIADBCONNECTOR)
-	if (STATIC_OPENSSL)
-		set(OPENSSL_CONF -DOPENSSL_ROOT_DIR=${CMAKE_BINARY_DIR}/libs/src/install-prefix)
-		set(OPENSSL_DEP OpenSSL)
-	elseif()
-		set(OPENSSL_CONF "")
-		set(OPENSSL_DEP "")
-	endif()
-	ExternalProject_Add(MariaDBConnector
-		${EP_CONFIGS}
-		DEPENDS ${OPENSSL_DEP}
-		URL https://downloads.mariadb.org/f/connector-c-2.3.1/mariadb-connector-c-2.3.1-src.tar.gz
-		URL_MD5 26a491253bd93a3831cdfc077a83ccc7
-		CMAKE_ARGS
-			-Wno-dev
-			-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
-			-DWITH_OPENSSL=ON
-			${OPENSSL_CONF}
-		PATCH_COMMAND ${CMAKE_COMMAND} -Dmariadb_source=${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector -P ${CMAKE_SOURCE_DIR}/cmake/patch_mariadb.cmake
-		BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector-build &&
-			${CMAKE_COMMAND} --build . --target mariadbclient --config ${CMAKE_CFG_INTDIR}
-		INSTALL_COMMAND echo skip install
-	)
-	set_target_properties(MariaDBConnector PROPERTIES ${EP_PROPS})
-	set(MARIADB_CONNECTOR_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector/include)
-	if (WIN32)
-		set(MARIADB_CONNECTOR_LIBRARIES
-			${OPENSSL_LIBRARIES}
-			${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector-build/libmariadb/${CMAKE_CFG_INTDIR}/mariadbclient.lib
-		)
-	else()
-		set(MARIADB_CONNECTOR_LIBRARIES
-			${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector-build/libmariadb/libmariadbclient.a
-		)
-	endif()
-	add_dependencies(mysql.ndll MariaDBConnector)
-else()
-	find_package(MariaDBConnector REQUIRED)
-endif()
-
-target_include_directories(mysql.ndll
-	PRIVATE
-	${MARIADB_CONNECTOR_INCLUDE_DIR}
-)
-
-target_link_libraries(mysql.ndll libneko ${MARIADB_CONNECTOR_LIBRARIES})
-
-set_target_properties(mysql.ndll
-	PROPERTIES
-	PREFIX ""
-	OUTPUT_NAME mysql
-	SUFFIX .ndll
-)
-
-######################
-# mysql5.ndll
-
-add_library(mysql5.ndll MODULE ${EXCLUDE_MYSQL5_NDLL_FROM_ALL}
-	libs/common/sha1.c
-	libs/common/socket.c
-	libs/mysql/my_proto/my_proto.c
-	libs/mysql/my_proto/my_api.c
-	libs/mysql/mysql.c
-)
-
-target_include_directories(mysql5.ndll
-	PRIVATE
-	libs/mysql/my_proto
-)
-
-target_link_libraries(mysql5.ndll libneko)
-
-if (WIN32)
-	target_link_libraries(mysql5.ndll ws2_32)
-endif()
-
-set_target_properties(mysql5.ndll
-	PROPERTIES
-	PREFIX ""
-	OUTPUT_NAME mysql5
-	SUFFIX .ndll
-)
-
-######################
-# regexp.ndll
-
-add_library(regexp.ndll MODULE ${EXCLUDE_REGEXP_NDLL_FROM_ALL} libs/regexp/regexp.c)
-if (STATIC_PCRE)
-	if (WIN32)
-		ExternalProject_Add(PCRE
-			${EP_CONFIGS}
-			URL http://downloads.sourceforge.net/project/pcre/pcre/8.39/pcre-8.39.tar.gz
-			URL_MD5 26a76d97e04c89fe9ce22ecc1cd0b315
-			CMAKE_ARGS
-				-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/install-prefix
-				-Wno-dev
-				-DPCRE_BUILD_PCRECPP=OFF
-				-DPCRE_BUILD_PCREGREP=OFF
-				-DPCRE_BUILD_TESTS=OFF
-				-DPCRE_SUPPORT_JIT=ON
-				-DPCRE_SUPPORT_UNICODE_PROPERTIES=ON
-		)
-		set(PCRE_LIBRARIES
-			optimized ${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/pcre.lib
-			debug ${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/pcred.lib
-		)
-	else()
-		ExternalProject_Add(PCRE
-			${EP_CONFIGS}
-			URL http://downloads.sourceforge.net/project/pcre/pcre/8.39/pcre-8.39.tar.gz
-			URL_MD5 26a76d97e04c89fe9ce22ecc1cd0b315
-			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/PCRE &&
-				./configure
-					--prefix=${CMAKE_BINARY_DIR}/libs/src/install-prefix
-					--with-pic
-					--enable-unicode-properties
-					--enable-silent-rules
-					--enable-jit
-					--disable-cpp
-					--enable-shared=no
-					--enable-static=yes
-					--silent
-			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/PCRE &&
-				make CFLAGS=-w
-			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/PCRE &&
-				make install
-		)
-		set(PCRE_LIBRARIES
-			${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/libpcre.a
-		)
-	endif()
-	set_target_properties(PCRE PROPERTIES ${EP_PROPS})
-	set(PCRE_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/install-prefix/include)
-	add_dependencies(regexp.ndll PCRE)
-else()
-	find_package(PCRE REQUIRED)
-endif()
-
-target_include_directories(regexp.ndll PRIVATE ${PCRE_INCLUDE_DIRS})
-target_link_libraries(regexp.ndll libneko ${PCRE_LIBRARIES})
-
-set_target_properties(regexp.ndll
-	PROPERTIES
-	PREFIX ""
-	OUTPUT_NAME regexp
-	SUFFIX .ndll
-)
-
-######################
-# sqlite.ndll
-
-if (STATIC_SQLITE3)
-	ExternalProject_Add(Sqlite3
-		${EP_CONFIGS}
-		URL https://www.sqlite.org/2016/sqlite-autoconf-3120200.tar.gz
-		URL_MD5 c552a133aca1ce1d647163d9e43bbcb1
-		CONFIGURE_COMMAND echo skip config
-		BUILD_COMMAND echo skip build
-		INSTALL_COMMAND echo skip install
-	)
-	add_custom_command(
-		OUTPUT ${CMAKE_BINARY_DIR}/libs/src/Sqlite3/sqlite3.c
-		DEPENDS Sqlite3
-	)
-
-	add_library(sqlite.ndll MODULE ${EXCLUDE_SQLITE_NDLL_FROM_ALL}
-		libs/sqlite/sqlite.c
-		${CMAKE_BINARY_DIR}/libs/src/Sqlite3/sqlite3.c
-	)
-	target_include_directories(sqlite.ndll PRIVATE ${CMAKE_BINARY_DIR}/libs/src/Sqlite3)
-	target_link_libraries(sqlite.ndll libneko)
-	if (${CMAKE_VERSION} VERSION_LESS 2.8.11)
-		set_target_properties(sqlite.ndll
-			PROPERTIES
-				COMPILE_DEFINITIONS "SQLITE_MAX_VARIABLE_NUMBER=250000;SQLITE_ENABLE_RTREE=1")
-	else()
-		target_compile_definitions(sqlite.ndll PRIVATE SQLITE_MAX_VARIABLE_NUMBER=250000 SQLITE_ENABLE_RTREE=1)
-	endif()
-else()
-	add_library(sqlite.ndll MODULE ${EXCLUDE_SQLITE_NDLL_FROM_ALL} libs/sqlite/sqlite.c)
-	pkg_check_modules(SQLITE3 REQUIRED sqlite3)
-	target_include_directories(sqlite.ndll PRIVATE ${SQLITE3_INCLUDEDIR} ${SQLITE3_INCLUDE_DIRS})
-	target_link_libraries(sqlite.ndll libneko ${SQLITE3_LIBRARIES})
-endif()
-
-
-set_target_properties(sqlite.ndll
-	PROPERTIES
-	PREFIX ""
-	OUTPUT_NAME sqlite
-	SUFFIX .ndll
-)
-
-######################
-# ui.ndll
-
-add_library(ui.ndll MODULE ${EXCLUDE_UI_NDLL_FROM_ALL} libs/ui/ui.c)
-
-target_link_libraries(ui.ndll libneko)
-
-if(APPLE)
-	find_library(CARBON_LIBRARY Carbon REQUIRED)
-	target_link_libraries(ui.ndll ${CARBON_LIBRARY})
-elseif(UNIX)
-	pkg_check_modules(GTK2 REQUIRED gtk+-2.0)
-	target_include_directories(ui.ndll PRIVATE
-		${GTK2_INCLUDEDIR}
-		${GTK2_INCLUDE_DIRS}
-	)
-	target_link_libraries(ui.ndll ${GTK2_LIBRARIES})
-endif()
-
-set_target_properties(ui.ndll
-	PROPERTIES
-	PREFIX ""
-	OUTPUT_NAME ui
-	SUFFIX .ndll
-)
-
-######################
-# mod_neko2.ndll
-
-add_library(mod_neko2.ndll MODULE ${EXCLUDE_MOD_NEKO2_NDLL_FROM_ALL}
-	vm/stats.c
-	libs/mod_neko/mod_neko.c
-	libs/mod_neko/cgi.c
-)
-
-
-if (STATIC_APACHE)
-	if (STATIC_OPENSSL)
-		set(OPENSSL_CONF --with-openssl=${CMAKE_BINARY_DIR}/libs/src/install-prefix)
-		set(OPENSSL_DEP OpenSSL)
-	elseif()
-		set(OPENSSL_CONF "")
-		set(OPENSSL_DEP "")
-	endif()
-	if (STATIC_APR)
-		set(APR_CONF --with-apr=${CMAKE_BINARY_DIR}/libs/src/install-prefix)
-		set(APR_DEP APR)
-	elseif()
-		set(APR_CONF "")
-		set(APR_DEP "")
-	endif()
-	if (STATIC_APRUTIL)
-		set(APRUTIL_CONF --with-apr-util=${CMAKE_BINARY_DIR}/libs/src/install-prefix)
-		set(APRUTIL_DEP APRutil)
-	elseif()
-		set(APRUTIL_CONF "")
-		set(APRUTIL_DEP "")
-	endif()
-	if (STATIC_PCRE)
-		set(PCRE_CONF --with-pcre=${CMAKE_BINARY_DIR}/libs/src/install-prefix)
-		set(PCRE_DEP PCRE)
-	elseif()
-		set(PCRE_CONF "")
-		set(PCRE_DEP "")
-	endif()
-	if (STATIC_ZLIB)
-		set(ZLIB_CONF --with-z=${CMAKE_BINARY_DIR}/libs/src/install-prefix)
-		set(ZLIB_DEP Zlib)
-	elseif()
-		set(ZLIB_CONF "")
-		set(ZLIB_DEP "")
-	endif()
-
-	if(WIN32)
-		set(APR_CONFIGS
-			CMAKE_ARGS
-				-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/install-prefix
-				-Wno-dev
-				-DAPR_INSTALL_PRIVATE_H=ON
-				-DINSTALL_PDB=OFF
-		)
-	else()
-		set(APR_CONFIGS
-			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APR &&
-				./configure --prefix=${CMAKE_BINARY_DIR}/libs/src/install-prefix
-				--enable-shared=no
-				--enable-static=yes
-				--silent
-			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APR &&
-				make CFLAGS=-w
-			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APR && 
-				make install
-		)
-	endif()
-	ExternalProject_Add(APR
-		${EP_CONFIGS}
-		URL http://archive.apache.org/dist/apr/apr-1.5.2.tar.gz
-		URL_MD5 98492e965963f852ab29f9e61b2ad700
-		${APR_CONFIGS}
-	)
-	set_target_properties(APR PROPERTIES ${EP_PROPS})
-
-
-	if(WIN32)
-		set(APRutil_CONFIGS
-			CMAKE_ARGS
-				-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/install-prefix
-				-Wno-dev
-				-DOPENSSL_ROOT_DIR=${CMAKE_BINARY_DIR}/libs/src/install-prefix
-				-DINSTALL_PDB=OFF
-		)
-	else()
-		set(APRutil_CONFIGS
-			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APRutil &&
-				./configure
-					--prefix=${CMAKE_BINARY_DIR}/libs/src/install-prefix
-					--silent
-					${APR_CONF}
-					${OPENSSL_CONF}
-			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APRutil &&
-				make CFLAGS=-w
-			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APRutil && 
-				make install
-		)
-	endif()
-	ExternalProject_Add(APRutil
-		${EP_CONFIGS}
-		DEPENDS ${APR_DEP} ${OPENSSL_DEP}
-		URL http://archive.apache.org/dist/apr/apr-util-1.5.4.tar.gz
-		URL_MD5 866825c04da827c6e5f53daff5569f42
-		${APRutil_CONFIGS}
-	)
-	set_target_properties(APRutil PROPERTIES ${EP_PROPS})
-
-
-	if(WIN32)
-		set(Apache_CONFIGS
-			CMAKE_ARGS
-				-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/install-prefix
-				-Wno-dev
-				-DOPENSSL_ROOT_DIR=${CMAKE_BINARY_DIR}/libs/src/install-prefix
-				"-DEXTRA_COMPILE_FLAGS=/D PCRE_STATIC"
-				-DEXTRA_LIBS=Ws2_32
-			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/Apache-build &&
-				${CMAKE_COMMAND} --build . --target libhttpd --config ${CMAKE_CFG_INTDIR}
-			INSTALL_COMMAND echo skip install
-		)
-		set(APACHE_INCLUDE_DIRS
-			${CMAKE_BINARY_DIR}/libs/src/install-prefix/include
-			${CMAKE_BINARY_DIR}/libs/src/Apache/include
-			${CMAKE_BINARY_DIR}/libs/src/Apache/os/win32
-			${CMAKE_BINARY_DIR}/libs/src/Apache-build
-		)
-		set(APACHE_LIBRARIES
-			${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/libapr-1.lib
-			${CMAKE_BINARY_DIR}/libs/src/Apache-build/${CMAKE_CFG_INTDIR}/libhttpd.lib
-		)
-	else()
-		set(Apache_CONFIGS
-			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/Apache &&
-				./configure
-					--prefix=${CMAKE_BINARY_DIR}/libs/src/Apache-build
-					--silent
-					${APR_CONF}
-					${APRUTIL_CONF}
-					${OPENSSL_CONF}
-					${PCRE_CONF}
-					${ZLIB_CONF}
-			BUILD_COMMAND echo skip build
-			INSTALL_COMMAND echo skip install
-		)
-		set(APACHE_INCLUDE_DIRS
-			${CMAKE_BINARY_DIR}/libs/src/install-prefix/include/apr-1
-			${CMAKE_BINARY_DIR}/libs/src/Apache/include
-			${CMAKE_BINARY_DIR}/libs/src/Apache/os/unix
-		)
-		set(APACHE_LIBRARIES
-
-		)
-	endif()
-	ExternalProject_Add(Apache
-		${EP_CONFIGS}
-		DEPENDS ${APR_DEP} ${APRUTIL_DEP} ${OPENSSL_DEP} ${PCRE_DEP}
-		URL http://archive.apache.org/dist/httpd/httpd-2.4.20.tar.gz
-		URL_MD5 e725c268624737a163dc844e28f720d1
-		${Apache_CONFIGS}
-	)
-	set_target_properties(Apache PROPERTIES ${EP_PROPS})
-	add_dependencies(mod_neko2.ndll Apache APR APRutil)
-else()
-	find_package(APACHE REQUIRED)
-	find_package(APR REQUIRED)
-	set(APACHE_LIBRARIES ${APR_LIBRARIES} ${APRUTIL_LIBRARIES})
-	set(APACHE_INCLUDE_DIRS ${APACHE_INCLUDE_DIR} ${APR_INCLUDE_DIR} ${APRUTIL_INCLUDE_DIR})
-endif()
-
-target_include_directories(mod_neko2.ndll
-	PRIVATE
-	${APACHE_INCLUDE_DIRS}
-)
-
-target_link_libraries(mod_neko2.ndll libneko ${APACHE_LIBRARIES})
-
-set_target_properties(mod_neko2.ndll
-	PROPERTIES
-	PREFIX ""
-	OUTPUT_NAME mod_neko2
-	SUFFIX .ndll
-)
-
-if(APPLE)
-	set_target_properties(mod_neko2.ndll
-		PROPERTIES
-		LINK_FLAGS "-undefined dynamic_lookup ${LINK_FLAGS}"
-	)
-endif(APPLE)
-
-######################
-# mod_tora2.ndll
-
-add_library(mod_tora2.ndll MODULE ${EXCLUDE_MOD_TORA2_NDLL_FROM_ALL}
-	libs/common/socket.c
-	libs/mod_tora/protocol.c
-	libs/mod_tora/mod_tora.c
-)
-
-add_dependencies(mod_tora2.ndll mod_neko2.ndll)
-
-target_include_directories(mod_tora2.ndll
-	PRIVATE
-	${APACHE_INCLUDE_DIRS}
-)
-
-target_link_libraries(mod_tora2.ndll ${APACHE_LIBRARIES})
-if (WIN32)
-	target_link_libraries(mod_tora2.ndll ws2_32)
-endif()
-
-set_target_properties(mod_tora2.ndll
-	PROPERTIES
-	PREFIX ""
-	OUTPUT_NAME mod_tora2
-	SUFFIX .ndll
-)
-
-######################
-# ssl.ndll
-
-add_library(ssl.ndll MODULE ${EXCLUDE_SSL_NDLL_FROM_ALL} libs/ssl/ssl.c)
-
-if (STATIC_MBEDTLS)
-	set(MBEDTLS_CMAKE_ARGS
-		-Wno-dev
-		-DENABLE_PROGRAMS=OFF
-		-DENABLE_TESTING=OFF
-		-DUSE_STATIC_MBEDTLS_LIBRARY=ON
-	)
-	if (UNIX)
-		list(APPEND MBEDTLS_CMAKE_ARGS
-			-DLINK_WITH_PTHREAD=ON
-			-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
-			${ARG_PIC}
-		)
-	endif()
-	ExternalProject_Add(MbedTLS
-		${EP_CONFIGS}
-		URL https://tls.mbed.org/download/mbedtls-2.4.0-apache.tgz
-		URL_MD5 4debf0e0eed7e75a00b7780830c9688e
-		CMAKE_ARGS ${MBEDTLS_CMAKE_ARGS}
-		PATCH_COMMAND ${CMAKE_COMMAND} -Dsource=${CMAKE_SOURCE_DIR} -DMbedTLS_source=${CMAKE_BINARY_DIR}/libs/src/MbedTLS -P ${CMAKE_SOURCE_DIR}/cmake/patch_mbedtls.cmake
-		INSTALL_COMMAND echo skip install
-	)
-	set_target_properties(MbedTLS PROPERTIES ${EP_PROPS})
-	set(MBEDTLS_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libs/src/MbedTLS/include)
-
-	if (WIN32)
-		set(MBEDTLS_LIBRARIES
-			${CMAKE_BINARY_DIR}/libs/src/MbedTLS-build/library/${CMAKE_CFG_INTDIR}/mbedx509.lib
-			${CMAKE_BINARY_DIR}/libs/src/MbedTLS-build/library/${CMAKE_CFG_INTDIR}/mbedtls.lib
-			${CMAKE_BINARY_DIR}/libs/src/MbedTLS-build/library/${CMAKE_CFG_INTDIR}/mbedcrypto.lib
-		)
-		target_link_libraries(ssl.ndll ws2_32 Advapi32 Crypt32)
-	else()
-		set(MBEDTLS_LIBRARIES
-			${CMAKE_BINARY_DIR}/libs/src/MbedTLS-build/library/libmbedx509.a
-			${CMAKE_BINARY_DIR}/libs/src/MbedTLS-build/library/libmbedtls.a
-			${CMAKE_BINARY_DIR}/libs/src/MbedTLS-build/library/libmbedcrypto.a
-		)
-	endif()
-	add_dependencies(ssl.ndll MbedTLS)
-else()
-	find_package(MbedTLS REQUIRED)
-endif()
-
-target_include_directories(ssl.ndll
-	PRIVATE
-	${MBEDTLS_INCLUDE_DIR}
-)
-
-if(APPLE)
-	find_library(SECURITY_LIBRARY Security REQUIRED)
-	find_library(COREFOUNDATION_LIBRARY CoreFoundation REQUIRED)
-	target_link_libraries(ssl.ndll ${COREFOUNDATION_LIBRARY} ${SECURITY_LIBRARY})
-endif()
-
-target_link_libraries(ssl.ndll libneko ${MBEDTLS_LIBRARIES})
-
-set_target_properties(ssl.ndll
-	PROPERTIES
-	PREFIX ""
-	OUTPUT_NAME ssl
-	SUFFIX .ndll
-)
-
-
-#######################
-
-if(APPLE)
-	set_target_properties(mod_tora2.ndll mysql.ndll
-		PROPERTIES
-		LINK_FLAGS "-undefined dynamic_lookup ${LINK_FLAGS}"
-	)
-endif(APPLE)
-
 
 #######################
 
@@ -1281,10 +640,6 @@ install (
 	RUNTIME DESTINATION ${DEST_BIN}
 	LIBRARY DESTINATION ${DEST_LIB}
 	PUBLIC_HEADER DESTINATION ${DEST_INCLUDE}
-)
-install (
-	TARGETS ${WITH_NDLLS}
-	DESTINATION ${DEST_NDLL}
 )
 install (
 	FILES ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoml.std
@@ -1504,3 +859,5 @@ if(WIN32)
 		DEPENDS package
 	)
 endif()
+
+add_subdirectory(libs)
