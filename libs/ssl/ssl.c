@@ -349,7 +349,7 @@ static value cert_load_file(value file){
 	val_check(file,string);
 	x = (mbedtls_x509_crt *)alloc(sizeof(mbedtls_x509_crt));
 	mbedtls_x509_crt_init( x );
-	if( (r = mbedtls_x509_crt_parse_file(x, val_string(file))) != 0 ){
+	if( (r = mbedtls_x509_crt_parse_file(x, val_string(file))) < 0 ){
 		return ssl_error(r);
 	}
 	v = alloc_abstract(k_cert, x);
@@ -364,7 +364,7 @@ static value cert_load_path(value path){
 	val_check(path,string);
 	x = (mbedtls_x509_crt *)alloc(sizeof(mbedtls_x509_crt));
 	mbedtls_x509_crt_init( x );
-	if( (r = mbedtls_x509_crt_parse_path(x, val_string(path))) != 0 ){
+	if( (r = mbedtls_x509_crt_parse_path(x, val_string(path))) < 0 ){
 		return ssl_error(r);
 	}
 	v = alloc_abstract(k_cert, x);
