@@ -16,8 +16,6 @@ cache:
   - libs\src -> CMakeLists.txt
 
 build_script:
-  # nasm is needed for building OpenSSL...
-  - choco install nasm -y
   - cmake -G "%CMAKE_GENERATOR%" .
   # download static dependencies before actual build, with 3 chances to deal with network issues
   - msbuild download_static_deps.vcxproj /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll" ||
