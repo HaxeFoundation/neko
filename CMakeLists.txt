@@ -588,8 +588,8 @@ if (STATIC_MARIADBCONNECTOR)
 	ExternalProject_Add(MariaDBConnector
 		${EP_CONFIGS}
 		DEPENDS ${OPENSSL_DEP}
-		URL https://downloads.mariadb.org/f/connector-c-2.3.1/mariadb-connector-c-2.3.1-src.tar.gz
-		URL_MD5 26a491253bd93a3831cdfc077a83ccc7
+		URL https://downloads.mariadb.org/f/connector-c-2.3.2/mariadb-connector-c-2.3.2-src.tar.gz
+		URL_MD5 cbee903e8581ca73b0aecfe9b7498c65
 		CMAKE_ARGS
 			-Wno-dev
 			-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
