@@ -74,6 +74,22 @@ TEST_BIG_ENDIAN(TARGET_BIG_ENDIAN)
 # TODO libraries should not be built from this file, but rather by traversing the tree using add_subdirectory
 add_subdirectory(libs)
 
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
+    if (${CMAKE_OSX_ARCHITECTURES} STREQUAL "i386")
+        set(arch_64 "")
+    elseif (${CMAKE_OSX_ARCHITECTURES} STREQUAL "x86_64")
+        set(arch_64 "64")
+    else()
+        message( FATAL_ERROR "CMAKE_OSX_ARCHITECTURES should be i386 or x86_64." )
+    endif()
+else()
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8) 
+        set(arch_64 "64")
+    else() 
+        set(arch_64 "")
+    endif() 
+endif()
+
 if(WIN32)
 	if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 		set (CMAKE_INSTALL_PREFIX "C:/HaxeToolkit/neko" CACHE PATH "default install path" FORCE)
@@ -460,14 +476,24 @@ if (STATIC_OPENSSL)
 	if (WIN32)
 		# perl is needed to run the openssl Configure script...
 		find_package(Perl REQUIRED)
+		if (arch_64)
+			set(openssl_target VC-WIN64A)
+			set(openssl_script ms/do_win64a.bat)
+		else()
+			set(openssl_target VC-WIN32)
+			set(openssl_script ms/do_ms.bat)
+		endif()
+		message("arch_64 is ${arch_64}")
+		message("openssl_target is ${openssl_target}")
+		message("openssl_script is ${openssl_script}")
 		set(OPENSSL_CONFS
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
-				${PERL_EXECUTABLE} Configure VC-WIN32 no-asm --prefix=${CMAKE_BINARY_DIR}/libs/src/install-prefix &&
-				call ms/do_ms.bat
+				${PERL_EXECUTABLE} Configure ${openssl_target} no-asm --prefix=${CMAKE_BINARY_DIR}/libs/src/install-prefix &&
+				call ${openssl_script}
 			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
-				nmake /S -f ms/nt.mak
+				nmake /S -f ms/nt.mak PLATFORM=${openssl_target}
 			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL && 
-				nmake /S -f ms/nt.mak install
+				nmake /S -f ms/nt.mak PLATFORM=${openssl_target} install
 		)
 	else()
 		set(OPENSSL_CONFS
@@ -645,6 +671,7 @@ if (STATIC_PCRE)
 			URL http://downloads.sourceforge.net/project/pcre/pcre/8.39/pcre-8.39.tar.gz
 			URL_MD5 26a76d97e04c89fe9ce22ecc1cd0b315
 			CMAKE_ARGS
+				-G ${CMAKE_GENERATOR}
 				-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/install-prefix
 				-Wno-dev
 				-DPCRE_BUILD_PCRECPP=OFF
@@ -1395,22 +1422,6 @@ if (WIN32)
 else()
 	set(CPACK_GENERATOR "TGZ")
 	set(bin_archive_format tar.gz)
-endif()
-
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
-	if (${CMAKE_OSX_ARCHITECTURES} STREQUAL "i386")
-		set(arch_64 "")
-	elseif (${CMAKE_OSX_ARCHITECTURES} STREQUAL "x86_64")
-		set(arch_64 "64")
-	else()
-		message( FATAL_ERROR "CMAKE_OSX_ARCHITECTURES should be i386 or x86_64." )
-	endif()
-else()
-	if(CMAKE_SIZEOF_VOID_P EQUAL 8) 
-		set(arch_64 "64")
-	else() 
-		set(arch_64 "")
-	endif() 
 endif()
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
