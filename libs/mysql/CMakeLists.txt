@@ -1,5 +1,60 @@
 
 ######################
+# OpenSSL
+
+if (STATIC_OPENSSL)
+	if (APPLE)
+		if (${CMAKE_OSX_ARCHITECTURES} STREQUAL "i386")
+			set(OPENSSL_CONF ./Configure darwin-i386-cc)
+		elseif (${CMAKE_OSX_ARCHITECTURES} STREQUAL "x86_64")
+			set(OPENSSL_CONF ./Configure darwin64-x86_64-cc)
+		endif()
+	else()
+		set(OPENSSL_CONF ./config)
+	endif()
+	if (WIN32)
+		# perl is needed to run the openssl Configure script...
+		find_package(Perl REQUIRED)
+		set(OPENSSL_CONFS
+			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
+				${PERL_EXECUTABLE} Configure VC-WIN32 no-asm --prefix=${CMAKE_BINARY_DIR}/libs/src/install-prefix &&
+				call ms/do_ms.bat
+			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
+				nmake /S -f ms/nt.mak
+			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
+				nmake /S -f ms/nt.mak install
+		)
+	else()
+		set(OPENSSL_CONFS
+			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
+				${OPENSSL_CONF} --prefix=${CMAKE_BINARY_DIR}/libs/src/install-prefix
+			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
+				make depend && make
+			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
+				make install
+		)
+	endif()
+	ExternalProject_Add(OpenSSL
+		${EP_CONFIGS}
+		URL https://www.openssl.org/source/openssl-1.0.2j.tar.gz
+		URL_MD5 96322138f0b69e61b7212bc53d5e912b
+		${OPENSSL_CONFS}
+	)
+	set_target_properties(OpenSSL PROPERTIES ${EP_PROPS})
+	if (WIN32)
+		set(OPENSSL_LIBRARIES
+			Crypt32
+			${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/libeay32.lib
+			${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/ssleay32.lib
+		)
+	endif()
+	# Download project for fat source archive
+	add_dependencies(download_static_deps OpenSSL-download)
+else()
+	find_package(OpenSSL)
+endif()
+
+######################
 # mysql.ndll
 
 add_library(mysql.ndll MODULE ${EXCLUDE_MYSQL_NDLL_FROM_ALL} mysql.c)
@@ -40,6 +95,8 @@ if (STATIC_MARIADBCONNECTOR)
 		)
 	endif()
 	add_dependencies(mysql.ndll MariaDBConnector)
+	# Download project for fat source archive
+	add_dependencies(download_static_deps MariaDBConnector-download)
 else()
 	find_package(MariaDBConnector REQUIRED)
 endif()

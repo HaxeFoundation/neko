@@ -50,6 +50,8 @@ if (STATIC_PCRE)
 	set_target_properties(PCRE PROPERTIES ${EP_PROPS})
 	set(PCRE_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/install-prefix/include)
 	add_dependencies(regexp.ndll PCRE)
+	# Download project for fat source archive
+	add_dependencies(download_static_deps PCRE-download)
 else()
 	find_package(PCRE REQUIRED)
 endif()

@@ -70,7 +70,7 @@ set(NEKO_VERSION ${NEKO_VERSION_MAJOR}.${NEKO_VERSION_MINOR}.${NEKO_VERSION_PATC
 # Determine target endianness
 TEST_BIG_ENDIAN(TARGET_BIG_ENDIAN)
 
-set(WITH_REGEXPON CACHE BOOL "Build Perl-compatible regex support.")
+set(WITH_REGEXP ON CACHE BOOL "Build Perl-compatible regex support.")
 set(WITH_UI ON CACHE BOOL "Build GTK-2 UI support.")
 set(WITH_SSL ON CACHE BOOL "Build SSL support.")
 set(WITH_MYSQL ON CACHE BOOL "Build MySQL support.")
@@ -330,7 +330,7 @@ if (STATIC_BOEHMGC)
 					--silent
 			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/BoehmGC &&
 				make CFLAGS=-w
-			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/BoehmGC && 
+			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/BoehmGC &&
 				make install
 		)
 
@@ -374,59 +374,6 @@ set_target_properties(libneko
 	COMPILE_DEFINITIONS "_USRDLL;NEKOVM_DLL_EXPORTS;NEKO_SOURCES"
 	PUBLIC_HEADER "${libneko_public_headers}"
 )
-
-######################
-# OpenSSL
-
-if (STATIC_OPENSSL)
-	if (APPLE)
-		if (${CMAKE_OSX_ARCHITECTURES} STREQUAL "i386")
-			set(OPENSSL_CONF ./Configure darwin-i386-cc)
-		elseif (${CMAKE_OSX_ARCHITECTURES} STREQUAL "x86_64")
-			set(OPENSSL_CONF ./Configure darwin64-x86_64-cc)
-		endif()
-	else()
-		set(OPENSSL_CONF ./config)
-	endif()
-	if (WIN32)
-		# perl is needed to run the openssl Configure script...
-		find_package(Perl REQUIRED)
-		set(OPENSSL_CONFS
-			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
-				${PERL_EXECUTABLE} Configure VC-WIN32 no-asm --prefix=${CMAKE_BINARY_DIR}/libs/src/install-prefix &&
-				call ms/do_ms.bat
-			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
-				nmake /S -f ms/nt.mak
-			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL && 
-				nmake /S -f ms/nt.mak install
-		)
-	else()
-		set(OPENSSL_CONFS
-			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
-				${OPENSSL_CONF} --prefix=${CMAKE_BINARY_DIR}/libs/src/install-prefix
-			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
-				make depend && make
-			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL && 
-				make install
-		)
-	endif()
-	ExternalProject_Add(OpenSSL
-		${EP_CONFIGS}
-		URL https://www.openssl.org/source/openssl-1.0.2j.tar.gz
-		URL_MD5 96322138f0b69e61b7212bc53d5e912b
-		${OPENSSL_CONFS}
-	)
-	set_target_properties(OpenSSL PROPERTIES ${EP_PROPS})
-	if (WIN32)
-		set(OPENSSL_LIBRARIES
-			Crypt32
-			${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/libeay32.lib
-			${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/ssleay32.lib
-		)
-	endif()
-else()
-	find_package(OpenSSL)
-endif()
 
 #######################
 
@@ -550,10 +497,9 @@ add_custom_target(nekoml.std ALL DEPENDS ${nekoml_std})
 #######################
 
 add_custom_target(download_static_deps)
-
-foreach(dep ${STATIC_DEPS})
-	add_dependencies(download_static_deps ${dep}-download)
-endforeach()
+if (STATIC_BOEHMGC)
+	add_dependencies(download_static_deps BoehmGC-download)
+endif()
 
 #######################
 
@@ -761,11 +707,11 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
 		message( FATAL_ERROR "CMAKE_OSX_ARCHITECTURES should be i386 or x86_64." )
 	endif()
 else()
-	if(CMAKE_SIZEOF_VOID_P EQUAL 8) 
+	if(CMAKE_SIZEOF_VOID_P EQUAL 8)
 		set(arch_64 "64")
-	else() 
+	else()
 		set(arch_64 "")
-	endif() 
+	endif()
 endif()
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")

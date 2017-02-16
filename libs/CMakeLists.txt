@@ -18,7 +18,7 @@ if (WITH_UI)
 endif()
 
 if (WITH_APACHE)
-
+	# Locate Apache
 	if (STATIC_APACHE)
 		if (STATIC_OPENSSL)
 			set(OPENSSL_CONF --with-openssl=${CMAKE_BINARY_DIR}/libs/src/install-prefix)
@@ -73,7 +73,7 @@ if (WITH_APACHE)
 					--silent
 				BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APR &&
 					make CFLAGS=-w
-				INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APR && 
+				INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APR &&
 					make install
 			)
 		endif()
@@ -104,7 +104,7 @@ if (WITH_APACHE)
 						${OPENSSL_CONF}
 				BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APRutil &&
 					make CFLAGS=-w
-				INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APRutil && 
+				INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APRutil &&
 					make install
 			)
 		endif()
@@ -171,7 +171,10 @@ if (WITH_APACHE)
 			${Apache_CONFIGS}
 		)
 		set_target_properties(Apache PROPERTIES ${EP_PROPS})
-		add_dependencies(mod_neko2.ndll Apache APR APRutil)
+		# Download sources for fat source archive
+		add_dependencies(download_static_deps Apache-download)
+		add_dependencies(download_static_deps APR-download)
+		add_dependencies(download_static_deps APRutil-download)
 	else()
 		find_package(APACHE REQUIRED)
 		find_package(APR REQUIRED)

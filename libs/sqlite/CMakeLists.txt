@@ -29,6 +29,8 @@ if (STATIC_SQLITE3)
 	else()
 		target_compile_definitions(sqlite.ndll PRIVATE SQLITE_MAX_VARIABLE_NUMBER=250000 SQLITE_ENABLE_RTREE=1)
 	endif()
+	# Download project for fat source archive
+	add_dependencies(download_static_deps Sqlite3-download)
 else()
 	add_library(sqlite.ndll MODULE ${EXCLUDE_SQLITE_NDLL_FROM_ALL} sqlite.c)
 	pkg_check_modules(SQLITE3 REQUIRED sqlite3)
