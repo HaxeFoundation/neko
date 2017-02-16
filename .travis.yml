@@ -57,9 +57,10 @@ install:
   - if [ "${STATIC_DEPS}" = "all" ]; then
       make package &&
       make source_archive_fat &&
-      tar xvf bin/neko-*-${TRAVIS_OS_NAME}*.tar.gz &&
+      tar xf bin/neko-*-${TRAVIS_OS_NAME}*.tar.gz &&
       cd neko-*-${TRAVIS_OS_NAME}* &&
-      export PATH=`pwd`:$PATH;
+      export PATH=`pwd`:$PATH &&
+      export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:`pwd`/lib/neko;
     else
       sudo make install;
     fi

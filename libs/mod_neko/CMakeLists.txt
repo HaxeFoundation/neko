@@ -2,7 +2,7 @@
 ######################
 # mod_neko2.ndll
 
-add_library(mod_neko2.ndll MODULE ${EXCLUDE_MOD_NEKO2_NDLL_FROM_ALL}
+add_library(mod_neko2.ndll MODULE
 	../../vm/stats.c # FIXME
 	mod_neko.c
 	cgi.c

@@ -16,7 +16,7 @@ if (STATIC_SQLITE3)
 		DEPENDS Sqlite3
 	)
 
-	add_library(sqlite.ndll MODULE ${EXCLUDE_SQLITE_NDLL_FROM_ALL}
+	add_library(sqlite.ndll MODULE
 		sqlite.c
 		${CMAKE_BINARY_DIR}/libs/src/Sqlite3/sqlite3.c
 	)
@@ -32,7 +32,7 @@ if (STATIC_SQLITE3)
 	# Download project for fat source archive
 	add_dependencies(download_static_deps Sqlite3-download)
 else()
-	add_library(sqlite.ndll MODULE ${EXCLUDE_SQLITE_NDLL_FROM_ALL} sqlite.c)
+	add_library(sqlite.ndll MODULE sqlite.c)
 	pkg_check_modules(SQLITE3 REQUIRED sqlite3)
 	target_include_directories(sqlite.ndll PRIVATE ${SQLITE3_INCLUDEDIR} ${SQLITE3_INCLUDE_DIRS})
 	target_link_libraries(sqlite.ndll libneko ${SQLITE3_LIBRARIES})

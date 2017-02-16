@@ -2,7 +2,7 @@
 ######################
 # mod_tora2.ndll
 
-add_library(mod_tora2.ndll MODULE ${EXCLUDE_MOD_TORA2_NDLL_FROM_ALL}
+add_library(mod_tora2.ndll MODULE
 	protocol.c
 	mod_tora.c
 )

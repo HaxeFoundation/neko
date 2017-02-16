@@ -3,7 +3,7 @@ include(FindPkgConfig)
 ######################
 # ui.ndll
 
-add_library(ui.ndll MODULE ${EXCLUDE_UI_NDLL_FROM_ALL} ui.c)
+add_library(ui.ndll MODULE ui.c)
 
 target_link_libraries(ui.ndll libneko)
 

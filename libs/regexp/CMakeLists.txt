@@ -2,7 +2,7 @@
 ######################
 # regexp.ndll
 
-add_library(regexp.ndll MODULE ${EXCLUDE_REGEXP_NDLL_FROM_ALL} regexp.c)
+add_library(regexp.ndll MODULE regexp.c)
 if (STATIC_PCRE)
 	if (WIN32)
 		ExternalProject_Add(PCRE

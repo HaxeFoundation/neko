@@ -2,7 +2,7 @@
 ######################
 # ssl.ndll
 
-add_library(ssl.ndll MODULE ${EXCLUDE_SSL_NDLL_FROM_ALL} ssl.c)
+add_library(ssl.ndll MODULE ssl.c)
 
 if (STATIC_MBEDTLS)
 	set(MBEDTLS_CMAKE_ARGS

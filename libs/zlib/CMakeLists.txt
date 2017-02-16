@@ -3,7 +3,7 @@ include(FindPkgConfig)
 ######################
 # zlib.ndll
 
-add_library(zlib.ndll MODULE ${EXCLUDE_ZLIB_NDLL_FROM_ALL} zlib.c)
+add_library(zlib.ndll MODULE zlib.c)
 
 
 if (STATIC_ZLIB)

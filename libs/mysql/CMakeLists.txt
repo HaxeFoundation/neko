@@ -57,7 +57,7 @@ endif()
 ######################
 # mysql.ndll
 
-add_library(mysql.ndll MODULE ${EXCLUDE_MYSQL_NDLL_FROM_ALL} mysql.c)
+add_library(mysql.ndll MODULE mysql.c)
 
 if (STATIC_MARIADBCONNECTOR)
 	if (STATIC_OPENSSL)
@@ -125,7 +125,7 @@ endif(APPLE)
 ######################
 # mysql5.ndll
 
-add_library(mysql5.ndll MODULE ${EXCLUDE_MYSQL5_NDLL_FROM_ALL}
+add_library(mysql5.ndll MODULE
 	my_proto/my_proto.c
 	my_proto/my_api.c
 	mysql.c
