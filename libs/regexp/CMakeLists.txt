@@ -10,6 +10,7 @@ if (STATIC_PCRE)
 			URL http://downloads.sourceforge.net/project/pcre/pcre/8.39/pcre-8.39.tar.gz
 			URL_MD5 26a76d97e04c89fe9ce22ecc1cd0b315
 			CMAKE_ARGS
+				-G ${CMAKE_GENERATOR}
 				-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/install-prefix
 				-Wno-dev
 				-DPCRE_BUILD_PCRECPP=OFF

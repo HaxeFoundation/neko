@@ -36,7 +36,7 @@
 #define tmp_alloc(size) malloc(size)
 #define tmp_free(ptr)	free(ptr)
 
-#if defined(NEKO_X86) && !defined(NEKO_MAC)
+#if defined(NEKO_X86) && !defined(NEKO_MAC) && !defined(_WIN64)
 #define JIT_ENABLE
 #endif
 

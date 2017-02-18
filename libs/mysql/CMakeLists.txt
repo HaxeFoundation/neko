@@ -15,14 +15,24 @@ if (STATIC_OPENSSL)
 	if (WIN32)
 		# perl is needed to run the openssl Configure script...
 		find_package(Perl REQUIRED)
+		if (arch_64)
+			set(openssl_target VC-WIN64A)
+			set(openssl_script ms/do_win64a.bat)
+		else()
+			set(openssl_target VC-WIN32)
+			set(openssl_script ms/do_ms.bat)
+		endif()
+		message("arch_64 is ${arch_64}")
+		message("openssl_target is ${openssl_target}")
+		message("openssl_script is ${openssl_script}")
 		set(OPENSSL_CONFS
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
-				${PERL_EXECUTABLE} Configure VC-WIN32 no-asm --prefix=${CMAKE_BINARY_DIR}/libs/src/install-prefix &&
-				call ms/do_ms.bat
+				${PERL_EXECUTABLE} Configure ${openssl_target} no-asm --prefix=${CMAKE_BINARY_DIR}/libs/src/install-prefix &&
+				call ${openssl_script}
 			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
-				nmake /S -f ms/nt.mak
+				nmake /S -f ms/nt.mak PLATFORM=${openssl_target}
 			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
-				nmake /S -f ms/nt.mak install
+				nmake /S -f ms/nt.mak PLATFORM=${openssl_target} install
 		)
 	else()
 		set(OPENSSL_CONFS
@@ -36,8 +46,8 @@ if (STATIC_OPENSSL)
 	endif()
 	ExternalProject_Add(OpenSSL
 		${EP_CONFIGS}
-		URL https://www.openssl.org/source/openssl-1.0.2j.tar.gz
-		URL_MD5 96322138f0b69e61b7212bc53d5e912b
+		URL https://www.openssl.org/source/openssl-1.0.2k.tar.gz
+		URL_MD5 f965fc0bf01bf882b31314b61391ae65
 		${OPENSSL_CONFS}
 	)
 	set_target_properties(OpenSSL PROPERTIES ${EP_PROPS})
@@ -70,8 +80,8 @@ if (STATIC_MARIADBCONNECTOR)
 	ExternalProject_Add(MariaDBConnector
 		${EP_CONFIGS}
 		DEPENDS ${OPENSSL_DEP}
-		URL https://downloads.mariadb.org/f/connector-c-2.3.1/mariadb-connector-c-2.3.1-src.tar.gz
-		URL_MD5 26a491253bd93a3831cdfc077a83ccc7
+		URL https://downloads.mariadb.org/f/connector-c-2.3.2/mariadb-connector-c-2.3.2-src.tar.gz
+		URL_MD5 cbee903e8581ca73b0aecfe9b7498c65
 		CMAKE_ARGS
 			-Wno-dev
 			-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
