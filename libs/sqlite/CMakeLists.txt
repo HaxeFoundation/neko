@@ -50,3 +50,5 @@ install (
 	TARGETS sqlite.ndll
 	DESTINATION ${DEST_NDLL}
 )
+
+install(SCRIPT ${NEKO_FLATTEN_SCRIPT})

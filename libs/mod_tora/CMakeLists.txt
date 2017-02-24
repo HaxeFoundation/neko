@@ -46,3 +46,5 @@ install (
 	TARGETS mod_tora2.ndll
 	DESTINATION ${DEST_NDLL}
 )
+
+install(SCRIPT ${NEKO_FLATTEN_SCRIPT})

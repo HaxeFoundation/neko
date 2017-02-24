@@ -679,12 +679,14 @@ if (RUN_LDCONFIG)
 	install(SCRIPT "${CMAKE_SOURCE_DIR}/cmake/ldconfig.cmake")
 endif()
 
+# A script to create a flat installation for archive package
+set (NEKO_FLATTEN_SCRIPT ${CMAKE_BINARY_DIR}/cmake/flatten.cmake)
 configure_file(
 	"${CMAKE_SOURCE_DIR}/cmake/flatten.cmake.in"
-	"${CMAKE_BINARY_DIR}/cmake/flatten.cmake"
+	${NEKO_FLATTEN_SCRIPT}
 	IMMEDIATE @ONLY)
 
-install(SCRIPT "${CMAKE_BINARY_DIR}/cmake/flatten.cmake")
+install(SCRIPT ${NEKO_FLATTEN_SCRIPT})
 
 # uninstall target
 configure_file(

@@ -59,8 +59,7 @@ install:
       make source_archive_fat &&
       tar xf bin/neko-*-${TRAVIS_OS_NAME}*.tar.gz &&
       cd neko-*-${TRAVIS_OS_NAME}* &&
-      export PATH=`pwd`:$PATH &&
-      export NEKOPATH=$LD_LIBRARY_PATH:`pwd`/lib/neko;
+      export PATH=`pwd`:$PATH;
     else
       sudo make install;
     fi
