@@ -103,15 +103,14 @@ cmake "-Doption=value" ..
 
 #### NDLLs
 
-Settings that allow to exclude libraries and their dependencies from the build; available on all platforms. By default all are "ON":
+Settings that allow to exclude libraries and their dependencies from the build; available on all platforms. By default all are `ON`:
 
-- WITH_REGEXP - Build Perl-compatible regex support
-- WITH_UI - Build GTK-2 UI support
-- WITH_SSL - Build SSL support
-- WITH_MYSQL - Build MySQL support
-- WITH_SQLITE - Build Sqlite support
-- WITH_APACHE - Build Apach modules
-
+- `WITH_REGEXP` - Build Perl-compatible regex support
+- `WITH_UI` - Build GTK-2 UI support
+- `WITH_SSL` - Build SSL support
+- `WITH_MYSQL` - Build MySQL support
+- `WITH_SQLITE` - Build Sqlite support
+- `WITH_APACHE` - Build Apach modules
 
 #### `STATIC_DEPS`
 
