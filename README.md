@@ -101,11 +101,17 @@ A number of options can be used to customize the build. They can be specified in
 cmake "-Doption=value" ..
 ```
 
-#### `WITH_NDLLS`
+#### NDLLs
 
-Available on all platforms. Default value: `std.ndll;zlib.ndll;mysql.ndll;mysql5.ndll;regexp.ndll;sqlite.ndll;ui.ndll;mod_neko2.ndll;mod_tora2.ndll;ssl.ndll`
+Settings that allow to exclude libraries and their dependencies from the build; available on all platforms. By default all are "ON":
 
-It defines the ndll files to be built. You may remove ndlls from this list, such that you can avoid installing/building some dependencies.
+- WITH_REGEXP - Build Perl-compatible regex support
+- WITH_UI - Build GTK-2 UI support
+- WITH_SSL - Build SSL support
+- WITH_MYSQL - Build MySQL support
+- WITH_SQLITE - Build Sqlite support
+- WITH_APACHE - Build Apach modules
+
 
 #### `STATIC_DEPS`
 
