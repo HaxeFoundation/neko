@@ -164,6 +164,7 @@ void myp_write_ui16( MYSQL_PACKET *p, int b );
 void myp_write_int( MYSQL_PACKET *p, int b );
 
 void myp_write_string( MYSQL_PACKET *p, const char *str );
+void myp_write_string_eof( MYSQL_PACKET *p, const char *str );
 void myp_write_bin( MYSQL_PACKET *p, int size );
 
 // passwords
