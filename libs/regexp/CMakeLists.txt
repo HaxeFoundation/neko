@@ -7,8 +7,8 @@ if (STATIC_PCRE)
 	if (WIN32)
 		ExternalProject_Add(PCRE
 			${EP_CONFIGS}
-			URL http://downloads.sourceforge.net/project/pcre/pcre/8.39/pcre-8.39.tar.gz
-			URL_MD5 26a76d97e04c89fe9ce22ecc1cd0b315
+			URL http://downloads.sourceforge.net/project/pcre/pcre/8.40/pcre-8.40.tar.gz
+			URL_MD5 890c808122bd90f398e6bc40ec862102
 			CMAKE_ARGS
 				-G ${CMAKE_GENERATOR}
 				-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/install-prefix
@@ -26,8 +26,8 @@ if (STATIC_PCRE)
 	else()
 		ExternalProject_Add(PCRE
 			${EP_CONFIGS}
-			URL http://downloads.sourceforge.net/project/pcre/pcre/8.39/pcre-8.39.tar.gz
-			URL_MD5 26a76d97e04c89fe9ce22ecc1cd0b315
+			URL http://downloads.sourceforge.net/project/pcre/pcre/8.40/pcre-8.40.tar.gz
+			URL_MD5 890c808122bd90f398e6bc40ec862102
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/PCRE &&
 				./configure
 					--prefix=${CMAKE_BINARY_DIR}/libs/src/install-prefix
