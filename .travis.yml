@@ -41,7 +41,7 @@ install:
       elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
           brew tap homebrew/dupes;
           brew update;
-          brew install bdw-gc pcre mariadb-connector-c mbedtls;
+          brew install bdw-gc mariadb-connector-c mbedtls;
       fi;
     fi
   # build, test, and install
