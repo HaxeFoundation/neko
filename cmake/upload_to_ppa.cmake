@@ -68,8 +68,8 @@ set(distros
 	precise
 	trusty
 	vivid
-	wily
 	xenial
+	yakkety
 )
 
 if (DEFINED ENV{PPA})
