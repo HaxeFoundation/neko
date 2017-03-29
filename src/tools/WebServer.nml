@@ -597,7 +597,7 @@ function client_msg_safe(c) {
 	try {
 		client_msg(c);
 	} catch {
-		| Invalid_char -> printf "Invalid char reveived\n" ();
+		| Invalid_char -> printf "Invalid char received\n" ();
 		| IO.Eof -> printf "Connection aborted\n" ();
 		| Neko_error e when Reflect.value e == Reflect.VString "std@socket_send" -> printf "Sending file aborted\n" ();
 	}
