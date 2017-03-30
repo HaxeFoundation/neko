@@ -220,6 +220,10 @@ void myp_write_string( MYSQL_PACKET *p, const char *str ) {
 	myp_write(p,str,strlen(str) + 1);
 }
 
+void myp_write_string_eof( MYSQL_PACKET *p, const char *str ) {
+	myp_write(p,str,strlen(str));
+}
+
 void myp_write_bin( MYSQL_PACKET *p, int size ) {
 	if( size <= 250 ) {
 		unsigned char l = (unsigned char)size;

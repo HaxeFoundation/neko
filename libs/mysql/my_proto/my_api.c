@@ -254,7 +254,7 @@ int mysql_select_db( MYSQL *m, const char *dbname ) {
 	int pcount = 0;
 	myp_begin_packet(p,0);
 	myp_write_byte(p,COM_INIT_DB);
-	myp_write_string(p,dbname);
+	myp_write_string_eof(p,dbname);
 	if( !myp_send_packet(m,p,&pcount) ) {
 		error(m,"Failed to send packet",NULL);
 		return -1;
