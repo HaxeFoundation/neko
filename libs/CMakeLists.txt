@@ -56,6 +56,12 @@ if (WITH_APACHE)
 			set(ZLIB_DEP "")
 		endif()
 
+		if (APPLE)
+			set(APACHE_CFLAGS "-w -mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
+		else()
+			set(APACHE_CFLAGS "-w")
+		endif()
+
 		if(WIN32)
 			set(APR_CONFIGS
 				CMAKE_ARGS
@@ -72,7 +78,7 @@ if (WITH_APACHE)
 					--enable-static=yes
 					--silent
 				BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APR &&
-					make CFLAGS=-w
+					make "CFLAGS=${APACHE_CFLAGS}"
 				INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APR &&
 					make install
 			)
@@ -103,7 +109,7 @@ if (WITH_APACHE)
 						${APR_CONF}
 						${OPENSSL_CONF}
 				BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APRutil &&
-					make CFLAGS=-w
+					make "CFLAGS=${APACHE_CFLAGS}"
 				INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APRutil &&
 					make install
 			)

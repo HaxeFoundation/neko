@@ -5,9 +5,9 @@
 if (STATIC_OPENSSL)
 	if (APPLE)
 		if (${CMAKE_OSX_ARCHITECTURES} STREQUAL "i386")
-			set(OPENSSL_CONF ./Configure darwin-i386-cc)
+			set(OPENSSL_CONF ./Configure darwin-i386-cc "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
 		elseif (${CMAKE_OSX_ARCHITECTURES} STREQUAL "x86_64")
-			set(OPENSSL_CONF ./Configure darwin64-x86_64-cc)
+			set(OPENSSL_CONF ./Configure darwin64-x86_64-cc "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
 		endif()
 	else()
 		set(OPENSSL_CONF ./config)
@@ -86,6 +86,7 @@ if (STATIC_MARIADBCONNECTOR)
 		CMAKE_ARGS
 			-Wno-dev
 			-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
+			-DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}
 			-DWITH_OPENSSL=ON
 			${OPENSSL_CONF}
 		PATCH_COMMAND ${CMAKE_COMMAND} -Dmariadb_source=${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector -P ${CMAKE_SOURCE_DIR}/cmake/patch_mariadb.cmake

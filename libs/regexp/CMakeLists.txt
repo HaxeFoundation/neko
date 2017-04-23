@@ -24,6 +24,11 @@ if (STATIC_PCRE)
 			debug ${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/pcred.lib
 		)
 	else()
+		if (APPLE)
+			set(PCRE_CFLAGS "-w -mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
+		else()
+			set(PCRE_CFLAGS "-w")
+		endif()
 		ExternalProject_Add(PCRE
 			${EP_CONFIGS}
 			URL http://downloads.sourceforge.net/project/pcre/pcre/8.40/pcre-8.40.tar.gz
@@ -40,7 +45,7 @@ if (STATIC_PCRE)
 					--enable-static=yes
 					--silent
 			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/PCRE &&
-				make CFLAGS=-w
+				make "CFLAGS=${PCRE_CFLAGS}"
 			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/PCRE &&
 				make install
 		)

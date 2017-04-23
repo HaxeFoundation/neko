@@ -106,6 +106,12 @@ else()
 	set(NEKO_MODULE_PATH ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/neko)
 endif()
 
+if(APPLE AND STATIC_DEPS STREQUAL "all")
+	if(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
+		set(CMAKE_OSX_DEPLOYMENT_TARGET "10.9" CACHE STRING "CMAKE_OSX_DEPLOYMENT_TARGET" FORCE)
+	endif()
+endif()
+
 configure_file (
 	"${CMAKE_SOURCE_DIR}/vm/neko.h.in"
 	"${CMAKE_BINARY_DIR}/neko.h"
@@ -320,6 +326,12 @@ if (STATIC_BOEHMGC)
 		)
 		add_dependencies(nekovm gcmt-dll.dll)
 	else()
+		if (APPLE)
+			set(GC_CFLAGS "-w -mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
+		else()
+			set(GC_CFLAGS "-w")
+		endif()
+
 		ExternalProject_Add(libatomic_ops
 			${EP_CONFIGS}
 			URL http://www.ivmaisoft.com/_bin/atomic_ops/libatomic_ops-7.4.2.tar.gz
@@ -345,7 +357,7 @@ if (STATIC_BOEHMGC)
 					--enable-silent-rules
 					--silent
 			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/BoehmGC &&
-				make CFLAGS=-w
+				make "CFLAGS=${GC_CFLAGS}"
 			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/BoehmGC &&
 				make install
 		)
