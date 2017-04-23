@@ -6,6 +6,7 @@ os:
 
 sudo: required
 dist: trusty
+osx_image: xcode6.4
 
 env:
   global:
