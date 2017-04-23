@@ -26,21 +26,21 @@ if (STATIC_OPENSSL)
 		message("openssl_target is ${openssl_target}")
 		message("openssl_script is ${openssl_script}")
 		set(OPENSSL_CONFS
-			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
+			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/openssl &&
 				${PERL_EXECUTABLE} Configure ${openssl_target} no-asm --prefix=${CMAKE_BINARY_DIR}/libs/src/install-prefix &&
 				call ${openssl_script}
-			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
+			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/openssl &&
 				nmake /S -f ms/nt.mak PLATFORM=${openssl_target}
-			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
+			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/openssl &&
 				nmake /S -f ms/nt.mak PLATFORM=${openssl_target} install
 		)
 	else()
 		set(OPENSSL_CONFS
-			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
+			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/openssl &&
 				${OPENSSL_CONF} --prefix=${CMAKE_BINARY_DIR}/libs/src/install-prefix
-			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
+			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/openssl &&
 				make depend && make
-			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/OpenSSL &&
+			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/openssl &&
 				make install
 		)
 	endif()
@@ -49,6 +49,7 @@ if (STATIC_OPENSSL)
 		URL https://www.openssl.org/source/openssl-1.0.2k.tar.gz
 		URL_MD5 f965fc0bf01bf882b31314b61391ae65
 		${OPENSSL_CONFS}
+		SOURCE_DIR ${CMAKE_BINARY_DIR}/libs/src/openssl
 	)
 	set_target_properties(OpenSSL PROPERTIES ${EP_PROPS})
 	if (WIN32)
