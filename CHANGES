@@ -4,8 +4,13 @@
 	cmake : recognize common install location variables by using GNUInstallDirs
 	cmake : fixed various build issues, particularly for FreeBSD (Thanks, ppenzin!)
 	cmake : added NekoConfig.cmake to ease building ndll or native program using Neko with CMake
+	cmake : replaces WITH_NDLLS with WITH_* (#157)
 	all : added NEKO_MODULE_PATH in neko.h that points to the installation path of the ndll files
 	std : bugfix in utf8_compare (https://github.com/HaxeFoundation/haxe/issues/5308)
+	ssl : handle MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY (#150)
+	ssl : allow partial failure on loading certificates (#160)
+	mysql : use eof terminated string when appropriated (#159)
+	jit : disable jit for win64, which never worked
 
 2016-05-08 : 2.1.0
 	all : switched to use CMake for building (#122)
