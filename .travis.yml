@@ -6,7 +6,6 @@ os:
 
 sudo: required
 dist: trusty
-osx_image: xcode6.4
 
 env:
   global:
@@ -24,6 +23,9 @@ install:
       if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
           sudo apt-get update -qq;
           sudo apt-get install pkg-config libgtk2.0-dev -qq;
+      elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
+          brew update;
+          brew upgrade cmake;
       fi;
     else
       if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
