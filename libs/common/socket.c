@@ -120,7 +120,7 @@ PHOST phost_resolve( const char *host ) {
 	PHOST ip = inet_addr(host);
 	if( ip == INADDR_NONE ) {
 		struct hostent *h;
-#	if defined(OS_WINDOWS) || defined(OS_MAC)
+#	if defined(OS_WINDOWS) || defined(OS_MAC) || defined(OS_CYGWIN)
 		h = gethostbyname(host);
 #	else
 		struct hostent hbase;

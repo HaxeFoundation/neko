@@ -190,7 +190,7 @@ static value set_cwd( value d ) {
 	</doc>
 **/
 static value sys_string() {
-#if defined(NEKO_WINDOWS)
+#if defined(NEKO_WINDOWS) || defined(NEKO_CYGWIN)
 	return alloc_string("Windows");
 #elif defined(NEKO_GNUKBSD)
 	return alloc_string("GNU/kFreeBSD");

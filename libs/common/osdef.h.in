@@ -42,7 +42,11 @@
 #	define OS_HURD
 #endif
 
-#if defined(OS_LINUX) || defined(OS_MAC) || defined(OS_BSD) || defined(OS_GNUKBSD) || defined (OS_HURD)
+#if defined(__CYGWIN__)
+#	define OS_CYGWIN
+#endif
+
+#if defined(OS_LINUX) || defined(OS_MAC) || defined(OS_BSD) || defined(OS_GNUKBSD) || defined (OS_HURD) || defined (OS_CYGWIN)
 #	define OS_POSIX
 #endif
 

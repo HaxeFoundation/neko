@@ -62,6 +62,10 @@
 #	define NEKO_MINGW
 #endif
 
+#if defined(__CYGWIN__)
+#	define NEKO_CYGWIN
+#endif
+
 #if defined(__i386__) || defined(_WIN32)
 #	define NEKO_X86
 #endif
@@ -74,7 +78,7 @@
 #	define NEKO_64BITS
 #endif
 
-#if defined(NEKO_LINUX) || defined(NEKO_MAC) || defined(NEKO_BSD) || defined(NEKO_GNUKBSD) || defined(NEKO_HURD)
+#if defined(NEKO_LINUX) || defined(NEKO_MAC) || defined(NEKO_BSD) || defined(NEKO_GNUKBSD) || defined(NEKO_HURD) || defined(NEKO_CYGWIN)
 #	define NEKO_POSIX
 #endif
 

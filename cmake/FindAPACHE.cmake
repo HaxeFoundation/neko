@@ -13,6 +13,12 @@ find_path(APACHE_INCLUDE_DIR
           PATH_SUFFIXES httpd apache apache2 apache22 apache24
 )
 
+set(HTTPD_NAMES ${HTTPD_NAMES} httpd)
+find_library(HTTPD_LIBRARIES
+      NAMES ${HTTPD_NAMES}
+      PATHS /usr/lib /usr/local/lib
+)
+
 if(NOT DEFINED APACHE_MODULE_DIR)
    find_program(APXS_BIN NAMES apxs apxs2
              PATH_SUFFIXES httpd apache apache2
@@ -29,4 +35,4 @@ include(FindPackageHandleStandardArgs)
 # handle the QUIETLY and REQUIRED arguments and set APACHE_FOUND to TRUE if 
 # all listed variables are TRUE
 find_package_handle_standard_args(APACHE DEFAULT_MSG APACHE_INCLUDE_DIR )
-mark_as_advanced(APACHE_INCLUDE_DIR)
+mark_as_advanced(APACHE_INCLUDE_DIR HTTPD_LIBRARIES)

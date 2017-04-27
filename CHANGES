@@ -2,7 +2,7 @@
 	nekotools : added `nekotools boot -c *.n`, which generates a C file that contains the input Neko bytecode (#130)
 	nekotools : fixed `nekotools boot` not able to find neko when a value in PATH does not have a trailing slash (#148)
 	cmake : recognize common install location variables by using GNUInstallDirs
-	cmake : fixed various build issues, particularly for FreeBSD (Thanks, ppenzin!)
+	cmake : fixed various build issues, particularly for FreeBSD (Thanks, ppenzin!), and cygwin
 	cmake : added NekoConfig.cmake to ease building ndll or native program using Neko with CMake
 	cmake : replaces WITH_NDLLS with WITH_* (#157)
 	all : added NEKO_MODULE_PATH in neko.h that points to the installation path of the ndll files
