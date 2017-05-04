@@ -76,6 +76,7 @@ set(WITH_SSL ON CACHE BOOL "Build SSL support.")
 set(WITH_MYSQL ON CACHE BOOL "Build MySQL support.")
 set(WITH_SQLITE ON CACHE BOOL "Build Sqlite support.")
 set(WITH_APACHE ON CACHE BOOL "Build Apach modules.")
+set(WITH_NEKOML ON CACHE BOOL "Build NekoML.")
 
 # Process common headers in libraries
 # TODO libraries should not be built from this file, but rather by traversing the tree using add_subdirectory
@@ -487,17 +488,19 @@ add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/nekoc.c
 add_executable(nekoc ${CMAKE_BINARY_DIR}/nekoc.c)
 target_link_libraries(nekoc libneko)
 
-add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/nekoml.c
-	COMMAND ${set_neko_env}
-	COMMAND ${neko_exec} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoboot -c ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoml.n
-	COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoml.c ${CMAKE_BINARY_DIR}
-	COMMAND ${CMAKE_COMMAND} -E remove ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoml.c
-	VERBATIM
-	DEPENDS nekovm std.ndll ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoboot.n ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoml.n
-	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-)
-add_executable(nekoml ${CMAKE_BINARY_DIR}/nekoml.c)
-target_link_libraries(nekoml libneko)
+if (WITH_NEKOML)
+	add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/nekoml.c
+		COMMAND ${set_neko_env}
+		COMMAND ${neko_exec} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoboot -c ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoml.n
+		COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoml.c ${CMAKE_BINARY_DIR}
+		COMMAND ${CMAKE_COMMAND} -E remove ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoml.c
+		VERBATIM
+		DEPENDS nekovm std.ndll ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoboot.n ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoml.n
+		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+	)
+	add_executable(nekoml ${CMAKE_BINARY_DIR}/nekoml.c)
+	target_link_libraries(nekoml libneko)
+endif()
 
 add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/nekotools.c
 	COMMAND ${set_neko_env}
@@ -511,16 +514,18 @@ add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/nekotools.c
 add_executable(nekotools ${CMAKE_BINARY_DIR}/nekotools.c)
 target_link_libraries(nekotools libneko)
 
-file(GLOB CORE_NMLS RELATIVE ${CMAKE_SOURCE_DIR}/src src/core/*.nml)
-set(nekoml_std ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoml.std)
-add_custom_command(OUTPUT ${nekoml_std}
-	COMMAND ${set_neko_env}
-	COMMAND ${neko_exec} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoml.n -nostd neko/Main.nml nekoml/Main.nml ${CORE_NMLS} -pack ${nekoml_std}
-	VERBATIM
-	DEPENDS zlib.ndll ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoml.n
-	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src
-)
-add_custom_target(nekoml.std ALL DEPENDS ${nekoml_std})
+if (WITH_NEKOML)
+	file(GLOB CORE_NMLS RELATIVE ${CMAKE_SOURCE_DIR}/src src/core/*.nml)
+	set(nekoml_std ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoml.std)
+	add_custom_command(OUTPUT ${nekoml_std}
+		COMMAND ${set_neko_env}
+		COMMAND ${neko_exec} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoml.n -nostd neko/Main.nml nekoml/Main.nml ${CORE_NMLS} -pack ${nekoml_std}
+		VERBATIM
+		DEPENDS zlib.ndll ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoml.n
+		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src
+	)
+	add_custom_target(nekoml.std ALL DEPENDS ${nekoml_std})
+endif()
 
 #######################
 
@@ -607,7 +612,6 @@ install (
 	TARGETS
 		nekovm
 		nekoc
-		nekoml
 		nekotools
 		libneko
 	EXPORT NekoTargets
@@ -615,10 +619,21 @@ install (
 	LIBRARY DESTINATION ${DEST_LIB}
 	PUBLIC_HEADER DESTINATION ${DEST_INCLUDE}
 )
-install (
-	FILES ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoml.std
-	DESTINATION ${DEST_NDLL}
-)
+
+if (WITH_NEKOML)
+	install (
+		TARGETS
+			nekoml
+		EXPORT NekoTargets
+		RUNTIME DESTINATION ${DEST_BIN}
+		LIBRARY DESTINATION ${DEST_LIB}
+		PUBLIC_HEADER DESTINATION ${DEST_INCLUDE}
+	)
+	install (
+		FILES ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nekoml.std
+		DESTINATION ${DEST_NDLL}
+	)
+endif()
 
 if (NOT ${CMAKE_VERSION} VERSION_LESS 2.8.8)
 	include(CMakePackageConfigHelpers)
@@ -635,10 +650,14 @@ if (NOT ${CMAKE_VERSION} VERSION_LESS 2.8.8)
 	export(TARGETS
 		nekovm
 		nekoc
-		nekoml
 		nekotools
 		libneko
 		FILE "${CMAKE_BINARY_DIR}/NekoTargets.cmake")
+	if (WITH_NEKOML)
+		export(TARGETS
+			nekoml
+			FILE "${CMAKE_BINARY_DIR}/NekoTargets.cmake")
+	endif()
 
 	export(PACKAGE Neko)
 
@@ -785,10 +804,17 @@ add_test(NAME nekoc
 	WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
 )
 
-add_test(NAME nekoml
-	COMMAND nekoml
-	WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
-)
+if (WITH_NEKOML)
+	add_test(NAME nekoml
+		COMMAND nekoml
+		WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+	)
+	
+	set_tests_properties(nekoml
+		PROPERTIES
+		ENVIRONMENT LD_LIBRARY_PATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+	)
+endif()
 
 add_test(NAME nekotools
 	COMMAND nekotools
@@ -796,7 +822,7 @@ add_test(NAME nekotools
 )
 
 if (UNIX AND NOT APPLE)
-	set_tests_properties(-version test.n nekoc nekoml nekotools
+	set_tests_properties(-version test.n nekoc nekotools
 		PROPERTIES
 		ENVIRONMENT LD_LIBRARY_PATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
 	)
