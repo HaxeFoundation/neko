@@ -115,9 +115,9 @@ int neko_has_embedded_module( neko_vm *vm ) {
 		return 0;
 
 #ifdef SEPARATE_SECTION_FOR_BYTECODE
-	/* Look for a ,nekobytecode section in the executable... */
-	if ( val_true != elf_find_embedded_bytecode(exe,&beg,&end) ) {
-		/* Couldn't find a .nekobytecode section,
+	/* Look for a .nekobytecode section in the executable..., there is always a small section */
+	if ( val_true != elf_find_embedded_bytecode(exe,&beg,&end) || end-beg <= 8) {
+		/* Couldn't find a big enough .nekobytecode section,
 		   fallback to looking at the end of the executable... */
 		beg = -1; end = 0;
 	}
