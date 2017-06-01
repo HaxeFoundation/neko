@@ -46,8 +46,8 @@ if (STATIC_OPENSSL)
 	endif()
 	ExternalProject_Add(OpenSSL
 		${EP_CONFIGS}
-		URL https://www.openssl.org/source/openssl-1.0.2k.tar.gz
-		URL_MD5 f965fc0bf01bf882b31314b61391ae65
+		URL https://www.openssl.org/source/openssl-1.0.2l.tar.gz
+		URL_MD5 f85123cd390e864dfbe517e7616e6566
 		${OPENSSL_CONFS}
 		SOURCE_DIR ${CMAKE_BINARY_DIR}/libs/src/openssl
 	)
