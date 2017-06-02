@@ -17,46 +17,43 @@ if (STATIC_OPENSSL)
 		find_package(Perl REQUIRED)
 		if (arch_64)
 			set(openssl_target VC-WIN64A)
-			set(openssl_script ms/do_win64a.bat)
 		else()
 			set(openssl_target VC-WIN32)
-			set(openssl_script ms/do_ms.bat)
 		endif()
 		message("arch_64 is ${arch_64}")
 		message("openssl_target is ${openssl_target}")
-		message("openssl_script is ${openssl_script}")
 		set(OPENSSL_CONFS
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/openssl &&
-				${PERL_EXECUTABLE} Configure ${openssl_target} no-asm --prefix=${CMAKE_BINARY_DIR}/libs/src/install-prefix &&
-				call ${openssl_script}
+				${PERL_EXECUTABLE} Configure ${openssl_target} no-asm no-tests --prefix=${CMAKE_BINARY_DIR}/libs/src/install-prefix
 			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/openssl &&
-				nmake /S -f ms/nt.mak PLATFORM=${openssl_target}
+				nmake /S
 			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/openssl &&
-				nmake /S -f ms/nt.mak PLATFORM=${openssl_target} install
+				nmake /S install_sw
 		)
 	else()
 		set(OPENSSL_CONFS
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/openssl &&
-				${OPENSSL_CONF} --prefix=${CMAKE_BINARY_DIR}/libs/src/install-prefix
+				${OPENSSL_CONF} no-tests --prefix=${CMAKE_BINARY_DIR}/libs/src/install-prefix
 			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/openssl &&
-				make depend && make
+				make
 			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/openssl &&
-				make install
+				make install_sw
 		)
 	endif()
 	ExternalProject_Add(OpenSSL
 		${EP_CONFIGS}
-		URL https://www.openssl.org/source/openssl-1.0.2l.tar.gz
-		URL_MD5 f85123cd390e864dfbe517e7616e6566
+		URL https://www.openssl.org/source/openssl-1.1.0f.tar.gz
+		URL_MD5 7b521dea79ab159e8ec879d2333369fa
 		${OPENSSL_CONFS}
+		PATCH_COMMAND ${CMAKE_COMMAND} -Dopenssl_source=${CMAKE_BINARY_DIR}/libs/src/openssl -P ${CMAKE_SOURCE_DIR}/cmake/patch_openssl.cmake
 		SOURCE_DIR ${CMAKE_BINARY_DIR}/libs/src/openssl
 	)
 	set_target_properties(OpenSSL PROPERTIES ${EP_PROPS})
 	if (WIN32)
 		set(OPENSSL_LIBRARIES
 			Crypt32
-			${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/libeay32.lib
-			${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/ssleay32.lib
+			${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/libcrypto.lib
+			${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/libssl.lib
 		)
 	endif()
 	# Download project for fat source archive
