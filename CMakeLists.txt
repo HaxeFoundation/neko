@@ -84,19 +84,19 @@ set(WITH_NEKOML ON CACHE BOOL "Build NekoML.")
 #add_subdirectory(libs)
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
-    if (${CMAKE_OSX_ARCHITECTURES} STREQUAL "i386")
-        set(arch_64 "")
-    elseif (${CMAKE_OSX_ARCHITECTURES} STREQUAL "x86_64")
-        set(arch_64 "64")
-    else()
-        message( FATAL_ERROR "CMAKE_OSX_ARCHITECTURES should be i386 or x86_64." )
-    endif()
+	if (${CMAKE_OSX_ARCHITECTURES} STREQUAL "i386")
+		set(arch_64 "")
+	elseif (${CMAKE_OSX_ARCHITECTURES} STREQUAL "x86_64")
+		set(arch_64 "64")
+	else()
+		message( FATAL_ERROR "CMAKE_OSX_ARCHITECTURES should be i386 or x86_64." )
+	endif()
 else()
-    if(CMAKE_SIZEOF_VOID_P EQUAL 8) 
-        set(arch_64 "64")
-    else() 
-        set(arch_64 "")
-    endif() 
+	if(CMAKE_SIZEOF_VOID_P EQUAL 8) 
+		set(arch_64 "64")
+	else() 
+		set(arch_64 "")
+	endif() 
 endif()
 
 if(WIN32)
@@ -300,21 +300,27 @@ add_executable(nekovm
 )
 
 if (STATIC_BOEHMGC)
+	ExternalProject_Add(libatomic_ops
+		${EP_CONFIGS}
+		URL https://github.com/ivmai/libatomic_ops/releases/download/v7.6.0/libatomic_ops-7.6.0.tar.gz
+		URL_MD5 4d4cd729e55fafb56d48f667c3e46331
+		CONFIGURE_COMMAND echo skip config
+		BUILD_COMMAND echo skip build
+		INSTALL_COMMAND echo skip install
+	)
+
 	if (WIN32)
 		ExternalProject_Add(BoehmGC
 			${EP_CONFIGS}
-			URL http://www.hboehm.info/gc/gc_source/gc-7.1.tar.gz
-			URL_MD5 2ff9924c7249ef7f736ecfe6f08f3f9b
+			DEPENDS libatomic_ops
+			URL https://github.com/ivmai/bdwgc/archive/gc7_6_0.tar.gz
+			URL_MD5 63bfd95e01893c2941cbfd6f4d6c4a5a
 			CMAKE_ARGS
 				-Wno-dev
 				-Denable_threads=ON
+				-Denable_parallel_mark=ON
 				-DCMAKE_USE_WIN32_THREADS_INIT=ON
-			PATCH_COMMAND
-				${CMAKE_COMMAND} -E copy
-					${CMAKE_SOURCE_DIR}/libs/gc/CMakeLists.txt
-					${CMAKE_BINARY_DIR}/libs/src/BoehmGC/CMakeLists.txt
-				&& cd ${CMAKE_BINARY_DIR}/libs/src/BoehmGC &&
-				${GIT_EXECUTABLE} apply --ignore-space-change --ignore-whitespace --whitespace=nowarn --unsafe-paths ${CMAKE_SOURCE_DIR}/libs/gc/av_safety.patch
+			PATCH_COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/libs/src/libatomic_ops ${CMAKE_BINARY_DIR}/libs/src/BoehmGC/libatomic_ops
 			INSTALL_COMMAND
 				${CMAKE_COMMAND} -E copy_directory
 					${CMAKE_BINARY_DIR}/libs/src/BoehmGC/include
@@ -338,20 +344,6 @@ if (STATIC_BOEHMGC)
 		else()
 			set(GC_CFLAGS "-w")
 		endif()
-
-		set(GC_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/include)
-		set(GC_LIBRARIES
-			${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/lib/libgc.a
-		)
-
-		ExternalProject_Add(libatomic_ops
-			${EP_CONFIGS}
-			URL http://www.ivmaisoft.com/_bin/atomic_ops/libatomic_ops-7.4.2.tar.gz
-			URL_MD5 1d6538604b314d2fccdf86915e5c0857
-			CONFIGURE_COMMAND echo skip config
-			BUILD_COMMAND echo skip build
-			INSTALL_COMMAND echo skip install
-		)
 
 		ExternalProject_Add(BoehmGC
 			${EP_CONFIGS}
@@ -392,7 +384,7 @@ target_link_libraries(libneko ${GC_LIBRARIES})
 target_link_libraries(nekovm libneko)
 
 if(UNIX)
-        if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
+	if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
 		set(DL_LIB "dl")
 	endif()
 	find_package(Threads)
