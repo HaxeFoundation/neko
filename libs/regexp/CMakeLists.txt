@@ -29,6 +29,9 @@ if (STATIC_PCRE)
 		else()
 			set(PCRE_CFLAGS "-w")
 		endif()
+		set(PCRE_LIBRARIES
+			${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/libpcre.a
+		)
 		ExternalProject_Add(PCRE
 			${EP_CONFIGS}
 			URL http://downloads.sourceforge.net/project/pcre/pcre/8.40/pcre-8.40.tar.gz
@@ -48,9 +51,7 @@ if (STATIC_PCRE)
 				make "CFLAGS=${PCRE_CFLAGS}"
 			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/PCRE &&
 				make install
-		)
-		set(PCRE_LIBRARIES
-			${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/libpcre.a
+			BYPRODUCTS ${PCRE_LIBRARIES}
 		)
 	endif()
 	set_target_properties(PCRE PROPERTIES ${EP_PROPS})

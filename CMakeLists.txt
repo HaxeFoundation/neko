@@ -333,6 +333,11 @@ if (STATIC_BOEHMGC)
 			set(GC_CFLAGS "-w")
 		endif()
 
+		set(GC_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/include)
+		set(GC_LIBRARIES
+			${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/lib/libgc.a
+		)
+
 		ExternalProject_Add(libatomic_ops
 			${EP_CONFIGS}
 			URL http://www.ivmaisoft.com/_bin/atomic_ops/libatomic_ops-7.4.2.tar.gz
@@ -361,16 +366,13 @@ if (STATIC_BOEHMGC)
 				make "CFLAGS=${GC_CFLAGS}"
 			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/BoehmGC &&
 				make install
+			BYPRODUCTS
+				${GC_LIBRARIES}
 		)
 
 		# don't want to add libatomic_ops to external_deps,
 		# but want download_static_deps depends on it
 		add_dependencies(BoehmGC-download libatomic_ops-download)
-
-		set(GC_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/include)
-		set(GC_LIBRARIES
-			${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/lib/libgc.a
-		)
 	endif()
 	set_target_properties(BoehmGC PROPERTIES ${EP_PROPS})
 	add_dependencies(libneko BoehmGC)

@@ -19,17 +19,6 @@ if (STATIC_MBEDTLS)
 			${ARG_PIC}
 		)
 	endif()
-	ExternalProject_Add(MbedTLS
-		${EP_CONFIGS}
-		URL https://tls.mbed.org/download/mbedtls-2.4.2-apache.tgz
-		URL_MD5 8e3a8357e0fc23a3954a819027f5167e
-		CMAKE_ARGS ${MBEDTLS_CMAKE_ARGS}
-		PATCH_COMMAND ${CMAKE_COMMAND} -Dsource=${CMAKE_SOURCE_DIR} -DMbedTLS_source=${CMAKE_BINARY_DIR}/libs/src/MbedTLS -P ${CMAKE_SOURCE_DIR}/cmake/patch_mbedtls.cmake
-		INSTALL_COMMAND echo skip install
-	)
-	set_target_properties(MbedTLS PROPERTIES ${EP_PROPS})
-	set(MBEDTLS_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libs/src/MbedTLS/include)
-
 	if (WIN32)
 		set(MBEDTLS_LIBRARIES
 			${CMAKE_BINARY_DIR}/libs/src/MbedTLS-build/library/${CMAKE_CFG_INTDIR}/mbedx509.lib
@@ -44,6 +33,18 @@ if (STATIC_MBEDTLS)
 			${CMAKE_BINARY_DIR}/libs/src/MbedTLS-build/library/libmbedcrypto.a
 		)
 	endif()
+	ExternalProject_Add(MbedTLS
+		${EP_CONFIGS}
+		URL https://tls.mbed.org/download/mbedtls-2.4.2-apache.tgz
+		URL_MD5 8e3a8357e0fc23a3954a819027f5167e
+		CMAKE_ARGS ${MBEDTLS_CMAKE_ARGS}
+		PATCH_COMMAND ${CMAKE_COMMAND} -Dsource=${CMAKE_SOURCE_DIR} -DMbedTLS_source=${CMAKE_BINARY_DIR}/libs/src/MbedTLS -P ${CMAKE_SOURCE_DIR}/cmake/patch_mbedtls.cmake
+		INSTALL_COMMAND echo skip install
+		BYPRODUCTS ${MBEDTLS_LIBRARIES}
+	)
+	set_target_properties(MbedTLS PROPERTIES ${EP_PROPS})
+	set(MBEDTLS_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libs/src/MbedTLS/include)
+
 	add_dependencies(ssl.ndll MbedTLS)
 	# Download project for fat source archive
 	add_dependencies(download_static_deps MbedTLS-download)

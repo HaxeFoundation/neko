@@ -75,6 +75,16 @@ if (STATIC_MARIADBCONNECTOR)
 		set(OPENSSL_CONF "")
 		set(OPENSSL_DEP "")
 	endif()
+	if (WIN32)
+		set(MARIADB_CONNECTOR_LIBRARIES
+			${OPENSSL_LIBRARIES}
+			${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector-build/libmariadb/${CMAKE_CFG_INTDIR}/mariadbclient.lib
+		)
+	else()
+		set(MARIADB_CONNECTOR_LIBRARIES
+			${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector-build/libmariadb/libmariadbclient.a
+		)
+	endif()
 	ExternalProject_Add(MariaDBConnector
 		${EP_CONFIGS}
 		DEPENDS ${OPENSSL_DEP}
@@ -90,19 +100,10 @@ if (STATIC_MARIADBCONNECTOR)
 		BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector-build &&
 			${CMAKE_COMMAND} --build . --target mariadbclient --config ${CMAKE_CFG_INTDIR}
 		INSTALL_COMMAND echo skip install
+		BYPRODUCTS ${MARIADB_CONNECTOR_LIBRARIES}
 	)
 	set_target_properties(MariaDBConnector PROPERTIES ${EP_PROPS})
 	set(MARIADB_CONNECTOR_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector/include)
-	if (WIN32)
-		set(MARIADB_CONNECTOR_LIBRARIES
-			${OPENSSL_LIBRARIES}
-			${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector-build/libmariadb/${CMAKE_CFG_INTDIR}/mariadbclient.lib
-		)
-	else()
-		set(MARIADB_CONNECTOR_LIBRARIES
-			${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector-build/libmariadb/libmariadbclient.a
-		)
-	endif()
 	add_dependencies(mysql.ndll MariaDBConnector)
 	# Download project for fat source archive
 	add_dependencies(download_static_deps MariaDBConnector-download)
