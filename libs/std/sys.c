@@ -41,7 +41,11 @@
 #	include <sys/time.h>
 #	include <sys/times.h>
 #	include <sys/wait.h>
+#ifdef HAVE_XLOCALE_H
 #	include <xlocale.h>
+#else
+#	include <locale.h>
+#endif
 #endif
 
 #ifdef NEKO_MAC

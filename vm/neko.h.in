@@ -96,6 +96,8 @@
 #	include <stdint.h>
 #endif
 
+#cmakedefine HAVE_XLOCALE_H
+
 #cmakedefine TARGET_BIG_ENDIAN
 
 #ifndef TARGET_BIG_ENDIAN

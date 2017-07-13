@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.8.7)
 
 include(GNUInstallDirs)
 include(CheckCCompilerFlag)
+include(CheckIncludeFile)
 include(TestBigEndian)
 project(Neko C)
 
@@ -112,6 +113,8 @@ if(APPLE AND STATIC_DEPS STREQUAL "all")
 		set(CMAKE_OSX_DEPLOYMENT_TARGET "10.9" CACHE STRING "CMAKE_OSX_DEPLOYMENT_TARGET" FORCE)
 	endif()
 endif()
+
+check_include_file(xlocale.h HAVE_XLOCALE_H)
 
 configure_file (
 	"${CMAKE_SOURCE_DIR}/vm/neko.h.in"
