@@ -5,9 +5,15 @@
 add_library(regexp.ndll MODULE regexp.c)
 if (STATIC_PCRE)
 	if (WIN32)
+		set(PCRE_URL "https://ftp.pcre.org/pub/pcre/pcre-8.39.tar.gz")
+		if (NOT ${CMAKE_VERSION} VERSION_LESS 3.7)
+			list(APPEND PCRE_URL
+				"http://downloads.sourceforge.net/project/pcre/pcre/8.39/pcre-8.39.tar.gz"
+			)
+		endif()
 		ExternalProject_Add(PCRE
 			${EP_CONFIGS}
-			URL http://downloads.sourceforge.net/project/pcre/pcre/8.39/pcre-8.39.tar.gz
+			URL ${PCRE_URL}
 			URL_MD5 26a76d97e04c89fe9ce22ecc1cd0b315
 			CMAKE_ARGS
 				-G ${CMAKE_GENERATOR}
