@@ -32,9 +32,15 @@ if (STATIC_PCRE)
 		set(PCRE_LIBRARIES
 			${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/libpcre.a
 		)
+		set(PCRE_URL "https://ftp.pcre.org/pub/pcre/pcre-8.40.tar.gz")
+		if (NOT ${CMAKE_VERSION} VERSION_LESS 3.7)
+			list(APPEND PCRE_URL
+				"http://downloads.sourceforge.net/project/pcre/pcre/8.40/pcre-8.40.tar.gz"
+			)
+		endif()
 		ExternalProject_Add(PCRE
 			${EP_CONFIGS}
-			URL http://downloads.sourceforge.net/project/pcre/pcre/8.40/pcre-8.40.tar.gz
+			URL ${PCRE_URL}
 			URL_MD5 890c808122bd90f398e6bc40ec862102
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/PCRE &&
 				./configure
