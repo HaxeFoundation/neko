@@ -44,7 +44,7 @@ typedef enum {
 	EQUALS,
 	ATTVAL_BEGIN,
 	ATTRIB_VAL,
-	CHILDS,
+	CHILDREN,
 	CLOSE,
 	WAIT_END,
 	WAIT_END_RET,
@@ -208,7 +208,7 @@ static void do_parse_xml( const char *xml, const char **lp, int *line, value cal
 				val_ocall2(callb,id_xml,nodename,attribs);
 				break;
 			case '>':
-				state = CHILDS;
+				state = CHILDREN;
 				nsubs++;
 				val_ocall2(callb,id_xml,nodename,attribs);
 				break;
@@ -261,7 +261,7 @@ static void do_parse_xml( const char *xml, const char **lp, int *line, value cal
 				next = BODY;
 			}
 			break;
-		case CHILDS:
+		case CHILDREN:
 			*lp = p;
 			do_parse_xml(xml,lp,line,callb,val_string(nodename));
 			p = *lp;

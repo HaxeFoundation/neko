@@ -238,7 +238,7 @@ static void thread_loop( void *_p ) {
 	// display exception
 	if( exc != NULL ) {
 		buffer b = alloc_buffer(NULL);
-		fprintf(stderr,"An exception occured in a neko Thread :\n");
+		fprintf(stderr,"An exception occurred in a neko Thread :\n");
 		val_buffer(b,exc);
 		fprintf(stderr,"%s\n",val_string(buffer_to_string(b)));
 	}

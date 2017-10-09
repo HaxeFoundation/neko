@@ -22,13 +22,13 @@ type xml =
 	| Node of string * (string * string) list * xml list
 	| CData of string
 
-let node name att childs = Node(name,att,childs)
+let node name att children = Node(name,att,children)
 
 let rec to_xml_rec p2 ast =
 	let e , p = ast in
 	let name = ref "" in
 	let aval = ref None in
-	let childs = ref [] in
+	let children = ref [] in
 	(match e with
 	| EConst c ->
 		(match c with
@@ -52,70 +52,70 @@ let rec to_xml_rec p2 ast =
 		)
 	| EBlock el ->
 		name := "b";
-		childs := List.map (to_xml_rec p) el; 
+		children := List.map (to_xml_rec p) el; 
 	| EParenthesis e ->
 		name := "p";
-		childs := [to_xml_rec p e];
+		children := [to_xml_rec p e];
 	| EField (e,f) ->
 		name := "g";
 		aval := Some f;
-		childs := [to_xml_rec p e];
+		children := [to_xml_rec p e];
 	| ECall (e,el) ->
 		name := "c";
-		childs := to_xml_rec p e :: List.map (to_xml_rec p) el;
+		children := to_xml_rec p e :: List.map (to_xml_rec p) el;
 	| EArray (a,b) ->
 		name := "a";
-		childs := [to_xml_rec p a; to_xml_rec p b]; 
+		children := [to_xml_rec p a; to_xml_rec p b]; 
 	| EVars vl ->
 		name := "var";
-		childs := List.map (fun(v,e) ->
+		children := List.map (fun(v,e) ->
 			node "v" [("v",v)] (match e with None -> [] | Some e -> [to_xml_rec p e])
 		) vl;
 	| EWhile (econd,e,NormalWhile) ->
 		name := "while";
-		childs := [to_xml_rec p econd; to_xml_rec p e];
+		children := [to_xml_rec p econd; to_xml_rec p e];
 	| EWhile (econd,e,DoWhile) ->
 		name := "do";
-		childs := [to_xml_rec p e; to_xml_rec p econd];
+		children := [to_xml_rec p e; to_xml_rec p econd];
 	| EIf (cond,e,eelse) ->
 		name := "if";
-		childs := to_xml_rec p cond :: to_xml_rec p e :: (match eelse with None -> [] | Some e -> [to_xml_rec p e])
+		children := to_xml_rec p cond :: to_xml_rec p e :: (match eelse with None -> [] | Some e -> [to_xml_rec p e])
 	| ETry (e1,v,e2) ->
 		name := "try";
 		aval := Some v;
-		childs := [to_xml_rec p e1; to_xml_rec p e2];
+		children := [to_xml_rec p e1; to_xml_rec p e2];
 	| EFunction (args,e) ->
 		name := "function";
 		aval := Some (String.concat ":" args);
-		childs := [to_xml_rec p e];
+		children := [to_xml_rec p e];
 	| EBinop (op,e1,e2) ->
 		name := "o";
 		aval := Some op;
-		childs := [to_xml_rec p e1; to_xml_rec p e2];
+		children := [to_xml_rec p e1; to_xml_rec p e2];
 	| EReturn e ->
 		name := "return";
-		childs := (match e with None -> [] | Some e -> [to_xml_rec p e]);
+		children := (match e with None -> [] | Some e -> [to_xml_rec p e]);
 	| EBreak e ->
 		name := "break";
-		childs := (match e with None -> [] | Some e -> [to_xml_rec p e]);
+		children := (match e with None -> [] | Some e -> [to_xml_rec p e]);
 	| EContinue ->
 		name := "continue";
 	| ENext (e1,e2) ->
 		name := "next";
-		childs := [to_xml_rec p e1; to_xml_rec p e2];
+		children := [to_xml_rec p e1; to_xml_rec p e2];
 	| EObject fl ->
 		name := "object";
-		childs := List.map (fun(v,e) -> node "v" [("v",v)] [to_xml_rec p e]) fl;
+		children := List.map (fun(v,e) -> node "v" [("v",v)] [to_xml_rec p e]) fl;
 	| ELabel v ->
 		name := "label";
 		aval := Some v;
 	| ESwitch (e,cases,def) ->
 		name := "switch";
 		let cases = List.map (fun(e1,e2) -> node "case" [] [to_xml_rec p e1; to_xml_rec p e2]) cases in
-		childs := to_xml_rec p e :: (match def with None -> cases | Some e -> node "default" [] [to_xml_rec p e] :: cases );
+		children := to_xml_rec p e :: (match def with None -> cases | Some e -> node "default" [] [to_xml_rec p e] :: cases );
 	| ENeko s ->
 		name := "neko";
-		childs := [CData s];
+		children := [CData s];
 	);
 	let pos = (if p.psource <> p2.psource then
 		[("p",p.psource ^ ":" ^ string_of_int p.pline)]
@@ -125,7 +125,7 @@ let rec to_xml_rec p2 ast =
 		[]
 	) in
 	let aval = (match !aval with None -> [] | Some v -> [("v",v)]) in
-	node !name (List.append pos aval) !childs
+	node !name (List.append pos aval) !children
 
 let to_xml ast =
 	to_xml_rec null_pos ast
@@ -134,9 +134,9 @@ let rec write_fmt_rec tabs ch x =
 	match x with
 	| CData s ->
 		IO.printf ch "%s<![CDATA[%s]]>" tabs s
-	| Node (name,att,childs) ->
+	| Node (name,att,children) ->
 		IO.printf ch "%s<%s%s" tabs name (String.concat "" (List.map (fun(a,v) -> " " ^ a ^ "=\"" ^ escape v ^ "\"") att));
-		match childs with
+		match children with
 		| [] -> IO.nwrite ch "/>"
 		| l ->
 			IO.nwrite ch ">\n";
@@ -150,9 +150,9 @@ let rec write_rec ch x =
 	match x with
 	| CData s ->
 		IO.printf ch "<![CDATA[%s]]>" s
-	| Node (name,att,childs) ->
+	| Node (name,att,children) ->
 		IO.printf ch "<%s%s" name (String.concat "" (List.map (fun(a,v) -> " " ^ a ^ "=\"" ^ escape v ^ "\"") att));
-		match childs with
+		match children with
 		| [] -> IO.nwrite ch "/>"
 		| l ->
 			IO.nwrite ch ">";

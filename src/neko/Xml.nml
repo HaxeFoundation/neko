@@ -185,7 +185,7 @@ function rec to_xml_rec(p2,ast) {
 	var e , p = ast;
 	var name = &"";
 	var val = &None;
-	var childs = &[];
+	var children = &[];
 	match e {
 	| EConst c ->
 		match c {
@@ -209,67 +209,67 @@ function rec to_xml_rec(p2,ast) {
 		}
 	| EBlock el ->
 		name := "b";
-		childs := List.map (to_xml_rec p) el;
+		children := List.map (to_xml_rec p) el;
 	| EParenthesis e ->
 		name := "p";
-		childs := [to_xml_rec p e];
+		children := [to_xml_rec p e];
 	| EField (e,f) ->
 		name := "g";
 		val := Some f;
-		childs := [to_xml_rec p e];
+		children := [to_xml_rec p e];
 	| ECall (e,el) ->
 		name := "c";
-		childs := to_xml_rec p e :: List.map (to_xml_rec p) el;
+		children := to_xml_rec p e :: List.map (to_xml_rec p) el;
 	| EArray (a,b) ->
 		name := "a";
-		childs := [to_xml_rec p a; to_xml_rec p b];
+		children := [to_xml_rec p a; to_xml_rec p b];
 	| EVars vl ->
 		name := "var";
-		childs := List.map (function((v,e)) {
+		children := List.map (function((v,e)) {
 			Node "v" [("v",v)] (match e { None -> [] | Some e -> [to_xml_rec p e] })
 		}) vl;
 	| EWhile (econd,e,NormalWhile) ->
 		name := "while";
-		childs := [to_xml_rec p econd; to_xml_rec p e];
+		children := [to_xml_rec p econd; to_xml_rec p e];
 	| EWhile (econd,e,DoWhile) ->
 		name := "do";
-		childs := [to_xml_rec p e; to_xml_rec p econd];
+		children := [to_xml_rec p e; to_xml_rec p econd];
 	| EIf (cond,e,eelse) ->
 		name := "if";
-		childs := to_xml_rec p cond :: to_xml_rec p e :: (match eelse { None -> [] | Some e -> [to_xml_rec p e] })
+		children := to_xml_rec p cond :: to_xml_rec p e :: (match eelse { None -> [] | Some e -> [to_xml_rec p e] })
 	| ETry (e1,v,e2) ->
 		name := "try";
 		val := Some v;
-		childs := [to_xml_rec p e1; to_xml_rec p e2];
+		children := [to_xml_rec p e1; to_xml_rec p e2];
 	| EFunction (args,e) ->
 		name := "function";
 		val := Some (String.concat ":" args);
-		childs := [to_xml_rec p e];
+		children := [to_xml_rec p e];
 	| EBinop (op,e1,e2) ->
 		name := "o";
 		val := Some op;
-		childs := [to_xml_rec p e1; to_xml_rec p e2];
+		children := [to_xml_rec p e1; to_xml_rec p e2];
 	| EReturn e ->
 		name := "return";
-		childs := match e { None -> [] | Some e -> [to_xml_rec p e]};
+		children := match e { None -> [] | Some e -> [to_xml_rec p e]};
 	| EBreak e ->
 		name := "break";
-		childs := match e { None -> [] | Some e -> [to_xml_rec p e]};
+		children := match e { None -> [] | Some e -> [to_xml_rec p e]};
 	| EContinue ->
 		name := "continue";
 	| ENext (e1,e2) ->
 		name := "next";
-		childs := [to_xml_rec p e1; to_xml_rec p e2];
+		children := [to_xml_rec p e1; to_xml_rec p e2];
 	| EObject fl ->
 		name := "object";
-		childs := List.map (function((v,e)) { Node "v" [("v",v)] [to_xml_rec p e] }) fl;
+		children := List.map (function((v,e)) { Node "v" [("v",v)] [to_xml_rec p e] }) fl;
 	| ELabel v ->
 		name := "label";
 		val := Some v;
 	| ESwitch (e,cases,def) ->
 		name := "switch";
 		var cases = List.map (function((e1,e2)) { Node "case" [] [to_xml_rec p e1; to_xml_rec p e2] }) cases;
-		childs := to_xml_rec p e :: (match def { None -> cases | Some e -> Node "default" [] [to_xml_rec p e] :: cases });
+		children := to_xml_rec p e :: (match def { None -> cases | Some e -> Node "default" [] [to_xml_rec p e] :: cases });
 	}
 	var pos = (if p.psource != p2.psource then
 		[("p",p.psource + ":" + p.pline)]
@@ -278,7 +278,7 @@ function rec to_xml_rec(p2,ast) {
 	else
 		[]);
 	var val = match *val { None -> [] | Some v -> [("v",v)] };
-	Node (*name) (List.append pos val) (*childs)
+	Node (*name) (List.append pos val) (*children)
 }
 
 function to_xml(ast) {

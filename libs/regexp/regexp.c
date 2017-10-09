@@ -57,7 +57,7 @@ static int do_exec( pcredata *d, const char *str, int len, int pos ) {
 	if( res >= 0 )
 		return 1;
 	if( res != PCRE_ERROR_NOMATCH )
-		val_throw(alloc_string("An error occured while running pcre_exec"));
+		val_throw(alloc_string("An error occurred while running pcre_exec"));
 	return 0;
 }
 

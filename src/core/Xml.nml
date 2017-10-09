@@ -126,14 +126,14 @@ function node_name(x) {
 
 function node_text(x) {
 	match x {
-	| Node (_,_,childs) ->
+	| Node (_,_,children) ->
 		var b = Buffer.create();
 		List.iter (function(x) {
 			match x {
 			| CData t | PCData t -> Buffer.add b t
 			| _ -> invalid_arg()
 			}
-		}) childs;
+		}) children;
 		Buffer.string b
 	| _ -> invalid_arg()
 	}
@@ -152,9 +152,9 @@ function rec write(ch,x) {
 	| Document l -> List.iter write(ch) l
 	| CData c -> IO.write ch "<![CDATA["; IO.write ch c; IO.write ch "]]>";
 	| PCData c -> IO.write ch c;
-	| Node (name,att,childs) ->
+	| Node (name,att,children) ->
 		IO.printf ch "<%s%s" (name,String.concat "" (List.map (function((a,v)) { " "+a+"=\""+String.escape v+"\"" }) att));
-		match childs {
+		match children {
 		| [] -> IO.write ch "/>"
 		| l -> IO.write ch ">"; List.iter write(ch) l; IO.printf ch "</%s>" name
 		}
