@@ -258,6 +258,14 @@ int main( int argc, char *argv[] ) {
 #	ifdef NEKO_STANDALONE
 	neko_standalone_init();
 #	endif
+#	ifdef NEKO_POSIX
+	struct sigaction act;
+	act.sa_sigaction = NULL;
+	act.sa_handler = handle_signal;
+	act.sa_flags = 0;
+	sigemptyset(&act.sa_mask);
+	sigaction(SIGPIPE,&act,NULL);
+#	endif
 	if( !neko_has_embedded_module(vm) ) {
 		int jit = 1;
 		int stats = 0;
@@ -285,12 +293,6 @@ int main( int argc, char *argv[] ) {
 			break;
 		}
 #		ifdef NEKO_POSIX
-		struct sigaction act;
-		act.sa_sigaction = NULL;
-		act.sa_handler = handle_signal;
-		act.sa_flags = 0;
-		sigemptyset(&act.sa_mask);
-		sigaction(SIGPIPE,&act,NULL);
 		if( jit )
 			sigaction(SIGSEGV,&act,NULL);
 #		endif
