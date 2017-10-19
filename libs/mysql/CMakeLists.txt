@@ -68,7 +68,7 @@ endif()
 add_library(mysql.ndll MODULE mysql.c)
 
 if (STATIC_MARIADBCONNECTOR)
-	if (STATIC_OPENSSL)
+	if (STATIC_OPENSSL AND NOT WIN32)
 		set(OPENSSL_CONF -DOPENSSL_ROOT_DIR=${CMAKE_BINARY_DIR}/libs/src/install-prefix)
 		set(OPENSSL_DEP OpenSSL)
 	elseif()
@@ -88,13 +88,13 @@ if (STATIC_MARIADBCONNECTOR)
 	ExternalProject_Add(MariaDBConnector
 		${EP_CONFIGS}
 		DEPENDS ${OPENSSL_DEP}
-		URL https://downloads.mariadb.org/f/connector-c-2.3.2/mariadb-connector-c-2.3.2-src.tar.gz
-		URL_MD5 cbee903e8581ca73b0aecfe9b7498c65
+		URL https://downloads.mariadb.org/f/connector-c-3.0.2/mariadb-connector-c-3.0.2-src.tar.gz
+		URL_MD5 2eb5ba004ac105eebb538ead352c0c78
 		CMAKE_ARGS
 			-Wno-dev
 			-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
 			-DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}
-			-DWITH_OPENSSL=ON
+			-DWITH_SSL=ON
 			${OPENSSL_CONF}
 		PATCH_COMMAND ${CMAKE_COMMAND} -Dmariadb_source=${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector -P ${CMAKE_SOURCE_DIR}/cmake/patch_mariadb.cmake
 		BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector-build &&
@@ -103,7 +103,10 @@ if (STATIC_MARIADBCONNECTOR)
 		BYPRODUCTS ${MARIADB_CONNECTOR_LIBRARIES}
 	)
 	set_target_properties(MariaDBConnector PROPERTIES ${EP_PROPS})
-	set(MARIADB_CONNECTOR_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector/include)
+	set(MARIADB_CONNECTOR_INCLUDE_DIR
+		${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector/include
+		${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector-build/include
+	)
 	add_dependencies(mysql.ndll MariaDBConnector)
 	# Download project for fat source archive
 	add_dependencies(download_static_deps MariaDBConnector-download)
@@ -117,6 +120,10 @@ target_include_directories(mysql.ndll
 )
 
 target_link_libraries(mysql.ndll libneko ${MARIADB_CONNECTOR_LIBRARIES})
+
+if (WIN32)
+	target_link_libraries(mysql.ndll ws2_32 crypt32 shlwapi)
+endif()
 
 set_target_properties(mysql.ndll
 	PROPERTIES
