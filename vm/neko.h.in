@@ -104,8 +104,12 @@
 #	define NEKO_LITTLE_ENDIAN
 #endif
 
-#cmakedefine NEKO_JIT_ENABLE
+#cmakedefine NEKO_JIT_DISABLE
 #cmakedefine NEKO_JIT_DEBUG
+
+#if !defined(NEKO_JIT_DISABLE) && defined(NEKO_X86) && !defined(NEKO_MAC) && !defined(_WIN64)
+#define NEKO_JIT_ENABLE
+#endif
 
 #define NEKO_VERSION_MAJOR	@NEKO_VERSION_MAJOR@
 #define NEKO_VERSION_MINOR	@NEKO_VERSION_MINOR@

@@ -128,11 +128,11 @@ Available on Mac/Linux. Default value: `ON`
 
 Set RPATH to `$ORIGIN` (Linux) / `@executable_path` (Mac). It allows the resulting Neko VM executable to locate libraries (e.g. "libneko" and ndll files) in its local directory, such that the libraries need not be installed to "/usr/lib" or "/usr/local/lib".
 
-#### `NEKO_JIT_ENABLE`
+#### `NEKO_JIT_DISABLE`
 
-Default `ON` for supported platforms, including Windows 32-bit and Linux 32-bit.
+Default `OFF`.
 
-Enable Neko JIT.
+Disable Neko JIT. By default, Neko JIT will be enabled for platforms it supports. Setting this to `ON` disable JIT for all platforms.
 
 #### `NEKO_JIT_DEBUG`
 
