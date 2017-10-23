@@ -13,6 +13,7 @@
 	jit : disable jit for win64, which never worked
 	all : introduced NEKO_BIG_ENDIAN and NEKO_LITTLE_ENDIAN to replace IS_BIG_ENDIAN, IS_LITTLE_ENDIAN, LITTLE_ENDIAN, BIG_ENDIAN, and BYTE_ORDER
 	all : renamed TAG_BITS to NEKO_TAG_BITS
+	all : add NEKO_JIT_ENABLE and NEKO_JIT_DEBUG CMake options
 
 2016-05-08 : 2.1.0
 	all : switched to use CMake for building (#122)

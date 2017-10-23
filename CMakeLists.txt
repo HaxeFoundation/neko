@@ -116,6 +116,15 @@ endif()
 
 check_include_file(xlocale.h NEKO_XLOCALE_H)
 
+# define the default value of NEKO_JIT_ENABLE
+set(NEKO_JIT_ENABLE_DEFAULT OFF)
+if ((CMAKE_SIZEOF_VOID_P EQUAL 4) AND NOT APPLE)
+	set(NEKO_JIT_ENABLE_DEFAULT ON)
+endif()
+
+set(NEKO_JIT_ENABLE ${NEKO_JIT_ENABLE_DEFAULT} CACHE BOOL "Enable Neko JIT.")
+set(NEKO_JIT_DEBUG OFF CACHE BOOL "Debug Neko JIT.")
+
 configure_file (
 	"${CMAKE_SOURCE_DIR}/vm/neko.h.in"
 	"${CMAKE_BINARY_DIR}/neko.h"

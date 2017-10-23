@@ -36,10 +36,6 @@
 #define tmp_alloc(size) malloc(size)
 #define tmp_free(ptr)	free(ptr)
 
-#if defined(NEKO_X86) && !defined(NEKO_MAC) && !defined(_WIN64)
-#define JIT_ENABLE
-#endif
-
 #ifdef NEKO_MAC
 #define STACK_ALIGN
 #endif
@@ -51,9 +47,7 @@
 
 #define TAG_MASK		((1<<NEKO_TAG_BITS)-1)
 
-//#define JIT_DEBUG
-
-#ifdef JIT_ENABLE
+#ifdef NEKO_JIT_ENABLE
 
 #define PARAMETER_TABLE
 #include "opcodes.h"
@@ -579,7 +573,7 @@ static void debug_method_call( int line, int stack ) {
 }
 #endif
 
-#ifdef JIT_DEBUG
+#ifdef NEKO_JIT_DEBUG
 
 static void val_print_2( value v ) {
 	val_print(alloc_string(" "));
@@ -960,7 +954,7 @@ static void jit_call_prim( jit_ctx *ctx, int nargs, int mode ) {
 	for(i=0;i<nargs;i++) {
 		XPush_p(SP,FIELD(i));
 	}
-#	ifndef JIT_DEBUG
+#	ifndef NEKO_JIT_DEBUG
 	pop(nargs);
 #	endif
 
@@ -971,7 +965,7 @@ static void jit_call_prim( jit_ctx *ctx, int nargs, int mode ) {
 	end_call();
 	restore_after_call(nargs,pad_size);
 
-#	ifdef JIT_DEBUG
+#	ifdef NEKO_JIT_DEBUG
 	pop(nargs);
 #	endif
 	XRet();
@@ -2528,7 +2522,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 }
 
 
-#if defined(STACK_ALIGN_DEBUG) || defined(JIT_DEBUG)
+#if defined(STACK_ALIGN_DEBUG) || defined(NEKO_JIT_DEBUG)
 #	define MAX_OP_SIZE		1000
 #	define MAX_BUF_SIZE		1000
 #else
@@ -2682,7 +2676,7 @@ void neko_module_jit( neko_module *m ) {
 		}
 
 		// --------- debug ---------
-#		ifdef JIT_DEBUG
+#		ifdef NEKO_JIT_DEBUG
 		if( ctx->debug_wait )
 			ctx->debug_wait--;
 		else {
@@ -2744,7 +2738,7 @@ void neko_module_jit( neko_module *m ) {
 		m->jit_gc = alloc_abstract(NULL,rbuf);
 		val_gc(m->jit_gc,free_jit_abstract);
 #		endif
-#		ifdef JIT_DEBUG
+#		ifdef NEKO_JIT_DEBUG
 		printf("Jit size = %d ( x%.1f )\n",csize,csize * 1.0 / ((m->codesize + 1) * 4));
 #		endif
 		jit_finalize_context(ctx);
@@ -2764,7 +2758,7 @@ void neko_module_jit( neko_module *m ) {
 	tmp_free(ctx->pos);
 }
 
-#else // JIT_ENABLE
+#else // NEKO_JIT_ENABLE
 
 char *jit_boot_seq = NULL;
 char *jit_handle_trap = (char*)&jit_boot_seq;
