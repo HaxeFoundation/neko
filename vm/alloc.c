@@ -178,7 +178,7 @@ EXTERN value alloc_empty_string( unsigned int size ) {
 	s = (vstring*)gc_alloc_private_big(size+sizeof(vstring));
 	if( s == NULL )
 		failure("out of memory");
-	s->t = VAL_STRING | (size << TAG_BITS);
+	s->t = VAL_STRING | (size << NEKO_TAG_BITS);
 	(&s->c)[size] = 0;
 	return (value)s;
 }
@@ -211,7 +211,7 @@ EXTERN value alloc_array( unsigned int n ) {
 		failure("max_array_size reached");
 	v = (value)gc_alloc_big(sizeof(varray)+(n - 1)*sizeof(value));
 	if( v == NULL ) failure("out of memory");
-	v->t = VAL_ARRAY | (n << TAG_BITS);
+	v->t = VAL_ARRAY | (n << NEKO_TAG_BITS);
 	return v;
 }
 

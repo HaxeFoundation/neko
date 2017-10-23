@@ -96,12 +96,12 @@
 #	include <stdint.h>
 #endif
 
-#cmakedefine HAVE_XLOCALE_H
+#cmakedefine NEKO_XLOCALE_H
 
-#cmakedefine TARGET_BIG_ENDIAN
+#cmakedefine NEKO_BIG_ENDIAN
 
-#ifndef TARGET_BIG_ENDIAN
-#	define TARGET_LITTLE_ENDIAN
+#ifndef NEKO_BIG_ENDIAN
+#	define NEKO_LITTLE_ENDIAN
 #endif
 
 #define NEKO_VERSION_MAJOR	@NEKO_VERSION_MAJOR@
@@ -214,10 +214,10 @@ struct _mt_lock;
 typedef struct _mt_local mt_local;
 typedef struct _mt_lock mt_lock;
 
-#define TAG_BITS			4
+#define NEKO_TAG_BITS		4
 
 #define val_tag(v)			(*(val_type*)(v))
-#define val_short_tag(v)	(val_tag(v)&((1<<TAG_BITS) - 1))
+#define val_short_tag(v)	(val_tag(v)&((1<<NEKO_TAG_BITS) - 1))
 #define val_is_null(v)		((v) == val_null)
 #define val_is_int(v)		((((int)(int_val)(v)) & 1) != 0)
 #define val_is_any_int(v)	(val_is_int(v) || val_tag(v) == VAL_INT32)
@@ -246,18 +246,18 @@ typedef struct _mt_lock mt_lock;
 #define val_number(v)		(val_is_int(v)?val_int(v):((val_tag(v)==VAL_FLOAT)?val_float(v):val_int32(v)))
 #define val_hdata(v)		((vhash*)val_data(v))
 #define val_string(v)		(&((vstring*)(v))->c)
-#define val_strlen(v)		((signed)(((unsigned)val_tag(v)) >> TAG_BITS))
-#define val_set_length(v,l) val_tag(v) = val_short_tag(v) | ((l) << TAG_BITS)
+#define val_strlen(v)		((signed)(((unsigned)val_tag(v)) >> NEKO_TAG_BITS))
+#define val_set_length(v,l) val_tag(v) = val_short_tag(v) | ((l) << NEKO_TAG_BITS)
 #define val_set_size		val_set_length
 
-#define val_array_size(v)	((signed)(((unsigned)val_tag(v)) >> TAG_BITS))
+#define val_array_size(v)	((signed)(((unsigned)val_tag(v)) >> NEKO_TAG_BITS))
 #define val_array_ptr(v)	(&((varray*)(v))->ptr)
 #define val_fun_nargs(v)	((vfunction*)(v))->nargs
 #define alloc_int(v)		((value)(int_val)((((int)(v)) << 1) | 1))
 #define alloc_bool(b)		((b)?val_true:val_false)
 
-#define max_array_size		((1 << (32 - TAG_BITS)) - 1)
-#define max_string_size		((1 << (32 - TAG_BITS)) - 1)
+#define max_array_size		((1 << (32 - NEKO_TAG_BITS)) - 1)
+#define max_string_size		((1 << (32 - NEKO_TAG_BITS)) - 1)
 #define invalid_comparison	0xFE
 
 #undef EXTERN

@@ -49,7 +49,7 @@
 #define STACK_ALIGN_DEBUG
 #endif
 
-#define TAG_MASK		((1<<TAG_BITS)-1)
+#define TAG_MASK		((1<<NEKO_TAG_BITS)-1)
 
 //#define JIT_DEBUG
 
@@ -1504,7 +1504,7 @@ static void jit_array_access( jit_ctx *ctx, int n ) {
 
 	XJump(JNeq,jnot_array);
 	if( n > 0 ) {
-		XUShr_rc(TMP,TAG_BITS);
+		XUShr_rc(TMP,NEKO_TAG_BITS);
 		XCmp_rc(TMP,n);
 		XJump(JLte,jbounds);
 	}
@@ -1740,7 +1740,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 	case AccEnv:
 		get_var_r(TMP,VEnv);
 		XMov_rp(TMP2,TMP,FIELD(0));
-		XCmp_rc(TMP2,(p << TAG_BITS) | VAL_ARRAY);
+		XCmp_rc(TMP2,(p << NEKO_TAG_BITS) | VAL_ARRAY);
 		XJump(JGt,jok);
 		runtime_error(1,false); // Reading Outside Env
 		PATCH_JUMP(jok);
@@ -1763,7 +1763,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		// check bounds & access array
 		XShr_rc(ACC,1);
 		XMov_rp(TMP2,TMP,FIELD(0));
-		XUShr_rc(TMP2,TAG_BITS);
+		XUShr_rc(TMP2,NEKO_TAG_BITS);
 		XCmp_rr(ACC,TMP2);
 		XJump(JGte,jbounds);
 		XAdd_rc(ACC,1);			  // acc = val_array_ptr(tmp)[acc]
@@ -1880,7 +1880,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 	case SetEnv:
 		get_var_r(TMP,VEnv);
 		XMov_rp(TMP2,TMP,FIELD(0));
-		XCmp_rc(TMP2,(p << TAG_BITS) | VAL_ARRAY);
+		XCmp_rc(TMP2,(p << NEKO_TAG_BITS) | VAL_ARRAY);
 		XJump(JGt,jok);
 		runtime_error(2,false); // Writing Outside Env
 		PATCH_JUMP(jok);
@@ -1932,7 +1932,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 
 		XMov_rp(TMP,TMP,FIELD(0)); // tmp = tmp->type
 		XShr_rc(TMP2,1);
-		XUShr_rc(TMP,TAG_BITS);
+		XUShr_rc(TMP,NEKO_TAG_BITS);
 		XCmp_rr(TMP2,TMP);
 		XJump(JGte,jend1);
 
@@ -1981,7 +1981,7 @@ static void jit_opcode( jit_ctx *ctx, enum OPCODE op, int p ) {
 		XJump(JNeq,jnot_array);
 
 		XMov_rp(TMP2,TMP,FIELD(0));
-		XCmp_rc(TMP2,(p << TAG_BITS) | VAL_ARRAY); // fake header
+		XCmp_rc(TMP2,(p << NEKO_TAG_BITS) | VAL_ARRAY); // fake header
 		XJump(JLte,jend1);
 		XMov_pr(TMP,FIELD(p + 1),ACC);
 		XJump_near(jend2);

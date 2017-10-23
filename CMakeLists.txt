@@ -69,7 +69,7 @@ set(NEKO_VERSION_PATCH 0)
 set(NEKO_VERSION ${NEKO_VERSION_MAJOR}.${NEKO_VERSION_MINOR}.${NEKO_VERSION_PATCH})
 
 # Determine target endianness
-TEST_BIG_ENDIAN(TARGET_BIG_ENDIAN)
+TEST_BIG_ENDIAN(NEKO_BIG_ENDIAN)
 
 set(WITH_REGEXP ON CACHE BOOL "Build Perl-compatible regex support.")
 set(WITH_UI ON CACHE BOOL "Build GTK-2 UI support.")
@@ -114,7 +114,7 @@ if(APPLE AND STATIC_DEPS STREQUAL "all")
 	endif()
 endif()
 
-check_include_file(xlocale.h HAVE_XLOCALE_H)
+check_include_file(xlocale.h NEKO_XLOCALE_H)
 
 configure_file (
 	"${CMAKE_SOURCE_DIR}/vm/neko.h.in"

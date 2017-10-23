@@ -56,10 +56,10 @@
 #	include <endian.h>
 #endif
 
-#cmakedefine TARGET_BIG_ENDIAN
+#cmakedefine NEKO_BIG_ENDIAN
 
-#ifndef TARGET_BIG_ENDIAN
-#	define TARGET_LITTLE_ENDIAN
+#ifndef NEKO_BIG_ENDIAN
+#	define NEKO_LITTLE_ENDIAN
 #endif
 
 #ifndef true
