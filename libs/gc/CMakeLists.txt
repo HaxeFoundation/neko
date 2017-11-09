@@ -198,6 +198,12 @@ IF(CMAKE_USE_WIN32_THREADS_INIT)
                 ADD_DEFINITIONS("-DTHREAD_LOCAL_ALLOC")
         ENDIF()
         # ADD_DEFINITIONS("-DEMPTY_GETENV_RESULTS") #TODO test
+        # workaround the problem in gc7.1 and VS2017 - it defines abs macro while VS headers define a function
+        # pretend macro is defined already
+        string(REGEX MATCH "Visual Studio ([0-9]*).*" MSVC_VERSION ${CMAKE_GENERATOR})
+        IF (${CMAKE_MATCH_1} STRGREATER "13")
+                ADD_DEFINITIONS("-Dabs=abs")
+        ENDIF()
         SET(SRC ${SRC} win32_threads.c)
 ENDIF(CMAKE_USE_WIN32_THREADS_INIT)
 
