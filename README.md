@@ -34,7 +34,7 @@ Users of other Linux/FreeBSD distributions should build Neko from source. See be
 
 Neko can be built using CMake (version 3.x is recommended) and one of the C compilers listed as follows:
 
- * Windows: Visual Studio 2010 / 2013 (Visual Studio 2015 is not yet supported)
+ * Windows: Visual Studio 2010 / 2013 / 2015 / 2017 
  * Mac: XCode (with its "Command line tools")
  * Linux: gcc (can be obtained by installing the "build-essential" Debian/Ubuntu package)
 
@@ -82,7 +82,9 @@ You may use the CMake GUI and Visual Studio to build it instead.
 mkdir build
 cd build
 
-# run cmake
+# run cmake specifying the visual studio version you need 
+# Visual Studio 12 2013, Visual Studio 14 2015, Visual Studio 15 2017
+# you can additionally specify platform via -A switch (x86, x64)
 cmake -G "Visual Studio 12 2013" ..
 
 # let's build, the outputs can be located in the "bin" directory
