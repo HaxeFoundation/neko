@@ -38,7 +38,7 @@ Neko can be built using CMake (version 3.x is recommended) and one of the C comp
  * Mac: XCode (with its "Command line tools")
  * Linux: gcc (can be obtained by installing the "build-essential" Debian/Ubuntu package)
 
-Neko needs to link with various third-party libraries, which are summerized as follows:
+Neko needs to link with various third-party libraries, which are summarized as follows:
 
 | library / tool                          | OS          | Debian/Ubuntu package                                     |
 |-----------------------------------------|-------------|-----------------------------------------------------------|
@@ -52,7 +52,7 @@ Neko needs to link with various third-party libraries, which are summerized as f
 | mbed TLS                                | all         | libmbedtls-dev                                            |
 | GTK+2                                   | Linux       | libgtk2.0-dev                                             |
 
-On Windows, CMake will automatically download and build the libraries in the build folder during the build process. However, you need to install [Perl](http://www.activestate.com/activeperl) manually because OpenSSL needs it for configuration. On Mac/Linux, you should install the libraries manaully to your system before building Neko, or use the `STATIC_DEPS` CMake option, which will be explained in [CMake options](#cmake-options).
+On Windows, CMake will automatically download and build the libraries in the build folder during the build process. However, you need to install [Perl](http://www.activestate.com/activeperl) manually because OpenSSL needs it for configuration. On Mac/Linux, you should install the libraries manually to your system before building Neko, or use the `STATIC_DEPS` CMake option, which will be explained in [CMake options](#cmake-options).
 
 ### Building on Mac/Linux
 
@@ -112,7 +112,7 @@ Settings that allow to exclude libraries and their dependencies from the build; 
 - `WITH_SSL` - Build SSL support
 - `WITH_MYSQL` - Build MySQL support
 - `WITH_SQLITE` - Build Sqlite support
-- `WITH_APACHE` - Build Apach modules
+- `WITH_APACHE` - Build Apache modules
 
 #### `STATIC_DEPS`
 
@@ -122,7 +122,7 @@ It defines the dependencies that should be linked statically. Can be `all`, `non
 
 CMake will automatically download and build the specified dependencies into the build folder. If a library is not present in this list, it should be installed manually, and it will be linked dynamically.
 
-All third-party libraries, except GTK+2 (Linux), can be linked statically. We do not support statically linking GTK+2 due to the diffculty of building it and its own dependencies.
+All third-party libraries, except GTK+2 (Linux), can be linked statically. We do not support statically linking GTK+2 due to the difficulty of building it and its own dependencies.
 
 #### `RELOCATABLE`
 
