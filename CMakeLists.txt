@@ -410,6 +410,7 @@ set_target_properties(libneko
 	SOVERSION ${NEKO_VERSION_MAJOR}
 	COMPILE_DEFINITIONS "_USRDLL;NEKOVM_DLL_EXPORTS;NEKO_SOURCES"
 	PUBLIC_HEADER "${libneko_public_headers}"
+	PDB_NAME libneko
 )
 
 #######################
