@@ -371,6 +371,11 @@ if (STATIC_BOEHMGC)
 		# don't want to add libatomic_ops to external_deps,
 		# but want download_static_deps depends on it
 		add_dependencies(BoehmGC-download libatomic_ops-download)
+
+		set(GC_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/include)
+		set(GC_LIBRARIES
+			${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/lib/libgc.a
+		)
 	endif()
 	set_target_properties(BoehmGC PROPERTIES ${EP_PROPS})
 	add_dependencies(libneko BoehmGC)
