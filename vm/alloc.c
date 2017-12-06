@@ -117,7 +117,6 @@ static void null_warn_proc( char *msg, int arg ) {
 }
 
 void neko_gc_init() {
-	GC_set_warn_proc((GC_warn_proc)(void*)null_warn_proc);
 #	ifndef NEKO_WINDOWS
 	// we can't set this on windows with old GC since
 	// it's already initialized through its own DllMain
@@ -131,6 +130,7 @@ void neko_gc_init() {
 #endif
 	GC_java_finalization = 1;
 	GC_init();
+	GC_set_warn_proc((GC_warn_proc)(void*)null_warn_proc);
 	GC_no_dls = 1;
 #ifdef LOW_MEM
 	GC_dont_expand = 1;
