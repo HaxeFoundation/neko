@@ -65,11 +65,11 @@ execute_process(
 )
 
 set(distros
-	precise
 	trusty
-	vivid
 	xenial
-	yakkety
+	zesty
+	artful
+	bionic
 )
 
 if (DEFINED ENV{PPA})
