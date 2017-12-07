@@ -5,6 +5,7 @@
 	cmake : fixed various build issues, particularly for FreeBSD (Thanks, ppenzin!), and cygwin
 	cmake : added NekoConfig.cmake to ease building ndll or native program using Neko with CMake
 	cmake : replaces WITH_NDLLS with WITH_* (#157)
+	cmake : does not recompile nekoc/nekoml unless RECOMPILE_NEKOC_NEKOML (#171)
 	all : added NEKO_MODULE_PATH in neko.h that points to the installation path of the ndll files
 	std : bugfix in utf8_compare (https://github.com/HaxeFoundation/haxe/issues/5308)
 	ssl : handle MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY (#150)
@@ -14,6 +15,7 @@
 	all : introduced NEKO_BIG_ENDIAN and NEKO_LITTLE_ENDIAN to replace IS_BIG_ENDIAN, IS_LITTLE_ENDIAN, LITTLE_ENDIAN, BIG_ENDIAN, and BYTE_ORDER
 	all : renamed TAG_BITS to NEKO_TAG_BITS
 	all : add NEKO_JIT_DISABLE and NEKO_JIT_DEBUG CMake options
+	all : VS2015 and 2017 compatiblity (#133 #172)
 
 2016-05-08 : 2.1.0
 	all : switched to use CMake for building (#122)
