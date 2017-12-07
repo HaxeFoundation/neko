@@ -71,13 +71,13 @@ set(NEKO_VERSION ${NEKO_VERSION_MAJOR}.${NEKO_VERSION_MINOR}.${NEKO_VERSION_PATC
 # Determine target endianness
 TEST_BIG_ENDIAN(NEKO_BIG_ENDIAN)
 
-set(WITH_REGEXP ON CACHE BOOL "Build Perl-compatible regex support.")
-set(WITH_UI ON CACHE BOOL "Build GTK-2 UI support.")
-set(WITH_SSL ON CACHE BOOL "Build SSL support.")
-set(WITH_MYSQL ON CACHE BOOL "Build MySQL support.")
-set(WITH_SQLITE ON CACHE BOOL "Build Sqlite support.")
-set(WITH_APACHE ON CACHE BOOL "Build Apach modules.")
-set(WITH_NEKOML ON CACHE BOOL "Build NekoML.")
+option(WITH_REGEXP "Build Perl-compatible regex support." ON)
+option(WITH_UI "Build GTK-2 UI support." ON)
+option(WITH_SSL "Build SSL support." ON)
+option(WITH_MYSQL "Build MySQL support." ON)
+option(WITH_SQLITE "Build Sqlite support." ON)
+option(WITH_APACHE "Build Apach modules." ON)
+option(WITH_NEKOML "Build NekoML." ON)
 
 # Process common headers in libraries
 # TODO libraries should not be built from this file, but rather by traversing the tree using add_subdirectory
@@ -116,8 +116,8 @@ endif()
 
 check_include_file(xlocale.h NEKO_XLOCALE_H)
 
-set(NEKO_JIT_DISABLE OFF CACHE BOOL "Disable Neko JIT.")
-set(NEKO_JIT_DEBUG OFF CACHE BOOL "Debug Neko JIT.")
+option(NEKO_JIT_DISABLE "Disable Neko JIT." OFF)
+option(NEKO_JIT_DEBUG "Debug Neko JIT." OFF)
 
 configure_file (
 	"${CMAKE_SOURCE_DIR}/vm/neko.h.in"
