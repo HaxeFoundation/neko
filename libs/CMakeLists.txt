@@ -172,8 +172,8 @@ if (WITH_APACHE)
 		ExternalProject_Add(Apache
 			${EP_CONFIGS}
 			DEPENDS ${APR_DEP} ${APRUTIL_DEP} ${OPENSSL_DEP} ${PCRE_DEP}
-			URL http://archive.apache.org/dist/httpd/httpd-2.4.20.tar.gz
-			URL_MD5 e725c268624737a163dc844e28f720d1
+			URL http://archive.apache.org/dist/httpd/httpd-2.4.29.tar.gz
+			URL_MD5 6380b0856658f07479fdcba9e20294a6
 			${Apache_CONFIGS}
 		)
 		set_target_properties(Apache PROPERTIES ${EP_PROPS})

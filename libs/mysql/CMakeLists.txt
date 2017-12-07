@@ -42,8 +42,8 @@ if (STATIC_OPENSSL)
 	endif()
 	ExternalProject_Add(OpenSSL
 		${EP_CONFIGS}
-		URL https://www.openssl.org/source/openssl-1.1.0f.tar.gz
-		URL_MD5 7b521dea79ab159e8ec879d2333369fa
+		URL https://www.openssl.org/source/openssl-1.1.0g.tar.gz
+		URL_MD5 ba5f1b8b835b88cadbce9b35ed9531a6
 		${OPENSSL_CONFS}
 		PATCH_COMMAND ${CMAKE_COMMAND} -Dopenssl_source=${CMAKE_BINARY_DIR}/libs/src/openssl -P ${CMAKE_SOURCE_DIR}/cmake/patch_openssl.cmake
 		SOURCE_DIR ${CMAKE_BINARY_DIR}/libs/src/openssl
