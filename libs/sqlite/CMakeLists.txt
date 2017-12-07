@@ -22,13 +22,7 @@ if (STATIC_SQLITE3)
 	)
 	target_include_directories(sqlite.ndll PRIVATE ${CMAKE_BINARY_DIR}/libs/src/Sqlite3)
 	target_link_libraries(sqlite.ndll libneko)
-	if (${CMAKE_VERSION} VERSION_LESS 2.8.11)
-		set_target_properties(sqlite.ndll
-			PROPERTIES
-				COMPILE_DEFINITIONS "SQLITE_MAX_VARIABLE_NUMBER=250000;SQLITE_ENABLE_RTREE=1")
-	else()
-		target_compile_definitions(sqlite.ndll PRIVATE SQLITE_MAX_VARIABLE_NUMBER=250000 SQLITE_ENABLE_RTREE=1)
-	endif()
+	target_compile_definitions(sqlite.ndll PRIVATE SQLITE_MAX_VARIABLE_NUMBER=250000 SQLITE_ENABLE_RTREE=1)
 	# Download project for fat source archive
 	add_dependencies(download_static_deps Sqlite3-download)
 else()
