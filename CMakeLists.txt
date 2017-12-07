@@ -309,12 +309,17 @@ if (STATIC_BOEHMGC)
 		INSTALL_COMMAND echo skip install
 	)
 
+	set (
+		BoehmGC_CONFIGS
+		DEPENDS libatomic_ops
+		URL http://www.hboehm.info/gc/gc_source/gc-7.6.0.tar.gz
+		URL_MD5 bf46ccbdaccfa3186c2ab87191c8855a
+	)
+
 	if (WIN32)
 		ExternalProject_Add(BoehmGC
 			${EP_CONFIGS}
-			DEPENDS libatomic_ops
-			URL https://github.com/ivmai/bdwgc/archive/gc7_6_0.tar.gz
-			URL_MD5 63bfd95e01893c2941cbfd6f4d6c4a5a
+			${BoehmGC_CONFIGS}
 			CMAKE_ARGS
 				-Wno-dev
 				-Denable_threads=ON
@@ -344,12 +349,15 @@ if (STATIC_BOEHMGC)
 		else()
 			set(GC_CFLAGS "-w")
 		endif()
+		
+		set(GC_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/include)
+		set(GC_LIBRARIES
+			${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/lib/libgc.a
+		)
 
 		ExternalProject_Add(BoehmGC
 			${EP_CONFIGS}
-			DEPENDS libatomic_ops
-			URL http://hboehm.info/gc/gc_source/gc-7.4.2.tar.gz
-			URL_MD5 12c05fd2811d989341d8c6d81f66af87
+			${BoehmGC_CONFIGS}
 			PATCH_COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/libs/src/libatomic_ops ${CMAKE_BINARY_DIR}/libs/src/BoehmGC/libatomic_ops
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/BoehmGC &&
 				./configure
@@ -371,11 +379,6 @@ if (STATIC_BOEHMGC)
 		# don't want to add libatomic_ops to external_deps,
 		# but want download_static_deps depends on it
 		add_dependencies(BoehmGC-download libatomic_ops-download)
-
-		set(GC_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/include)
-		set(GC_LIBRARIES
-			${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/lib/libgc.a
-		)
 	endif()
 	set_target_properties(BoehmGC PROPERTIES ${EP_PROPS})
 	add_dependencies(libneko BoehmGC)
