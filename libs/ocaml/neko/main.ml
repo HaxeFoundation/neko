@@ -1,6 +1,6 @@
 (*
  *  Neko Compiler
- *  Copyright (c)2005-2016 Haxe Foundation
+ *  Copyright (c)2005-2017 Haxe Foundation
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -65,7 +65,7 @@ let compile_exn = function
 
 let main() =
 	try	
-		let usage = "Neko v0.4 - (c)2005-2016 Haxe Foundation\n Usage : neko.exe [options] <files...>\n Options :" in
+		let usage = "Neko v0.4 - (c)2005-2017 Haxe Foundation\n Usage : neko.exe [options] <files...>\n Options :" in
 		let output = ref "n" in
 		let args_spec = [
 			("-msvc",Arg.Unit (fun () -> print_style := StyleMSVC),": use MSVC style errors");
