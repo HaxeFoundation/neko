@@ -1,11 +1,5 @@
 language: cpp
-
-os:
-  - linux
-  - osx
-
 sudo: required
-dist: trusty
 
 env:
   global:
@@ -13,9 +7,19 @@ env:
     - DEBEMAIL="haxe-ci@onthewings.net"
     # haxeci_decrypt
     - secure: "fwuuwLcJ8vjCT9RI6DeV+k41+Atxf3EldWHNCREeSJ2FeeBgAQ0aePvx2Bgw6HkTzUWmj2YKVUV8RNrpkN4HQNO0gncYSOLBzXNuL1GAc657YXQcHmeZd4z6Ung+IpyphaThRE0ZwFzgLrj7sA7tfJ4YXxskfCBZNrnJBQU4K2A="
-  matrix:
-    - STATIC_DEPS=all
-    - STATIC_DEPS=none
+
+matrix:
+  include:
+    - os: linux
+      dist: trusty
+      env: STATIC_DEPS=all DEPLOY=1
+    - os: linux
+      dist: trusty
+      env: STATIC_DEPS=none
+    - os: osx
+      env: STATIC_DEPS=all
+    - os: osx
+      env: STATIC_DEPS=none
 
 install:
   # Install dependencies
@@ -72,18 +76,12 @@ script:
   # test installed version
   - neko -version
   - neko build/bin/test.n
-  # submit to ppa
-  - if [ -n "$haxeci_decrypt" ] && [ "${TRAVIS_OS_NAME}" = "linux" ] && [ "${TRAVIS_BRANCH}" = "master" ] && [ "${STATIC_DEPS}" = "all" ]; then
-      openssl aes-256-cbc -k "$haxeci_decrypt" -in haxeci_ssh.enc -out haxeci_ssh -d;
-      chmod 600 haxeci_ssh;
-      eval `ssh-agent -s`;
-      ssh-add haxeci_ssh;
-      openssl aes-256-cbc -k "$haxeci_decrypt" -in haxeci_sec.gpg.enc -out haxeci_sec.gpg -d;
-      gpg --allow-secret-key-import --import haxeci_sec.gpg;
-      sudo apt-get install devscripts git-buildpackage ubuntu-dev-tools dh-make dh-apache2 -y;
-      git config --global user.name "${DEBFULLNAME}";
-      git config --global user.email "${DEBEMAIL}";
-      pushd build;
-      make upload_to_ppa;
-      popd;
-    fi
+
+deploy:
+  provider: script
+  script: ./deploy.sh
+  on:
+    branch: master
+    tags: false
+    condition: "$DEPLOY = 1"
+  skip_cleanup: true
