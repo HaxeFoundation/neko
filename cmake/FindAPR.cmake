@@ -27,17 +27,20 @@
 # APR first.
 
 FIND_PATH(APR_INCLUDE_DIR apr.h
+/usr/local/opt/apr/libexec/include/apr-1
+/usr/local/include/apr
 /usr/local/include/apr-1
 /usr/local/include/apr-1.0
+/usr/include/apr
 /usr/include/apr-1
 /usr/include/apr-1.0
 )
 
-SET(APR_NAMES ${APR_NAMES} apr-1)
+SET(APR_NAMES ${APR_NAMES} apr apr-1 apr-1.0)
 FIND_LIBRARY(APR_LIBRARY
   NAMES ${APR_NAMES}
-  PATHS /usr/lib /usr/local/lib
-  )
+  PATHS /usr/local/opt/apr/libexec/lib /usr/local/lib /usr/lib
+)
 
 IF (APR_LIBRARY AND APR_INCLUDE_DIR)
     SET(APR_LIBRARIES ${APR_LIBRARY})
@@ -69,16 +72,19 @@ MARK_AS_ADVANCED(
 # Next, APRUTIL.
 
 FIND_PATH(APRUTIL_INCLUDE_DIR apu.h
+/usr/local/opt/apr-util/libexec/include/apr-1
+/usr/local/include/apr
 /usr/local/include/apr-1
 /usr/local/include/apr-1.0
+/usr/include/apr
 /usr/include/apr-1
 /usr/include/apr-1.0
 )
 
-SET(APRUTIL_NAMES ${APRUTIL_NAMES} aprutil-1)
+SET(APRUTIL_NAMES ${APRUTIL_NAMES} aprutil aprutil-1 aprutil-1.0)
 FIND_LIBRARY(APRUTIL_LIBRARY
   NAMES ${APRUTIL_NAMES}
-  PATHS /usr/local/lib /usr/lib
+  PATHS /usr/local/opt/apr-util/libexec/lib /usr/local/lib /usr/lib
   )
 
 IF (APRUTIL_LIBRARY AND APRUTIL_INCLUDE_DIR)
