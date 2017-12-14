@@ -28,6 +28,7 @@
 #	include <windows.h>
 #else
 #	include <unistd.h>
+#	include <limits.h>
 #endif
 #ifdef NEKO_MAC
 #	include <sys/param.h>
@@ -92,9 +93,9 @@ static char *executable_path() {
         if (!cb) return NULL;
         return path;
 #elif defined(NEKO_LINUX)
-	static char path[200];
+	static char path[PATH_MAX];
 	int length = readlink("/proc/self/exe", path, sizeof(path));
-	if( length < 0 || length >= 200 ) {
+	if( length < 0 || length >= PATH_MAX ) {
 		char *p = getenv("   "); // for upx
 		if( p == NULL )
 			p = getenv("_");

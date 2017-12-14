@@ -577,17 +577,18 @@ static value sys_exe_path() {
 		neko_error();
 	return alloc_string(path);
 #elif defined(NEKO_LINUX)
-	const char *p = getenv("_");
-	if( p != NULL )
-		return alloc_string(p);
-	{
-		char path[PATH_MAX];
-		int length = readlink("/proc/self/exe", path, sizeof(path));
-		if( length < 0 )
+	static char path[PATH_MAX];
+	int length = readlink("/proc/self/exe", path, sizeof(path));
+	if( length < 0 || length >= PATH_MAX ) {
+		char *p = getenv("   "); // for upx
+		if( p == NULL )
+			p = getenv("_");
+		if( p == NULL )
 			neko_error();
-	    path[length] = '\0';
-		return alloc_string(path);
+		return alloc_string(p);
 	}
+	path[length] = '\0';
+	return alloc_string(path);
 #else
 	const char *p = getenv("_");
 	if( p != NULL )
