@@ -18,6 +18,7 @@ DartConfiguration.tcl
 /build*/
 /libs/src
 /libs/tmp
+/libs/download
 *.sln
 *.vcxproj
 *.vcxproj.filters

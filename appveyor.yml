@@ -15,7 +15,7 @@ environment:
 configuration: Release
 
 cache:
-  - libs\src -> **\CMakeLists.txt
+  - libs\download -> **\CMakeLists.txt
 
 build_script:
   - cmake -G "%CMAKE_GENERATOR%" .

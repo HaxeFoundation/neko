@@ -213,6 +213,7 @@ endif()
 # ExternalProject configs
 set(EP_CONFIGS
 	PREFIX ${CMAKE_BINARY_DIR}/libs
+	DOWNLOAD_DIR ${CMAKE_BINARY_DIR}/libs/download
 )
 if(NOT ${CMAKE_VERSION} VERSION_LESS 3.1)
 	list(APPEND EP_CONFIGS
