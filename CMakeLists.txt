@@ -96,9 +96,6 @@ configure_file (
 	"${CMAKE_BINARY_DIR}/neko.h"
 )
 
-set(ndll_targets
-)
-
 set(external_deps
 	BoehmGC
 	Zlib
@@ -112,12 +109,10 @@ set(external_deps
 	MbedTLS
 )
 
-set(STATIC_DEPS_DOC "Dependencies that should be linked statically. Can be \"all\", \"none\", or a list of library names (e.g. \"${external_deps}\").")
-
 if (WIN32)
-	set(STATIC_DEPS "all")
+	set(STATIC_DEPS_DEFAULT "all")
 else()
-	set(STATIC_DEPS "none" CACHE STRING "${STATIC_DEPS_DOC}")
+	set(STATIC_DEPS_DEFAULT "none")
 
 	option(RELOCATABLE "Set RPATH to $ORIGIN (Linux) / @executable_path (Mac)." ON)
 
@@ -126,10 +121,8 @@ else()
 	endif()
 endif()
 
-
-# These ndll cannot be skipped.
-set(core_ndll_targets
-)
+set(STATIC_DEPS_DOC "Dependencies that should be linked statically. Can be \"all\", \"none\", or a list of library names (e.g. \"${external_deps}\").")
+set(STATIC_DEPS ${STATIC_DEPS_DEFAULT} CACHE STRING "${STATIC_DEPS_DOC}")
 
 # Validate STATIC_DEPS
 if (STATIC_DEPS STREQUAL "all")

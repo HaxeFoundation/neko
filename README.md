@@ -116,7 +116,7 @@ Settings that allow to exclude libraries and their dependencies from the build; 
 
 #### `STATIC_DEPS`
 
-Available on Mac/Linux. Default value: `none`
+Default value: `all` for Windows, `none` otherwise
 
 It defines the dependencies that should be linked statically. Can be `all`, `none`, or a list of library names (e.g. `BoehmGC;Zlib;OpenSSL;MariaDBConnector;PCRE;Sqlite3;APR;APRutil;Apache;MbedTLS`).
 
