@@ -1,4 +1,4 @@
-????-??-?? : 2.2.0
+2017-12-19 : 2.2.0
 	nekotools : added `nekotools boot -c *.n`, which generates a C file that contains the input Neko bytecode (#130)
 	nekotools : fixed `nekotools boot` not able to find neko when a value in PATH does not have a trailing slash (#148)
 	cmake : recognize common install location variables by using GNUInstallDirs
