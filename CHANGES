@@ -16,6 +16,7 @@
 	all : renamed TAG_BITS to NEKO_TAG_BITS
 	all : add NEKO_JIT_DISABLE and NEKO_JIT_DEBUG CMake options
 	all : VS2015 and 2017 compatiblity (#133 #172)
+	sqlite : fixed reading 32-bit int from sqlite (#167)
 
 2016-05-08 : 2.1.0
 	all : switched to use CMake for building (#122)

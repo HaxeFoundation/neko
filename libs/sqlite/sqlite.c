@@ -231,7 +231,7 @@ static value result_next( value v ) {
 				if( r->bools[i] )
 					f = alloc_bool(sqlite3_column_int(r->r,i));
 				else
-					f = alloc_int(sqlite3_column_int(r->r,i));
+					f = alloc_best_int(sqlite3_column_int(r->r,i));
 				break;
 			case SQLITE_FLOAT:
 				f = alloc_float(sqlite3_column_double(r->r,i));
@@ -300,7 +300,7 @@ static value result_get_int( value v, value n ) {
 		result_next(v);
 	if( r->done )
 		neko_error();
-	return alloc_int(sqlite3_column_int(r->r,val_int(n)));
+	return alloc_best_int(sqlite3_column_int(r->r,val_int(n)));
 }
 
 /**
