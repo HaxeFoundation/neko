@@ -1415,18 +1415,23 @@ static void jit_int_op( jit_ctx *ctx, enum IOperation op ) {
 	XMov_rp(ACC,SP,FIELD(0));
 	is_int(ACC,false,jerr1);
 	is_int(TMP,false,jerr2);
-	XShr_rc(TMP,1);
-	XShr_rc(ACC,1);
 
 	switch( op ) {
 	case IOP_SHL:
+		XShr_rc(ACC,1);
+		XShr_rc(TMP,1);
 		XShl_rr(ACC,TMP);
+		best_int();
 		break;
 	case IOP_SHR:
+		XShr_rc(TMP,1);
 		XShr_rr(ACC,TMP);
+		XOr_rc(ACC,1);
 		break;
 	case IOP_USHR:
+		XShr_rc(TMP,1);
 		XUShr_rr(ACC,TMP);
+		XOr_rc(ACC,1);
 		break;
 	case IOP_AND:
 		XAnd_rr(ACC,TMP);
@@ -1436,12 +1441,12 @@ static void jit_int_op( jit_ctx *ctx, enum IOperation op ) {
 		break;
 	case IOP_XOR:
 		XXor_rr(ACC,TMP);
+		XOr_rc(ACC,1);
 		break;
 	default:
 		ERROR;
 	}
 
-	best_int();
 	XJump_near(jend);
 
 	PATCH_JUMP(jerr1);
