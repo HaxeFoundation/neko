@@ -263,17 +263,17 @@ add_executable(nekovm
 if (STATIC_BOEHMGC)
 	ExternalProject_Add(libatomic_ops
 		${EP_CONFIGS}
-		URL https://github.com/ivmai/libatomic_ops/releases/download/v7.6.0/libatomic_ops-7.6.0.tar.gz
-		URL_MD5 4d4cd729e55fafb56d48f667c3e46331
+		URL https://github.com/ivmai/libatomic_ops/releases/download/v7.6.6/libatomic_ops-7.6.6.tar.gz
+		URL_MD5 4514d85d14e21af05d59877c9ded5abc
 		CONFIGURE_COMMAND echo skip config
 		BUILD_COMMAND echo skip build
 		INSTALL_COMMAND echo skip install
 	)
 
-	set(BoehmGC_URL "http://www.hboehm.info/gc/gc_source/gc-7.6.0.tar.gz")
+	set(BoehmGC_URL "http://www.hboehm.info/gc/gc_source/gc-7.6.8.tar.gz")
 	if (NOT ${CMAKE_VERSION} VERSION_LESS 3.7)
 		list(APPEND BoehmGC_URL
-			"https://github.com/ivmai/bdwgc/files/1005477/gc-7.6.0.tar.gz"
+			"https://github.com/ivmai/bdwgc/releases/download/v7.6.8/gc-7.6.8.tar.gz"
 		)
 	endif()
 
@@ -281,7 +281,7 @@ if (STATIC_BOEHMGC)
 		BoehmGC_CONFIGS
 		DEPENDS libatomic_ops
 		URL ${BoehmGC_URL}
-		URL_MD5 bf46ccbdaccfa3186c2ab87191c8855a
+		URL_MD5 9ae6251493ead5d0d13b044954cec7d7
 	)
 
 	if (WIN32)
