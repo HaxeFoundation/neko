@@ -85,8 +85,8 @@ if (WITH_APACHE)
 		endif()
 		ExternalProject_Add(APR
 			${EP_CONFIGS}
-			URL http://archive.apache.org/dist/apr/apr-1.5.2.tar.gz
-			URL_MD5 98492e965963f852ab29f9e61b2ad700
+			URL http://archive.apache.org/dist/apr/apr-1.6.5.tar.gz
+			URL_MD5 0759294408daace192c935b7c9e76e04
 			${APR_CONFIGS}
 		)
 		set_target_properties(APR PROPERTIES ${EP_PROPS})
@@ -117,8 +117,8 @@ if (WITH_APACHE)
 		ExternalProject_Add(APRutil
 			${EP_CONFIGS}
 			DEPENDS ${APR_DEP} ${OPENSSL_DEP}
-			URL http://archive.apache.org/dist/apr/apr-util-1.5.4.tar.gz
-			URL_MD5 866825c04da827c6e5f53daff5569f42
+			URL http://archive.apache.org/dist/apr/apr-util-1.6.1.tar.gz
+			URL_MD5 bd502b9a8670a8012c4d90c31a84955f
 			${APRutil_CONFIGS}
 		)
 		set_target_properties(APRutil PROPERTIES ${EP_PROPS})
@@ -172,8 +172,8 @@ if (WITH_APACHE)
 		ExternalProject_Add(Apache
 			${EP_CONFIGS}
 			DEPENDS ${APR_DEP} ${APRUTIL_DEP} ${OPENSSL_DEP} ${PCRE_DEP}
-			URL http://archive.apache.org/dist/httpd/httpd-2.4.29.tar.gz
-			URL_MD5 6380b0856658f07479fdcba9e20294a6
+			URL http://archive.apache.org/dist/httpd/httpd-2.4.37.tar.gz
+			URL_MD5 9ca56d8636944a4989de5af608714086
 			${Apache_CONFIGS}
 		)
 		set_target_properties(Apache PROPERTIES ${EP_PROPS})
