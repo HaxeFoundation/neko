@@ -2,6 +2,8 @@
 
 [![TravisCI Build Status](https://travis-ci.org/HaxeFoundation/neko.svg?branch=master)](https://travis-ci.org/HaxeFoundation/neko)
 [![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/HaxeFoundation/neko?branch=master&svg=true)](https://ci.appveyor.com/project/HaxeFoundation/neko)
+[![Code Quality: Cpp](https://img.shields.io/lgtm/grade/cpp/g/HaxeFoundation/neko.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/HaxeFoundation/neko/context:cpp)
+[![Total Alerts](https://img.shields.io/lgtm/alerts/g/HaxeFoundation/neko.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/HaxeFoundation/neko/alerts)
 
 # Neko Virtual Machine
 
