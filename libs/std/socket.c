@@ -882,6 +882,22 @@ static value socket_set_fast_send( value s, value f ) {
 }
 
 /**
+	socket_set_broadcast : 'socket -> bool -> void
+	<doc>
+	Disable or enable broadcast option flag "SO_BROADCAST" for the socket
+	</doc>
+**/
+static value socket_set_broadcast( value s, value f ) {
+	int broadcast;
+	val_check_kind(s,k_socket);
+	val_check(f,bool);
+	broadcast = val_bool(f);
+	if( setsockopt(val_sock(s),SOL_SOCKET,SO_BROADCAST,(char*)&broadcast,sizeof(broadcast)) )
+		neko_error();
+	return val_null;
+}
+
+/**
 	socket_send_to : 'socket -> buf:string -> pos:int -> length:int -> addr:{host:'int32,port:int} -> int
 	<doc>
 	Send data from an unconnected UDP socket to the given address.
@@ -1207,6 +1223,7 @@ DEFINE_PRIM(socket_set_timeout,2);
 DEFINE_PRIM(socket_shutdown,3);
 DEFINE_PRIM(socket_set_blocking,2);
 DEFINE_PRIM(socket_set_fast_send,2);
+DEFINE_PRIM(socket_set_broadcast,2);
 
 DEFINE_PRIM(socket_send_to,5);
 DEFINE_PRIM(socket_recv_from,5);
