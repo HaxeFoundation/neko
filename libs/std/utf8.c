@@ -27,8 +27,8 @@
 	<doc>
 	<h1>UTF8</h1>
 	<p>
-	Operations on UTF8 strings. 
-	Most of the operations are optimized for speed so they might still 
+	Operations on UTF8 strings.
+	Most of the operations are optimized for speed so they might still
 	succeed on some malformed UTF8 string. The only function that completely
 	check the UTF8 format is [utf8_validate]. Other functions might raise
 	some exception or not depending on the malformed data.
@@ -71,7 +71,7 @@ static void utf8_buf_resize( ubuf *b ) {
 		nbytes = 10;
 	s = alloc_empty_string(len+nbytes);
 	memcpy(val_string(s),val_string(b->buf),len);
-	b->buf = s;	
+	b->buf = s;
 }
 
 
@@ -92,7 +92,7 @@ static value utf8_buf_add( value buf, value uchar ) {
 			utf8_buf_resize(b);
 		val_string(b->buf)[b->pos++] = (char)c;
 		return val_true;
-	}	
+	}
 	if( b->pos + 4 > val_strlen(b->buf) )
 		utf8_buf_resize(b);
 	s = (unsigned char*)val_string(b->buf);
@@ -121,7 +121,7 @@ static value utf8_buf_add( value buf, value uchar ) {
 	<doc>
 	Return the current content of the buffer.
 	This is not a copy of the buffer but the shared content.
-	Retreiving content and then continuing to add chars is 
+	Retreiving content and then continuing to add chars is
 	possible but not very efficient.
 	</doc>
 **/
@@ -156,44 +156,63 @@ static value utf8_buf_size( value buf ) {
 	return alloc_int(b->pos);
 }
 
+/*
+Copyright (c) 2008-2009 Bjoern Hoehrmann <bjoern@hoehrmann.de>
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+The above copyright notice and this permission notice shall be included
+in all copies or substantial portions of the Software.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+*/
+
+static const int utf8d[] = {
+  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // 00..1f
+  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // 20..3f
+  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // 40..5f
+  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // 60..7f
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9, // 80..9f
+  7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7, // a0..bf
+  8,8,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2, // c0..df
+  0xa,0x3,0x3,0x3,0x3,0x3,0x3,0x3,0x3,0x3,0x3,0x3,0x3,0x4,0x3,0x3, // e0..ef
+  0xb,0x6,0x6,0x6,0x5,0x8,0x8,0x8,0x8,0x8,0x8,0x8,0x8,0x8,0x8,0x8, // f0..ff
+  0x0,0x1,0x2,0x3,0x5,0x8,0x7,0x1,0x1,0x1,0x4,0x6,0x1,0x1,0x1,0x1, // s0..s0
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,0,1,0,1,1,1,1,1,1, // s1..s2
+  1,2,1,1,1,1,1,2,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1, // s3..s4
+  1,2,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,3,1,3,1,1,1,1,1,1, // s5..s6
+  1,3,1,1,1,1,1,3,1,3,1,1,1,1,1,1,1,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1, // s7..s8
+};
+
 /**
 	utf8_validate : string -> bool
 	<doc>Validate if a string is encoded using the UTF8 format</doc>
 **/
 static value utf8_validate( value str ) {
 	int l;
+	int state = 0;
 	unsigned char *s;
 	val_check(str,string);
 	l = val_strlen(str);
 	s = (unsigned char*)val_string(str);
 	while( l-- ) {
 		unsigned char c = *s++;
-		if( c < 0x7F )
-			continue;
-		else if( c < 0xC0 )
-			return val_false;
-		else if( c < 0xE0 ) {
-			if( (*s++ & 0x80) != 0x80 )
-				return val_false;
-			l--;
-		} else if( c < 0xF0 ) {
-			if( (*s++ & 0x80) != 0x80 )
-				return val_false;
-			if( (*s++ & 0x80) != 0x80 )
-				return val_false;
-			l-=2;
-		} else {
-			if( (*s++ & 0x80) != 0x80 )
-				return val_false;
-			if( (*s++ & 0x80) != 0x80 )
-				return val_false;
-			if( (*s++ & 0x80) != 0x80 )
-				return val_false;
-			l-=3;
-		}
+		int type = utf8d[c];
+		state = utf8d[256+(state<<4)+type];
+		if( state == 1 ) return val_false;
 	}
-	return val_true;
+	return alloc_bool(state == 0);
 }
+
+// --- ended copyright code
 
 /**
 	utf8_length : string -> int
@@ -298,7 +317,7 @@ static value utf8_sub( value str, value pos, value len ) {
 
 /**
 	utf8_get : string -> n:int -> int
-	<doc>Returns the [n]th char in an UTF8 string. 
+	<doc>Returns the [n]th char in an UTF8 string.
 	This might be inefficient if [n] is big.</doc>
 **/
 static value utf8_get( value str, value pos ) {
