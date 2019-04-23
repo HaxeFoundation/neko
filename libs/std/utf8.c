@@ -168,7 +168,7 @@ static value utf8_validate( value str ) {
 	s = (unsigned char*)val_string(str);
 	while( l-- ) {
 		unsigned char c = *s++;
-		if( c < 0x7F )
+		if( c < 0x80 )
 			continue;
 		else if( c < 0xC0 )
 			return val_false;
@@ -209,7 +209,7 @@ static value utf8_length( value str ) {
 	while( l > 0 ) {
 		unsigned char c = *s;
 		count++;
-		if( c < 0x7F ) {
+		if( c < 0x80 ) {
 			l--;
 			s++;
 		} else if( c < 0xC0 )
@@ -248,7 +248,7 @@ static value utf8_sub( value str, value pos, value len ) {
 	s = (unsigned char*)val_string(str);
 	while( count-- && l > 0 ) {
 		unsigned char c = *s;
-		if( c < 0x7F ) {
+		if( c < 0x80 ) {
 			l--;
 			s++;
 		} else if( c < 0xC0 )
@@ -272,7 +272,7 @@ static value utf8_sub( value str, value pos, value len ) {
 		neko_error();
 	while( count-- && l > 0 ) {
 		unsigned char c = *s;
-		if( c < 0x7F ) {
+		if( c < 0x80 ) {
 			l--;
 			s++;
 		} else if( c < 0xC0 )
@@ -314,7 +314,7 @@ static value utf8_get( value str, value pos ) {
 	s = (unsigned char*)val_string(str);
 	while( l-- ) {
 		unsigned char c = *s++;
-		if( c < 0x7F ) {
+		if( c < 0x80 ) {
 			if( p-- == 0 )
 				return alloc_int(c);
 		} else if( c < 0xC0 )
