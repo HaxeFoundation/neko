@@ -359,7 +359,7 @@ static value utf8_iter( value str, value f ) {
 	s = (unsigned char*)val_string(str);
 	while( l-- ) {
 		unsigned char c = *s++;
-		if( c < 0x7F )
+		if( c < 0x80 )
 			val_call1(f,alloc_int(c));
 		else if( c < 0xC0 )
 			neko_error();
