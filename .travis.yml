@@ -87,5 +87,5 @@ deploy:
   on:
     branch: master
     tags: false
-    condition: "$DEPLOY = 1"
+    condition: $DEPLOY = 1 && $TRAVIS_EVENT_TYPE != "cron"
   skip_cleanup: true
