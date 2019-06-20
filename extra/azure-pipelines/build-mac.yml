@@ -1,0 +1,45 @@
+parameters:
+  name: 'BuildMac'
+  vmImage: 'macOS-10.13'
+  staticDeps: 'true'
+  config: 'RelWithDebInfo'
+
+jobs:
+  - job: ${{ parameters.name }}
+    pool:
+      vmImage: ${{ parameters.vmImage }}
+    variables:
+      ${{ if eq(parameters.staticDeps, 'true') }}:
+        BREW_PACKAGES: cmake ninja pkg-config
+        STATIC_DEPS: all
+      ${{ if eq(parameters.staticDeps, 'false') }}:
+        BREW_PACKAGES: cmake ninja pkg-config bdw-gc mariadb-connector-c mbedtls pcre
+        STATIC_DEPS: none
+    steps:
+      - script: |
+          set -ex
+          brew update
+          brew install $(BREW_PACKAGES)
+        displayName: Install dependencies
+      - script: cmake . -DSTATIC_DEPS=$(STATIC_DEPS) -G Ninja -DCMAKE_BUILD_TYPE=${{ parameters.config }}
+        displayName: CMake
+      - ${{ if eq(parameters.staticDeps, 'true') }}:
+        - script: ninja download_static_deps || ninja download_static_deps || ninja download_static_deps
+          displayName: Download static deps
+      - script: ninja
+        displayName: Build
+      - script: |
+          set -ex
+          otool -L ./bin/neko
+          otool -L ./bin/nekoc
+          otool -L ./bin/nekoml
+          otool -L ./bin/nekotools
+        displayName: Check runtime dependencies
+      - script: ctest --verbose
+        displayName: Test
+      - script: ninja package
+        displayName: Package
+      - task: PublishPipelineArtifact@0
+        inputs:
+          artifactName: ${{ parameters.name }}Binaries
+          targetPath: bin/neko-2.2.0-osx64.tar.gz

@@ -1,0 +1,50 @@
+parameters:
+  name: 'BuildWindows'
+  vmImage: ''
+  cmakeGenerator: ''
+  config: 'RelWithDebInfo'
+
+jobs:
+  - job: ${{ parameters.name }}
+    pool:
+      vmImage: ${{ parameters.vmImage }}
+    steps:
+      - ${{ if eq(parameters.vmImage, 'vs2015-win2012r2') }}:
+        - powershell: |
+            Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+            Write-Host "##vso[task.prependpath]C:\ProgramData\chocolatey\bin"
+          displayName: Install Chocolatey
+      - powershell: |
+          choco install activeperl -y
+          Write-Host "##vso[task.prependpath]C:\Perl64\bin"
+        displayName: Install Perl
+      - script: cmake . -G "${{ parameters.cmakeGenerator }}"
+        displayName: CMake
+      - script: |
+          cmake --build . --config ${{ parameters.config }} --target download_static_deps || \
+          cmake --build . --config ${{ parameters.config }} --target download_static_deps || \
+          cmake --build . --config ${{ parameters.config }} --target download_static_deps
+        displayName: Download static deps
+      - script: cmake --build . --config ${{ parameters.config }}
+        displayName: Build
+      - script: ctest --verbose --build-config ${{ parameters.config }}
+        displayName: Test
+      - script: cmake --build . --config ${{ parameters.config }} --target PACKAGE
+        displayName: Package binaries
+      - task: PublishPipelineArtifact@0
+        inputs:
+          artifactName: ${{ parameters.name }}Binaries
+          ${{ if not(contains(parameters.cmakeGenerator, 'Win64')) }}:
+            targetPath: bin/neko-2.2.0-win.zip
+          ${{ if contains(parameters.cmakeGenerator, 'Win64') }}:
+            targetPath: bin/neko-2.2.0-win64.zip
+      - bash: |
+          set -ex
+          cmake --build . --config ${{ parameters.config }} --target package_choco
+          mkdir -p bin/choco
+          mv bin/*.nupkg bin/choco/
+        displayName: Package Chocolatey
+      - task: PublishPipelineArtifact@0
+        inputs:
+          artifactName: ${{ parameters.name }}Choco
+          targetPath: bin/choco

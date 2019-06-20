@@ -1,0 +1,150 @@
+variables:
+  - group: variables-haxe
+  - name: AZURE_PIPELINES_REPO_URL
+    value: $(Build.Repository.Uri)
+  - name: AZURE_PIPELINES_BRANCH
+    value: $(Build.SourceBranchName)
+
+stages:
+  - stage: StageTest
+    jobs:
+      - template: extra/azure-pipelines/build-linux.yml
+        parameters:
+          name: LinuxStatic
+          staticDeps: 'true'
+      - template: extra/azure-pipelines/build-linux.yml
+        parameters:
+          name: Linux
+          staticDeps: 'false'
+
+      - template: extra/azure-pipelines/build-mac.yml
+        parameters:
+          name: MacStatic
+          staticDeps: 'true'
+      - template: extra/azure-pipelines/build-mac.yml
+        parameters:
+          name: Mac
+          staticDeps: 'false'
+
+      - template: extra/azure-pipelines/build-windows.yml
+        parameters:
+          name: WinVS2013
+          vmImage: vs2015-win2012r2
+          cmakeGenerator: Visual Studio 14 2015
+      - template: extra/azure-pipelines/build-windows.yml
+        parameters:
+          name: WinVS2013x64
+          vmImage: vs2015-win2012r2
+          cmakeGenerator: Visual Studio 14 2015 Win64
+
+      - template: extra/azure-pipelines/build-windows.yml
+        parameters:
+          name: WinVS2017
+          vmImage: vs2017-win2016
+          cmakeGenerator: Visual Studio 15 2017
+      - template: extra/azure-pipelines/build-windows.yml
+        parameters:
+          name: WinVS2017x64
+          vmImage: vs2017-win2016
+          cmakeGenerator: Visual Studio 15 2017 Win64
+
+  - stage: StageDeploy
+    condition: and(succeeded(), not(variables['System.PullRequest.PullRequestId']))
+    jobs:
+      - job: S3
+        condition: and(succeeded(), variables['HXBUILDS_AWS_ACCESS_KEY_ID'], variables['HXBUILDS_S3ADDR'])
+        pool:
+          vmImage: 'ubuntu-16.04'
+        steps:
+          - task: DownloadPipelineArtifact@0
+            inputs:
+              artifactName: LinuxStaticBinaries
+              targetPath: LinuxStaticBinaries
+            displayName: Download LinuxStaticBinaries
+          - task: DownloadPipelineArtifact@0
+            inputs:
+              artifactName: MacStaticBinaries
+              targetPath: MacStaticBinaries
+            displayName: Download MacStaticBinaries
+          - task: DownloadPipelineArtifact@0
+            inputs:
+              artifactName: WinVS2013Binaries
+              targetPath: WinVS2013Binaries
+            displayName: Download WinVS2013Binaries
+          - task: DownloadPipelineArtifact@0
+            inputs:
+              artifactName: WinVS2013x64Binaries
+              targetPath: WinVS2013x64Binaries
+            displayName: Download WinVS2013x64Binaries
+          - task: DownloadPipelineArtifact@0
+            inputs:
+              artifactName: WinVS2013Choco
+              targetPath: WinVS2013Choco
+            displayName: Download WinVS2013Choco
+          - task: DownloadPipelineArtifact@0
+            inputs:
+              artifactName: WinVS2013x64Choco
+              targetPath: WinVS2013x64Choco
+            displayName: Download WinVS2013x64Choco
+          - script: |
+              set -ex
+              sudo apt-get update -qqy
+              sudo apt-get install -qqy awscli
+            displayName: "Install awscli"
+          - script: |
+              set -ex
+              COMMIT_HASH=`git rev-parse HEAD`
+              COMMIT_HASH_SHORT=${COMMIT_HASH:0:7}
+              COMMIT_DATE=`TZ=UTC git show --quiet --date='format-local:%Y-%m-%d' --format="%cd"`
+              FILE_NAME=neko_${COMMIT_DATE}_$(Build.SourceBranchName)_${COMMIT_HASH_SHORT}
+              aws s3 cp LinuxStaticBinaries/neko-*.tar.gz  $(HXBUILDS_S3ADDR)/linux64/${FILE_NAME}.tar.gz
+              aws s3 cp MacStaticBinaries/neko-*.tar.gz    $(HXBUILDS_S3ADDR)/mac/${FILE_NAME}.tar.gz
+              aws s3 cp WinVS2013Binaries/neko-*.zip       $(HXBUILDS_S3ADDR)/windows/${FILE_NAME}.zip
+              aws s3 cp WinVS2013Choco/neko-*.zip          $(HXBUILDS_S3ADDR)/windows-choco/
+              aws s3 cp WinVS2013x64Choco/neko-*.zip       $(HXBUILDS_S3ADDR)/windows64-choco/
+            env:
+              AWS_ACCESS_KEY_ID: $(HXBUILDS_AWS_ACCESS_KEY_ID)
+              AWS_SECRET_ACCESS_KEY: $(HXBUILDS_AWS_SECRET_ACCESS_KEY)
+            displayName: Upload binaries
+          - script: |
+              set -ex
+              aws s3 cp LinuxStaticBinaries/neko-*.tar.gz  $(HXBUILDS_S3ADDR)/linux64/neko_latest.tar.gz
+              aws s3 cp MacStaticBinaries/neko-*.tar.gz    $(HXBUILDS_S3ADDR)/mac/neko_latest.tar.gz
+              aws s3 cp WinVS2013Binaries/neko-*.zip       $(HXBUILDS_S3ADDR)/windows/neko_latest.zip
+              aws s3 cp WinVS2013x64Binaries/neko-*.zip    $(HXBUILDS_S3ADDR)/windows64/neko_latest.zip
+              aws s3 cp WinVS2013Choco/neko-*.zip          $(HXBUILDS_S3ADDR)/windows-choco/neko_latest.nupkg
+              aws s3 cp WinVS2013x64Choco/neko-*.zip       $(HXBUILDS_S3ADDR)/windows64-choco/neko_latest.nupkg
+            env:
+              AWS_ACCESS_KEY_ID: $(HXBUILDS_AWS_ACCESS_KEY_ID)
+              AWS_SECRET_ACCESS_KEY: $(HXBUILDS_AWS_SECRET_ACCESS_KEY)
+            condition: and(succeeded(), eq(variables['Build.SourceBranchName'], 'master'))
+            displayName: Update "latest"
+      - job: PPA
+        condition: and(succeeded(), variables['PPA'], variables['DEBFULLNAME'], variables['DEBEMAIL'])
+        steps:
+          - task: DownloadSecureFile@1
+            inputs:
+              secureFile: haxeci_sec.gpg
+            displayName: Download haxeci_sec.gpg
+          - task: DownloadSecureFile@1
+            inputs:
+              secureFile: haxeci_ssh
+            displayName: Download haxeci_ssh
+          - script: |
+              set -ex
+              chmod 600 $(Agent.TempDirectory)/haxeci_ssh
+              eval `ssh-agent -s`
+              ssh-add $(Agent.TempDirectory)/haxeci_ssh
+              gpg --allow-secret-key-import --import $(Agent.TempDirectory)/haxeci_sec.gpg
+              git config --global user.name "${DEBFULLNAME}"
+              git config --global user.email "${DEBEMAIL}"
+            displayName: Setup credentials
+          - script: |
+              set -ex
+              sudo apt-get update -qqy
+              sudo apt-get install -qqy ninja-build pkg-config libgtk2.0-dev devscripts git-buildpackage ubuntu-dev-tools dh-make dh-apache2
+            displayName: Install devscripts
+          - script: cmake . -DSTATIC_DEPS=all
+            displayName: CMake
+          - script: make upload_to_ppa
+            displayName: Upload to PPA
