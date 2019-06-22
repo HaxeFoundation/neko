@@ -1,7 +1,6 @@
 ![NekoVM](https://cloud.githubusercontent.com/assets/576184/14234981/10528a0e-f9f1-11e5-8922-894569b2feea.png)
 
-[![TravisCI Build Status](https://travis-ci.org/HaxeFoundation/neko.svg?branch=master)](https://travis-ci.org/HaxeFoundation/neko)
-[![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/HaxeFoundation/neko?branch=master&svg=true)](https://ci.appveyor.com/project/HaxeFoundation/neko)
+[![Build Status](https://dev.azure.com/HaxeFoundation/GitHubPublic/_apis/build/status/HaxeFoundation.neko?branchName=master)](https://dev.azure.com/HaxeFoundation/GitHubPublic/_build/latest?definitionId=2&branchName=master)
 
 # Neko Virtual Machine
 
