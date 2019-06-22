@@ -100,8 +100,8 @@ stages:
               aws s3 cp LinuxStaticBinaries/neko-*.tar.gz  $(HXBUILDS_S3ADDR)/neko/linux64/${FILE_NAME}.tar.gz
               aws s3 cp MacStaticBinaries/neko-*.tar.gz    $(HXBUILDS_S3ADDR)/neko/mac/${FILE_NAME}.tar.gz
               aws s3 cp WinVS2013Binaries/neko-*.zip       $(HXBUILDS_S3ADDR)/neko/windows/${FILE_NAME}.zip
-              aws s3 cp WinVS2013Choco/neko-*.zip          $(HXBUILDS_S3ADDR)/neko/windows-choco/
-              aws s3 cp WinVS2013x64Choco/neko-*.zip       $(HXBUILDS_S3ADDR)/neko/windows64-choco/
+              aws s3 cp WinVS2013Choco/*.nupkg             $(HXBUILDS_S3ADDR)/neko/windows-choco/
+              aws s3 cp WinVS2013x64Choco/*.nupkg          $(HXBUILDS_S3ADDR)/neko/windows64-choco/
             env:
               AWS_ACCESS_KEY_ID: $(HXBUILDS_AWS_ACCESS_KEY_ID)
               AWS_SECRET_ACCESS_KEY: $(HXBUILDS_AWS_SECRET_ACCESS_KEY)
