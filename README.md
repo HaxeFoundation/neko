@@ -8,17 +8,9 @@ See http://nekovm.org/
 
 ## Snapshot Builds
 
-### Windows
+Compiled binaries can be found in the "artifacts" link in the summary section of each [Azure Pipelines build](https://dev.azure.com/HaxeFoundation/GitHubPublic/_build?definitionId=2&_a=summary&repositoryFilter=2&branchFilter=14&statusFilter=succeeded).
 
-Compiled binaries can be found in the "artifacts" tab of each [AppVeyor build](https://ci.appveyor.com/project/HaxeFoundation/neko/history).
-
-### Mac
-
-Neko snapshot of the latest master branch can be built using [homebrew](http://brew.sh/) in a single command: `brew install neko --HEAD`. It will install required dependencies, build, and install Neko to the system. The binaries can be found at `brew --prefix neko`.
-
-Use `brew reinstall neko --HEAD` to upgrade in the future.
-
-### Linux
+For macOS, Neko snapshot of the latest master branch can be built using [homebrew](http://brew.sh/) in a single command: `brew install neko --HEAD`. It will install required dependencies, build, and install Neko to the system. The binaries can be found at `brew --prefix neko`. Use `brew reinstall neko --HEAD` to upgrade in the future.
 
 Ubuntu users can use the [Haxe Foundation snapshots PPA](https://launchpad.net/~haxe/+archive/ubuntu/snapshots) to install a Neko package built from the latest master branch. To do so, run the commands as follows:
 ```
