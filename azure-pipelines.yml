@@ -112,8 +112,14 @@ stages:
               aws s3 cp MacStaticBinaries/neko-*.tar.gz    $(HXBUILDS_S3ADDR)/neko/mac/neko_latest.tar.gz
               aws s3 cp WinVS2013Binaries/neko-*.zip       $(HXBUILDS_S3ADDR)/neko/windows/neko_latest.zip
               aws s3 cp WinVS2013x64Binaries/neko-*.zip    $(HXBUILDS_S3ADDR)/neko/windows64/neko_latest.zip
-              aws s3 cp WinVS2013Choco/*.nupkg             $(HXBUILDS_S3ADDR)/neko/windows-choco/neko_latest.nupkg
-              aws s3 cp WinVS2013x64Choco/*.nupkg          $(HXBUILDS_S3ADDR)/neko/windows64-choco/neko_latest.nupkg
+
+              # Chocolatey packages have to be named with version number,
+              # so let's use web redirection to keep the original file name.
+              [[ "$HXBUILDS_S3ADDR" =~ s3://([^/]+)(.*) ]] && HXBUILDS_S3BUCKET="${BASH_REMATCH[1]}" && HXBUILDS_S3PATH="${BASH_REMATCH[2]}"
+              [[ `echo WinVS2013Choco/*.nupkg` =~ WinVS2013Choco/(.+) ]] && FILE_NAME="${BASH_REMATCH[1]}"
+              aws s3api put-object --acl public-read --website-redirect-location "${HXBUILDS_S3PATH}/haxe/windows-choco/${FILE_NAME}" --bucket "$HXBUILDS_S3BUCKET" --key "${HXBUILDS_S3PATH}/haxe/windows-choco/haxe_latest.nupkg"
+              [[ `echo WinVS2013x64Choco/*.nupkg` =~ WinVS2013x64Choco/(.+) ]] && FILE_NAME="${BASH_REMATCH[1]}"
+              aws s3api put-object --acl public-read --website-redirect-location "${HXBUILDS_S3PATH}/haxe/windows64-choco/${FILE_NAME}" --bucket "$HXBUILDS_S3BUCKET" --key "${HXBUILDS_S3PATH}/haxe/windows64-choco/haxe_latest.nupkg"
             env:
               AWS_ACCESS_KEY_ID: $(HXBUILDS_AWS_ACCESS_KEY_ID)
               AWS_SECRET_ACCESS_KEY: $(HXBUILDS_AWS_SECRET_ACCESS_KEY)
