@@ -117,9 +117,9 @@ stages:
               # so let's use web redirection to keep the original file name.
               [[ "$HXBUILDS_S3ADDR" =~ s3://([^/]+)(.*) ]] && HXBUILDS_S3BUCKET="${BASH_REMATCH[1]}" && HXBUILDS_S3PATH="${BASH_REMATCH[2]}"
               [[ `echo WinVS2013Choco/*.nupkg` =~ WinVS2013Choco/(.+) ]] && FILE_NAME="${BASH_REMATCH[1]}"
-              aws s3api put-object --acl public-read --website-redirect-location "${HXBUILDS_S3PATH}/neko/windows-choco/${FILE_NAME}" --bucket "$HXBUILDS_S3BUCKET" --key "${HXBUILDS_S3PATH}/neko/windows-choco/neko_latest.nupkg"
+              aws s3 cp $(HXBUILDS_S3ADDR)/neko/windows-choco/${FILE_NAME}     $(HXBUILDS_S3ADDR)/neko/windows-choco/neko_latest.nupkg     --acl public-read --website-redirect "${HXBUILDS_S3PATH}/neko/windows-choco/${FILE_NAME}"
               [[ `echo WinVS2013x64Choco/*.nupkg` =~ WinVS2013x64Choco/(.+) ]] && FILE_NAME="${BASH_REMATCH[1]}"
-              aws s3api put-object --acl public-read --website-redirect-location "${HXBUILDS_S3PATH}/neko/windows64-choco/${FILE_NAME}" --bucket "$HXBUILDS_S3BUCKET" --key "${HXBUILDS_S3PATH}/neko/windows64-choco/neko_latest.nupkg"
+              aws s3 cp $(HXBUILDS_S3ADDR)/neko/windows64-choco/${FILE_NAME}   $(HXBUILDS_S3ADDR)/neko/windows64-choco/neko_latest.nupkg   --acl public-read --website-redirect "${HXBUILDS_S3PATH}/neko/windows64-choco/${FILE_NAME}"
             env:
               AWS_ACCESS_KEY_ID: $(HXBUILDS_AWS_ACCESS_KEY_ID)
               AWS_SECRET_ACCESS_KEY: $(HXBUILDS_AWS_SECRET_ACCESS_KEY)
