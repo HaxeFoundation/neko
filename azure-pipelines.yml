@@ -28,12 +28,12 @@ stages:
 
       - template: extra/azure-pipelines/build-windows.yml
         parameters:
-          name: WinVS2013
+          name: WinVS2015
           vmImage: vs2015-win2012r2
           cmakeGenerator: Visual Studio 14 2015
       - template: extra/azure-pipelines/build-windows.yml
         parameters:
-          name: WinVS2013x64
+          name: WinVS2015x64
           vmImage: vs2015-win2012r2
           cmakeGenerator: Visual Studio 14 2015 Win64
 
