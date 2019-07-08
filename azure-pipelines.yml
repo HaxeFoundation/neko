@@ -68,24 +68,24 @@ stages:
             displayName: Download MacStaticBinaries
           - task: DownloadPipelineArtifact@0
             inputs:
-              artifactName: WinVS2013Binaries
-              targetPath: WinVS2013Binaries
-            displayName: Download WinVS2013Binaries
+              artifactName: WinVS2015Binaries
+              targetPath: WinVS2015Binaries
+            displayName: Download WinVS2015Binaries
           - task: DownloadPipelineArtifact@0
             inputs:
-              artifactName: WinVS2013x64Binaries
-              targetPath: WinVS2013x64Binaries
-            displayName: Download WinVS2013x64Binaries
+              artifactName: WinVS2015x64Binaries
+              targetPath: WinVS2015x64Binaries
+            displayName: Download WinVS2015x64Binaries
           - task: DownloadPipelineArtifact@0
             inputs:
-              artifactName: WinVS2013Choco
-              targetPath: WinVS2013Choco
-            displayName: Download WinVS2013Choco
+              artifactName: WinVS2015Choco
+              targetPath: WinVS2015Choco
+            displayName: Download WinVS2015Choco
           - task: DownloadPipelineArtifact@0
             inputs:
-              artifactName: WinVS2013x64Choco
-              targetPath: WinVS2013x64Choco
-            displayName: Download WinVS2013x64Choco
+              artifactName: WinVS2015x64Choco
+              targetPath: WinVS2015x64Choco
+            displayName: Download WinVS2015x64Choco
           - script: |
               set -ex
               sudo apt-get update -qqy
@@ -99,9 +99,9 @@ stages:
               FILE_NAME=neko_${COMMIT_DATE}_$(Build.SourceBranchName)_${COMMIT_HASH_SHORT}
               aws s3 cp LinuxStaticBinaries/neko-*.tar.gz  $(HXBUILDS_S3ADDR)/neko/linux64/${FILE_NAME}.tar.gz
               aws s3 cp MacStaticBinaries/neko-*.tar.gz    $(HXBUILDS_S3ADDR)/neko/mac/${FILE_NAME}.tar.gz
-              aws s3 cp WinVS2013Binaries/neko-*.zip       $(HXBUILDS_S3ADDR)/neko/windows/${FILE_NAME}.zip
-              aws s3 cp WinVS2013Choco/*.nupkg             $(HXBUILDS_S3ADDR)/neko/windows-choco/
-              aws s3 cp WinVS2013x64Choco/*.nupkg          $(HXBUILDS_S3ADDR)/neko/windows64-choco/
+              aws s3 cp WinVS2015Binaries/neko-*.zip       $(HXBUILDS_S3ADDR)/neko/windows/${FILE_NAME}.zip
+              aws s3 cp WinVS2015Choco/*.nupkg             $(HXBUILDS_S3ADDR)/neko/windows-choco/
+              aws s3 cp WinVS2015x64Choco/*.nupkg          $(HXBUILDS_S3ADDR)/neko/windows64-choco/
             env:
               AWS_ACCESS_KEY_ID: $(HXBUILDS_AWS_ACCESS_KEY_ID)
               AWS_SECRET_ACCESS_KEY: $(HXBUILDS_AWS_SECRET_ACCESS_KEY)
@@ -110,15 +110,15 @@ stages:
               set -ex
               aws s3 cp LinuxStaticBinaries/neko-*.tar.gz  $(HXBUILDS_S3ADDR)/neko/linux64/neko_latest.tar.gz
               aws s3 cp MacStaticBinaries/neko-*.tar.gz    $(HXBUILDS_S3ADDR)/neko/mac/neko_latest.tar.gz
-              aws s3 cp WinVS2013Binaries/neko-*.zip       $(HXBUILDS_S3ADDR)/neko/windows/neko_latest.zip
-              aws s3 cp WinVS2013x64Binaries/neko-*.zip    $(HXBUILDS_S3ADDR)/neko/windows64/neko_latest.zip
+              aws s3 cp WinVS2015Binaries/neko-*.zip       $(HXBUILDS_S3ADDR)/neko/windows/neko_latest.zip
+              aws s3 cp WinVS2015x64Binaries/neko-*.zip    $(HXBUILDS_S3ADDR)/neko/windows64/neko_latest.zip
 
               # Chocolatey packages have to be named with version number,
               # so let's use web redirection to keep the original file name.
               [[ "$HXBUILDS_S3ADDR" =~ s3://([^/]+)(.*) ]] && HXBUILDS_S3BUCKET="${BASH_REMATCH[1]}" && HXBUILDS_S3PATH="${BASH_REMATCH[2]}"
-              [[ `echo WinVS2013Choco/*.nupkg` =~ WinVS2013Choco/(.+) ]] && FILE_NAME="${BASH_REMATCH[1]}"
+              [[ `echo WinVS2015Choco/*.nupkg` =~ WinVS2015Choco/(.+) ]] && FILE_NAME="${BASH_REMATCH[1]}"
               aws s3 cp $(HXBUILDS_S3ADDR)/neko/windows-choco/${FILE_NAME}     $(HXBUILDS_S3ADDR)/neko/windows-choco/neko_latest.nupkg     --acl public-read --website-redirect "${HXBUILDS_S3PATH}/neko/windows-choco/${FILE_NAME}"
-              [[ `echo WinVS2013x64Choco/*.nupkg` =~ WinVS2013x64Choco/(.+) ]] && FILE_NAME="${BASH_REMATCH[1]}"
+              [[ `echo WinVS2015x64Choco/*.nupkg` =~ WinVS2015x64Choco/(.+) ]] && FILE_NAME="${BASH_REMATCH[1]}"
               aws s3 cp $(HXBUILDS_S3ADDR)/neko/windows64-choco/${FILE_NAME}   $(HXBUILDS_S3ADDR)/neko/windows64-choco/neko_latest.nupkg   --acl public-read --website-redirect "${HXBUILDS_S3PATH}/neko/windows64-choco/${FILE_NAME}"
             env:
               AWS_ACCESS_KEY_ID: $(HXBUILDS_AWS_ACCESS_KEY_ID)
