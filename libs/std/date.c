@@ -266,7 +266,7 @@ static value date_get_hour( value o ) {
 	date_get_utc_hour : #int32 -> { h => int, m => int, s => int }
 	<doc>Return the hour minutes and seconds of a date in UTC</doc>
 **/
-static value date_get_hour( value o ) {
+static value date_get_utc_hour( value o ) {
 	value r;
 	struct tm t;
 	time_t d;
