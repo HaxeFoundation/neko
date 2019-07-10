@@ -140,6 +140,26 @@ static value date_format( value o, value fmt ) {
 }
 
 /**
+	date_utc_format : #int32 -> fmt:string? -> string
+	<doc>Format a date in UTC using [strftime]. If [fmt] is [null] then default format is used</doc>
+**/
+static value date_utc_format( value o, value fmt ) {
+	char buf[128];
+	struct tm t;
+	time_t d;
+	val_check(o,any_int);
+	if( val_is_null(fmt) )
+		fmt = alloc_string("%Y-%m-%d %H:%M:%S");
+	val_check(fmt,string);
+	d = val_any_int(o);
+	if( gmtime_r(&d,&t) == NULL )
+		neko_error();
+	if( strftime(buf,127,val_string(fmt),&t) == 0 )
+		neko_error();		
+	return alloc_string(buf);
+}
+
+/**
 	date_set_hour : #int32 -> h:int -> m:int -> s:int -> 'int32
 	<doc>Change the time of a date. Return the modified date</doc>
 **/
@@ -205,6 +225,25 @@ static value date_get_day( value o ) {
 }
 
 /**
+	date_get_utc_day : #int32 -> { y => int, m => int, d => int }
+	<doc>Return the year month and day of a date in UTC</doc>
+**/
+static value date_get_utc_day( value o ) {
+	value r;
+	struct tm t;
+	time_t d;
+	val_check(o,any_int);
+	d = val_any_int(o);
+	if( gmtime_r(&d,&t) == NULL )
+		neko_error();
+	r = alloc_object(NULL);
+	alloc_field(r,id_y,alloc_int(t.tm_year + 1900));
+	alloc_field(r,id_m,alloc_int(t.tm_mon + 1));
+	alloc_field(r,id_d,alloc_int(t.tm_mday));
+	return r;
+}
+
+/**
 	date_get_hour : #int32 -> { h => int, m => int, s => int }
 	<doc>Return the hour minutes and seconds of a date</doc>
 **/
@@ -224,32 +263,56 @@ static value date_get_hour( value o ) {
 }
 
 /**
-	date_get_tz : void -> int
-	<doc>Return the local Timezone (in seconds)</doc>
+	date_get_utc_hour : #int32 -> { h => int, m => int, s => int }
+	<doc>Return the hour minutes and seconds of a date in UTC</doc>
 **/
-static value date_get_tz() {
+static value date_get_utc_hour( value o ) {
+	value r;
+	struct tm t;
+	time_t d;
+	val_check(o,any_int);
+	d = val_any_int(o);
+	if( gmtime_r(&d,&t) == NULL )
+		neko_error();
+	r = alloc_object(NULL);
+	alloc_field(r,id_h,alloc_int(t.tm_hour));
+	alloc_field(r,id_m,alloc_int(t.tm_min));
+	alloc_field(r,id_s,alloc_int(t.tm_sec));
+	return r;
+}
+
+/**
+	date_get_tz : #int32 -> int
+	<doc>Return the timezone offset from UTC (in minutes) for the given date</doc>
+**/
+static value date_get_tz( value o ) {
 	struct tm local;
 	struct tm gmt;
 	int diff;
-	time_t raw = time(NULL);
+	time_t raw;
+	val_check(o,any_int);
+	raw = val_any_int(o);
 	if( localtime_r(&raw, &local) == NULL || gmtime_r(&raw, &gmt) == NULL )
 		neko_error();
-	diff = (local.tm_hour - gmt.tm_hour) * 3600 + (local.tm_min - gmt.tm_min) * 60;
+	diff = (local.tm_hour - gmt.tm_hour) * 60 + (local.tm_min - gmt.tm_min);
 	// adjust for different days/years
 	if( gmt.tm_year > local.tm_year || gmt.tm_yday > local.tm_yday )
-		diff -= 24 * 3600;
+		diff -= 24 * 60;
 	else if( gmt.tm_year < local.tm_year || gmt.tm_yday < local.tm_yday )
-		diff += 24 * 3600;
+		diff += 24 * 60;
 	return alloc_int(diff);
 }
 
 DEFINE_PRIM(date_now,0);
 DEFINE_PRIM(date_new,1);
 DEFINE_PRIM(date_format,2);
+DEFINE_PRIM(date_utc_format,2);
 DEFINE_PRIM(date_set_hour,4);
 DEFINE_PRIM(date_set_day,4);
 DEFINE_PRIM(date_get_hour,1);
+DEFINE_PRIM(date_get_utc_hour,1);
 DEFINE_PRIM(date_get_day,1);
-DEFINE_PRIM(date_get_tz,0);
+DEFINE_PRIM(date_get_utc_day,1);
+DEFINE_PRIM(date_get_tz,1);
 
 /* ************************************************************************ */
