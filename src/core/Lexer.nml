@@ -143,7 +143,7 @@ function read(l) : char {
 
 function inc_line(l,c) {
 	if c == '\r' then
-		l.carriage := true
+		if l.carriage then l.line := l.line + 1 else l.carriage := true
 	else if c == '\n' || l.carriage then {
 		l.carriage := false;
 		l.line := l.line + 1;
