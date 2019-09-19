@@ -1,5 +1,6 @@
 add_subdirectory(common)
 add_subdirectory(std)
+add_subdirectory(uv)
 add_subdirectory(zlib)
 if (WITH_MYSQL)
 	add_subdirectory(mysql)
