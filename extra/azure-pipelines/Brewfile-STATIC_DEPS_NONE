@@ -1,0 +1,7 @@
+brew "cmake"
+brew "ninja"
+brew "pkg-config"
+brew "bdw-gc"
+brew "mariadb-connector-c"
+brew "mbedtls"
+brew "pcre"
