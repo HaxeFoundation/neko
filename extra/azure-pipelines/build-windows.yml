@@ -35,9 +35,9 @@ jobs:
         inputs:
           artifactName: ${{ parameters.name }}Binaries
           ${{ if not(contains(parameters.cmakeGenerator, 'Win64')) }}:
-            targetPath: bin/neko-2.2.0-win.zip
+            targetPath: bin/neko-2.3.0-win.zip
           ${{ if contains(parameters.cmakeGenerator, 'Win64') }}:
-            targetPath: bin/neko-2.2.0-win64.zip
+            targetPath: bin/neko-2.3.0-win64.zip
       - bash: |
           set -ex
           cmake --build . --config ${{ parameters.config }} --target package_choco

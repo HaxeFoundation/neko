@@ -36,7 +36,7 @@ if(IS_ABSOLUTE ${CMAKE_INSTALL_LIBDIR})
 endif()
 
 set(NEKO_VERSION_MAJOR 2)
-set(NEKO_VERSION_MINOR 2)
+set(NEKO_VERSION_MINOR 3)
 set(NEKO_VERSION_PATCH 0)
 set(NEKO_VERSION ${NEKO_VERSION_MAJOR}.${NEKO_VERSION_MINOR}.${NEKO_VERSION_PATCH})
 
@@ -64,11 +64,11 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
 		message( FATAL_ERROR "CMAKE_OSX_ARCHITECTURES should be i386 or x86_64." )
 	endif()
 else()
-	if(CMAKE_SIZEOF_VOID_P EQUAL 8) 
+	if(CMAKE_SIZEOF_VOID_P EQUAL 8)
 		set(arch_64 "64")
-	else() 
+	else()
 		set(arch_64 "")
-	endif() 
+	endif()
 endif()
 
 if(WIN32)
@@ -317,7 +317,7 @@ if (STATIC_BOEHMGC)
 		else()
 			set(GC_CFLAGS "-w")
 		endif()
-		
+
 		set(GC_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/include)
 		set(GC_LIBRARIES
 			${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/lib/libgc.a
@@ -797,7 +797,7 @@ if (WITH_NEKOML)
 		COMMAND nekoml
 		WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
 	)
-	
+
 	set_tests_properties(nekoml
 		PROPERTIES
 		ENVIRONMENT LD_LIBRARY_PATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}

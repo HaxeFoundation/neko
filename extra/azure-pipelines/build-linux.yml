@@ -57,4 +57,4 @@ jobs:
       - task: PublishPipelineArtifact@0
         inputs:
           artifactName: ${{ parameters.name }}Binaries
-          targetPath: bin/neko-2.2.0-linux64.tar.gz
+          targetPath: bin/neko-2.3.0-linux64.tar.gz
