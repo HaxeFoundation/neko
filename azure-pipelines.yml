@@ -63,7 +63,7 @@ stages:
           - WinVS2015
           - WinVS2015x64
         pool:
-          vmImage: vs2015-win2012r2
+          vmImage: windows-2019
         steps:
           - task: DownloadPipelineArtifact@0
             inputs:
