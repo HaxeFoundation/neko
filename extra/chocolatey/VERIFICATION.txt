@@ -1,0 +1,3 @@
+Packager (Andy Li) is a member of the Haxe Foundation.
+ 
+The files included in this package are the "Windows Binaries" available at https://github.com/HaxeFoundation/neko/releases.

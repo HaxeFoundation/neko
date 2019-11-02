@@ -54,7 +54,11 @@ jobs:
         displayName: Test
       - script: ninja package
         displayName: Package
+      - bash: |
+          set -ex
+          [ "`./bin/neko -version`" == "$(NEKO_VERSION)" ]
+        displayName: Check version
       - task: PublishPipelineArtifact@0
         inputs:
           artifactName: ${{ parameters.name }}Binaries
-          targetPath: bin/neko-2.3.0-linux64.tar.gz
+          targetPath: bin/neko-$(NEKO_VERSION)-linux64.tar.gz

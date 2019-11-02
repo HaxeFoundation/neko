@@ -2,17 +2,17 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
     <metadata>
         <id>neko</id>
-        <version>@SNAPSHOT_VERSION@</version>
+        <version>0.0.0</version>
         <title>Neko</title>
         <authors>Haxe Foundation</authors>
         <owners>Haxe Foundation</owners>
         <licenseUrl>https://github.com/HaxeFoundation/neko/blob/master/LICENSE</licenseUrl>
-        <projectUrl>http://nekovm.org/</projectUrl>
-        <docsUrl>http://nekovm.org/doc</docsUrl>
+        <projectUrl>https://nekovm.org/</projectUrl>
+        <docsUrl>https://nekovm.org/doc/begin/</docsUrl>
         <mailingListUrl>https://groups.google.com/forum/#!forum/haxelang</mailingListUrl>
         <bugTrackerUrl>https://github.com/HaxeFoundation/neko/issues</bugTrackerUrl>
         <projectSourceUrl>https://github.com/HaxeFoundation/neko</projectSourceUrl>
-        <packageSourceUrl>https://github.com/HaxeFoundation/neko/tree/master/extra</packageSourceUrl>
+        <packageSourceUrl>https://github.com/HaxeFoundation/neko/tree/master/extra/chocolatey</packageSourceUrl>
         <iconUrl>https://cdn.rawgit.com/andyli/cc07575f598351e0ad74/raw/6a9cae9a136670c0052356b773f8e13bf37c13dd/logo.png</iconUrl>
         <requireLicenseAcceptance>false</requireLicenseAcceptance>
         <summary>Neko is a lightweight and yet well optimized virtual machine.</summary>
@@ -20,7 +20,7 @@
         <releaseNotes>https://github.com/HaxeFoundation/neko/blob/master/CHANGES</releaseNotes>
         <tags>neko haxe vm admin</tags>
         <dependencies>
-            <dependency id="vcredist2013" version="12.0.30501" />
+            <dependency id="vcredist2015" version="14.0.24215.20170201" />
         </dependencies>
     </metadata>
 </package>

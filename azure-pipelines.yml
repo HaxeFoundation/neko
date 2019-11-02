@@ -4,6 +4,16 @@ variables:
     value: $(Build.Repository.Uri)
   - name: AZURE_PIPELINES_BRANCH
     value: $(Build.SourceBranchName)
+  - name: NEKO_VERSION
+    value: "2.3.0"
+
+trigger:
+  branches:
+    include:
+      - '*'
+  tags:
+    include:
+      - '*'
 
 stages:
   - stage: StageTest
@@ -48,6 +58,46 @@ stages:
           vmImage: vs2017-win2016
           cmakeGenerator: Visual Studio 15 2017 Win64
 
+      - job: Chocolatey
+        dependsOn:
+          - WinVS2015
+          - WinVS2015x64
+        pool:
+          vmImage: vs2015-win2012r2
+        steps:
+          - task: DownloadPipelineArtifact@0
+            inputs:
+              artifactName: WinVS2015Binaries
+              targetPath: WinVS2015Binaries
+            displayName: Download WinVS2015Binaries
+          - task: DownloadPipelineArtifact@0
+            inputs:
+              artifactName: WinVS2015x64Binaries
+              targetPath: WinVS2015x64Binaries
+            displayName: Download WinVS2015x64Binaries
+          - bash: |
+              set -ex
+              cp LICENSE extra/chocolatey/
+              cp WinVS2015Binaries/neko-*.zip extra/chocolatey/
+              cp WinVS2015x64Binaries/neko-*.zip extra/chocolatey/
+              ls -la extra/chocolatey/
+            displayName: Prepare extra/chocolatey/
+          - powershell: |
+              $commitSha = git rev-parse --short HEAD
+              $commitTime = git show -s --format=%cI HEAD
+              $commitTime = $commitTime.substring(0,19) -replace '[^0-9]',''
+              $sourceBranch = '$(Build.SourceBranch)'
+              $chocoVersion = If ($sourceBranch.StartsWith('refs/tags/v')) {'$(NEKO_VERSION)'} Else {"$(NEKO_VERSION)-SNAP$commitTime"}
+              echo "##vso[task.setvariable variable=chocoVersion]$chocoVersion"
+            displayName: Format package version string
+          - powershell: choco pack --version $chocoVersion
+            workingDirectory: extra/chocolatey/
+            displayName: choco pack
+          - task: PublishPipelineArtifact@0
+            inputs:
+              artifactName: Chocolatey
+              targetPath: extra/chocolatey/
+
   - stage: StageDeploy
     condition: and(succeeded(), not(variables['System.PullRequest.PullRequestId']))
     jobs:
@@ -78,14 +128,9 @@ stages:
             displayName: Download WinVS2015x64Binaries
           - task: DownloadPipelineArtifact@0
             inputs:
-              artifactName: WinVS2015Choco
-              targetPath: WinVS2015Choco
-            displayName: Download WinVS2015Choco
-          - task: DownloadPipelineArtifact@0
-            inputs:
-              artifactName: WinVS2015x64Choco
-              targetPath: WinVS2015x64Choco
-            displayName: Download WinVS2015x64Choco
+              artifactName: Chocolatey
+              targetPath: Chocolatey
+            displayName: Download Chocolatey
           - script: |
               set -ex
               sudo apt-get update -qqy
@@ -100,8 +145,7 @@ stages:
               aws s3 cp LinuxStaticBinaries/neko-*.tar.gz  $(HXBUILDS_S3ADDR)/neko/linux64/${FILE_NAME}.tar.gz
               aws s3 cp MacStaticBinaries/neko-*.tar.gz    $(HXBUILDS_S3ADDR)/neko/mac/${FILE_NAME}.tar.gz
               aws s3 cp WinVS2015Binaries/neko-*.zip       $(HXBUILDS_S3ADDR)/neko/windows/${FILE_NAME}.zip
-              aws s3 cp WinVS2015Choco/*.nupkg             $(HXBUILDS_S3ADDR)/neko/windows-choco/
-              aws s3 cp WinVS2015x64Choco/*.nupkg          $(HXBUILDS_S3ADDR)/neko/windows64-choco/
+              aws s3 cp Chocolatey/*.nupkg                 $(HXBUILDS_S3ADDR)/neko/windows64-choco/
             env:
               AWS_ACCESS_KEY_ID: $(HXBUILDS_AWS_ACCESS_KEY_ID)
               AWS_SECRET_ACCESS_KEY: $(HXBUILDS_AWS_SECRET_ACCESS_KEY)
@@ -116,9 +160,7 @@ stages:
               # Chocolatey packages have to be named with version number,
               # so let's use web redirection to keep the original file name.
               [[ "$HXBUILDS_S3ADDR" =~ s3://([^/]+)(.*) ]] && HXBUILDS_S3BUCKET="${BASH_REMATCH[1]}" && HXBUILDS_S3PATH="${BASH_REMATCH[2]}"
-              [[ `echo WinVS2015Choco/*.nupkg` =~ WinVS2015Choco/(.+) ]] && FILE_NAME="${BASH_REMATCH[1]}"
-              aws s3 cp $(HXBUILDS_S3ADDR)/neko/windows-choco/${FILE_NAME}     $(HXBUILDS_S3ADDR)/neko/windows-choco/neko_latest.nupkg     --acl public-read --website-redirect "${HXBUILDS_S3PATH}/neko/windows-choco/${FILE_NAME}"
-              [[ `echo WinVS2015x64Choco/*.nupkg` =~ WinVS2015x64Choco/(.+) ]] && FILE_NAME="${BASH_REMATCH[1]}"
+              [[ `echo Chocolatey/*.nupkg` =~ Chocolatey/(.+) ]] && FILE_NAME="${BASH_REMATCH[1]}"
               aws s3 cp $(HXBUILDS_S3ADDR)/neko/windows64-choco/${FILE_NAME}   $(HXBUILDS_S3ADDR)/neko/windows64-choco/neko_latest.nupkg   --acl public-read --website-redirect "${HXBUILDS_S3PATH}/neko/windows64-choco/${FILE_NAME}"
             env:
               AWS_ACCESS_KEY_ID: $(HXBUILDS_AWS_ACCESS_KEY_ID)

@@ -31,20 +31,14 @@ jobs:
         displayName: Test
       - script: cmake --build . --config ${{ parameters.config }} --target PACKAGE
         displayName: Package binaries
+      - bash: |
+          set -ex
+          [ "`./bin/neko -version`" == "$(NEKO_VERSION)" ]
+        displayName: Check version
       - task: PublishPipelineArtifact@0
         inputs:
           artifactName: ${{ parameters.name }}Binaries
           ${{ if not(contains(parameters.cmakeGenerator, 'Win64')) }}:
-            targetPath: bin/neko-2.3.0-win.zip
+            targetPath: bin/neko-$(NEKO_VERSION)-win.zip
           ${{ if contains(parameters.cmakeGenerator, 'Win64') }}:
-            targetPath: bin/neko-2.3.0-win64.zip
-      - bash: |
-          set -ex
-          cmake --build . --config ${{ parameters.config }} --target package_choco
-          mkdir -p bin/choco
-          mv bin/*.nupkg bin/choco/
-        displayName: Package Chocolatey
-      - task: PublishPipelineArtifact@0
-        inputs:
-          artifactName: ${{ parameters.name }}Choco
-          targetPath: bin/choco
+            targetPath: bin/neko-$(NEKO_VERSION)-win64.zip

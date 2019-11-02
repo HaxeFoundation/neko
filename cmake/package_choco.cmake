@@ -1,21 +1,25 @@
 find_package(Git REQUIRED)
 
-# format SNAPSHOT_VERSION
-execute_process(
-	COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
-	OUTPUT_VARIABLE COMMIT_SHA
-	OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-execute_process(
-	COMMAND ${GIT_EXECUTABLE} show -s --format=%cI HEAD
-	OUTPUT_VARIABLE COMMIT_TIME
-	OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-string(SUBSTRING ${COMMIT_TIME} 0 19 COMMIT_TIME)
-string(REGEX REPLACE [^0-9] "" COMMIT_TIME ${COMMIT_TIME})
-set(SNAPSHOT_VERSION ${NEKO_VERSION}-SNAP${COMMIT_TIME})
+# format CHOCO_VERSION
+if(DEFINED ENV{TAG_RELEASE})
+	set(CHOCO_VERSION ${NEKO_VERSION})
+else()
+	execute_process(
+		COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
+		OUTPUT_VARIABLE COMMIT_SHA
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+	)
+	execute_process(
+		COMMAND ${GIT_EXECUTABLE} show -s --format=%cI HEAD
+		OUTPUT_VARIABLE COMMIT_TIME
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+	)
+	string(SUBSTRING ${COMMIT_TIME} 0 19 COMMIT_TIME)
+	string(REGEX REPLACE [^0-9] "" COMMIT_TIME ${COMMIT_TIME})
+	set(CHOCO_VERSION ${NEKO_VERSION}-SNAP${COMMIT_TIME})
+endif()
 
-message(STATUS "building package version ${SNAPSHOT_VERSION} using ${bin_archive}")
+message(STATUS "building package version ${CHOCO_VERSION} using ${bin_archive}")
 
 
 get_filename_component(bin_archive_dir ${bin_archive} DIRECTORY)
@@ -31,13 +35,23 @@ configure_file(
 	@ONLY
 )
 configure_file(
-	${source_dir}/extra/chocolateyInstall.ps1
+	${source_dir}/extra/chocolatey/chocolateyInstall.ps1
 	${bin_archive_dir}/${bin_archive_name_we}/chocolateyInstall.ps1
 	@ONLY
 )
 configure_file(
-	${source_dir}/extra/chocolateyUninstall.ps1
+	${source_dir}/extra/chocolatey/chocolateyUninstall.ps1
 	${bin_archive_dir}/${bin_archive_name_we}/chocolateyUninstall.ps1
+	@ONLY
+)
+configure_file(
+	${source_dir}/LICENSE
+	${bin_archive_dir}/${bin_archive_name_we}/LICENSE
+	@ONLY
+)
+configure_file(
+	${source_dir}/extra/chocolatey/VERIFICATION.txt
+	${bin_archive_dir}/${bin_archive_name_we}/VERIFICATION.txt
 	@ONLY
 )
 execute_process(
