@@ -77,7 +77,7 @@ exception FileNotFound : string;
 
 try {
 	var v = Sys.version;
-	var head = "NekoML Compiler v" + v.maj + "." + v.min + "." + v.build + " - (c)2005-2017 Haxe Foundation\n Usage : nekoml [options] files...";
+	var head = "NekoML Compiler v" + v.maj + "." + v.min + "." + v.build + " - (c)2005-2019 Haxe Foundation\n Usage : nekoml [options] files...";
 	var path = &[""];
 	var files = &[];
 	var neko = &false;
