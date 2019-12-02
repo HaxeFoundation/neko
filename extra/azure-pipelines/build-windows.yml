@@ -15,7 +15,7 @@ jobs:
             Write-Host "##vso[task.prependpath]C:\ProgramData\chocolatey\bin"
           displayName: Install Chocolatey
       - powershell: |
-          choco install activeperl -y
+          choco install activeperl --version 5.24.3.2404001 -y
           Write-Host "##vso[task.prependpath]C:\Perl64\bin"
         displayName: Install Perl
       - script: cmake . -G "${{ parameters.cmakeGenerator }}"
