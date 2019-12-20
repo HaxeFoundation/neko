@@ -333,6 +333,12 @@ function set_header(c,n,v) {
 	c.headers := (n,v) :: List.filter (function((n2,_)) { n != n2 }) c.headers;
 }
 
+
+function add_header(c,n,v) {
+	headers_not_sent c n;
+	c.headers := (n,v) :: c.headers;
+}
+
 var cur_client : client option ref = &None;
 var cur_request : http_request option ref = &None;
 
@@ -426,6 +432,11 @@ function init_mod_neko() {
 		var c = client();
 		headers_not_sent c name;
 		set_header c name val;
+	});
+  def "add_header" (function(name,val) {
+		var c = client();
+		headers_not_sent c name;
+		add_header c name val;
 	});
 	def "get_client_header" (function(name) {
 		match header name request().headers {
