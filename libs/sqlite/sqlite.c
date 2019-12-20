@@ -45,7 +45,7 @@ typedef struct _database {
 } database;
 
 typedef struct _result {
-	database *db;
+	value database;
 	int ncols;
 	int count;
 	field *names;
@@ -65,12 +65,12 @@ static void finalize_result( result *r, int exc ) {
 	r->first = 0;
 	r->done = 1;
 	if( r->ncols == 0 )
-		r->count = sqlite3_changes(r->db->db);
+		r->count = sqlite3_changes(val_db(r->database)->db);
 	if( sqlite3_finalize(r->r) != SQLITE_OK && exc )
 		val_throw(alloc_string("Could not finalize request"));
 	r->r = NULL;
-	r->db->last = NULL;
-	r->db = NULL;
+	val_db(r->database)->last = NULL;
+	r->database = NULL;
 }
 
 static void free_db( value v ) {
@@ -137,7 +137,7 @@ static value request( value v, value sql ) {
 	val_check(sql,string);
 	db = val_db(v);
 	r = (result*)alloc(sizeof(result));
-	r->db = db;
+	r->database = v;
 	if( sqlite3_prepare(db->db,val_string(sql),val_strlen(sql),&r->r,&tl) != SQLITE_OK ) {
 		buffer b = alloc_buffer("Sqlite error in ");
 		val_buffer(b,sql);
@@ -262,7 +262,7 @@ static value result_next( value v ) {
 	case SQLITE_BUSY:
 		val_throw(alloc_string("Database is busy"));
 	case SQLITE_ERROR:
-		sqlite_error(r->db->db);
+		sqlite_error(val_db(r->database)->db);
 	default:
 		neko_error();
 	}
