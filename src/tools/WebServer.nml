@@ -433,7 +433,7 @@ function init_mod_neko() {
 		headers_not_sent c name;
 		set_header c name val;
 	});
-  def "add_header" (function(name,val) {
+	def "add_header" (function(name,val) {
 		var c = client();
 		headers_not_sent c name;
 		add_header c name val;
