@@ -61,7 +61,7 @@
 #	define EPOLLOUT 0x004
 #endif
 
-#if defined(NEKO_WINDOWS) || defined(NEKO_MAC)
+#ifndef MSG_NOSIGNAL
 #	define MSG_NOSIGNAL 0
 #endif
 
