@@ -36,6 +36,8 @@
 #	define UIEvent		0xFFFFAA00
 #	define eCall		0x0
 enum { pFunc = 'func' };
+extern void RunApplicationEventLoop(void);
+extern void QuitApplicationEventLoop(void);
 #else
 #	include <gtk/gtk.h>
 #	include <glib.h>
