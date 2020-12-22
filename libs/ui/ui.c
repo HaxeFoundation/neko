@@ -48,7 +48,7 @@ enum { pFunc = 'func' };
 	<h1>UI</h1>
 	<p>
 	Core native User Interface support. This API uses native WIN32 API on Windows,
-	Carbon API on OSX, and GTK2 on Linux.
+	Carbon API on OSX, and GTK3 on Linux.
 	</p>
 	</doc>
 **/
@@ -248,7 +248,7 @@ static value ui_sync( value f ) {
 	// however the GTK lock mechanism is a LOT slower than
 	// using a pthread_mutex
 	pthread_mutex_lock(&data.lock);
-	gtk_timeout_add( 0, onSyncCall, (gpointer)r );
+	gdk_threads_add_timeout( 0, onSyncCall, (gpointer)r );
 	pthread_mutex_unlock(&data.lock);
 #	endif
 	return val_null;
