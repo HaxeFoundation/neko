@@ -334,6 +334,44 @@ static value sys_stat( value path ) {
 }
 
 /**
+	sys_lstat : string -> {
+		gid => int,
+		uid => int,
+		atime => 'int32,
+		mtime => 'int32,
+		ctime => 'int32,
+		dev => int,
+		ino => int,
+		nlink => int,
+		rdev => int,
+		mode => int,
+		size => int
+	}
+	<doc>Run the [lstat] command on the given file or directory.</doc>
+**/
+static value sys_lstat( value path ) {
+	struct stat s;
+	value o;
+	val_check(path,string);
+	if( lstat(val_string(path),&s) != 0 )
+		neko_error();
+	o = alloc_object(NULL);
+	STATF(gid);
+	STATF(uid);
+	STATF32(atime);
+	STATF32(mtime);
+	STATF32(ctime);
+	STATF(dev);
+	STATF(ino);
+	STATF(mode);
+	STATF(nlink);
+	STATF(rdev);
+	STATF(size);
+	STATF(mode);
+	return o;
+}
+
+/**
 	sys_file_type : string -> string
 	<doc>
 	Return the type of the file. The current values are possible :
@@ -696,6 +734,7 @@ DEFINE_PRIM(sys_exit,1);
 DEFINE_PRIM(sys_string,0);
 DEFINE_PRIM(sys_is64,0);
 DEFINE_PRIM(sys_stat,1);
+DEFINE_PRIM(sys_lstat,1);
 DEFINE_PRIM(sys_time,0);
 DEFINE_PRIM(sys_cpu_time,0);
 DEFINE_PRIM(sys_env,0);
