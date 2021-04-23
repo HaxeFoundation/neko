@@ -278,6 +278,20 @@ static value regexp_matched_pos( value o, value n ) {
 	}
 }
 
+/**
+	regexp_matched_num : 'regexp -> int
+	<doc>Return the total number of matched groups, or -1 if the regexp has not
+	been matched yet</doc>
+**/
+static value regexp_matched_num( value o ) {
+	pcredata *d;
+	val_check_kind(o,k_regexp);
+	d = PCRE(o);
+	if( val_is_null(d->str) )
+		return alloc_int(-1);
+	return alloc_int(d->nmatches);
+}
+
 void regexp_main() {
 	id_pos = val_id("pos");
 	id_len = val_id("len");	
@@ -293,6 +307,7 @@ DEFINE_PRIM(regexp_replace_all,3);
 DEFINE_PRIM(regexp_replace_fun,3);
 DEFINE_PRIM(regexp_matched,2);
 DEFINE_PRIM(regexp_matched_pos,2);
+DEFINE_PRIM(regexp_matched_num,1);
 DEFINE_ENTRY_POINT(regexp_main);
 
 /* ************************************************************************ */
