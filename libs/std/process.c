@@ -24,6 +24,7 @@
 #ifdef NEKO_WINDOWS
 #	include <windows.h>
 #else
+#	include <signal.h>
 #	include <sys/types.h>
 #	include <unistd.h>
 #	include <errno.h>

@@ -33,6 +33,8 @@
 #	undef lock_try
 #	include <Carbon/Carbon.h>
 #	include <pthread.h>
+extern void RunApplicationEventLoop(void);
+extern void QuitApplicationEventLoop(void);
 #	define UIEvent		0xFFFFAA00
 #	define eCall		0x0
 enum { pFunc = 'func' };
