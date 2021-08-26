@@ -38,17 +38,6 @@ stages:
 
       - template: extra/azure-pipelines/build-windows.yml
         parameters:
-          name: WinVS2015
-          vmImage: vs2015-win2012r2
-          cmakeGenerator: Visual Studio 14 2015
-      - template: extra/azure-pipelines/build-windows.yml
-        parameters:
-          name: WinVS2015x64
-          vmImage: vs2015-win2012r2
-          cmakeGenerator: Visual Studio 14 2015 Win64
-
-      - template: extra/azure-pipelines/build-windows.yml
-        parameters:
           name: WinVS2017
           vmImage: vs2017-win2016
           cmakeGenerator: Visual Studio 15 2017
@@ -58,28 +47,41 @@ stages:
           vmImage: vs2017-win2016
           cmakeGenerator: Visual Studio 15 2017 Win64
 
+      - template: extra/azure-pipelines/build-windows.yml
+        parameters:
+          name: WinVS2019
+          vmImage: windows-2019
+          cmakeGenerator: Visual Studio 16 2019
+          arch: Win32
+      - template: extra/azure-pipelines/build-windows.yml
+        parameters:
+          name: WinVS2019x64
+          vmImage: windows-2019
+          cmakeGenerator: Visual Studio 16 2019
+          arch: x64
+
       - job: Chocolatey
         dependsOn:
-          - WinVS2015
-          - WinVS2015x64
+          - WinVS2017
+          - WinVS2017x64
         pool:
           vmImage: windows-2019
         steps:
           - task: DownloadPipelineArtifact@0
             inputs:
-              artifactName: WinVS2015Binaries
-              targetPath: WinVS2015Binaries
-            displayName: Download WinVS2015Binaries
+              artifactName: WinVS2017Binaries
+              targetPath: WinVS2017Binaries
+            displayName: Download WinVS2017Binaries
           - task: DownloadPipelineArtifact@0
             inputs:
-              artifactName: WinVS2015x64Binaries
-              targetPath: WinVS2015x64Binaries
-            displayName: Download WinVS2015x64Binaries
+              artifactName: WinVS2017x64Binaries
+              targetPath: WinVS2017x64Binaries
+            displayName: Download WinVS2017x64Binaries
           - bash: |
               set -ex
               cp LICENSE extra/chocolatey/
-              cp WinVS2015Binaries/neko-*.zip extra/chocolatey/
-              cp WinVS2015x64Binaries/neko-*.zip extra/chocolatey/
+              cp WinVS2017Binaries/neko-*.zip extra/chocolatey/
+              cp WinVS2017x64Binaries/neko-*.zip extra/chocolatey/
               ls -la extra/chocolatey/
             displayName: Prepare extra/chocolatey/
           - powershell: |
@@ -104,7 +106,7 @@ stages:
       - job: S3
         condition: and(succeeded(), variables['HXBUILDS_AWS_ACCESS_KEY_ID'], variables['HXBUILDS_S3ADDR'])
         pool:
-          vmImage: 'ubuntu-16.04'
+          vmImage: 'ubuntu-20.04'
         steps:
           - task: DownloadPipelineArtifact@0
             inputs:
@@ -118,14 +120,14 @@ stages:
             displayName: Download MacStaticBinaries
           - task: DownloadPipelineArtifact@0
             inputs:
-              artifactName: WinVS2015Binaries
-              targetPath: WinVS2015Binaries
-            displayName: Download WinVS2015Binaries
+              artifactName: WinVS2017Binaries
+              targetPath: WinVS2017Binaries
+            displayName: Download WinVS2017Binaries
           - task: DownloadPipelineArtifact@0
             inputs:
-              artifactName: WinVS2015x64Binaries
-              targetPath: WinVS2015x64Binaries
-            displayName: Download WinVS2015x64Binaries
+              artifactName: WinVS2017x64Binaries
+              targetPath: WinVS2017x64Binaries
+            displayName: Download WinVS2017x64Binaries
           - task: DownloadPipelineArtifact@0
             inputs:
               artifactName: Chocolatey
@@ -144,7 +146,7 @@ stages:
               FILE_NAME=neko_${COMMIT_DATE}_$(Build.SourceBranchName)_${COMMIT_HASH_SHORT}
               aws s3 cp LinuxStaticBinaries/neko-*.tar.gz  $(HXBUILDS_S3ADDR)/neko/linux64/${FILE_NAME}.tar.gz
               aws s3 cp MacStaticBinaries/neko-*.tar.gz    $(HXBUILDS_S3ADDR)/neko/mac/${FILE_NAME}.tar.gz
-              aws s3 cp WinVS2015Binaries/neko-*.zip       $(HXBUILDS_S3ADDR)/neko/windows/${FILE_NAME}.zip
+              aws s3 cp WinVS2017Binaries/neko-*.zip       $(HXBUILDS_S3ADDR)/neko/windows/${FILE_NAME}.zip
               aws s3 cp Chocolatey/*.nupkg                 $(HXBUILDS_S3ADDR)/neko/windows64-choco/
             env:
               AWS_ACCESS_KEY_ID: $(HXBUILDS_AWS_ACCESS_KEY_ID)
@@ -154,8 +156,8 @@ stages:
               set -ex
               aws s3 cp LinuxStaticBinaries/neko-*.tar.gz  $(HXBUILDS_S3ADDR)/neko/linux64/neko_latest.tar.gz
               aws s3 cp MacStaticBinaries/neko-*.tar.gz    $(HXBUILDS_S3ADDR)/neko/mac/neko_latest.tar.gz
-              aws s3 cp WinVS2015Binaries/neko-*.zip       $(HXBUILDS_S3ADDR)/neko/windows/neko_latest.zip
-              aws s3 cp WinVS2015x64Binaries/neko-*.zip    $(HXBUILDS_S3ADDR)/neko/windows64/neko_latest.zip
+              aws s3 cp WinVS2017Binaries/neko-*.zip       $(HXBUILDS_S3ADDR)/neko/windows/neko_latest.zip
+              aws s3 cp WinVS2017x64Binaries/neko-*.zip    $(HXBUILDS_S3ADDR)/neko/windows64/neko_latest.zip
 
               # Chocolatey packages have to be named with version number,
               # so let's use web redirection to keep the original file name.

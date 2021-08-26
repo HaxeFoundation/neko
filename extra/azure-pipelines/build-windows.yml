@@ -2,6 +2,7 @@ parameters:
   name: 'BuildWindows'
   vmImage: ''
   cmakeGenerator: ''
+  arch: ''
   config: 'RelWithDebInfo'
 
 jobs:
@@ -9,7 +10,7 @@ jobs:
     pool:
       vmImage: ${{ parameters.vmImage }}
     steps:
-      - ${{ if eq(parameters.vmImage, 'vs2015-win2012r2') }}:
+      - ${{ if eq(parameters.vmImage, 'vs2017-win2016') }}:
         - powershell: |
             Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
             Write-Host "##vso[task.prependpath]C:\ProgramData\chocolatey\bin"
@@ -18,8 +19,12 @@ jobs:
           choco install activeperl -y
           Write-Host "##vso[task.prependpath]C:\Perl64\bin"
         displayName: Install Perl
-      - script: cmake . -G "${{ parameters.cmakeGenerator }}"
-        displayName: CMake
+      - ${{ if eq(parameters.vmImage, 'vs2017-win2016') }}:
+        - script: cmake . -G "${{ parameters.cmakeGenerator }}"
+          displayName: CMake
+      - ${{ if eq(parameters.vmImage, 'windows-2019') }}:
+        - script: cmake . -G "${{ parameters.cmakeGenerator }}" -A ${{ parameters.arch }}
+          displayName: CMake
       - script: |
           cmake --build . --config ${{ parameters.config }} --target download_static_deps || \
           cmake --build . --config ${{ parameters.config }} --target download_static_deps || \
