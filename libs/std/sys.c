@@ -96,9 +96,14 @@ static value put_env( value e, value v ) {
 	if( putenv(val_string(buffer_to_string(b))) != 0 )
 		neko_error();
 #else
+	char *val;
 	val_check(e,string);
 	val_check(v,string);
-	if( setenv(val_string(e),val_string(v),1) != 0 )
+	val = val_string(v);
+	if( val[0] == '\0' ) {
+		if( unsetenv(val_string(e)) != 0 )
+			neko_error();
+	} else if( setenv(val_string(e),val,1) != 0 )
 		neko_error();
 #endif
 	return val_true;
