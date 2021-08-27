@@ -41,11 +41,13 @@ stages:
           name: WinVS2017
           vmImage: vs2017-win2016
           cmakeGenerator: Visual Studio 15 2017
+          arch: Win32
       - template: extra/azure-pipelines/build-windows.yml
         parameters:
           name: WinVS2017x64
           vmImage: vs2017-win2016
           cmakeGenerator: Visual Studio 15 2017 Win64
+          arch: x64
 
       - template: extra/azure-pipelines/build-windows.yml
         parameters:

@@ -43,7 +43,7 @@ jobs:
       - task: PublishPipelineArtifact@0
         inputs:
           artifactName: ${{ parameters.name }}Binaries
-          ${{ if not(contains(parameters.cmakeGenerator, 'Win64')) }}:
+          ${{ if eq(parameters.arch, 'Win32') }}:
             targetPath: bin/neko-$(NEKO_VERSION)-win.zip
-          ${{ if contains(parameters.cmakeGenerator, 'Win64') }}:
+          ${{ if eq(parameters.arch, 'x64') }}:
             targetPath: bin/neko-$(NEKO_VERSION)-win64.zip
