@@ -2,6 +2,12 @@
 
 [![Build Status](https://dev.azure.com/HaxeFoundation/GitHubPublic/_apis/build/status/HaxeFoundation.neko?branchName=master)](https://dev.azure.com/HaxeFoundation/GitHubPublic/_build/latest?definitionId=2&branchName=master)
 
+# Deprecated as of 2021-09-09
+
+**Neko is not actively maintained anymore.**
+
+We keep it compatible with existing Haxe standard library and Haxe language features. But don't expect any new features in Neko itself and don't expect implementation of any new Haxe standard library API.
+
 # Neko Virtual Machine
 
 See http://nekovm.org/
@@ -25,7 +31,7 @@ Users of other Linux/FreeBSD distributions should build Neko from source. See be
 
 Neko can be built using CMake (version 3.x is recommended) and one of the C compilers listed as follows:
 
- * Windows: Visual Studio 2010 / 2013 / 2015 / 2017 
+ * Windows: Visual Studio 2010 / 2013 / 2015 / 2017
  * Mac: XCode (with its "Command line tools")
  * Linux: gcc (can be obtained by installing the "build-essential" Debian/Ubuntu package)
 
@@ -73,7 +79,7 @@ You may use the CMake GUI and Visual Studio to build it instead.
 mkdir build
 cd build
 
-# run cmake specifying the visual studio version you need 
+# run cmake specifying the visual studio version you need
 # Visual Studio 12 2013, Visual Studio 14 2015, Visual Studio 15 2017
 # you can additionally specify platform via -A switch (x86, x64)
 cmake -G "Visual Studio 12 2013" ..
