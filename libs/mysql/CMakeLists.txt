@@ -42,7 +42,7 @@ if (STATIC_OPENSSL)
 	endif()
 	ExternalProject_Add(OpenSSL
 		${EP_CONFIGS}
-		URL https://www.openssl.org/source/openssl-1.1.1.tar.gz
+		URL https://www.openssl.org/source/old/1.1.1/openssl-1.1.1.tar.gz
 		URL_MD5 7079eb017429e0ffb9efb42bf80ccb21
 		${OPENSSL_CONFS}
 		PATCH_COMMAND ${CMAKE_COMMAND} -Dopenssl_source=${CMAKE_BINARY_DIR}/libs/src/openssl -P ${CMAKE_SOURCE_DIR}/cmake/patch_openssl.cmake
@@ -88,7 +88,7 @@ if (STATIC_MARIADBCONNECTOR)
 	ExternalProject_Add(MariaDBConnector
 		${EP_CONFIGS}
 		DEPENDS ${OPENSSL_DEP}
-		URL https://downloads.mariadb.org/interstitial/connector-c-3.0.9/mariadb-connector-c-3.0.9-src.tar.gz/from/https://archive.mariadb.org/
+		URL https://downloads.mariadb.com/Connectors/c/connector-c-3.0.9/mariadb-connector-c-3.0.9-src.tar.gz
 		URL_MD5 e7fdb17e26e779f4bd15b6a32e1c8472
 		CMAKE_ARGS
 			-Wno-dev
