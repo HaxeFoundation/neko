@@ -173,6 +173,8 @@ stages:
             displayName: Update "latest"
       - job: PPA
         condition: and(succeeded(), variables['PPA'], variables['DEBFULLNAME'], variables['DEBEMAIL'])
+        pool:
+          vmImage: 'ubuntu-20.04'
         steps:
           - task: DownloadSecureFile@1
             inputs:
