@@ -85,20 +85,28 @@ static value get_env( value v ) {
 	<doc>Set some environment variable value</doc>
 **/
 static value put_env( value e, value v ) {
+	val_check(e,string);
+	bool is_null = val_is_null(v);
 #ifdef NEKO_WINDOWS
 	buffer b;
-	val_check(e,string);
-	val_check(v,string);
+	if( !is_null )
+		val_check(v,string);
 	b = alloc_buffer(NULL);
 	val_buffer(b,e);
 	buffer_append_sub(b,"=",1);
-	val_buffer(b,v);
+	if( !is_null )
+		val_buffer(b,v);
 	if( putenv(val_string(buffer_to_string(b))) != 0 )
 		neko_error();
 #else
-	val_check(e,string);
-	val_check(v,string);
-	if( setenv(val_string(e),val_string(v),1) != 0 )
+	int result;
+	if( is_null )
+		result = unsetenv(val_string(e));
+	else {
+		val_check(v,string);
+		result = setenv(val_string(e),val_string(v),1);
+	}
+	if( result != 0 )
 		neko_error();
 #endif
 	return val_true;
