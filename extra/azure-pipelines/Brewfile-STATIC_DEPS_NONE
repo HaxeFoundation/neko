@@ -3,5 +3,5 @@ brew "ninja"
 brew "pkg-config"
 brew "bdw-gc"
 brew "mariadb-connector-c"
-brew "mbedtls"
+brew "mbedtls@2", link: true
 brew "pcre"
