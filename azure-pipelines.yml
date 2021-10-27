@@ -79,13 +79,10 @@ stages:
               artifactName: WinVS2017x64Binaries
               targetPath: WinVS2017x64Binaries
             displayName: Download WinVS2017x64Binaries
-          - bash: |
-              set -ex
-              cp LICENSE extra/chocolatey/
-              cp WinVS2017Binaries/neko-*.zip extra/chocolatey/
-              cp WinVS2017x64Binaries/neko-*.zip extra/chocolatey/
-              ls -la extra/chocolatey/
-            displayName: Prepare extra/chocolatey/
+          - powershell: |
+              .\extra\chocolatey\generatePackage.ps1 $(NEKO_VERSION)
+              Get-ChildItem extra\chocolatey\out
+            displayName: Prepare Chocolatey Package
           - powershell: |
               $commitSha = git rev-parse --short HEAD
               $commitTime = git show -s --format=%cI HEAD
@@ -95,12 +92,12 @@ stages:
               echo "##vso[task.setvariable variable=chocoVersion]$chocoVersion"
             displayName: Format package version string
           - powershell: choco pack --version $env:chocoVersion
-            workingDirectory: extra/chocolatey/
+            workingDirectory: extra/chocolatey/out/
             displayName: choco pack
           - task: PublishPipelineArtifact@0
             inputs:
               artifactName: Chocolatey
-              targetPath: extra/chocolatey/
+              targetPath: extra/chocolatey/out/
 
   - stage: StageDeploy
     condition: and(succeeded(), not(variables['System.PullRequest.PullRequestId']))
