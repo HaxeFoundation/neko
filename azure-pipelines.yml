@@ -153,6 +153,7 @@ stages:
             env:
               AWS_ACCESS_KEY_ID: $(HXBUILDS_AWS_ACCESS_KEY_ID)
               AWS_SECRET_ACCESS_KEY: $(HXBUILDS_AWS_SECRET_ACCESS_KEY)
+              AWS_EC2_METADATA_DISABLED: true
             displayName: Upload binaries
           - script: |
               set -ex
@@ -169,6 +170,7 @@ stages:
             env:
               AWS_ACCESS_KEY_ID: $(HXBUILDS_AWS_ACCESS_KEY_ID)
               AWS_SECRET_ACCESS_KEY: $(HXBUILDS_AWS_SECRET_ACCESS_KEY)
+              AWS_EC2_METADATA_DISABLED: true
             condition: and(succeeded(), eq(variables['Build.SourceBranchName'], 'master'))
             displayName: Update "latest"
       - job: PPA
