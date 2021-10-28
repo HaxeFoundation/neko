@@ -47,7 +47,7 @@
 #	define HANDLE_EINTR(x)	if( errno == EINTR ) goto x
 #endif
 
-#if defined(OS_WINDOWS) || defined(OS_MAC)
+#ifndef MSG_NOSIGNAL
 #	define MSG_NOSIGNAL 0
 #endif
 
