@@ -29,6 +29,11 @@ DEFINE_KIND(k_mod_neko);
 #	define strcmpi	strcasecmp
 #endif
 
+// recent versions of APR include "stdbool.h" somewhere which causes conflicts.
+#ifdef bool
+#	undef bool
+#endif
+
 #ifdef APACHE_2_X
 #	define ap_table_get		apr_table_get
 #	define ap_table_set		apr_table_set
