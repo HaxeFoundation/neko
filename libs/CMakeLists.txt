@@ -83,14 +83,24 @@ if (WITH_APACHE)
 					make install
 			)
 		endif()
+
+		if (APPLE) # We need to use the most up to date version on MacOS
+			set(APR_SOURCE
+				SVN_REPOSITORY https://svn.apache.org/repos/asf/apr/apr/trunk/
+				UPDATE_COMMAND ./buildconf
+			)
+		else()
+			set(APR_SOURCE
+				URL http://archive.apache.org/dist/apr/apr-1.5.2.tar.gz
+				URL_MD5 98492e965963f852ab29f9e61b2ad700
+			)
+		endif()
 		ExternalProject_Add(APR
 			${EP_CONFIGS}
-			URL http://archive.apache.org/dist/apr/apr-1.5.2.tar.gz
-			URL_MD5 98492e965963f852ab29f9e61b2ad700
+			${APR_SOURCE}
 			${APR_CONFIGS}
 		)
 		set_target_properties(APR PROPERTIES ${EP_PROPS})
-
 
 		if(WIN32)
 			set(APRutil_CONFIGS
@@ -100,7 +110,7 @@ if (WITH_APACHE)
 					-DOPENSSL_ROOT_DIR=${CMAKE_BINARY_DIR}/libs/src/install-prefix
 					-DINSTALL_PDB=OFF
 			)
-		else()
+		elseif(NOT APPLE)
 			set(APRutil_CONFIGS
 				CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APRutil &&
 					./configure
@@ -114,15 +124,18 @@ if (WITH_APACHE)
 					make install
 			)
 		endif()
-		ExternalProject_Add(APRutil
-			${EP_CONFIGS}
-			DEPENDS ${APR_DEP} ${OPENSSL_DEP}
-			URL http://archive.apache.org/dist/apr/apr-util-1.5.4.tar.gz
-			URL_MD5 866825c04da827c6e5f53daff5569f42
-			${APRutil_CONFIGS}
-		)
-		set_target_properties(APRutil PROPERTIES ${EP_PROPS})
 
+		# For apple we use APR 2.0, which contains apr-util
+		if (NOT APPLE)
+			ExternalProject_Add(APRutil
+				${EP_CONFIGS}
+				DEPENDS ${APR_DEP} ${OPENSSL_DEP}
+				URL http://archive.apache.org/dist/apr/apr-util-1.5.4.tar.gz
+				URL_MD5 866825c04da827c6e5f53daff5569f42
+				${APRutil_CONFIGS}
+			)
+			set_target_properties(APRutil PROPERTIES ${EP_PROPS})
+		endif()
 
 		if(WIN32)
 			set(Apache_CONFIGS
@@ -147,16 +160,21 @@ if (WITH_APACHE)
 				${CMAKE_BINARY_DIR}/libs/src/Apache-build/${CMAKE_CFG_INTDIR}/libhttpd.lib
 			)
 		else()
+			set(APACHE_CONFIG_SETTINGS
+					${APR_CONF}
+					${OPENSSL_CONF}
+					${PCRE_CONF}
+					${ZLIB_CONF}
+			)
+			if (NOT APPLE)
+				list(APPEND APACHE_CONFIG_SETTINGS ${APRUTIL_CONF})
+			endif()
 			set(Apache_CONFIGS
 				CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/Apache &&
 					./configure
 						--prefix=${CMAKE_BINARY_DIR}/libs/src/Apache-build
 						--silent
-						${APR_CONF}
-						${APRUTIL_CONF}
-						${OPENSSL_CONF}
-						${PCRE_CONF}
-						${ZLIB_CONF}
+						${APACHE_CONFIG_SETTINGS}
 				BUILD_COMMAND echo skip build
 				INSTALL_COMMAND echo skip install
 			)
@@ -165,13 +183,22 @@ if (WITH_APACHE)
 				${CMAKE_BINARY_DIR}/libs/src/Apache/include
 				${CMAKE_BINARY_DIR}/libs/src/Apache/os/unix
 			)
+			if (APPLE)
+				list(APPEND APACHE_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/APR/include)
+			endif()
 			set(APACHE_LIBRARIES
 
 			)
 		endif()
+		set(APACHE_DEPENDENCIES
+			${APR_DEP} ${OPENSSL_DEP} ${PCRE_DEP}
+		)
+		if (NOT APPLE)
+			list(APPEND APACHE_DEPENDENCIES ${APRUTIL_DEP})
+		endif()
 		ExternalProject_Add(Apache
 			${EP_CONFIGS}
-			DEPENDS ${APR_DEP} ${APRUTIL_DEP} ${OPENSSL_DEP} ${PCRE_DEP}
+			DEPENDS ${APACHE_DEPENDENCIES}
 			URL http://archive.apache.org/dist/httpd/httpd-2.4.29.tar.gz
 			URL_MD5 6380b0856658f07479fdcba9e20294a6
 			${Apache_CONFIGS}
@@ -180,7 +207,9 @@ if (WITH_APACHE)
 		# Download sources for fat source archive
 		add_dependencies(download_static_deps Apache-download)
 		add_dependencies(download_static_deps APR-download)
-		add_dependencies(download_static_deps APRutil-download)
+		if (APPLE)
+			add_dependencies(download_static_deps APRutil-download)
+		endif()
 	else()
 		find_package(APACHE REQUIRED)
 		find_package(APR REQUIRED)

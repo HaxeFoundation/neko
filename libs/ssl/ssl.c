@@ -16,7 +16,10 @@ typedef int SOCKET;
 #endif
 
 #ifdef NEKO_MAC
-#include <Security/Security.h>
+#include <CoreFoundation/CoreFoundation.h>
+#include <Security/SecKeychain.h>
+#include <Security/SecItem.h>
+#include <Security/SecCertificate.h>
 #endif
 
 #define SOCKET_ERROR (-1)
