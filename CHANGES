@@ -1,6 +1,8 @@
 2021-10-27 : 2.3.1
 	all : deprecated neko (see README)
 	std : fixed put_env when null is passed in (#229 https://github.com/HaxeFoundation/haxe/issues/10395)
+	cmake : updated apr version for Mac
+	all : fixed various build issues on macOS Catalina
 
 2019-10-19 : 2.3.0
 	std : added socket_set_broadcast function (#190)
