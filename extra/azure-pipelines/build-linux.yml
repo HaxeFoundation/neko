@@ -1,6 +1,6 @@
 parameters:
   name: 'BuildLinux'
-  vmImage: 'ubuntu-20.04'
+  vmImage: 'ubuntu-18.04'
   staticDeps: 'true'
   config: 'RelWithDebInfo'
 
