@@ -1,5 +1,5 @@
 /*
- * Copyright (C)2005-2017 Haxe Foundation
+ * Copyright (C)2005-2021 Haxe Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -48,7 +48,7 @@ static pcre_extra limit;
 	</doc>
 **/
 
-static void free_regexp( value p ) {	
+static void free_regexp( value p ) {
 	pcre_free( PCRE(p)->r );
 }
 
@@ -124,7 +124,7 @@ static value regexp_new_options( value s, value opt ) {
 		pdata->matchs = (int*)alloc_private(sizeof(int) * 3 * pdata->nmatchs);
 		val_gc(v,free_regexp);
 		return v;
-	}	
+	}
 }
 
 /**
@@ -161,10 +161,10 @@ static value regexp_match( value o, value s, value p, value len ) {
 	}
 }
 
-static value do_replace( value o, value s, value s2, bool all ) {	
-	val_check_kind(o,k_regexp);	
+static value do_replace( value o, value s, value s2, bool all ) {
+	val_check_kind(o,k_regexp);
 	val_check(s,string);
-	val_check(s2,string);	
+	val_check(s2,string);
 	{
 		pcredata *d = PCRE(o);
 		buffer b = alloc_buffer(NULL);
@@ -190,7 +190,7 @@ static value do_replace( value o, value s, value s2, bool all ) {
 	regexp_replace : 'regexp -> from:string -> by:string -> string
 	<doc>Perform a replacement using a regexp</doc>
 **/
-static value regexp_replace( value o, value s, value s2 ) {	
+static value regexp_replace( value o, value s, value s2 ) {
 	return do_replace(o,s,s2,false);
 }
 
@@ -230,13 +230,13 @@ static value regexp_replace_fun( value o, value s, value f ) {
 
 /**
 	regexp_matched : 'regexp -> n:int -> string?
-	<doc>Return the [n]th matched block by the regexp. If [n] is 0 then return 
+	<doc>Return the [n]th matched block by the regexp. If [n] is 0 then return
 	the whole matched substring. If the [n]th matched block was optional and not matched, returns null</doc>
 **/
 static value regexp_matched( value o, value n ) {
 	pcredata *d;
 	int m;
-	val_check_kind(o,k_regexp);	
+	val_check_kind(o,k_regexp);
 	d = PCRE(o);
 	val_check(n,int);
 	m = val_int(n);
@@ -262,7 +262,7 @@ static value regexp_matched( value o, value n ) {
 static value regexp_matched_pos( value o, value n ) {
 	pcredata *d;
 	int m;
-	val_check_kind(o,k_regexp);	
+	val_check_kind(o,k_regexp);
 	d = PCRE(o);
 	val_check(n,int);
 	m = val_int(n);
@@ -280,7 +280,7 @@ static value regexp_matched_pos( value o, value n ) {
 
 void regexp_main() {
 	id_pos = val_id("pos");
-	id_len = val_id("len");	
+	id_len = val_id("len");
 	limit.flags = PCRE_EXTRA_MATCH_LIMIT_RECURSION;
 	limit.match_limit_recursion = 3500; // adapted based on Windows 1MB stack size
 }
