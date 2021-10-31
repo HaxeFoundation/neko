@@ -1,12 +1,16 @@
 cmake_minimum_required(VERSION 2.8.12)
 cmake_policy(SET CMP0068 NEW)
 
+
 include(GNUInstallDirs)
 include(CheckCCompilerFlag)
 include(CheckIncludeFile)
 include(TestBigEndian)
 project(Neko C)
 
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
+	EXECUTE_PROCESS(COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE CMAKE_OSX_ARCHITECTURES)
+endif()
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
@@ -56,7 +60,15 @@ option(WITH_NEKOML "Build NekoML." ON)
 #add_subdirectory(libs)
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
-	set(arch_64 "64")
+	if (${CMAKE_OSX_ARCHITECTURES} STREQUAL "i386")
+		set(arch_64 "")
+	elseif (${CMAKE_OSX_ARCHITECTURES} STREQUAL "x86_64")
+		set(arch_64 "64")
+	elseif (${CMAKE_OSX_ARCHITECTURES} STREQUAL "arm64")
+		set(arch_64 "64")
+	else()
+		message( FATAL_ERROR "CMAKE_OSX_ARCHITECTURES should be i386, arm64, or x86_64." )
+	endif()
 else()
 	if(CMAKE_SIZEOF_VOID_P EQUAL 8)
 		set(arch_64 "64")
