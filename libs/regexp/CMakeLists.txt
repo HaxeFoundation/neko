@@ -8,7 +8,7 @@ if (STATIC_PCRE)
 		set(PCRE_URL "https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz")
 		if (NOT ${CMAKE_VERSION} VERSION_LESS 3.7)
 			list(APPEND PCRE_URL
-				"http://downloads.sourceforge.net/project/pcre/pcre/8.42/pcre-8.42.tar.gz"
+				"https://downloads.sourceforge.net/project/pcre/pcre/8.42/pcre-8.42.tar.gz"
 			)
 		endif()
 		ExternalProject_Add(PCRE
@@ -41,7 +41,7 @@ if (STATIC_PCRE)
 		set(PCRE_URL "https://ftp.pcre.org/pub/pcre/pcre-8.40.tar.gz")
 		if (NOT ${CMAKE_VERSION} VERSION_LESS 3.7)
 			list(APPEND PCRE_URL
-				"http://downloads.sourceforge.net/project/pcre/pcre/8.40/pcre-8.40.tar.gz"
+				"https://downloads.sourceforge.net/project/pcre/pcre/8.40/pcre-8.40.tar.gz"
 			)
 		endif()
 		ExternalProject_Add(PCRE

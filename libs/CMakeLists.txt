@@ -91,7 +91,7 @@ if (WITH_APACHE)
 			)
 		else()
 			set(APR_SOURCE
-				URL http://archive.apache.org/dist/apr/apr-1.5.2.tar.gz
+				URL https://archive.apache.org/dist/apr/apr-1.5.2.tar.gz
 				URL_MD5 98492e965963f852ab29f9e61b2ad700
 			)
 		endif()
@@ -130,7 +130,7 @@ if (WITH_APACHE)
 			ExternalProject_Add(APRutil
 				${EP_CONFIGS}
 				DEPENDS ${APR_DEP} ${OPENSSL_DEP}
-				URL http://archive.apache.org/dist/apr/apr-util-1.5.4.tar.gz
+				URL https://archive.apache.org/dist/apr/apr-util-1.5.4.tar.gz
 				URL_MD5 866825c04da827c6e5f53daff5569f42
 				${APRutil_CONFIGS}
 			)
@@ -199,7 +199,7 @@ if (WITH_APACHE)
 		ExternalProject_Add(Apache
 			${EP_CONFIGS}
 			DEPENDS ${APACHE_DEPENDENCIES}
-			URL http://archive.apache.org/dist/httpd/httpd-2.4.29.tar.gz
+			URL https://archive.apache.org/dist/httpd/httpd-2.4.29.tar.gz
 			URL_MD5 6380b0856658f07479fdcba9e20294a6
 			${Apache_CONFIGS}
 		)
