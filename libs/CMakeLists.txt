@@ -207,7 +207,7 @@ if (WITH_APACHE)
 		# Download sources for fat source archive
 		add_dependencies(download_static_deps Apache-download)
 		add_dependencies(download_static_deps APR-download)
-		if (APPLE)
+		if (NOT APPLE)
 			add_dependencies(download_static_deps APRutil-download)
 		endif()
 	else()
