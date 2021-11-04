@@ -1,0 +1,13 @@
+version: '3'
+
+services:
+  workspace:
+    image: haxe/neko_devcontainer:20211104122821
+    init: true
+    volumes:
+      - ..:/workspace:cached
+      # Forwards the local Docker socket to the container.
+      - /var/run/docker.sock:/var/run/docker-host.sock
+    entrypoint: /usr/local/share/docker-init.sh
+    command: sleep infinity
+    user: vscode
