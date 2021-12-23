@@ -7,7 +7,6 @@ build-multiarch:
     BUILD --platform=linux/amd64 --platform=linux/arm64 +build --LINK_TYPE=$LINK_TYPE
     
 install-dependencies:
-    ENV CMAKE_BUILD_TYPE=RelWithDebInfo
     ENV APT_PACKAGES=wget cmake ninja-build pkg-config libgtk2.0-dev libgc-dev libpcre3-dev zlib1g-dev apache2-dev libmysqlclient-dev libsqlite3-dev git
     
     RUN set -ex && \
@@ -28,6 +27,7 @@ install-dependencies:
 build:
     FROM +install-dependencies
     
+    ENV CMAKE_BUILD_TYPE=RelWithDebInfo
     ARG LINK_TYPE=static # or dynamic
     ARG TARGETPLATFORM
     
