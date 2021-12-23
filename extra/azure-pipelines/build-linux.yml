@@ -10,7 +10,7 @@ jobs:
     steps:
       - script: sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly && /usr/local/bin/earthly bootstrap --with-autocomplete'
         displayName: Install Earthly
-      - script: earthly +build-all
+      - script: earthly +build --LINK_TYPE=${{ parameters.linkType }}
         displayName: Build
       - bash: |
           set -ex
