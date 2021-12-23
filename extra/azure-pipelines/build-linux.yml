@@ -7,11 +7,6 @@ jobs:
   - job: ${{ parameters.name }}
     pool:
       vmImage: ${{ parameters.vmImage }}
-    variables:
-      ${{ if eq(parameters.staticDeps, 'true') }}:
-        LINK_TYPE: static
-      ${{ if eq(parameters.staticDeps, 'false') }}:
-        LINK_TYPE: dynamic
     steps:
       - script: sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly && /usr/local/bin/earthly bootstrap --with-autocomplete'
         displayName: Install Earthly
