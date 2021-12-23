@@ -2,9 +2,9 @@ VERSION 0.6
 FROM ubuntu:18.04
 WORKDIR /neko-builder
 
-build-all:
-    BUILD --platform=linux/amd64 --platform=linux/arm64 +build --LINK_TYPE=static
-    BUILD --platform=linux/amd64 --platform=linux/arm64 +build --LINK_TYPE=dynamic
+build-multiarch:
+    ARG LINK_TYPE=static # or dynamic
+    BUILD --platform=linux/amd64 --platform=linux/arm64 +build --LINK_TYPE=$LINK_TYPE
     
 install-dependencies:
     ENV CMAKE_BUILD_TYPE=RelWithDebInfo
