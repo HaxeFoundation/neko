@@ -21,11 +21,11 @@ stages:
       - template: extra/azure-pipelines/build-linux.yml
         parameters:
           name: LinuxStatic
-          staticDeps: 'true'
+          linkType: static
       - template: extra/azure-pipelines/build-linux.yml
         parameters:
           name: Linux
-          staticDeps: 'false'
+          linkType: dynamic
 
       - template: extra/azure-pipelines/build-mac.yml
         parameters:

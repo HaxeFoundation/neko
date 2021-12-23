@@ -1,8 +1,7 @@
 parameters:
   name: 'BuildLinux'
   vmImage: 'ubuntu-18.04'
-  staticDeps: 'true'
-  config: 'RelWithDebInfo'
+  linkType: 'static'
 
 jobs:
   - job: ${{ parameters.name }}
@@ -10,55 +9,23 @@ jobs:
       vmImage: ${{ parameters.vmImage }}
     variables:
       ${{ if eq(parameters.staticDeps, 'true') }}:
-        APT_PACKAGES: cmake ninja-build pkg-config libgtk2.0-dev
-        STATIC_DEPS: all
+        LINK_TYPE: static
       ${{ if eq(parameters.staticDeps, 'false') }}:
-        APT_PACKAGES: cmake ninja-build pkg-config libgtk2.0-dev libgc-dev libpcre3-dev zlib1g-dev apache2-dev libmysqlclient-dev libsqlite3-dev
-        STATIC_DEPS: none
+        LINK_TYPE: dynamic
     steps:
-      - script: |
-          set -ex
-          sudo apt-get update -qqy
-          sudo apt-get install -qqy $(APT_PACKAGES)
-        displayName: Install dependencies
-      - ${{ if eq(parameters.staticDeps, 'false') }}:
-        - script: |
-            set -ex
-            mkdir ~/mbedtls
-            pushd ~/mbedtls
-            wget https://tls.mbed.org/download/mbedtls-2.2.1-apache.tgz
-            tar xzf mbedtls-2.2.1-apache.tgz
-            cd mbedtls-2.2.1 && sed -i "s/\/\/#define MBEDTLS_THREADING_PTHREAD/#define MBEDTLS_THREADING_PTHREAD/; s/\/\/#define MBEDTLS_THREADING_C/#define MBEDTLS_THREADING_C/; s/#define MBEDTLS_SSL_PROTO_SSL3/\/\/#define MBEDTLS_SSL_PROTO_SSL3/" include/mbedtls/config.h
-            SHARED=1 make lib
-            sudo make install
-            popd
-          displayName: Install mbedTLS
-      - script: cmake . -DSTATIC_DEPS=$(STATIC_DEPS) -G Ninja -DCMAKE_BUILD_TYPE=${{ parameters.config }}
-        displayName: CMake
-      - ${{ if eq(parameters.staticDeps, 'true') }}:
-        - script: ninja download_static_deps || ninja download_static_deps || ninja download_static_deps
-          displayName: Download static deps
-      - script: |
-          set -ex
-          unset MACHINE RELEASE SYSTEM VERSION # https://marc.info/?l=gentoo-commits&m=155026142713994
-          ninja
+      - script: sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly && /usr/local/bin/earthly bootstrap --with-autocomplete'
+        displayName: Install Earthly
+      - script: earthly +build-all
         displayName: Build
-      - script: |
-          set -ex
-          ldd -v ./bin/neko
-          ldd -v ./bin/nekoc
-          ldd -v ./bin/nekoml
-          ldd -v ./bin/nekotools
-        displayName: Check runtime dependencies
-      - script: ctest --verbose
-        displayName: Test
-      - script: ninja package
-        displayName: Package
       - bash: |
           set -ex
-          [ "`./bin/neko -version`" == "$(NEKO_VERSION)" ]
+          [ "`./bin/${{ parameters.linkType }}/linux/amd64/neko -version`" == "$(NEKO_VERSION)" ]
         displayName: Check version
       - task: PublishPipelineArtifact@0
         inputs:
-          artifactName: ${{ parameters.name }}Binaries
-          targetPath: bin/neko-$(NEKO_VERSION)-linux64.tar.gz
+          artifactName: ${{ parameters.name }}Binaries-$
+          targetPath: bin/${{ parameters.linkType }}/linux/amd64/neko-$(NEKO_VERSION)-linux64.tar.gz
+      - task: PublishPipelineArtifact@0
+        inputs:
+          artifactName: ${{ parameters.name }}Binaries-arm64
+          targetPath: bin/${{ parameters.linkType }}/linux/arm64/neko-$(NEKO_VERSION)-linux64.tar.gz
