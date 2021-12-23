@@ -5,6 +5,7 @@ parameters:
 
 jobs:
   - job: ${{ parameters.name }}
+    timeoutInMinutes: 0
     pool:
       vmImage: ${{ parameters.vmImage }}
     steps:
@@ -16,7 +17,6 @@ jobs:
           docker stop earthly-buildkitd || true
         displayName: Install QEMU
       - script: earthly +build-multiarch --LINK_TYPE=${{ parameters.linkType }}
-        timeoutInMinutes: 0
         displayName: Build
       - bash: |
           set -ex
