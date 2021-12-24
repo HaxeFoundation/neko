@@ -14,15 +14,13 @@ install-dependencies:
         apt-get install -qqy $APT_PACKAGES
         
     RUN set -ex && \
-        CWD=$PWD && \
         mkdir ~/mbedtls && \
         cd ~/mbedtls && \
         wget https://tls.mbed.org/download/mbedtls-2.2.1-apache.tgz && \
         tar xzf mbedtls-2.2.1-apache.tgz && \
         cd mbedtls-2.2.1 && sed -i "s/\/\/#define MBEDTLS_THREADING_PTHREAD/#define MBEDTLS_THREADING_PTHREAD/; s/\/\/#define MBEDTLS_THREADING_C/#define MBEDTLS_THREADING_C/; s/#define MBEDTLS_SSL_PROTO_SSL3/\/\/#define MBEDTLS_SSL_PROTO_SSL3/" include/mbedtls/config.h && \
         SHARED=1 make lib && \
-        make install && \
-        cd $CWD
+        make install
     
 build:
     FROM +install-dependencies
