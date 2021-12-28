@@ -26,6 +26,17 @@ stages:
         parameters:
           name: Linux
           linkType: dynamic
+          
+      - template: extra/azure-pipelines/build-linux.yml
+        parameters:
+          name: LinuxStaticArm64
+          linkType: static
+          arch: arm64
+      - template: extra/azure-pipelines/build-linux.yml
+        parameters:
+          name: LinuxArm64
+          linkType: dynamic
+          arch: arm64
 
       - template: extra/azure-pipelines/build-mac.yml
         parameters:
@@ -114,6 +125,11 @@ stages:
             displayName: Download LinuxStaticBinaries
           - task: DownloadPipelineArtifact@0
             inputs:
+              artifactName: LinuxStaticArm64Binaries
+              targetPath: LinuxStaticArm64Binaries
+            displayName: Download LinuxStaticArm64Binaries
+          - task: DownloadPipelineArtifact@0
+            inputs:
               artifactName: MacStaticBinaries
               targetPath: MacStaticBinaries
             displayName: Download MacStaticBinaries
@@ -144,7 +160,7 @@ stages:
               COMMIT_DATE=`TZ=UTC git show --quiet --date='format-local:%Y-%m-%d' --format="%cd"`
               FILE_NAME=neko_${COMMIT_DATE}_$(Build.SourceBranchName)_${COMMIT_HASH_SHORT}
               aws s3 cp LinuxStaticBinaries/neko-*.tar.gz  $(HXBUILDS_S3ADDR)/neko/linux64/${FILE_NAME}.tar.gz
-              aws s3 cp LinuxStaticBinaries-arm64/neko-*.tar.gz  $(HXBUILDS_S3ADDR)/neko/linux-arm64/${FILE_NAME}.tar.gz
+              aws s3 cp LinuxStaticArm64Binaries/neko-*.tar.gz  $(HXBUILDS_S3ADDR)/neko/linux-arm64/${FILE_NAME}.tar.gz
               aws s3 cp MacStaticBinaries/neko-*.tar.gz    $(HXBUILDS_S3ADDR)/neko/mac/${FILE_NAME}.tar.gz
               aws s3 cp WinVS2017Binaries/neko-*.zip       $(HXBUILDS_S3ADDR)/neko/windows/${FILE_NAME}.zip
               aws s3 cp Chocolatey/*.nupkg                 $(HXBUILDS_S3ADDR)/neko/windows64-choco/
@@ -156,7 +172,7 @@ stages:
           - script: |
               set -ex
               aws s3 cp LinuxStaticBinaries/neko-*.tar.gz  $(HXBUILDS_S3ADDR)/neko/linux64/neko_latest.tar.gz
-              aws s3 cp LinuxStaticBinaries-arm64/neko-*.tar.gz  $(HXBUILDS_S3ADDR)/neko/linux-arm64/neko_latest.tar.gz
+              aws s3 cp LinuxStaticArm64Binaries/neko-*.tar.gz  $(HXBUILDS_S3ADDR)/neko/linux-arm64/neko_latest.tar.gz
               aws s3 cp MacStaticBinaries/neko-*.tar.gz    $(HXBUILDS_S3ADDR)/neko/mac/neko_latest.tar.gz
               aws s3 cp WinVS2017Binaries/neko-*.zip       $(HXBUILDS_S3ADDR)/neko/windows/neko_latest.zip
               aws s3 cp WinVS2017x64Binaries/neko-*.zip    $(HXBUILDS_S3ADDR)/neko/windows64/neko_latest.zip

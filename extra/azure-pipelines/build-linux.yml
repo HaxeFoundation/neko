@@ -2,6 +2,7 @@ parameters:
   name: 'BuildLinux'
   vmImage: 'ubuntu-18.04'
   linkType: 'static'
+  arch: 'amd64'
 
 jobs:
   - job: ${{ parameters.name }}
@@ -16,7 +17,7 @@ jobs:
           docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
           docker stop earthly-buildkitd || true
         displayName: Install QEMU
-      - script: earthly +build-multiarch --LINK_TYPE=${{ parameters.linkType }}
+      - script: earthly --platform=linux/${{ parameters.arch }} +build --LINK_TYPE=${{ parameters.linkType }}
         displayName: Build
       - bash: |
           set -ex
@@ -24,9 +25,5 @@ jobs:
         displayName: Check version
       - task: PublishPipelineArtifact@0
         inputs:
-          artifactName: ${{ parameters.name }}Binaries-$
-          targetPath: bin/${{ parameters.linkType }}/linux/amd64/neko-$(NEKO_VERSION)-linux64.tar.gz
-      - task: PublishPipelineArtifact@0
-        inputs:
-          artifactName: ${{ parameters.name }}Binaries-arm64
-          targetPath: bin/${{ parameters.linkType }}/linux/arm64/neko-$(NEKO_VERSION)-linux64.tar.gz
+          artifactName: ${{ parameters.name }}Binaries
+          targetPath: bin/${{ parameters.linkType }}/linux/${{ parameters.arch }}/neko-$(NEKO_VERSION)-linux64.tar.gz
