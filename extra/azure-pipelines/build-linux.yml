@@ -21,7 +21,7 @@ jobs:
         displayName: Build
       - bash: |
           set -ex
-          [ "`./bin/${{ parameters.linkType }}/linux/amd64/neko -version`" == "$(NEKO_VERSION)" ]
+          [ "`./bin/${{ parameters.linkType }}/linux/${{ parameters.arch }}/neko -version`" == "$(NEKO_VERSION)" ]
         displayName: Check version
       - task: PublishPipelineArtifact@0
         inputs:
