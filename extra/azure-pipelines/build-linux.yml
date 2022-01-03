@@ -9,6 +9,12 @@ jobs:
     timeoutInMinutes: 0
     pool:
       vmImage: ${{ parameters.vmImage }}
+      
+    variables:
+      ${{ if eq(parameters.arch, 'amd64') }}:
+        EXE: ""
+      ${{ if eq(parameters.arch, 'arm64') }}:
+        EXE: qemu-arm
     steps:
       - script: sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly && /usr/local/bin/earthly bootstrap --with-autocomplete'
         displayName: Install Earthly
@@ -21,7 +27,7 @@ jobs:
         displayName: Build
       - bash: |
           set -ex
-          [ "`./bin/${{ parameters.linkType }}/linux/${{ parameters.arch }}/neko -version`" == "$(NEKO_VERSION)" ]
+          [ "`$(EXE) ./bin/${{ parameters.linkType }}/linux/${{ parameters.arch }}/neko -version`" == "$(NEKO_VERSION)" ]
         displayName: Check version
       - task: PublishPipelineArtifact@0
         inputs:
