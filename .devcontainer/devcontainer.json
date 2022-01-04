@@ -20,6 +20,7 @@
 		"ms-vscode.cpptools",
 		"ms-vscode.cpptools-themes",
 		"jeff-hykin.better-cpp-syntax",
+		"earthly.earthfile-syntax-highlighting",
 	],
 
 	"remoteUser": "vscode"
