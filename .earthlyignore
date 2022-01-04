@@ -1,5 +1,4 @@
 .git
-.devcontainer
 .github
 azure-pipelines.yml
 Earthfile
