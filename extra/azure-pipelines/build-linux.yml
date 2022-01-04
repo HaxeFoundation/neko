@@ -19,10 +19,10 @@ jobs:
         displayName: Install QEMU
       - script: earthly --platform=linux/${{ parameters.arch }} +build --LINK_TYPE=${{ parameters.linkType }} --NEKO_VERSION=$NEKO_VERSION
         displayName: Build
-      - bash: |
-          set -ex
-          [ "`./bin/${{ parameters.linkType }}/linux/${{ parameters.arch }}/neko -version`" == "$(NEKO_VERSION)" ]
-        displayName: Check version
+      # - bash: |
+      #     set -ex
+      #     [ "`./bin/${{ parameters.linkType }}/linux/${{ parameters.arch }}/neko -version`" == "$(NEKO_VERSION)" ]
+      #   displayName: Check version
       - task: PublishPipelineArtifact@0
         inputs:
           artifactName: ${{ parameters.name }}Binaries
