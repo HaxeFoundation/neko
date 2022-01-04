@@ -2,9 +2,11 @@ VERSION 0.6
 FROM ubuntu:18.04
 WORKDIR /neko-builder
 
+ARG LINK_TYPE=static # or dynamic
+ARG NEKO_VERSION
+
 build-multiarch:
-    ARG LINK_TYPE=static # or dynamic
-    BUILD --platform=linux/amd64 --platform=linux/arm64 +build --LINK_TYPE=$LINK_TYPE
+    BUILD --platform=linux/amd64 --platform=linux/arm64 +build
     
 install-dependencies:
     ENV APT_PACKAGES=wget cmake ninja-build pkg-config libgtk2.0-dev libgc-dev libpcre3-dev zlib1g-dev apache2-dev libmysqlclient-dev libsqlite3-dev git
@@ -26,7 +28,6 @@ build:
     FROM +install-dependencies
     
     ENV CMAKE_BUILD_TYPE=RelWithDebInfo
-    ARG LINK_TYPE=static # or dynamic
     ARG TARGETPLATFORM
     
     # validate args
@@ -56,6 +57,9 @@ build:
         ldd -v ./bin/nekotools
     RUN ctest --verbose
     RUN ninja package
-    RUN ./bin/neko -version
     
-    SAVE ARTIFACT ./bin/* AS LOCAL bin/$LINK_TYPE/$TARGETPLATFORM/
+    IF [ "$(./bin/neko -version)" = "$NEKO_VERSION" ]
+        SAVE ARTIFACT ./bin/* AS LOCAL bin/$LINK_TYPE/$TARGETPLATFORM/
+    ELSE
+        RUN exit 1
+    END

@@ -9,12 +9,6 @@ jobs:
     timeoutInMinutes: 0
     pool:
       vmImage: ${{ parameters.vmImage }}
-      
-    variables:
-      ${{ if eq(parameters.arch, 'amd64') }}:
-        EXE: ""
-      ${{ if eq(parameters.arch, 'arm64') }}:
-        EXE: qemu-arm
     steps:
       - script: sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly && /usr/local/bin/earthly bootstrap --with-autocomplete'
         displayName: Install Earthly
@@ -23,11 +17,11 @@ jobs:
           docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
           docker stop earthly-buildkitd || true
         displayName: Install QEMU
-      - script: earthly --platform=linux/${{ parameters.arch }} +build --LINK_TYPE=${{ parameters.linkType }}
+      - script: earthly --platform=linux/${{ parameters.arch }} +build --LINK_TYPE=${{ parameters.linkType }} --NEKO_VERSION=$NEKO_VERSION
         displayName: Build
       - bash: |
           set -ex
-          [ "`$(EXE) ./bin/${{ parameters.linkType }}/linux/${{ parameters.arch }}/neko -version`" == "$(NEKO_VERSION)" ]
+          [ "`./bin/${{ parameters.linkType }}/linux/${{ parameters.arch }}/neko -version`" == "$(NEKO_VERSION)" ]
         displayName: Check version
       - task: PublishPipelineArtifact@0
         inputs:
