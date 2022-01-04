@@ -10,6 +10,13 @@ ARG USERNAME=vscode
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
 
+vscode-dev-containers-scripts:
+    FROM curlimages/curl:7.80.0
+    WORKDIR /tmp
+    RUN curl -fsSLO https://raw.githubusercontent.com/microsoft/vscode-dev-containers/main/script-library/common-debian.sh
+    RUN curl -fsSLO https://raw.githubusercontent.com/microsoft/vscode-dev-containers/main/script-library/docker-debian.sh
+    SAVE ARTIFACT --keep-ts *.sh AS LOCAL .devcontainer/library-scripts/
+
 devcontainer-base:
     FROM mcr.microsoft.com/vscode/devcontainers/base:0-bionic
     ARG --required TARGETARCH
