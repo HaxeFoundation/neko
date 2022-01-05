@@ -3,7 +3,7 @@ version: '3'
 services:
   workspace:
     # To update, use `earthly --push +devcontainer-rebuild`
-    image: haxe/neko_devcontainer:20211104122821
+    image: haxe/neko_devcontainer:20220105030948
     init: true
     volumes:
       - ..:/workspace:cached

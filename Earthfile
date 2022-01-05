@@ -64,10 +64,6 @@ devcontainer-base:
             libmysqlclient-dev \
             libsqlite3-dev \
             libmbedtls-dev \
-        && echo 'eval "$(direnv hook bash)"' >> /etc/bash.bashrc \
-        # install the latest git
-        && add-apt-repository ppa:git-core/ppa \
-        && apt-get install -y git \
         #
         # Clean up
         && apt-get autoremove -y \
