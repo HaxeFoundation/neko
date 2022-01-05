@@ -11,7 +11,7 @@ services:
       - /var/run/docker.sock:/var/run/docker-host.sock
     environment:
       - EARTHLY_BUILDKIT_HOST=tcp://earthly:8372
-      - EARTHLY_SECRET_FILES=.envrc=/workspace/.envrc
+      # - EARTHLY_SECRET_FILES=.envrc=/workspace/.envrc
       - EARTHLY_USE_INLINE_CACHE=true
       - EARTHLY_SAVE_INLINE_CACHE=true
     entrypoint: /usr/local/share/docker-init.sh

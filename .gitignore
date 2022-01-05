@@ -1,3 +1,5 @@
+.envrc
+
 /src/**/*.n
 *_sec.gpg
 *_ssh

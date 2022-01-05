@@ -1,14 +1,14 @@
 VERSION 0.6
 FROM ubuntu:bionic
 
-ARG LINK_TYPE=static # or dynamic
-ARG NEKO_VERSION
-
 ARG DEVCONTAINER_IMAGE_NAME_DEFAULT=haxe/neko_devcontainer
 
 ARG USERNAME=vscode
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
+
+ARG LINK_TYPE_DEFAULT=static # static or dynamic
+ARG LINK_DYNAMIC_PACKAGES="libgc-dev libpcre3-dev zlib1g-dev apache2-dev libmysqlclient-dev libsqlite3-dev libmbedtls-dev"
 
 vscode-dev-containers-scripts:
     FROM curlimages/curl:7.80.0
@@ -56,14 +56,7 @@ devcontainer-base:
             ninja-build \
             pkg-config \
             libgtk2.0-dev \
-            # Neko dynamic link deps
-            libgc-dev \
-            libpcre3-dev \
-            zlib1g-dev \
-            apache2-dev \
-            libmysqlclient-dev \
-            libsqlite3-dev \
-            libmbedtls-dev \
+            $LINK_DYNAMIC_PACKAGES \
         #
         # Clean up
         && apt-get autoremove -y \
@@ -142,61 +135,70 @@ devcontainer-update-ref:
     RUN sed -e "s#$DEVCONTAINER_IMAGE_NAME:[a-z0-9]*#$DEVCONTAINER_IMAGE_NAME:$DEVCONTAINER_IMAGE_TAG#g" file.src > file.out
     SAVE ARTIFACT --keep-ts file.out $FILE AS LOCAL $FILE
 
-build-multiarch:
-    BUILD --platform=linux/amd64 --platform=linux/arm64 +build
-
-install-dependencies:
-    ENV APT_PACKAGES=wget cmake ninja-build pkg-config libgtk2.0-dev libgc-dev libpcre3-dev zlib1g-dev apache2-dev libmysqlclient-dev libsqlite3-dev git
-
-    RUN set -ex && \
-        apt-get update -qqy && \
-        apt-get install -qqy $APT_PACKAGES
-
-    RUN set -ex && \
-        mkdir ~/mbedtls && \
-        cd ~/mbedtls && \
-        wget https://tls.mbed.org/download/mbedtls-2.2.1-apache.tgz && \
-        tar xzf mbedtls-2.2.1-apache.tgz && \
-        cd mbedtls-2.2.1 && sed -i "s/\/\/#define MBEDTLS_THREADING_PTHREAD/#define MBEDTLS_THREADING_PTHREAD/; s/\/\/#define MBEDTLS_THREADING_C/#define MBEDTLS_THREADING_C/; s/#define MBEDTLS_SSL_PROTO_SSL3/\/\/#define MBEDTLS_SSL_PROTO_SSL3/" include/mbedtls/config.h && \
-        SHARED=1 make lib && \
-        make install
+build-env:
+    # We specifically use an old distro to build against an old glibc.
+    # https://repology.org/project/glibc/versions
+    FROM ubuntu:xenial
+    RUN apt-get update \
+        && apt-get install -qqy --no-install-recommends \
+            software-properties-common \
+            curl \
+            build-essential \
+            git \
+            ninja-build \
+            pkg-config \
+            libgtk2.0-dev \
+        #
+        # Clean up
+        && apt-get autoremove -y \
+        && apt-get clean -y \
+        && rm -rf /var/lib/apt/lists/*
+    # install a recent CMake
+    ARG --required TARGETARCH
+    ARG CMAKE_VERSION=3.22.1
+    RUN case "$TARGETARCH" in \
+            amd64) curl -fsSL "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.sh" -o cmake-install.sh;; \
+            arm64) curl -fsSL "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-aarch64.sh" -o cmake-install.sh;; \
+            *) exit 1;; \
+        esac \
+        && sh cmake-install.sh --skip-license --prefix /usr/local \
+        && rm cmake-install.sh
+    ARG LINK_TYPE="$LINK_TYPE_DEFAULT" # static or dynamic
+    RUN if [ "$LINK_TYPE" = "dynamic" ]; then \
+        apt-get update && apt-get install -qqy --no-install-recommends $LINK_DYNAMIC_PACKAGES \
+        #
+        # Clean up
+        && apt-get autoremove -y \
+        && apt-get clean -y \
+        && rm -rf /var/lib/apt/lists/* \
+    ; fi
 
 build:
-    FROM +install-dependencies
-
-    ENV CMAKE_BUILD_TYPE=RelWithDebInfo
-    ARG TARGETPLATFORM
-
-    # validate args
-    IF [ "$LINK_TYPE" != "static" ] && [ "$LINK_TYPE" != "dynamic" ]
-        RUN exit 1
-    END
-
-    IF [ "$LINK_TYPE" = "static" ]
-        ENV STATIC_DEPS=all
-    ELSE
-        ENV STATIC_DEPS=none
-    END
-
-    COPY . .
-
-    RUN set -ex && \
-        cmake . -G Ninja -DSTATIC_DEPS=$STATIC_DEPS -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE
-
-    IF [ "$LINK_TYPE" = "static" ]
-        RUN ninja download_static_deps || ninja download_static_deps || ninja download_static_deps
-    END
-
+    ARG LINK_TYPE="$LINK_TYPE_DEFAULT" # static or dynamic
+    FROM +build-env --LINK_TYPE="$LINK_TYPE"
+    WORKDIR /src
+    COPY --dir boot cmake extra libs src vm .
+    COPY CMakeLists.txt CHANGES LICENSE README.md .
+    WORKDIR /src/build
+    RUN case "$LINK_TYPE" in \
+            static)  cmake .. -DSTATIC_DEPS=all  -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo;; \
+            dynamic) cmake .. -DSTATIC_DEPS=none -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo;; \
+            *) exit 1;; \
+        esac
+    RUN if [ "$LINK_TYPE" = "static" ]; then ninja download_static_deps; fi
     RUN ninja
-    RUN ldd -v ./bin/neko && \
-        ldd -v ./bin/nekoc && \
-        ldd -v ./bin/nekoml && \
-        ldd -v ./bin/nekotools
-    RUN ctest --verbose
-    RUN ninja package
+    RUN ninja test
+    SAVE ARTIFACT bin/*
 
-    IF [ "$(./bin/neko -version)" = "$NEKO_VERSION" ]
-        SAVE ARTIFACT ./bin/* AS LOCAL bin/$LINK_TYPE/$TARGETPLATFORM/
-    ELSE
-        RUN exit 1
-    END
+package:
+    ARG LINK_TYPE="$LINK_TYPE_DEFAULT" # static or dynamic
+    FROM +build --LINK_TYPE="$LINK_TYPE"
+    RUN ninja package
+    # ARG --required TARGETOS
+    # ARG --required TARGETARCH
+    # RUN mv bin/neko-*.tar.gz "bin/neko-$(cmake -L -N -B . | awk -F '=' '/NEKO_VERSION/ {print $2}')-${TARGETOS}-${TARGETARCH}.tar.gz"
+    ARG --required TARGETPLATFORM
+    SAVE ARTIFACT --keep-ts bin/neko-*.tar.gz AS LOCAL bin/$LINK_TYPE/$TARGETPLATFORM/
+
+package-all-platforms:
+    BUILD --platform=linux/amd64 --platform=linux/arm64 +package
