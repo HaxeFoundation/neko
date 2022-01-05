@@ -202,3 +202,32 @@ package:
 
 package-all-platforms:
     BUILD --platform=linux/amd64 --platform=linux/arm64 +package
+
+extract-package:
+    ARG LINK_TYPE="$LINK_TYPE_DEFAULT" # static or dynamic
+    FROM +package --LINK_TYPE="$LINK_TYPE"
+    WORKDIR bin
+    RUN mkdir /tmp/neko && tar xf neko-*.tar.gz --strip-components 1 -C /tmp/neko
+    SAVE ARTIFACT /tmp/neko neko
+
+test-static-package:
+    ARG IMAGE=ubuntu:xenial
+    FROM $IMAGE
+    WORKDIR /tmp/neko
+    COPY +extract-package/neko .
+    ARG PREFIX=/usr/local
+    RUN mkdir -p $PREFIX/bin \
+        && mv neko nekotools nekoc nekoml $PREFIX/bin \
+        && mkdir -p $PREFIX/lib/neko \
+        && mv *.ndll nekoml.std $PREFIX/lib/neko \
+        && mv *.so* $PREFIX/lib \
+        && rm -rf * \
+        && ldconfig
+    RUN neko -version
+    RUN nekoc
+    RUN nekoml
+    RUN nekotools
+
+test-static-package-all-platforms:
+    ARG IMAGE=ubuntu:xenial
+    BUILD --platform=linux/amd64 --platform=linux/arm64 +test-static-package --IMAGE="$IMAGE"
