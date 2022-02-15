@@ -119,7 +119,7 @@ static value regexp_new_options( value s, value opt ) {
 				break;
 			}
 		}
-		p = pcre2_compile(val_string(s),PCRE2_ZERO_TERMINATED,options,&error_num,&err_offset,NULL);
+		p = pcre2_compile(val_string(s),val_strlen(s),options,&error_num,&err_offset,NULL);
 		if( p == NULL ) {
 			buffer b = alloc_buffer("Regexp compilation error : ");
 			PCRE2_UCHAR error_buffer[256];
