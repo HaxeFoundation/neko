@@ -68,6 +68,7 @@ static int do_exec( pcredata *d, const char *str, int len, int pos ) {
 	int res = pcre2_match(d->regex,str,len,pos,0,d->match_data,match_context);
 	if( res >= 0 )
 		return 1;
+	d->str = val_null; // empty string prevents trying to access the data after a failed match
 	if( res != PCRE2_ERROR_NOMATCH )
 		val_throw(alloc_string("An error occurred while running pcre2_match"));
 	return 0;
