@@ -103,7 +103,7 @@ set(external_deps
 	Zlib
 	OpenSSL
 	MariaDBConnector
-	PCRE
+	pcre2
 	Sqlite3
 	APR
 	APRutil
