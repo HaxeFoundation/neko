@@ -189,6 +189,7 @@ static value do_replace( value o, value s, value s2, bool all ) {
 		int len2 = val_strlen(s2);
 		int pos = 0;
 		size_t *matches;
+		// TODO: Consider pcre2_substitute()
 		while( do_exec(d,str,len,pos) ) {
 			matches = pcre2_get_ovector_pointer(d->match_data);
 			buffer_append_sub(b,str+pos,matches[0] - pos);
