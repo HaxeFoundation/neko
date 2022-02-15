@@ -20,15 +20,15 @@ if (STATIC_PCRE2)
 				-G ${CMAKE_GENERATOR}
 				-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/install-prefix
 				-Wno-dev
-				-DPCRE_BUILD_PCRECPP=OFF
-				-DPCRE_BUILD_PCREGREP=OFF
-				-DPCRE_BUILD_TESTS=OFF
-				-DPCRE_SUPPORT_JIT=ON
-				-DPCRE_SUPPORT_UNICODE_PROPERTIES=ON
+				-DPCRE2_BUILD_PCRECPP=OFF
+				-DPCRE2_BUILD_PCRE2GREP=OFF
+				-DPCRE2_BUILD_TESTS=OFF
+				-DPCRE2_SUPPORT_JIT=ON
+				-DPCRE2_SUPPORT_UNICODE=ON
 		)
 		set(PCRE2_LIBRARIES
-			optimized ${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/pcre.lib
-			debug ${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/pcred.lib
+			optimized ${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/pcre2-8.lib
+			debug ${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/pcre2-8d.lib
 		)
 	else()
 		if (APPLE)
