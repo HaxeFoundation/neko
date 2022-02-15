@@ -41,13 +41,14 @@ if (WITH_APACHE)
 			set(APRUTIL_CONF "")
 			set(APRUTIL_DEP "")
 		endif()
-		if (STATIC_PCRE2)
-			set(PCRE_CONF --with-pcre=${CMAKE_BINARY_DIR}/libs/src/install-prefix)
-			set(PCRE_DEP pcre2)
-		elseif()
-			set(PCRE_CONF "")
-			set(PCRE_DEP "")
-		endif()
+		# APACHE still uses old pcre currently
+		# if (STATIC_PCRE2)
+		# 	set(PCRE_CONF --with-pcre=${CMAKE_BINARY_DIR}/libs/src/install-prefix)
+		# 	set(PCRE_DEP pcre2)
+		# elseif()
+		# 	set(PCRE_CONF "")
+		# 	set(PCRE_DEP "")
+		# endif()
 		if (STATIC_ZLIB)
 			set(ZLIB_CONF --with-z=${CMAKE_BINARY_DIR}/libs/src/install-prefix)
 			set(ZLIB_DEP Zlib)
@@ -143,7 +144,7 @@ if (WITH_APACHE)
 					-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/install-prefix
 					-Wno-dev
 					-DOPENSSL_ROOT_DIR=${CMAKE_BINARY_DIR}/libs/src/install-prefix
-					"-DEXTRA_COMPILE_FLAGS=/D PCRE_STATIC"
+					# "-DEXTRA_COMPILE_FLAGS=/D PCRE_STATIC"
 					-DEXTRA_LIBS=Ws2_32
 				BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/Apache-build &&
 					${CMAKE_COMMAND} --build . --target libhttpd --config ${CMAKE_CFG_INTDIR}
