@@ -8,7 +8,7 @@ ARG USER_UID=1000
 ARG USER_GID=$USER_UID
 
 ARG LINK_TYPE_DEFAULT=static # static or dynamic
-ARG LINK_DYNAMIC_PACKAGES="libgc-dev libpcre3-dev zlib1g-dev apache2-dev libmysqlclient-dev libsqlite3-dev libmbedtls-dev"
+ARG LINK_DYNAMIC_PACKAGES="libgc-dev libpcre2-dev zlib1g-dev apache2-dev libmysqlclient-dev libsqlite3-dev libmbedtls-dev"
 
 vscode-dev-containers-scripts:
     FROM curlimages/curl:7.80.0
