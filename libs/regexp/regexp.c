@@ -21,23 +21,34 @@
  */
 #include <neko.h>
 #include <string.h>
-#define PCRE_STATIC
-#include <pcre.h>
+
+#define PCRE2_CODE_UNIT_WIDTH 8
+
+#ifdef PCRE2_STATIC_LINK
+// this must be defined before loading the pcre header
+#define PCRE2_STATIC
+#endif
+#include <pcre2.h>
 
 #define PCRE(o)		((pcredata*)val_data(o))
 
 typedef struct {
+	// The compiled regex code
+	pcre2_code *regex;
+	// Number of capture groups
+	int n_groups;
+
+	// The last string matched
 	value str;
-	pcre *r;
-	int nmatchs;
-	int *matchs;
+	// Pointer to the allocated memory for match data
+	pcre2_match_data *match_data;
 } pcredata;
 
 DEFINE_KIND(k_regexp);
 
 static field id_pos;
 static field id_len;
-static pcre_extra limit;
+static pcre2_match_context *match_context;
 
 /**
 	<doc>
@@ -49,15 +60,17 @@ static pcre_extra limit;
 **/
 
 static void free_regexp( value p ) {
-	pcre_free( PCRE(p)->r );
+	pcre2_code_free( PCRE(p)->regex );
+	pcre2_match_data_free( PCRE(p)->match_data );
 }
 
 static int do_exec( pcredata *d, const char *str, int len, int pos ) {
-	int res = pcre_exec(d->r,&limit,str,len,pos,0,d->matchs,d->nmatchs * 3);
+	int res = pcre2_match(d->regex,str,len,pos,0,d->match_data,match_context);
 	if( res >= 0 )
 		return 1;
-	if( res != PCRE_ERROR_NOMATCH )
-		val_throw(alloc_string("An error occurred while running pcre_exec"));
+	d->str = val_null; // empty string prevents trying to access the data after a failed match
+	if( res != PCRE2_ERROR_NOMATCH )
+		val_throw(alloc_string("An error occurred while running pcre2_match"));
 	return 0;
 }
 
@@ -78,50 +91,52 @@ static value regexp_new_options( value s, value opt ) {
 	val_check(opt,string);
 	{
 		value v;
-		const char *error;
-		int err_offset;
-		pcre *p;
+		int error_num;
+		size_t err_offset;
+		pcre2_code *p;
 		pcredata *pdata;
 		char *o = val_string(opt);
 		int options = 0;
 		while( *o ) {
 			switch( *o++ ) {
 			case 'i':
-				options |= PCRE_CASELESS;
+				options |= PCRE2_CASELESS;
 				break;
 			case 's':
-				options |= PCRE_DOTALL;
+				options |= PCRE2_DOTALL;
 				break;
 			case 'm':
-				options |= PCRE_MULTILINE;
+				options |= PCRE2_MULTILINE;
 				break;
 			case 'u':
-				options |= PCRE_UTF8;
+				options |= PCRE2_UTF;
 				break;
 			case 'g':
-				options |= PCRE_UNGREEDY;
+				options |= PCRE2_UNGREEDY;
 				break;
 			default:
 				neko_error();
 				break;
 			}
 		}
-		p = pcre_compile(val_string(s),options,&error,&err_offset,NULL);
+		p = pcre2_compile(val_string(s),val_strlen(s),options,&error_num,&err_offset,NULL);
 		if( p == NULL ) {
 			buffer b = alloc_buffer("Regexp compilation error : ");
-			buffer_append(b,error);
+			PCRE2_UCHAR error_buffer[256];
+			pcre2_get_error_message(error_num,error_buffer,sizeof(error_buffer));
+			buffer_append(b,error_buffer);
 			buffer_append(b," in ");
 			val_buffer(b,s);
 			bfailure(b);
 		}
 		v = alloc_abstract(k_regexp,alloc(sizeof(pcredata)));
 		pdata = PCRE(v);
-		pdata->r = p;
+		pdata->regex = p;
 		pdata->str = val_null;
-		pdata->nmatchs = 0;
-		pcre_fullinfo(p,NULL,PCRE_INFO_CAPTURECOUNT,&pdata->nmatchs);
-		pdata->nmatchs++;
-		pdata->matchs = (int*)alloc_private(sizeof(int) * 3 * pdata->nmatchs);
+		pdata->n_groups = 0;
+		pcre2_pattern_info(p,PCRE2_INFO_CAPTURECOUNT,&pdata->n_groups);
+		pdata->n_groups++;
+		pdata->match_data = pcre2_match_data_create_from_pattern(pdata->regex,NULL);
 		val_gc(v,free_regexp);
 		return v;
 	}
@@ -168,15 +183,18 @@ static value do_replace( value o, value s, value s2, bool all ) {
 	{
 		pcredata *d = PCRE(o);
 		buffer b = alloc_buffer(NULL);
-		int pos = 0;
-		int len = val_strlen(s);
 		const char *str = val_string(s);
 		const char *str2 = val_string(s2);
+		int len = val_strlen(s);
 		int len2 = val_strlen(s2);
+		int pos = 0;
+		size_t *matches;
+		// TODO: Consider pcre2_substitute()
 		while( do_exec(d,str,len,pos) ) {
-			buffer_append_sub(b,str+pos,d->matchs[0] - pos);
+			matches = pcre2_get_ovector_pointer(d->match_data);
+			buffer_append_sub(b,str+pos,matches[0] - pos);
 			buffer_append_sub(b,str2,len2);
-			pos = d->matchs[1];
+			pos = matches[1];
 			if( !all )
 				break;
 		}
@@ -216,11 +234,13 @@ static value regexp_replace_fun( value o, value s, value f ) {
 		int pos = 0;
 		int len = val_strlen(s);
 		const char *str = val_string(s);
+		size_t *matches;
 		d->str = s;
 		while( do_exec(d,str,len,pos) ) {
-			buffer_append_sub(b,str+pos,d->matchs[0] - pos);
+			matches = pcre2_get_ovector_pointer(d->match_data);
+			buffer_append_sub(b,str+pos,matches[0] - pos);
 			val_buffer(b,val_call1(f,o));
-			pos = d->matchs[1];
+			pos = matches[1];
 		}
 		d->str = val_null;
 		buffer_append_sub(b,str+pos,len-pos);
@@ -240,11 +260,12 @@ static value regexp_matched( value o, value n ) {
 	d = PCRE(o);
 	val_check(n,int);
 	m = val_int(n);
-	if( m < 0 || m >= d->nmatchs || val_is_null(d->str) )
+	if( m < 0 || m >= d->n_groups || val_is_null(d->str) )
 		neko_error();
 	{
-		int start = d->matchs[m*2];
-		int len = d->matchs[m*2+1] - start;
+		size_t *matches = pcre2_get_ovector_pointer(d->match_data);
+		int start = matches[m*2];
+		int len = matches[m*2+1] - start;
 		value str;
 		if( start == -1 )
 			return val_null;
@@ -266,11 +287,12 @@ static value regexp_matched_pos( value o, value n ) {
 	d = PCRE(o);
 	val_check(n,int);
 	m = val_int(n);
-	if( m < 0 || m >= d->nmatchs || val_is_null(d->str) )
+	if( m < 0 || m >= d->n_groups || val_is_null(d->str) )
 		neko_error();
 	{
-		int start = d->matchs[m*2];
-		int len = d->matchs[m*2+1] - start;
+		size_t *matches = pcre2_get_ovector_pointer(d->match_data);
+		int start = matches[m*2];
+		int len = matches[m*2+1] - start;
 		value o = alloc_object(NULL);
 		alloc_field(o,id_pos,alloc_int(start));
 		alloc_field(o,id_len,alloc_int(len));
@@ -281,8 +303,9 @@ static value regexp_matched_pos( value o, value n ) {
 void regexp_main() {
 	id_pos = val_id("pos");
 	id_len = val_id("len");
-	limit.flags = PCRE_EXTRA_MATCH_LIMIT_RECURSION;
-	limit.match_limit_recursion = 3500; // adapted based on Windows 1MB stack size
+
+	match_context = pcre2_match_context_create(NULL);
+	pcre2_set_depth_limit(match_context,3500); // adapted based on Windows 1MB stack size
 }
 
 DEFINE_PRIM(regexp_new,1);

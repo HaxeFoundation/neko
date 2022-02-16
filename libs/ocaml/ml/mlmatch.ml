@@ -20,10 +20,10 @@
 (* -----
 	We're using the same algorithm and source code as described in
 	chapter 5.2.4 of "The Zinc experiment" by X. Leroy
-	( http://citeseer.ist.psu.edu/leroy90zinc.html )
+	( https://citeseer.ist.psu.edu/viewdoc/summary?doi=10.1.1.43.6772 )
 	also described in "The Implementation of Functional Programming Languages"
 	by Simon Peyton Jones, in the Chapter 5 by Philip Wadler
-	( http://research.microsoft.com/Users/simonpj/Papers/slpj-book-1987/ )
+	( https://www.microsoft.com/en-us/research/publication/the-implementation-of-functional-programming-languages/ )
 *)
 
 open Mlast
