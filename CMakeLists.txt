@@ -106,10 +106,13 @@ set(external_deps
 	pcre2
 	Sqlite3
 	APR
-	APRutil
 	Apache
 	MbedTLS
 )
+# Mac build uses a newer version of APR which already contains APRutil
+if (NOT APPLE)
+	list(APPEND external_deps APRutil)
+endif()
 
 if (WIN32)
 	set(STATIC_DEPS_DEFAULT "all")
