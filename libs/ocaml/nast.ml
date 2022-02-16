@@ -1,6 +1,6 @@
 (*
  *  Neko AST for OCaml
- *  Copyright (c)2005-2017 Haxe Foundation
+ *  Copyright (c)2005-2022 Haxe Foundation
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -43,7 +43,7 @@ type expr_decl =
 	| EParenthesis of expr
 	| EField of expr * string
 	| ECall of expr * expr list
-	| EArray of expr * expr	
+	| EArray of expr * expr
 	| EVars of (string * expr option) list
 	| EWhile of expr * expr * while_flag
 	| EIf of expr * expr * expr option
@@ -116,7 +116,7 @@ let iter f (e,p) =
 	| EBreak (Some e) -> f e
 	| ENext (e1,e2) -> f e1; f e2
 	| EObject fl -> List.iter (fun (_,e) -> f e) fl
-	| ESwitch (e,cases,def) -> f e; List.iter (fun(e1,e2) -> f e1; f e2) cases; (match def with None -> () | Some e -> f e) 
+	| ESwitch (e,cases,def) -> f e; List.iter (fun(e1,e2) -> f e1; f e2) cases; (match def with None -> () | Some e -> f e)
 	| EReturn None
 	| EBreak None
 	| EContinue

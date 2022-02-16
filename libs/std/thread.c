@@ -1,5 +1,5 @@
 /*
- * Copyright (C)2005-2017 Haxe Foundation
+ * Copyright (C)2005-2022 Haxe Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -258,7 +258,7 @@ static value thread_create( value f, value param ) {
 	p = (tparams*)alloc(sizeof(tparams));
 	p->callb = f;
 	p->callparam = param;
-	p->jit = neko_vm_jit(neko_vm_current(),-1);	
+	p->jit = neko_vm_jit(neko_vm_current(),-1);
 	if( !neko_thread_create(thread_init,thread_loop,p,&p->handle) )
 		neko_error();
 	return p->t->v;
@@ -566,7 +566,7 @@ static value mutex_acquire( value m ) {
 **/
 static value mutex_try( value m ) {
 	val_check_kind(m,k_mutex);
-	return alloc_bool( neko_lock_try(val_mutex(m)) );	
+	return alloc_bool( neko_lock_try(val_mutex(m)) );
 }
 
 /**
@@ -582,7 +582,7 @@ static value mutex_release( value m ) {
 	return val_null;
 }
 
-static void free_deque( value v ) {	
+static void free_deque( value v ) {
 	_deque_destroy(val_deque(v));
 }
 

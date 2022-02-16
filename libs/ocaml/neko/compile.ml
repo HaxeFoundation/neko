@@ -1,6 +1,6 @@
 (*
  *  Neko Compiler
- *  Copyright (c)2005-2017 Haxe Foundation
+ *  Copyright (c)2005-2022 Haxe Foundation
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *)
- 
+
 open Ast
 open Bytecode
 
@@ -46,7 +46,7 @@ type context = {
 	labels : (string,label) Hashtbl.t;
 }
 
-type error_msg = 
+type error_msg =
 	| Custom of string
 
 exception Error of error_msg * pos
@@ -63,14 +63,14 @@ let stack_delta = function
 	| AccThis
 	| AccInt _
 	| AccStack _
-	| AccGlobal _ 
+	| AccGlobal _
 	| AccEnv _
 	| AccField _
 	| AccBuiltin _
 	| AccIndex _
 	| JumpIf _
 	| JumpIfNot _
-	| Jump _ 
+	| Jump _
 	| Ret _
 	| SetGlobal _
 	| SetStack _
@@ -168,7 +168,7 @@ let check_breaks ctx =
 
 let rec scan_labels ctx supported e =
 	match fst e with
-	| EFunction (args,e) -> 
+	| EFunction (args,e) ->
 		let nargs = List.length args in
 		let ntraps = ctx.ntraps in
 		ctx.ntraps <- 0;
@@ -176,7 +176,7 @@ let rec scan_labels ctx supported e =
 		scan_labels ctx supported e;
 		ctx.stack <- ctx.stack - nargs;
 		ctx.ntraps <- ntraps
-	| EBlock _ -> 
+	| EBlock _ ->
 		let old = ctx.stack in
 		Ast.iter (scan_labels ctx supported) e;
 		ctx.stack <- old
@@ -237,13 +237,13 @@ let rec scan_labels ctx supported e =
 		List.iter (fun (s,e) ->
 			scan_labels ctx supported e
 		) fl;
-		ctx.stack <- ctx.stack - 2;	
+		ctx.stack <- ctx.stack - 2;
 	| EConst _
-	| EContinue 
+	| EContinue
 	| EBreak _
-	| EReturn _ 
+	| EReturn _
 	| EIf _
-	| EWhile _ 
+	| EWhile _
 	| EParenthesis _
 	| ENext _ ->
 		Ast.iter (scan_labels ctx supported) e
@@ -261,7 +261,7 @@ let compile_constant ctx c p =
 	| Int n -> write ctx (AccInt n)
 	| Float f -> write ctx (AccGlobal (global ctx (GlobalFloat f)))
 	| String s -> write ctx (AccGlobal (global ctx (GlobalString s)))
-	| Builtin s -> 
+	| Builtin s ->
 		(match s with
 		| "tnull" -> write ctx (AccInt 0)
 		| "tint" -> write ctx (AccInt 1)
@@ -293,7 +293,7 @@ let compile_constant ctx c p =
 
 let rec compile_binop ctx op e1 e2 p =
 	match op with
-	| "=" ->		
+	| "=" ->
 		(match fst e1 with
 		| EConst (Ident s) ->
 			compile ctx e2;
@@ -471,7 +471,7 @@ and compile_builtin ctx b el p =
 		if ctx.stack > l.lstack then write ctx (Pop (ctx.stack - l.lstack));
 		while ctx.stack < l.lstack do
 			write ctx Push;
-		done;		
+		done;
 		ctx.stack <- os;
 		(match l.lpos with
 		| None -> l.lwait <- jmp ctx :: l.lwait
@@ -606,7 +606,7 @@ and compile ctx (e,p) =
 		jend()
 	| EBinop ("-",(EConst (Int 0),_),(EConst (Int i),_)) ->
 		compile ctx (EConst (Int (-i)),p)
-	| EBinop (op,e1,e2) -> 
+	| EBinop (op,e1,e2) ->
 		compile_binop ctx op e1 e2 p
 	| EReturn None ->
 		write ctx AccNull;
@@ -703,7 +703,7 @@ let compile file ast =
 			write ctx (SetGlobal g);
 			List.iter (fun f ->
 				write ctx (AccGlobal g);
-				write ctx Push;		
+				write ctx Push;
 				write ctx (SetField f);
 			) fl
 		) ctx.gobjects;

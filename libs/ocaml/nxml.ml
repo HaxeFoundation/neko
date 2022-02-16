@@ -1,6 +1,6 @@
 (*
  *  Neko NXML for OCaml
- *  Copyright (c)2005-2017 Haxe Foundation
+ *  Copyright (c)2005-2022 Haxe Foundation
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -52,7 +52,7 @@ let rec to_xml_rec p2 ast =
 		)
 	| EBlock el ->
 		name := "b";
-		children := List.map (to_xml_rec p) el; 
+		children := List.map (to_xml_rec p) el;
 	| EParenthesis e ->
 		name := "p";
 		children := [to_xml_rec p e];
@@ -65,7 +65,7 @@ let rec to_xml_rec p2 ast =
 		children := to_xml_rec p e :: List.map (to_xml_rec p) el;
 	| EArray (a,b) ->
 		name := "a";
-		children := [to_xml_rec p a; to_xml_rec p b]; 
+		children := [to_xml_rec p a; to_xml_rec p b];
 	| EVars vl ->
 		name := "var";
 		children := List.map (fun(v,e) ->

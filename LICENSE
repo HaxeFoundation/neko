@@ -1,7 +1,7 @@
 Neko Virtual Machine (neko) and Neko Tools (nekotools)
 ======================================================
 
-Copyright (C)2005-2017 Haxe Foundation
+Copyright (C)2005-2022 Haxe Foundation
 
 Permission is hereby granted, free of charge, to any person obtaining a
 copy of this software and associated documentation files (the "Software"),
@@ -46,7 +46,7 @@ Neko Runtime Libraries
 std, sqlite, mysql5, ui
 -----------------------
 
-Copyright (C)2005-2017 Haxe Foundation
+Copyright (C)2005-2022 Haxe Foundation
 
 Permission is hereby granted, free of charge, to any person obtaining a
 copy of this software and associated documentation files (the "Software"),

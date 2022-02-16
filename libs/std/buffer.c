@@ -1,5 +1,5 @@
 /*
- * Copyright (C)2005-2017 Haxe Foundation
+ * Copyright (C)2005-2022 Haxe Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -61,7 +61,7 @@ static value buffer_add_char( value b, value c ) {
 	val_check_kind(b,k_buffer);
 	val_check(c,int);
 	if( val_int(c) < 0 || val_int(c) > 255 )
-		neko_error();	
+		neko_error();
 	buffer_append_char( (buffer)val_data(b), (char)(unsigned char)val_int(c) );
 	return val_true;
 }
@@ -74,7 +74,7 @@ static value buffer_add_sub( value b, value v, value p, value l ) {
 	val_check_kind(b,k_buffer);
 	val_check(v,string);
 	val_check(p,int);
-	val_check(l,int);	
+	val_check(l,int);
 	if( val_int(p) < 0 || val_int(l) < 0 )
 		neko_error();
 	if( val_strlen(v) < val_int(p) || val_strlen(v) < val_int(p) + val_int(l) )

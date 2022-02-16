@@ -1,5 +1,5 @@
 /*
- * Copyright (C)2005-2017 Haxe Foundation
+ * Copyright (C)2005-2022 Haxe Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -27,8 +27,8 @@
 	<doc>
 	<h1>UTF8</h1>
 	<p>
-	Operations on UTF8 strings. 
-	Most of the operations are optimized for speed so they might still 
+	Operations on UTF8 strings.
+	Most of the operations are optimized for speed so they might still
 	succeed on some malformed UTF8 string. The only function that completely
 	check the UTF8 format is [utf8_validate]. Other functions might raise
 	some exception or not depending on the malformed data.
@@ -71,7 +71,7 @@ static void utf8_buf_resize( ubuf *b ) {
 		nbytes = 10;
 	s = alloc_empty_string(len+nbytes);
 	memcpy(val_string(s),val_string(b->buf),len);
-	b->buf = s;	
+	b->buf = s;
 }
 
 
@@ -92,7 +92,7 @@ static value utf8_buf_add( value buf, value uchar ) {
 			utf8_buf_resize(b);
 		val_string(b->buf)[b->pos++] = (char)c;
 		return val_true;
-	}	
+	}
 	if( b->pos + 4 > val_strlen(b->buf) )
 		utf8_buf_resize(b);
 	s = (unsigned char*)val_string(b->buf);
@@ -121,7 +121,7 @@ static value utf8_buf_add( value buf, value uchar ) {
 	<doc>
 	Return the current content of the buffer.
 	This is not a copy of the buffer but the shared content.
-	Retreiving content and then continuing to add chars is 
+	Retreiving content and then continuing to add chars is
 	possible but not very efficient.
 	</doc>
 **/
@@ -298,7 +298,7 @@ static value utf8_sub( value str, value pos, value len ) {
 
 /**
 	utf8_get : string -> n:int -> int
-	<doc>Returns the [n]th char in an UTF8 string. 
+	<doc>Returns the [n]th char in an UTF8 string.
 	This might be inefficient if [n] is big.</doc>
 **/
 static value utf8_get( value str, value pos ) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C)2005-2017 Haxe Foundation
+ * Copyright (C)2005-2022 Haxe Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -57,7 +57,7 @@ static value int32_to_int( value v ) {
 	<doc>Return the float value of the integer.</doc>
 **/
 static value int32_to_float( value v ) {
-	val_check(v,any_int);	
+	val_check(v,any_int);
 	return alloc_float(val_any_int(v));
 }
 
@@ -124,62 +124,62 @@ static value int32_ushr( value v1, value v2 ) {
 	return alloc_best_int(r);
 }
 
-/** 
+/**
 	int32_add : #int32 -> #int32 -> #int32
 	<doc>Add two integers</doc>
 **/
 INT32_OP(add,+);
-/** 
+/**
 	int32_sub : #int32 -> #int32 -> #int32
 	<doc>Subtract two integers</doc>
 **/
 INT32_OP(sub,-);
-/** 
+/**
 	int32_mul : #int32 -> #int32 -> #int32
 	<doc>Multiply two integers</doc>
 **/
 INT32_OP(mul,*);
-/** 
+/**
 	int32_div : #int32 -> #int32 -> #int32
 	<doc>Divide two integers. Error on division by 0</doc>
 **/
 INT32_OP_ZERO(div,/);
-/** 
+/**
 	int32_shl : #int32 -> #int32 -> #int32
 	<doc>Perform left bit-shifting</doc>
 **/
 INT32_OP(shl,<<);
-/** 
+/**
 	int32_shr : #int32 -> #int32 -> #int32
 	<doc>Perform right bit-shifting</doc>
 **/
 INT32_OP(shr,>>);
-/** 
+/**
 	int32_mod : #int32 -> #int32 -> #int32
 	<doc>Return the modulo of one integer by the other. Error on modulo by 0</doc>
 **/
 INT32_OP_ZERO(mod,%);
-/** 
+/**
 	int32_neg : #int32 -> #int32
 	<doc>Return the negative value of an integer</doc>
 **/
 INT32_UNOP(neg,-);
-/** 
+/**
 	int32_complement : #int32 -> #int32
 	<doc>Return the one-complement bitwised integer</doc>
 **/
 INT32_UNOP(complement,~);
-/** 
+/**
 	int32_or : #int32 -> #int32 -> #int32
 	<doc>Return the bitwise or of two integers</doc>
 **/
 INT32_OP(or,|);
-/** 
+/**
 	int32_and : #int32 -> #int32 -> #int32
 	<doc>Return the bitwise and of two integers</doc>
 **/
 INT32_OP(and,&);
-/** 
+/**
 	int32_xor : #int32 -> #int32 -> #int32
 	<doc>Return the bitwise xor of two integers</doc>
 **/
@@ -188,7 +188,7 @@ INT32_OP(xor,^);
 /**
 	int32_address : any -> #int32
 	<doc>
-	Return the address of the value. 
+	Return the address of the value.
 	The address should not be considered constant. It is not unique
 	either unless you are sure you are running on a 32-bit platform.
 	</doc>

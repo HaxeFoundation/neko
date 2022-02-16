@@ -1,6 +1,6 @@
 (*
  *  Neko Compiler
- *  Copyright (c)2005-2017 Haxe Foundation
+ *  Copyright (c)2005-2022 Haxe Foundation
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *)
- 
+
 open Printf
 
 type p_style =
@@ -29,7 +29,7 @@ let normalize_path p =
 	let l = String.length p in
 	if l = 0 then
 		"./"
-	else match p.[l-1] with 
+	else match p.[l-1] with
 		| '\\' | '/' -> p
 		| _ -> p ^ "/"
 
@@ -64,8 +64,8 @@ let compile_exn = function
 	| e -> raise e
 
 let main() =
-	try	
-		let usage = "Neko v0.4 - (c)2005-2017 Haxe Foundation\n Usage : neko.exe [options] <files...>\n Options :" in
+	try
+		let usage = "Neko v0.4 - (c)2005-2022 Haxe Foundation\n Usage : neko.exe [options] <files...>\n Options :" in
 		let output = ref "n" in
 		let args_spec = [
 			("-msvc",Arg.Unit (fun () -> print_style := StyleMSVC),": use MSVC style errors");
@@ -73,7 +73,7 @@ let main() =
 			("-o", Arg.String (fun ext -> output := String.lowercase ext),"<file> : specify output extension");
 			("-v", Arg.Unit (fun () -> Plugin.verbose := true),": verbose mode");
 		] in
-		Arg.parse args_spec (fun file -> 
+		Arg.parse args_spec (fun file ->
 			Plugin.generate file !output
 		) usage;
 	with
