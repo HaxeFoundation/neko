@@ -206,7 +206,7 @@ if (WITH_APACHE)
 					-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/install-prefix
 					-Wno-dev
 					-DOPENSSL_ROOT_DIR=${CMAKE_BINARY_DIR}/libs/src/install-prefix
-					# "-DEXTRA_COMPILE_FLAGS=/D PCRE_STATIC"
+					"-DEXTRA_COMPILE_FLAGS=/D PCRE_STATIC"
 					-DEXTRA_LIBS=Ws2_32
 				BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/Apache-build &&
 					${CMAKE_COMMAND} --build . --target libhttpd --config ${CMAKE_CFG_INTDIR}
