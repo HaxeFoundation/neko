@@ -41,7 +41,7 @@ Neko needs to link with various third-party libraries, which are summarized as f
 |-----------------------------------------|-------------|-----------------------------------------------------------|
 | Boehm GC                                | all         | libgc-dev                                                 |
 | OpenSSL                                 | all         | libssl-dev                                                |
-| PCRE                                    | all         | libpcre3-dev                                              |
+| pcre2                                   | all         | libpcre2-dev                                              |
 | zlib                                    | all         | zlib1g-dev                                                |
 | Apache 2.2 / 2.4, with apr and apr-util | all         | apache2-dev                                               |
 | MariaDB / MySQL (Connector/C)           | all         | libmariadb-client-lgpl-dev-compat (or libmysqlclient-dev) |
@@ -115,7 +115,7 @@ Settings that allow to exclude libraries and their dependencies from the build; 
 
 Default value: `all` for Windows, `none` otherwise
 
-It defines the dependencies that should be linked statically. Can be `all`, `none`, or a list of library names (e.g. `BoehmGC;Zlib;OpenSSL;MariaDBConnector;PCRE;Sqlite3;APR;APRutil;Apache;MbedTLS`).
+It defines the dependencies that should be linked statically. Can be `all`, `none`, or a list of library names (e.g. `BoehmGC;Zlib;OpenSSL;MariaDBConnector;pcre2;Sqlite3;APR;APRutil;Apache;MbedTLS`). NOTE: On MacOS, APRutil cannot be added here as it has become part of the APR version used on MacOS builds.
 
 CMake will automatically download and build the specified dependencies into the build folder. If a library is not present in this list, it should be installed manually, and it will be linked dynamically.
 

@@ -38,7 +38,9 @@ endif()
 set(NEKO_VERSION_MAJOR 2)
 set(NEKO_VERSION_MINOR 3)
 set(NEKO_VERSION_PATCH 1)
-set(NEKO_VERSION ${NEKO_VERSION_MAJOR}.${NEKO_VERSION_MINOR}.${NEKO_VERSION_PATCH})
+
+# NEKO_VERSION is cached such that we can query it by `cmake -L -N -B . | grep NEKO_VERSION`
+set(NEKO_VERSION ${NEKO_VERSION_MAJOR}.${NEKO_VERSION_MINOR}.${NEKO_VERSION_PATCH} CACHE STRING INTERNAL)
 
 # Determine target endianness
 TEST_BIG_ENDIAN(NEKO_BIG_ENDIAN)
@@ -101,13 +103,16 @@ set(external_deps
 	Zlib
 	OpenSSL
 	MariaDBConnector
-	PCRE
+	pcre2
 	Sqlite3
 	APR
-	APRutil
 	Apache
 	MbedTLS
 )
+# Mac build uses a newer version of APR which already contains APRutil
+if (NOT APPLE)
+	list(APPEND external_deps APRutil)
+endif()
 
 if (WIN32)
 	set(STATIC_DEPS_DEFAULT "all")
