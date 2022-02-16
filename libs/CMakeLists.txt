@@ -88,7 +88,7 @@ if (WITH_APACHE)
 		# Apache still uses old PCRE. Remove this once they migrate
 		## Start of PCRE download info
 		set(PCRE_URL_DATA
-			URL "http://downloads.sourceforge.net/project/pcre/pcre/8.45/pcre-8.45.tar.gz"
+			URL "https://downloads.sourceforge.net/project/pcre/pcre/8.45/pcre-8.45.tar.gz"
 			URL_HASH SHA1=a19402ce56d770da1557cf331b109d33adb74062
 		)
 		if (WIN32)
