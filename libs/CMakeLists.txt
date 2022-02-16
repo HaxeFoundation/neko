@@ -41,13 +41,14 @@ if (WITH_APACHE)
 			set(APRUTIL_CONF "")
 			set(APRUTIL_DEP "")
 		endif()
-		if (STATIC_PCRE)
+		# APACHE still uses old pcre currently
+		# if (STATIC_PCRE2)
 			set(PCRE_CONF --with-pcre=${CMAKE_BINARY_DIR}/libs/src/install-prefix)
 			set(PCRE_DEP PCRE)
-		elseif()
-			set(PCRE_CONF "")
-			set(PCRE_DEP "")
-		endif()
+		# elseif()
+		# 	set(PCRE_CONF "")
+		# 	set(PCRE_DEP "")
+		# endif()
 		if (STATIC_ZLIB)
 			set(ZLIB_CONF --with-z=${CMAKE_BINARY_DIR}/libs/src/install-prefix)
 			set(ZLIB_DEP Zlib)
@@ -81,6 +82,80 @@ if (WITH_APACHE)
 					make "CFLAGS=${APACHE_CFLAGS}"
 				INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APR &&
 					make install
+			)
+		endif()
+
+		# Apache still uses old PCRE. Remove this once they migrate
+		## Start of PCRE download info
+		set(PCRE_URL_DATA
+			URL "https://downloads.sourceforge.net/project/pcre/pcre/8.45/pcre-8.45.tar.gz"
+			URL_HASH SHA1=a19402ce56d770da1557cf331b109d33adb74062
+		)
+		if (WIN32)
+			ExternalProject_Add(PCRE
+				${EP_CONFIGS}
+				${PCRE_URL_DATA}
+				CMAKE_ARGS
+					-G ${CMAKE_GENERATOR}
+					-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/install-prefix
+					-Wno-dev
+					-DPCRE_BUILD_PCRECPP=OFF
+					-DPCRE_BUILD_PCREGREP=OFF
+					-DPCRE_BUILD_TESTS=OFF
+					-DPCRE_SUPPORT_JIT=ON
+					-DPCRE_SUPPORT_UNICODE_PROPERTIES=ON
+			)
+			set(PCRE_LIBRARIES
+				optimized ${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/pcre.lib
+				debug ${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/pcred.lib
+			)
+		else()
+			if (APPLE)
+				set(PCRE_CFLAGS "-w -mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
+			else()
+				set(PCRE_CFLAGS "-w")
+			endif()
+			set(PCRE_LIBRARIES
+				${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/libpcre.a
+			)
+			ExternalProject_Add(PCRE
+				${EP_CONFIGS}
+				${PCRE_URL_DATA}
+				CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/PCRE &&
+					./configure
+						--prefix=${CMAKE_BINARY_DIR}/libs/src/install-prefix
+						--with-pic
+						--enable-unicode-properties
+						--enable-silent-rules
+						--enable-jit
+						--disable-cpp
+						--enable-shared=no
+						--enable-static=yes
+						--silent
+				BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/PCRE &&
+					make "CFLAGS=${PCRE_CFLAGS}"
+				INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/PCRE &&
+					make install
+				BYPRODUCTS ${PCRE_LIBRARIES}
+			)
+		endif()
+
+		set_target_properties(PCRE PROPERTIES ${EP_PROPS})
+		# don't want to add PCRE 1 to external_deps,
+		# but want download_static_deps depends on it
+		add_dependencies(download_static_deps PCRE-download)
+
+		## End of PCRE download info
+
+		if (APPLE) # We need to use the most up to date version on MacOS
+			set(APR_SOURCE
+				SVN_REPOSITORY https://svn.apache.org/repos/asf/apr/apr/trunk/
+				UPDATE_COMMAND ./buildconf
+			)
+		else()
+			set(APR_SOURCE
+				URL http://archive.apache.org/dist/apr/apr-1.5.2.tar.gz
+				URL_MD5 98492e965963f852ab29f9e61b2ad700
 			)
 		endif()
 		ExternalProject_Add(APR
