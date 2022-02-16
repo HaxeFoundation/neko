@@ -179,12 +179,13 @@ if (WITH_APACHE)
 				INSTALL_COMMAND echo skip install
 			)
 			set(APACHE_INCLUDE_DIRS
-				${CMAKE_BINARY_DIR}/libs/src/install-prefix/include/apr-1
 				${CMAKE_BINARY_DIR}/libs/src/Apache/include
 				${CMAKE_BINARY_DIR}/libs/src/Apache/os/unix
 			)
 			if (APPLE)
-				list(APPEND APACHE_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/APR/include)
+				list(APPEND APACHE_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/install-prefix/include/apr-2)
+			else()
+				list(APPEND APACHE_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/install-prefix/include/apr-1)
 			endif()
 			set(APACHE_LIBRARIES
 
