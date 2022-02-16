@@ -22,7 +22,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${OUTPUT_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_DIR})
 
 # avoid the extra "Debug", "Release" directories
-# http://stackoverflow.com/questions/7747857/in-cmake-how-do-i-work-around-the-debug-and-release-directories-visual-studio-2
+# https://stackoverflow.com/questions/7747857/in-cmake-how-do-i-work-around-the-debug-and-release-directories-visual-studio-2
 foreach( OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES} )
 	string( TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG )
 	set( CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${OUTPUT_DIR} )
@@ -275,7 +275,7 @@ if (STATIC_BOEHMGC)
 		INSTALL_COMMAND echo skip install
 	)
 
-	set(BoehmGC_URL "http://www.hboehm.info/gc/gc_source/gc-7.6.0.tar.gz")
+	set(BoehmGC_URL "https://www.hboehm.info/gc/gc_source/gc-7.6.0.tar.gz")
 	if (NOT ${CMAKE_VERSION} VERSION_LESS 3.7)
 		list(APPEND BoehmGC_URL
 			"https://github.com/ivmai/bdwgc/files/1005477/gc-7.6.0.tar.gz"

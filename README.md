@@ -10,13 +10,13 @@ We keep it compatible with existing Haxe standard library and Haxe language feat
 
 # Neko Virtual Machine
 
-See http://nekovm.org/
+See https://nekovm.org/
 
 ## Snapshot Builds
 
 Compiled binaries can be found in the "artifacts" link in the summary section of each [Azure Pipelines build](https://dev.azure.com/HaxeFoundation/GitHubPublic/_build?definitionId=2&_a=summary&repositoryFilter=2&branchFilter=14&statusFilter=succeeded).
 
-For macOS, Neko snapshot of the latest master branch can be built using [homebrew](http://brew.sh/) in a single command: `brew install neko --HEAD`. It will install required dependencies, build, and install Neko to the system. The binaries can be found at `brew --prefix neko`. Use `brew reinstall neko --HEAD` to upgrade in the future.
+For macOS, Neko snapshot of the latest master branch can be built using [homebrew](https://brew.sh/) in a single command: `brew install neko --HEAD`. It will install required dependencies, build, and install Neko to the system. The binaries can be found at `brew --prefix neko`. Use `brew reinstall neko --HEAD` to upgrade in the future.
 
 Ubuntu users can use the [Haxe Foundation snapshots PPA](https://launchpad.net/~haxe/+archive/ubuntu/snapshots) to install a Neko package built from the latest master branch. To do so, run the commands as follows:
 ```
@@ -49,7 +49,7 @@ Neko needs to link with various third-party libraries, which are summarized as f
 | mbed TLS                                | all         | libmbedtls-dev                                            |
 | GTK+2                                   | Linux       | libgtk2.0-dev                                             |
 
-On Windows, CMake will automatically download and build the libraries in the build folder during the build process. However, you need to install [Perl](http://www.activestate.com/activeperl) manually because OpenSSL needs it for configuration. On Mac/Linux, you should install the libraries manually to your system before building Neko, or use the `STATIC_DEPS` CMake option, which will be explained in [CMake options](#cmake-options).
+On Windows, CMake will automatically download and build the libraries in the build folder during the build process. However, you need to install [Perl](https://www.activestate.com/activeperl) manually because OpenSSL needs it for configuration. On Mac/Linux, you should install the libraries manually to your system before building Neko, or use the `STATIC_DEPS` CMake option, which will be explained in [CMake options](#cmake-options).
 
 ### Building on Mac/Linux
 

@@ -28,7 +28,7 @@
 	<h1>SQLite</h1>
 	<p>
 	Sqlite is a small embeddable SQL database that store all its data into
-	a single file. See http://sqlite.org for more details.
+	a single file. See https://sqlite.org for more details.
 	</p>
 	</doc>
 **/
