@@ -16,9 +16,9 @@ jobs:
             Write-Host "##vso[task.prependpath]C:\ProgramData\chocolatey\bin"
           displayName: Install Chocolatey
       - powershell: |
-          try {
-            choco install activeperl -y
-          } catch {
+          $ErrorActionPreference = "Continue"
+          choco install activeperl -y
+          If (!$?) {
             state update
             choco install activeperl -y
           }
