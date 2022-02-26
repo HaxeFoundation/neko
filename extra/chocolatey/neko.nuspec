@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
     <metadata>
         <id>neko</id>
-        <version>0.0.0</version>
+        <version>[[PackageVersion]]</version>
         <title>Neko</title>
         <authors>Haxe Foundation</authors>
         <owners>Haxe Foundation</owners>
@@ -23,4 +23,9 @@
             <dependency id="vcredist2017" version="14.16.27033" />
         </dependencies>
     </metadata>
+    <files>
+        <file src="neko-[[ShortVersion]]-win.zip" />
+        <file src="neko-[[ShortVersion]]-win64.zip" />
+        <file src="tools\**" target="tools" />
+    </files>
 </package>
