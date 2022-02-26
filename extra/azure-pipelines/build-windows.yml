@@ -16,6 +16,7 @@ jobs:
             Write-Host "##vso[task.prependpath]C:\ProgramData\chocolatey\bin"
           displayName: Install Chocolatey
       - powershell: |
+          state update
           choco install activeperl -y
           Write-Host "##vso[task.prependpath]C:\Perl64\bin"
         displayName: Install Perl
