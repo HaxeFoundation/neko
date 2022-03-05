@@ -311,7 +311,7 @@ static value regexp_matched_num( value o ) {
 	d = PCRE(o);
 	if( val_is_null(d->str) )
 		return alloc_int(-1);
-	return alloc_int(d->nmatchs);
+	return alloc_int(d->n_groups);
 }
 
 void regexp_main() {
