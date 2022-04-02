@@ -1009,7 +1009,7 @@ static value builtin_int( value f ) {
 				else if( k >= 'a' && k <= 'f' )
 					h = (h << 4) | ((k - 'a') + 10);
 				else
-					return val_null;
+					break;
 			}
 			if( sign == '-' ) h = -h;
 		} else {
