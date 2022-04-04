@@ -39,7 +39,7 @@ if (STATIC_ZLIB)
 
 	ExternalProject_Add(Zlib
 		${EP_CONFIGS}
-		URL https://zlib.net/zlib-1.2.11.tar.gz
+		URL https://zlib.net/zlib-1.2.12.tar.gz
 		URL_MD5 1c9f62f0778697a09d36121ead88e08e
 		CMAKE_ARGS ${ZLIB_CMAKE_ARGS}
 		INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/Zlib-build &&
