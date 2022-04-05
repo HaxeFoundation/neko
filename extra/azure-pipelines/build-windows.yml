@@ -10,17 +10,17 @@ jobs:
     pool:
       vmImage: ${{ parameters.vmImage }}
     steps:
-      - ${{ if startsWith(parameters.name, "WinVS2017") }}:
+      - ${{ if startsWith(parameters.name, 'WinVS2017') }}:
         - powershell: |
             choco install visualstudio2017buildtools visualstudio2017-workload-vctools
             # Install: Windows 8.1 SDK
             Invoke-WebRequest -Method Get -Uri https://go.microsoft.com/fwlink/p/?LinkId=323507 -OutFile sdksetup.exe -UseBasicParsing
             Start-Process -Wait sdksetup.exe -ArgumentList "/q", "/norestart", "/features", "OptionId.WindowsDesktopSoftwareDevelopmentKit", "OptionId.NetFxSoftwareDevelopmentKit"
           displayName: Install VS2017 tools
-      - ${{ if startsWith(parameters.name, "WinVS2017") }}:
+      - ${{ if startsWith(parameters.name, 'WinVS2017') }}:
         - script: cmake . -G "${{ parameters.cmakeGenerator }}"
           displayName: CMake
-      - ${{ if startsWith(parameters.name, "WinVS2019") }}:
+      - ${{ if startsWith(parameters.name, 'WinVS2019') }}:
         - script: cmake . -G "${{ parameters.cmakeGenerator }}" -A ${{ parameters.arch }}
           displayName: CMake
       - script: |
