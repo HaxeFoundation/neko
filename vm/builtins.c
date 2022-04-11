@@ -22,6 +22,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
+#include <ctype.h>
 #include "neko.h"
 #include "objtable.h"
 #include "vm.h"
@@ -969,6 +970,12 @@ static value builtin_isinfinite( value f ) {
 	return alloc_bool( h == 0x7FF00000 && l == 0 );
 }
 
+static inline bool has_hex_prefix( const char *c, int len, bool is_signed ) {
+	if (is_signed)
+		return len >= 3 && c[1] == '0' && (c[2] == 'x' || c[2] == 'X');
+	return len >= 2 && c[0] == '0' && (c[1] == 'x' || c[1] == 'X');
+}
+
 /**
 	$int : any -> int?
 	<doc>Convert the value to the corresponding integer or return [null]</doc>
@@ -986,9 +993,13 @@ static value builtin_int( value f ) {
 	case VAL_STRING: {
 		char *c = val_string(f), *end;
 		int h;
-		if( val_strlen(f) >= 2 && c[0] == '0' && (c[1] == 'x' || c[1] == 'X') ) {
+		// skip trailing whitespace for hex check
+		while( isspace(*c) ) ++c;
+		char sign = c[0];
+		bool is_signed = sign == '-' || sign == '+';
+		if( has_hex_prefix(c,val_strlen(f),is_signed) ) {
 			h = 0;
-			c += 2;
+			c += is_signed ? 3 : 2;
 			while( *c ) {
 				char k = *c++;
 				if( k >= '0' && k <= '9' )
@@ -998,12 +1009,15 @@ static value builtin_int( value f ) {
 				else if( k >= 'a' && k <= 'f' )
 					h = (h << 4) | ((k - 'a') + 10);
 				else
-					return val_null;
+					break;
 			}
-			return alloc_best_int(h);
+			if( sign == '-' ) h = -h;
+		} else {
+			h = strtol(c,&end,10);
+			if( c == end )
+				return val_null;
 		}
-		h = strtol(c,&end,10);
-		return ( c == end ) ? val_null : alloc_best_int(h);
+		return alloc_best_int(h);
 		}
 	case VAL_INT:
 	case VAL_INT32:
