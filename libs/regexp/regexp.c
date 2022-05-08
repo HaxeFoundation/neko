@@ -48,7 +48,6 @@ DEFINE_KIND(k_regexp);
 
 static field id_pos;
 static field id_len;
-static pcre2_match_context *match_context;
 
 /**
 	<doc>
@@ -65,7 +64,7 @@ static void free_regexp( value p ) {
 }
 
 static int do_exec( pcredata *d, const char *str, int len, int pos ) {
-	int res = pcre2_match(d->regex,str,len,pos,0,d->match_data,match_context);
+	int res = pcre2_match(d->regex,str,len,pos,0,d->match_data,NULL);
 	if( res >= 0 )
 		return 1;
 	d->str = val_null; // empty string prevents trying to access the data after a failed match
@@ -303,9 +302,6 @@ static value regexp_matched_pos( value o, value n ) {
 void regexp_main() {
 	id_pos = val_id("pos");
 	id_len = val_id("len");
-
-	match_context = pcre2_match_context_create(NULL);
-	pcre2_set_depth_limit(match_context,3500); // adapted based on Windows 1MB stack size
 }
 
 DEFINE_PRIM(regexp_new,1);
