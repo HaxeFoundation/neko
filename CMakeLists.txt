@@ -289,7 +289,7 @@ if (STATIC_BOEHMGC)
 			CMAKE_ARGS
 				-Wno-dev
 				-Denable_threads=ON
-				-Denable_parallel_mark=ON
+				-Denable_parallel_mark=OFF
 				-DCMAKE_USE_WIN32_THREADS_INIT=ON
 			PATCH_COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/libs/src/libatomic_ops ${CMAKE_BINARY_DIR}/libs/src/BoehmGC/libatomic_ops
 			INSTALL_COMMAND
