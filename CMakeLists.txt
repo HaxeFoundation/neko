@@ -275,13 +275,6 @@ if (STATIC_BOEHMGC)
 		INSTALL_COMMAND echo skip install
 	)
 
-	set(BoehmGC_URL "https://www.hboehm.info/gc/gc_source/gc-7.6.0.tar.gz")
-	if (NOT ${CMAKE_VERSION} VERSION_LESS 3.7)
-		list(APPEND BoehmGC_URL
-			"https://github.com/ivmai/bdwgc/files/1005477/gc-7.6.0.tar.gz"
-		)
-	endif()
-
 	set (
 		BoehmGC_CONFIGS
 		DEPENDS libatomic_ops
