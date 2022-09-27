@@ -137,18 +137,24 @@ set(STATIC_DEPS ${STATIC_DEPS_DEFAULT} CACHE STRING "${STATIC_DEPS_DOC}")
 
 # Validate STATIC_DEPS
 if (STATIC_DEPS STREQUAL "all")
-	set(STATIC_DEPS ${external_deps} CACHE STRING "${STATIC_DEPS_DOC}" FORCE)
+	set(STATIC_DEPS_ALL ${external_deps})
+	if (WIN32)
+		list(REMOVE_ITEM STATIC_DEPS_ALL BoehmGC)
+	endif()
+	set(STATIC_DEPS ${STATIC_DEPS_ALL} CACHE STRING "${STATIC_DEPS_DOC}" FORCE)
 elseif (STATIC_DEPS STREQUAL "none")
 	message(STATUS "set STATIC_DEPS to nothing")
 	set(STATIC_DEPS CACHE STRING "${STATIC_DEPS_DOC}" FORCE)
+else()
+	foreach(dep ${STATIC_DEPS})
+		list(FIND external_deps ${dep} idx)
+		if(idx EQUAL -1)
+			message(FATAL_ERROR "Invalid STATIC_DEPS. There is no ${dep} in the list of ${external_deps}")
+		elseif(WIN32 AND dep STREQUAL "BoehmGC")
+			message(FATAL_ERROR "Cannot link ${dep} statically on Windows")
+		endif()
+	endforeach()
 endif()
-
-foreach(dep ${STATIC_DEPS})
-	list(FIND external_deps ${dep} idx)
-	if(idx EQUAL -1)
-		message(FATAL_ERROR "Invalid STATIC_DEPS. There is no ${dep} in the list of ${external_deps}")
-	endif()
-endforeach()
 
 # Set STATIC_* variables according to STATIC_DEPS.
 foreach(dep ${external_deps})
@@ -270,7 +276,8 @@ add_executable(nekovm
 	vm/main.c
 )
 
-if (STATIC_BOEHMGC)
+# We need to build from source on Windows regardless
+if (STATIC_BOEHMGC OR WIN32)
 	ExternalProject_Add(libatomic_ops
 		${EP_CONFIGS}
 		URL https://github.com/ivmai/libatomic_ops/releases/download/v7.6.0/libatomic_ops-7.6.0.tar.gz
@@ -289,7 +296,12 @@ if (STATIC_BOEHMGC)
 		URL_MD5 bf46ccbdaccfa3186c2ab87191c8855a
 	)
 
+	set(GC_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/include)
+
 	if (WIN32)
+		set(GC_LIBRARIES
+			${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/${CMAKE_CFG_INTDIR}/gcmt-dll.lib
+		)
 		ExternalProject_Add(BoehmGC
 			${EP_CONFIGS}
 			${BoehmGC_CONFIGS}
@@ -298,15 +310,12 @@ if (STATIC_BOEHMGC)
 				-Denable_threads=ON
 				-Denable_parallel_mark=ON
 				-DCMAKE_USE_WIN32_THREADS_INIT=ON
+				-DCMAKE_CXX_STANDARD=14
 			PATCH_COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/libs/src/libatomic_ops ${CMAKE_BINARY_DIR}/libs/src/BoehmGC/libatomic_ops
 			INSTALL_COMMAND
 				${CMAKE_COMMAND} -E copy_directory
 					${CMAKE_BINARY_DIR}/libs/src/BoehmGC/include
 					${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/include/gc
-		)
-		set(GC_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/include)
-		set(GC_LIBRARIES
-			${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/${CMAKE_CFG_INTDIR}/gcmt-dll.lib
 		)
 		add_custom_command(OUTPUT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/gcmt-dll.dll
 			DEPENDS BoehmGC
@@ -323,7 +332,6 @@ if (STATIC_BOEHMGC)
 			set(GC_CFLAGS "-w")
 		endif()
 
-		set(GC_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/include)
 		set(GC_LIBRARIES
 			${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/lib/libgc.a
 		)
@@ -349,10 +357,11 @@ if (STATIC_BOEHMGC)
 				${GC_LIBRARIES}
 		)
 
-		# don't want to add libatomic_ops to external_deps,
-		# but want download_static_deps depends on it
-		add_dependencies(BoehmGC-download libatomic_ops-download)
 	endif()
+
+	# don't want to add libatomic_ops to external_deps,
+	# but want download_static_deps to depend on it
+	add_dependencies(BoehmGC-download libatomic_ops-download)
 	set_target_properties(BoehmGC PROPERTIES ${EP_PROPS})
 	add_dependencies(libneko BoehmGC)
 else()
@@ -523,7 +532,7 @@ endif()
 #######################
 
 add_custom_target(download_static_deps)
-if (STATIC_BOEHMGC)
+if (STATIC_BOEHMGC OR WIN32)
 	add_dependencies(download_static_deps BoehmGC-download)
 endif()
 
