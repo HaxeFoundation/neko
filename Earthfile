@@ -190,7 +190,7 @@ build:
             dynamic) cmake .. -DSTATIC_DEPS=none -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo;; \
             *) exit 1;; \
         esac
-    RUN if [ "$LINK_TYPE" = "static" ]; then ninja download_static_deps; fi
+    RUN if [ "$LINK_TYPE" = "static" ]; then ninja download_deps; fi
     RUN ninja
     RUN ninja test
     SAVE ARTIFACT bin/*

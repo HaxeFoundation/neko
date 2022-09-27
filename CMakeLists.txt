@@ -362,7 +362,7 @@ if (STATIC_BOEHMGC OR WIN32)
 	endif()
 
 	# don't want to add libatomic_ops to external_deps,
-	# but want download_static_deps to depend on it
+	# but want download_deps to depend on it
 	add_dependencies(BoehmGC-download libatomic_ops-download)
 	set_target_properties(BoehmGC PROPERTIES ${EP_PROPS})
 	add_dependencies(libneko BoehmGC)
@@ -533,9 +533,9 @@ endif()
 
 #######################
 
-add_custom_target(download_static_deps)
+add_custom_target(download_deps)
 if (STATIC_BOEHMGC OR WIN32)
-	add_dependencies(download_static_deps BoehmGC-download)
+	add_dependencies(download_deps BoehmGC-download)
 endif()
 
 #######################
@@ -580,7 +580,7 @@ add_custom_command(OUTPUT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${source_archive_fat
 		-Dsrc_dir=${CMAKE_SOURCE_DIR}
 		-Dlib_src_dir=libs/src
 		-P ${CMAKE_SOURCE_DIR}/cmake/source_archive_fat.cmake
-	DEPENDS source_archive download_static_deps
+	DEPENDS source_archive download_deps
 	VERBATIM
 )
 

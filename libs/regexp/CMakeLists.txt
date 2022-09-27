@@ -61,7 +61,7 @@ if (STATIC_PCRE2)
 	set(PCRE2_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/install-prefix/include)
 	add_dependencies(regexp.ndll pcre2)
 	# Download project for fat source archive
-	add_dependencies(download_static_deps pcre2-download)
+	add_dependencies(download_deps pcre2-download)
 else()
 	find_package(PCRE2 REQUIRED)
 endif()
