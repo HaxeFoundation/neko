@@ -288,6 +288,7 @@ if (STATIC_BOEHMGC OR WIN32)
 		BUILD_COMMAND echo skip build
 		INSTALL_COMMAND echo skip install
 	)
+	set_target_properties(libatomic_ops PROPERTIES ${EP_PROPS})
 
 	set (
 		BoehmGC_CONFIGS
