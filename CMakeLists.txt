@@ -358,16 +358,18 @@ if (STATIC_BOEHMGC OR WIN32)
 			BYPRODUCTS
 				${GC_LIBRARIES}
 		)
-
 	endif()
 
-	# don't want to add libatomic_ops to external_deps,
-	# but want download_deps to depend on it
-	add_dependencies(BoehmGC-download libatomic_ops-download)
 	set_target_properties(BoehmGC PROPERTIES ${EP_PROPS})
 	add_dependencies(libneko BoehmGC)
 else()
 	find_package(BoehmGC REQUIRED)
+endif()
+
+add_custom_target(download_deps)
+if (STATIC_BOEHMGC OR WIN32)
+	add_dependencies(download_deps libatomic_ops-download)
+	add_dependencies(download_deps BoehmGC-download)
 endif()
 
 target_include_directories(libneko PRIVATE ${GC_INCLUDE_DIR})
@@ -529,13 +531,6 @@ if (WITH_NEKOML)
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src
 	)
 	add_custom_target(nekoml.std ALL DEPENDS ${nekoml_std})
-endif()
-
-#######################
-
-add_custom_target(download_deps)
-if (STATIC_BOEHMGC OR WIN32)
-	add_dependencies(download_deps BoehmGC-download)
 endif()
 
 #######################
