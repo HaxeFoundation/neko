@@ -648,6 +648,7 @@ export(TARGETS
 if (WITH_NEKOML)
 	export(TARGETS
 		nekoml
+		APPEND
 		FILE "${CMAKE_BINARY_DIR}/NekoTargets.cmake")
 endif()
 
