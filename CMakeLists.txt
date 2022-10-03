@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.10.2)
 
-if (NOT ${CMAKE_VERSION} VERSION_LESS 3.19)
+if (NOT ${CMAKE_VERSION} VERSION_LESS 3.24)
+	cmake_policy(VERSION 3.24)
+elseif (NOT ${CMAKE_VERSION} VERSION_LESS 3.19)
 	cmake_policy(VERSION 3.19)
 endif()
 
