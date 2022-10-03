@@ -263,7 +263,9 @@ if (WITH_APACHE)
 		ExternalProject_Add(Apache
 			${EP_CONFIGS}
 			DEPENDS ${APACHE_DEPENDENCIES}
-			URL https://github.com/HaxeFoundation/neko/files/9692684/httpd-2.4.29.tar.gz
+			URL
+				https://archive.apache.org/dist/httpd/httpd-2.4.29.tar.gz
+				https://github.com/HaxeFoundation/neko/files/9692684/httpd-2.4.29.tar.gz
 			URL_MD5 6380b0856658f07479fdcba9e20294a6
 			${Apache_CONFIGS}
 		)
