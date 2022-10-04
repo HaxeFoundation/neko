@@ -1,4 +1,10 @@
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.10.2)
+
+if (NOT ${CMAKE_VERSION} VERSION_LESS 3.24)
+	cmake_policy(VERSION 3.24)
+elseif (NOT ${CMAKE_VERSION} VERSION_LESS 3.19)
+	cmake_policy(VERSION 3.19)
+endif()
 
 include(GNUInstallDirs)
 include(CheckCCompilerFlag)
@@ -213,18 +219,17 @@ set(EP_CONFIGS
 	PREFIX ${CMAKE_BINARY_DIR}/libs
 	DOWNLOAD_DIR ${CMAKE_BINARY_DIR}/libs/download
 )
-if(NOT ${CMAKE_VERSION} VERSION_LESS 3.1)
-	list(APPEND EP_CONFIGS
-		DOWNLOAD_NO_PROGRESS 1
-	)
-endif()
-if(${CMAKE_VERSION} VERSION_LESS 3.2)
-	list(APPEND EP_CONFIGS
-		STEP_TARGETS download
-	)
-else()
+list(APPEND EP_CONFIGS
+	DOWNLOAD_NO_PROGRESS 1
+)
+if (${CMAKE_VERSION} VERSION_LESS 3.19)
 	list(APPEND EP_CONFIGS
 		INDEPENDENT_STEP_TARGETS download
+	)
+else()
+	# download is independent by default in 3.19
+	list(APPEND EP_CONFIGS
+		STEP_TARGETS download
 	)
 endif()
 set(EP_PROPS
@@ -275,17 +280,12 @@ if (STATIC_BOEHMGC)
 		INSTALL_COMMAND echo skip install
 	)
 
-	set(BoehmGC_URL "https://www.hboehm.info/gc/gc_source/gc-7.6.0.tar.gz")
-	if (NOT ${CMAKE_VERSION} VERSION_LESS 3.7)
-		list(APPEND BoehmGC_URL
-			"https://github.com/ivmai/bdwgc/files/1005477/gc-7.6.0.tar.gz"
-		)
-	endif()
-
 	set (
 		BoehmGC_CONFIGS
 		DEPENDS libatomic_ops
-		URL ${BoehmGC_URL}
+		URL
+			"https://www.hboehm.info/gc/gc_source/gc-7.6.0.tar.gz"
+			"https://github.com/ivmai/bdwgc/files/1005477/gc-7.6.0.tar.gz"
 		URL_MD5 bf46ccbdaccfa3186c2ab87191c8855a
 	)
 
@@ -650,6 +650,7 @@ export(TARGETS
 if (WITH_NEKOML)
 	export(TARGETS
 		nekoml
+		APPEND
 		FILE "${CMAKE_BINARY_DIR}/NekoTargets.cmake")
 endif()
 
