@@ -1,5 +1,5 @@
 VERSION 0.6
-FROM ubuntu:bionic
+FROM ubuntu:jammy
 
 ARG DEVCONTAINER_IMAGE_NAME_DEFAULT=haxe/neko_devcontainer
 
@@ -18,7 +18,7 @@ vscode-dev-containers-scripts:
     SAVE ARTIFACT --keep-ts *.sh AS LOCAL .devcontainer/library-scripts/
 
 devcontainer-base:
-    FROM mcr.microsoft.com/vscode/devcontainers/base:0-bionic
+    FROM mcr.microsoft.com/vscode/devcontainers/base:0-jammy
     ARG --required TARGETARCH
 
     # Avoid warnings by switching to noninteractive
@@ -27,7 +27,7 @@ devcontainer-base:
     ARG INSTALL_ZSH="false"
     ARG UPGRADE_PACKAGES="true"
     ARG ENABLE_NONROOT_DOCKER="true"
-    ARG USE_MOBY="false" # moby-buildx is missing in bionic
+    ARG USE_MOBY="true"
     COPY .devcontainer/library-scripts/*.sh /tmp/library-scripts/
     RUN apt-get update \
         && /bin/bash /tmp/library-scripts/common-debian.sh "${INSTALL_ZSH}" "${USERNAME}" "${USER_UID}" "${USER_GID}" "${UPGRADE_PACKAGES}" "true" "true" \
@@ -81,7 +81,7 @@ devcontainer-base:
 earthly:
     FROM +devcontainer-base
     ARG --required TARGETARCH
-    RUN curl -fsSL https://github.com/earthly/earthly/releases/download/v0.6.2/earthly-linux-${TARGETARCH} -o /usr/local/bin/earthly \
+    RUN curl -fsSL https://github.com/earthly/earthly/releases/download/v0.6.30/earthly-linux-${TARGETARCH} -o /usr/local/bin/earthly \
         && chmod +x /usr/local/bin/earthly
     SAVE ARTIFACT /usr/local/bin/earthly
 
