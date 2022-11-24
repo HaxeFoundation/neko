@@ -161,8 +161,9 @@ build-env:
             arm64) curl -fsSL "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-aarch64.sh" -o cmake-install.sh;; \
             *) exit 1;; \
         esac \
-        && sh cmake-install.sh --skip-license --prefix /usr/local \
-        && rm cmake-install.sh
+        && sh cmake-install.sh --skip-license --prefix=/usr/local \
+        && rm cmake-install.sh \
+        && cmake --version | grep -q "$CMAKE_VERSION"
     ARG LINK_TYPE="$LINK_TYPE_DEFAULT" # static or dynamic
     RUN if [ "$LINK_TYPE" = "dynamic" ]; then \
         apt-get update && apt-get install -qqy --no-install-recommends $LINK_DYNAMIC_PACKAGES \
