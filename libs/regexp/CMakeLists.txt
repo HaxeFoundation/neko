@@ -4,7 +4,7 @@
 
 add_library(regexp.ndll MODULE regexp.c)
 if (STATIC_PCRE2)
-	add_compile_definitions(PCRE2_STATIC_LINK)
+	add_definitions(-DPCRE2_STATIC_LINK)
 	set(PCRE2_CONFIG
 		URL
 			"https://github.com/PhilipHazel/pcre2/releases/download/pcre2-10.37/pcre2-10.37.tar.gz"
