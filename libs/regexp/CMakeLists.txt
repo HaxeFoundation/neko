@@ -41,13 +41,12 @@ if (STATIC_PCRE2)
 			${EP_CONFIGS}
 			${PCRE2_CONFIG}
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/pcre2 &&
+				autoreconf -f -i &&
 				./configure
 					--prefix=${CMAKE_BINARY_DIR}/libs/src/install-prefix
 					--with-pic
-					--enable-unicode-properties
 					--enable-silent-rules
 					--enable-jit
-					--disable-cpp
 					--enable-shared=no
 					--enable-static=yes
 					--silent

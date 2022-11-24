@@ -122,6 +122,7 @@ if (WITH_APACHE)
 				${EP_CONFIGS}
 				${PCRE_URL_DATA}
 				CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/PCRE &&
+					autoreconf -f -i &&
 					./configure
 						--prefix=${CMAKE_BINARY_DIR}/libs/src/install-prefix
 						--with-pic

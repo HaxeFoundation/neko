@@ -144,6 +144,10 @@ build-env:
             software-properties-common \
             curl \
             build-essential \
+            autoconf \
+            automake \
+            libtool \
+            file \
             git \
             ninja-build \
             pkg-config \
@@ -155,7 +159,7 @@ build-env:
         && rm -rf /var/lib/apt/lists/*
     # install a recent CMake
     ARG --required TARGETARCH
-    ARG CMAKE_VERSION=3.22.1
+    ARG CMAKE_VERSION=3.25.0
     RUN case "$TARGETARCH" in \
             amd64) curl -fsSL "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.sh" -o cmake-install.sh;; \
             arm64) curl -fsSL "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-aarch64.sh" -o cmake-install.sh;; \
