@@ -1,5 +1,5 @@
 /*
- * Copyright (C)2005-2017 Haxe Foundation
+ * Copyright (C)2005-2022 Haxe Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -161,12 +161,12 @@ static value test() {
 /**
 	print_redirect : function:1? -> void
 	<doc>
-	Set a redirection function for all printed values. 
+	Set a redirection function for all printed values.
 	Setting it to null will cancel the redirection and restore previous printer.
 	</doc>
 **/
 
-static void print_callback( const char *s, int size, void *f ) {	
+static void print_callback( const char *s, int size, void *f ) {
 	val_call1(f,copy_string(s,size));
 }
 

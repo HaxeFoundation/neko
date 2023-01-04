@@ -1,5 +1,5 @@
 /*
- * Copyright (C)2005-2017 Haxe Foundation
+ * Copyright (C)2005-2022 Haxe Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -53,7 +53,7 @@ static void file_error( const char *msg, fio *f ) {
 /**
 	file_open : f:string -> r:string -> 'file
 	<doc>
-	Call the C function [fopen] with the file path and access rights. 
+	Call the C function [fopen] with the file path and access rights.
 	Return the opened file or throw an exception if the file couldn't be open.
 	</doc>
 **/
@@ -71,9 +71,9 @@ static value file_open( value name, value r ) {
 
 /**
 	file_close : 'file -> void
-	<doc>Close an file. Any other operations on this file will fail</doc> 
+	<doc>Close an file. Any other operations on this file will fail</doc>
 **/
-static value file_close( value o ) {	
+static value file_close( value o ) {
 	fio *f;
 	val_check_kind(o,k_file);
 	f = val_file(o);
@@ -94,7 +94,7 @@ static value file_name( value o ) {
 /**
 	file_write : 'file -> s:string -> p:int -> l:int -> int
 	<doc>
-	Write up to [l] chars of string [s] starting at position [p]. 
+	Write up to [l] chars of string [s] starting at position [p].
 	Returns the number of chars written which is >= 0.
 	</doc>
 **/
@@ -281,7 +281,7 @@ static value file_contents( value name ) {
 		}
 		p += d;
 		len -= d;
-	}	
+	}
 	fclose(f.io);
 	return s;
 }

@@ -1,6 +1,6 @@
 (*
  *  Neko Compiler
- *  Copyright (c)2005-2017 Haxe Foundation
+ *  Copyright (c)2005-2022 Haxe Foundation
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *)
- 
+
 open Ast
 
 type error_msg =
@@ -82,7 +82,7 @@ and expr = parser
 	| [< '(Keyword Do,p1); e = expr; '(Keyword While,_); cond = expr; s >] ->
 		expr_next (EWhile (cond,e,DoWhile), punion p1 (pos cond)) s
 	| [< '(Keyword If,p1); cond = expr; e = expr; s >] ->
-		let rec loop s = 
+		let rec loop s =
 			match s with parser
 			| [< '(Keyword Else,_); e2 = expr; s >] -> expr_next (EIf (cond,e,Some e2),punion p1 (pos e2)) s
 			| [< '(Semicolon,_); s >] -> loop s
@@ -119,7 +119,7 @@ and expr_next e = parser
 		| [< >] -> error (Unclosed "[") po)
 	| [< '(Binop op,_); e2 = expr; s >] ->
 		make_binop op e e2
-	| [< >] -> 
+	| [< >] ->
 		e
 
 and block1 = parser
@@ -171,7 +171,7 @@ let parse code file =
 	let rec next_token x =
 		let t, p = Lexer.token code in
 		match t with
-		| Comment s | CommentLine s -> 
+		| Comment s | CommentLine s ->
 			next_token x
 		| _ ->
 			last := (t , p);
@@ -183,7 +183,7 @@ let parse code file =
 		EBlock l, { pmin = 0; pmax = (pos !last).pmax; pfile = file }
 	with
 		| Stream.Error _
-		| Stream.Failure -> 
+		| Stream.Failure ->
 			Lexer.restore old;
 			error (Unexpected (fst !last)) (pos !last)
 		| e ->

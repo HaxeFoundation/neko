@@ -1,6 +1,6 @@
 /*
  * MYSQL 5.0 Protocol Implementation
- * Copyright (C)2005-2017 Haxe Foundation
+ * Copyright (C)2005-2022 Haxe Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -141,7 +141,7 @@ MYSQL *mysql_real_connect( MYSQL *m, const char *host, const char *user, const c
 			myp_close(m);
 			save_error(m,p);
 			return NULL;
-		}	
+		}
 		m->infos.server_version = strdup(myp_read_string(p));
 		m->infos.thread_id = myp_read_int(p);
 		myp_read(p,scramble_buf,8);
@@ -345,7 +345,7 @@ static int do_store( MYSQL *m, MYSQL_RES *r ) {
 		// read row fields
 		{
 			MYSQL_ROW_DATA *current = r->rows + r->row_count++;
-			int prev = 0;			
+			int prev = 0;
 			current->raw = p->buf;
 			current->lengths = (unsigned long*)malloc(sizeof(unsigned long) * r->nfields);
 			current->datas = (char**)malloc(sizeof(char*) * r->nfields);
@@ -475,11 +475,11 @@ MYSQL_ROW mysql_fetch_row( MYSQL_RES * r ) {
 		// next
 		cur++;
 	}
-	if( cur >= r->rows + r->row_count ) {		
+	if( cur >= r->rows + r->row_count ) {
 		free(r->rows);
 		r->rows = NULL;
 		r->memory_rows = 0;
-		cur = NULL;	
+		cur = NULL;
 	}
 	r->current = cur;
 	return cur ? cur->datas : NULL;

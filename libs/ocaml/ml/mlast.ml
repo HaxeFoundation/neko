@@ -1,6 +1,6 @@
 (*
  *  NekoML Compiler
- *  Copyright (c)2005-2017 Haxe Foundation
+ *  Copyright (c)2005-2022 Haxe Foundation
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -108,8 +108,8 @@ and expr_decl =
 	| EBlock of expr list
 	| EField of expr * string
 	| ECall of expr * expr list
-	| EArray of expr * expr	
-	| EVar of (string * type_path option) list * expr 
+	| EArray of expr * expr
+	| EVar of (string * type_path option) list * expr
 	| EIf of expr * expr * expr option
 	| EFunction of bool * string option * arg list * expr * type_path option
 	| EBinop of string * expr * expr
@@ -164,9 +164,9 @@ let rec s_constant = function
 	| String s -> "\"" ^ escape s ^ "\""
 	| Ident s -> s
 	| Constr s -> s
-	| Module (l,c) -> String.concat "." l ^ "." ^ s_constant c 
+	| Module (l,c) -> String.concat "." l ^ "." ^ s_constant c
 
-let s_path path n = 
+let s_path path n =
 	match path with
 	| [] -> n
 	| _ -> String.concat "." path ^ "." ^ n

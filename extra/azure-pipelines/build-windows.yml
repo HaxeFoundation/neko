@@ -10,19 +10,17 @@ jobs:
     pool:
       vmImage: ${{ parameters.vmImage }}
     steps:
-      - ${{ if eq(parameters.vmImage, 'vs2017-win2016') }}:
+      - ${{ if startsWith(parameters.name, 'WinVS2017') }}:
         - powershell: |
-            Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
-            Write-Host "##vso[task.prependpath]C:\ProgramData\chocolatey\bin"
-          displayName: Install Chocolatey
-      - powershell: |
-          choco install activeperl -y
-          Write-Host "##vso[task.prependpath]C:\Perl64\bin"
-        displayName: Install Perl
-      - ${{ if eq(parameters.vmImage, 'vs2017-win2016') }}:
+            choco install visualstudio2017buildtools visualstudio2017-workload-vctools
+            # Install: Windows 8.1 SDK
+            Invoke-WebRequest -Method Get -Uri https://go.microsoft.com/fwlink/p/?LinkId=323507 -OutFile sdksetup.exe -UseBasicParsing
+            Start-Process -Wait sdksetup.exe -ArgumentList "/q", "/norestart", "/features", "OptionId.WindowsDesktopSoftwareDevelopmentKit", "OptionId.NetFxSoftwareDevelopmentKit"
+          displayName: Install VS2017 tools
+      - ${{ if startsWith(parameters.name, 'WinVS2017') }}:
         - script: cmake . -G "${{ parameters.cmakeGenerator }}"
           displayName: CMake
-      - ${{ if eq(parameters.vmImage, 'windows-2019') }}:
+      - ${{ if startsWith(parameters.name, 'WinVS2019') }}:
         - script: cmake . -G "${{ parameters.cmakeGenerator }}" -A ${{ parameters.arch }}
           displayName: CMake
       - script: |

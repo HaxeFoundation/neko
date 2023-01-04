@@ -1,6 +1,6 @@
 /*
  * MYSQL 5.0 Protocol Implementation
- * Copyright (C)2005-2017 Haxe Foundation
+ * Copyright (C)2005-2022 Haxe Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -25,7 +25,7 @@
 
 struct _MYSQL;
 struct _MYSQL_RES;
-typedef struct _MYSQL MYSQL; 
+typedef struct _MYSQL MYSQL;
 typedef struct _MYSQL_RES MYSQL_RES;
 typedef char **MYSQL_ROW;
 

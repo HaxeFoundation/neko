@@ -1,6 +1,6 @@
 (*
  *  Neko Compiler
- *  Copyright (c)2005-2017 Haxe Foundation
+ *  Copyright (c)2005-2022 Haxe Foundation
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -96,7 +96,7 @@ let hash_field s =
 		acc := 223 * !acc + Char.code (String.unsafe_get s i)
 	done;
 	acc := !acc land ((1 lsl 31) - 1);
-	!acc	
+	!acc
 
 let op_param = function
 	| AccInt _
@@ -116,7 +116,7 @@ let op_param = function
 	| JumpIf _
 	| JumpIfNot _
 	| Trap _
-	| MakeEnv _ 
+	| MakeEnv _
 	| MakeArray _
 	| Ret _
 	| AccIndex _
@@ -169,7 +169,7 @@ let code_tables ops =
 				let f = Hashtbl.find ids id in
 				if f <> s then failwith ("Field hashing conflict " ^ s ^ " and " ^ f);
 			with
-				Not_found ->	
+				Not_found ->
 					Hashtbl.add ids id s)
 		| _ -> ()
 	) ops;
@@ -296,7 +296,7 @@ let read ch =
 			| _ -> raise Invalid_file
 		) in
 		let ids = Hashtbl.create 0 in
-		let rec loop n = 
+		let rec loop n =
 			if n = 0 then
 				()
 			else
@@ -400,7 +400,7 @@ let read ch =
 			| JumpIf p -> JumpIf (pos_index i (a+p))
 			| JumpIfNot p -> JumpIfNot (pos_index i (a+p))
 			| Trap p -> Trap (pos_index i (a+p))
-			| _ -> assert false)			
+			| _ -> assert false)
 		) !jumps;
 		Array.iteri (fun i g ->
 			match g with
@@ -423,10 +423,10 @@ let dump ch (globals,ops) =
 	IO.printf ch "GLOBALS =\n";
 	let marks = Array.create csize false in
 	Array.iteri (fun i g ->
-		IO.printf ch "  global %d : %s\n" i 
+		IO.printf ch "  global %d : %s\n" i
 			(match g with
 			| GlobalVar s -> "var " ^ s
-			| GlobalFunction (p,n) -> 
+			| GlobalFunction (p,n) ->
 				if p >= 0 && p < csize then marks.(p) <- true;
 				"function " ^ string_of_int p ^ " nargs " ^ string_of_int n
 			| GlobalString s -> "string \"" ^ escape s ^ "\""
@@ -477,7 +477,7 @@ let dump ch (globals,ops) =
 			| IsNull -> "IsNull"
 			| IsNotNull -> "IsNotNull"
 			| Add -> "Add"
-			| Sub -> "Sub" 
+			| Sub -> "Sub"
 			| Mult -> "Mult"
 			| Div -> "Div"
 			| Mod -> "Mod"

@@ -1,6 +1,11 @@
-cmake_minimum_required(VERSION 2.8.12)
-cmake_policy(SET CMP0068 NEW)
+cmake_minimum_required(VERSION 3.10.2)
 
+if (NOT ${CMAKE_VERSION} VERSION_LESS 3.24)
+	cmake_policy(VERSION 3.24)
+elseif (NOT ${CMAKE_VERSION} VERSION_LESS 3.19)
+	cmake_policy(VERSION 3.19)
+endif()
+cmake_policy(SET CMP0068 NEW)
 
 include(GNUInstallDirs)
 include(CheckCCompilerFlag)
@@ -26,7 +31,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${OUTPUT_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_DIR})
 
 # avoid the extra "Debug", "Release" directories
-# http://stackoverflow.com/questions/7747857/in-cmake-how-do-i-work-around-the-debug-and-release-directories-visual-studio-2
+# https://stackoverflow.com/questions/7747857/in-cmake-how-do-i-work-around-the-debug-and-release-directories-visual-studio-2
 foreach( OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES} )
 	string( TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG )
 	set( CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${OUTPUT_DIR} )
@@ -42,7 +47,9 @@ endif()
 set(NEKO_VERSION_MAJOR 2)
 set(NEKO_VERSION_MINOR 3)
 set(NEKO_VERSION_PATCH 1)
-set(NEKO_VERSION ${NEKO_VERSION_MAJOR}.${NEKO_VERSION_MINOR}.${NEKO_VERSION_PATCH})
+
+# NEKO_VERSION is cached such that we can query it by `cmake -L -N -B . | grep NEKO_VERSION`
+set(NEKO_VERSION ${NEKO_VERSION_MAJOR}.${NEKO_VERSION_MINOR}.${NEKO_VERSION_PATCH} CACHE STRING INTERNAL)
 
 # Determine target endianness
 TEST_BIG_ENDIAN(NEKO_BIG_ENDIAN)
@@ -107,13 +114,16 @@ set(external_deps
 	Zlib
 	OpenSSL
 	MariaDBConnector
-	PCRE
+	pcre2
 	Sqlite3
 	APR
-	APRutil
 	Apache
 	MbedTLS
 )
+# Mac build uses a newer version of APR which already contains APRutil
+if (NOT APPLE)
+	list(APPEND external_deps APRutil)
+endif()
 
 if (WIN32)
 	set(STATIC_DEPS_DEFAULT "all")
@@ -214,18 +224,17 @@ set(EP_CONFIGS
 	PREFIX ${CMAKE_BINARY_DIR}/libs
 	DOWNLOAD_DIR ${CMAKE_BINARY_DIR}/libs/download
 )
-if(NOT ${CMAKE_VERSION} VERSION_LESS 3.1)
-	list(APPEND EP_CONFIGS
-		DOWNLOAD_NO_PROGRESS 1
-	)
-endif()
-if(${CMAKE_VERSION} VERSION_LESS 3.2)
-	list(APPEND EP_CONFIGS
-		STEP_TARGETS download
-	)
-else()
+list(APPEND EP_CONFIGS
+	DOWNLOAD_NO_PROGRESS 1
+)
+if (${CMAKE_VERSION} VERSION_LESS 3.19)
 	list(APPEND EP_CONFIGS
 		INDEPENDENT_STEP_TARGETS download
+	)
+else()
+	# download is independent by default in 3.19
+	list(APPEND EP_CONFIGS
+		STEP_TARGETS download
 	)
 endif()
 set(EP_PROPS
@@ -276,17 +285,12 @@ if (STATIC_BOEHMGC)
 		INSTALL_COMMAND echo skip install
 	)
 
-	set(BoehmGC_URL "http://www.hboehm.info/gc/gc_source/gc-7.6.0.tar.gz")
-	if (NOT ${CMAKE_VERSION} VERSION_LESS 3.7)
-		list(APPEND BoehmGC_URL
-			"https://github.com/ivmai/bdwgc/files/1005477/gc-7.6.0.tar.gz"
-		)
-	endif()
-
 	set (
 		BoehmGC_CONFIGS
 		DEPENDS libatomic_ops
-		URL ${BoehmGC_URL}
+		URL
+			"https://www.hboehm.info/gc/gc_source/gc-7.6.0.tar.gz"
+			"https://github.com/ivmai/bdwgc/files/1005477/gc-7.6.0.tar.gz"
 		URL_MD5 bf46ccbdaccfa3186c2ab87191c8855a
 	)
 
@@ -651,7 +655,8 @@ export(TARGETS
 if (WITH_NEKOML)
 	export(TARGETS
 		nekoml
-		APPEND FILE "${CMAKE_BINARY_DIR}/NekoTargets.cmake")
+		APPEND
+		FILE "${CMAKE_BINARY_DIR}/NekoTargets.cmake")
 endif()
 
 export(PACKAGE Neko)

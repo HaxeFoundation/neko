@@ -1,6 +1,6 @@
 (*
  *  NekoML Compiler
- *  Copyright (c)2005-2017 Haxe Foundation
+ *  Copyright (c)2005-2022 Haxe Foundation
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *)
- 
+
 open Mlast
 
 type error_msg =
@@ -65,7 +65,7 @@ let rec make_binop op e ((v,p2) as e2) =
 	| _ ->
 		EBinop (op,e,e2) , punion (pos e) (pos e2)
 
-let rec make_unop op ((v,p2) as e) p1 = 
+let rec make_unop op ((v,p2) as e) p1 =
 	match v with
 	| EBinop (bop,e,e2) -> EBinop (bop, make_unop op e p1 , e2) , (punion p1 p2)
 	| _ ->
@@ -81,7 +81,7 @@ let rec make_list_pat p = function
 let rec make_list p = function
 	| [] -> EConst (Constr "[]") , p
 	| x :: l ->
-		let p = snd x in		
+		let p = snd x in
 		ECall ((EConst (Constr "::") , p), [x;make_list p l]) , p
 
 let is_unop = function
@@ -95,7 +95,7 @@ let rec program = parser
 	| [< '(Semicolon,_); p = program >] -> p
 	| [< '(Eof,_) >] -> []
 
-and expr = parser	
+and expr = parser
 	| [< '(BraceOpen,p1); e = block1; s >] ->
 		(match s with parser
 		| [< '(BraceClose,p2); s >] -> e , punion p1 p2
@@ -169,14 +169,14 @@ and expr_next e = parser
 		e
 
 and expr_constr n p = parser
-	| [< '(Dot,_); e = expr_constr2 >] -> 
+	| [< '(Dot,_); e = expr_constr2 >] ->
 		(match e with
-		| EConst ((Ident _) as c) , p2 
+		| EConst ((Ident _) as c) , p2
 		| EConst ((Constr _) as c) , p2 -> EConst (Module ([n],c)) , punion p p2
 		| EConst (Module (l,c)) , p2 -> EConst (Module (n :: l,c)) , punion p p2
 		| _ -> assert false);
 	| [< >] -> EConst (Constr n), p
-		
+
 and expr_constr2 = parser
 	| [< '(Const (Ident n),p) >] -> EConst (Ident n) , p
 	| [< '(Const (Constr n),p); e = expr_constr n p >] -> e
@@ -280,12 +280,12 @@ and type_declaration p = parser
 and record_declaration mut = parser
 	| [< '(BraceClose,p) >] -> [] , p
 	| [< '(Const (Ident "mutable"),_); l = record_declaration true; >] -> l
-	| [< '(Semicolon,_); l = record_declaration false >] -> l 
+	| [< '(Semicolon,_); l = record_declaration false >] -> l
 	| [< '(Const (Ident name),_); '(Binop ":",_); t , _ = type_path; l , p = record_declaration false >] -> (name,mut,t) :: l , p
 
 and union_declaration = parser
 	| [< '(BraceClose,p) >] -> [] , p
-	| [< '(Semicolon,_); l = union_declaration >] -> l 
+	| [< '(Semicolon,_); l = union_declaration >] -> l
 	| [< '(Const (Constr name),_); t = type_opt; l , p = union_declaration >] -> (name,t) :: l , p
 
 and patterns_begin = parser
@@ -365,7 +365,7 @@ and pattern_record = parser
 
 and pattern_opt p = parser
 	| [< ( _ , pos as p) = pattern >] -> Some p , pos
-	| [< >] -> None , p 
+	| [< >] -> None , p
 
 and when_clause = parser
 	| [< '(Keyword When,_); e = expr >] -> Some e
@@ -390,7 +390,7 @@ let parse code file =
 		EBlock l, { pmin = 0; pmax = (pos !last).pmax; pfile = file }
 	with
 		| Stream.Error _
-		| Stream.Failure -> 
+		| Stream.Failure ->
 			Mllexer.restore old;
 			error (Unexpected (fst !last)) (pos !last)
 		| e ->

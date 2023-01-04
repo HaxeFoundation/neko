@@ -1,6 +1,6 @@
 (*
  *  Neko Compiler
- *  Copyright (c)2005-2017 Haxe Foundation
+ *  Copyright (c)2005-2022 Haxe Foundation
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -42,7 +42,7 @@ let all_lines = Hashtbl.create 0
 let lines = ref []
 let buf = Buffer.create 100
 
-let error e pos = 
+let error e pos =
 	raise (Error (e,{ pmin = pos; pmax = pos; pfile = !cur_file }))
 
 let keywords =
@@ -65,7 +65,7 @@ let save() =
 let restore file =
 	save_lines();
 	cur_file := file;
-	lines := Hashtbl.find all_lines file 
+	lines := Hashtbl.find all_lines file
 
 let newline lexbuf =
 	lines := (lexeme_end lexbuf) :: !lines
@@ -104,7 +104,7 @@ let add c = Buffer.add_string buf c
 let mk_tok t pmin pmax =
 	t , { pfile = !cur_file; pmin = pmin; pmax = pmax }
 
-let mk lexbuf t = 
+let mk lexbuf t =
 	mk_tok t (lexeme_start lexbuf) (lexeme_end lexbuf)
 
 let mk_ident lexbuf =
@@ -129,14 +129,14 @@ rule token = parse
 	| '[' { mk lexbuf BracketOpen }
 	| ']' { mk lexbuf BracketClose }
 	| "=>" { mk lexbuf Arrow }
-	| [' ' '\r' '\t']+ { token lexbuf } 
+	| [' ' '\r' '\t']+ { token lexbuf }
 	| '\n' { newline lexbuf; token lexbuf }
-	| "0x" ['0'-'9' 'a'-'f' 'A'-'F']+	
+	| "0x" ['0'-'9' 'a'-'f' 'A'-'F']+
 	| number+ { mk lexbuf (Const (Int (int_of_string (lexeme lexbuf)))) }
 	| number+ '.' number*
 	| '.' number+ { mk lexbuf (Const (Float (lexeme lexbuf))) }
 	| '$' (ident as v) { mk lexbuf (Const (Builtin v)) }
-	| "true" { mk lexbuf (Const True) } 
+	| "true" { mk lexbuf (Const True) }
 	| "false" { mk lexbuf (Const False) }
 	| "null" { mk lexbuf (Const Null) }
 	| "this" { mk lexbuf (Const This) }
@@ -152,7 +152,7 @@ rule token = parse
 			let pmin = lexeme_start lexbuf in
 			let pmax = (try comment lexbuf with Exit -> error Unclosed_comment pmin) in
 			mk_tok (Comment (contents())) pmin pmax;
-		}	
+		}
 	| "//" [^'\n']*  {
 			let s = lexeme lexbuf in
 			let n = (if s.[String.length s - 1] = '\r' then 3 else 2) in
@@ -179,7 +179,7 @@ and string = parse
 	| "\\n" { add "\n"; string lexbuf }
 	| "\\t" { add "\t"; string lexbuf }
 	| "\\r" { add "\r"; string lexbuf }
-	| '\\' ['0'-'9'] ['0'-'9'] ['0'-'9'] { 
+	| '\\' ['0'-'9'] ['0'-'9'] ['0'-'9'] {
 			let i = int_of_string (String.sub (lexeme lexbuf) 1 3) in
 			if i >= 256 then error (Invalid_escaped_character i) (lexeme_start lexbuf);
 			add (String.make 1 (char_of_int i));
@@ -188,4 +188,3 @@ and string = parse
 	| '\\' { error Invalid_escape (lexeme_start lexbuf) }
 	| '"' { lexeme_end lexbuf }
 	| [^'"' '\\' '\n']+ { store lexbuf; string lexbuf }
- 

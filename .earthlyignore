@@ -1,0 +1,37 @@
+.git
+.github
+azure-pipelines.yml
+Earthfile
+
+
+# cmake
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+cmake_install.cmake
+install_manifest.txt
+CPackConfig.cmake
+CPackSourceConfig.cmake
+CTestTestfile.cmake
+DartConfiguration.tcl
+/cmake/uninstall.cmake
+
+# build files
+/build*/
+/libs/src
+/libs/tmp
+/libs/download
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.opensdf
+*.suo
+Win32
+Release
+Debug
+neko.sln
+*.dir
+bin
+/extra/chocolatey/LICENSE
+/extra/chocolatey/*.zip
+/extra/chocolatey/*.nupkg

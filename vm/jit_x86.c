@@ -1,5 +1,5 @@
 /*
- * Copyright (C)2005-2017 Haxe Foundation
+ * Copyright (C)2005-2022 Haxe Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -1323,7 +1323,7 @@ static void jit_number_op( jit_ctx *ctx, enum Operation op ) {
 	XMov_rp(TMP2,TMP,FIELD(0));
 	XCmp_rb(TMP2,VAL_FLOAT);
 	XJump(JNeq,jnot_float2);
-	
+
 	// load floats
 	XAdd_rc(ACC,4);
 	XFLd_i(ACC);
@@ -1358,7 +1358,7 @@ static void jit_number_op( jit_ctx *ctx, enum Operation op ) {
 	}
 	if( op != OP_MOD ) {
 		stack_push(Esp,2);
-	}	
+	}
 	XFStp_i(Esp);
 	XCall_m(alloc_float);
 	stack_pop(Esp,2);
@@ -1371,7 +1371,7 @@ static void jit_number_op( jit_ctx *ctx, enum Operation op ) {
 	PATCH_JUMP(jnot_int2);
 
 	begin_call();
-	XPush_c(GET_PC());	
+	XPush_c(GET_PC());
 	XPush_r(ACC);
 	XPush_r(TMP);
 	XPush_r(VM);
@@ -1477,7 +1477,7 @@ static void jit_int_op( jit_ctx *ctx, enum IOperation op ) {
 	}
 	stack_pop(Esp,4);
 	end_call();
-	
+
 	PATCH_JUMP(jend);
 	pop(1);
 

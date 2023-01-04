@@ -1,5 +1,5 @@
 /*
- * Copyright (C)2005-2017 Haxe Foundation
+ * Copyright (C)2005-2022 Haxe Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -352,7 +352,7 @@ static value alloc_result( connection *c, MYSQL_RES *r ) {
 	res->current = NULL;
 	res->nfields = num_fields;
 	res->fields_ids = (field*)alloc_private(sizeof(field)*num_fields);
-	res->fields_convs = (CONV*)alloc_private(sizeof(CONV)*num_fields);	
+	res->fields_convs = (CONV*)alloc_private(sizeof(CONV)*num_fields);
 	for(i=0;i<num_fields;i++) {
 		field id;
 		if( strchr(fields[i].name,'(') )
@@ -496,7 +496,7 @@ static value connect_mysql( value params  ) {
 	if( !val_is_string(socket) && !val_is_null(socket) )
 		neko_error();
 	{
-		connection *c = (connection*)alloc(sizeof(connection));		
+		connection *c = (connection*)alloc(sizeof(connection));
 		value v;
 		c->m = mysql_init(NULL);
 		c->conv_string = NULL;
