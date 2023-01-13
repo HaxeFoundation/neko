@@ -56,7 +56,7 @@ option(WITH_UI "Build GTK-2 UI support." ON)
 option(WITH_SSL "Build SSL support." ON)
 option(WITH_MYSQL "Build MySQL support." ON)
 option(WITH_SQLITE "Build Sqlite support." ON)
-option(WITH_APACHE "Build Apach modules." ON)
+option(WITH_APACHE "Build Apache modules." ON)
 option(WITH_NEKOML "Build NekoML." ON)
 
 # Process common headers in libraries
