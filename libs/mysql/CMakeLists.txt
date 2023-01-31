@@ -157,7 +157,7 @@ target_link_libraries(mysql5.ndll
 	socket
 	sha1
 	libneko
-	)
+)
 
 if (WIN32)
 	target_link_libraries(mysql5.ndll ws2_32)
