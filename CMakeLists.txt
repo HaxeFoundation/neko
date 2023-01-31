@@ -179,6 +179,8 @@ if (RELOCATABLE)
 	endif()
 endif()
 
+set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:${CMAKE_INSTALL_FULL_LIBDIR}")
+
 if(UNIX AND NOT APPLE)
 	add_definitions(-DABI_ELF)
 endif()
