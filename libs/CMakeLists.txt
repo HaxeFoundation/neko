@@ -151,7 +151,8 @@ if (WITH_APACHE)
 		if (APPLE) # We need to use the most up to date version on MacOS
 			set(APR_SOURCE
 				SVN_REPOSITORY https://svn.apache.org/repos/asf/apr/apr/trunk/
-				CONFIGURE_COMMAND ./buildconf
+				CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APR &&
+					./buildconf
 			)
 		else()
 			set(APR_SOURCE
