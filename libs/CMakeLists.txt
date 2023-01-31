@@ -143,15 +143,16 @@ if (WITH_APACHE)
 
 		set_target_properties(PCRE PROPERTIES ${EP_PROPS})
 		# don't want to add PCRE 1 to external_deps,
-		# but want download_static_deps depends on it
-		add_dependencies(download_static_deps PCRE-download)
+		# but want download_deps to depend on it
+		add_dependencies(download_deps PCRE-download)
 
 		## End of PCRE download info
 
 		if (APPLE) # We need to use the most up to date version on MacOS
 			set(APR_SOURCE
 				SVN_REPOSITORY https://svn.apache.org/repos/asf/apr/apr/trunk/
-				UPDATE_COMMAND ./buildconf
+				CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APR &&
+					./buildconf
 			)
 		else()
 			set(APR_SOURCE
@@ -272,10 +273,10 @@ if (WITH_APACHE)
 		)
 		set_target_properties(Apache PROPERTIES ${EP_PROPS})
 		# Download sources for fat source archive
-		add_dependencies(download_static_deps Apache-download)
-		add_dependencies(download_static_deps APR-download)
+		add_dependencies(download_deps Apache-download)
+		add_dependencies(download_deps APR-download)
 		if (NOT APPLE)
-			add_dependencies(download_static_deps APRutil-download)
+			add_dependencies(download_deps APRutil-download)
 		endif()
 	else()
 		find_package(APACHE REQUIRED)
@@ -287,6 +288,6 @@ if (WITH_APACHE)
 		set(APACHE_INCLUDE_DIRS ${APACHE_INCLUDE_DIR} ${APR_INCLUDE_DIR} ${APRUTIL_INCLUDE_DIR})
 	endif()
 
-  add_subdirectory(mod_neko)
-  add_subdirectory(mod_tora)
+	add_subdirectory(mod_neko)
+	add_subdirectory(mod_tora)
 endif()

@@ -53,7 +53,7 @@ if (STATIC_ZLIB)
 	add_dependencies(zlib.ndll Zlib)
 	target_include_directories(zlib.ndll PRIVATE ${ZLIB_INCLUDE_DIRS})
 	# Download project for fat source archive
-	add_dependencies(download_static_deps Zlib-download)
+	add_dependencies(download_deps Zlib-download)
 else()
 	pkg_check_modules(ZLIB REQUIRED zlib)
 	target_include_directories(zlib.ndll PRIVATE ${ZLIB_INCLUDEDIR} ${ZLIB_INCLUDE_DIRS})

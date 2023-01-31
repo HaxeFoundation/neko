@@ -24,7 +24,7 @@ if (STATIC_SQLITE3)
 	target_link_libraries(sqlite.ndll libneko)
 	target_compile_definitions(sqlite.ndll PRIVATE SQLITE_MAX_VARIABLE_NUMBER=250000 SQLITE_ENABLE_RTREE=1)
 	# Download project for fat source archive
-	add_dependencies(download_static_deps Sqlite3-download)
+	add_dependencies(download_deps Sqlite3-download)
 else()
 	add_library(sqlite.ndll MODULE sqlite.c)
 	pkg_check_modules(SQLITE3 REQUIRED sqlite3)

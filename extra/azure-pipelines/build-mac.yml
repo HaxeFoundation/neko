@@ -26,7 +26,7 @@ jobs:
       - script: cmake . -DSTATIC_DEPS=$(STATIC_DEPS) -G Ninja -DCMAKE_BUILD_TYPE=${{ parameters.config }}
         displayName: CMake
       - ${{ if eq(parameters.staticDeps, 'true') }}:
-        - script: ninja download_static_deps || ninja download_static_deps || ninja download_static_deps
+        - script: ninja download_deps || ninja download_deps || ninja download_deps
           displayName: Download static deps
       - script: ninja
         displayName: Build

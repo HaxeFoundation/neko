@@ -24,9 +24,9 @@ jobs:
         - script: cmake . -G "${{ parameters.cmakeGenerator }}" -A ${{ parameters.arch }}
           displayName: CMake
       - script: |
-          cmake --build . --config ${{ parameters.config }} --target download_static_deps || \
-          cmake --build . --config ${{ parameters.config }} --target download_static_deps || \
-          cmake --build . --config ${{ parameters.config }} --target download_static_deps
+          cmake --build . --config ${{ parameters.config }} --target download_deps || \
+          cmake --build . --config ${{ parameters.config }} --target download_deps || \
+          cmake --build . --config ${{ parameters.config }} --target download_deps
         displayName: Download static deps
       - script: cmake --build . --config ${{ parameters.config }}
         displayName: Build

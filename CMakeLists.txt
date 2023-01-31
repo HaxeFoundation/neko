@@ -51,12 +51,12 @@ set(NEKO_VERSION ${NEKO_VERSION_MAJOR}.${NEKO_VERSION_MINOR}.${NEKO_VERSION_PATC
 # Determine target endianness
 TEST_BIG_ENDIAN(NEKO_BIG_ENDIAN)
 
-option(WITH_REGEXP "Build Perl-compatible regex support." ON)
-option(WITH_UI "Build GTK-2 UI support." ON)
-option(WITH_SSL "Build SSL support." ON)
-option(WITH_MYSQL "Build MySQL support." ON)
-option(WITH_SQLITE "Build Sqlite support." ON)
-option(WITH_APACHE "Build Apache modules." ON)
+option(WITH_REGEXP "Build with Perl-compatible regex support." ON)
+option(WITH_UI "Build with GTK-2 UI support." ON)
+option(WITH_SSL "Build with SSL support." ON)
+option(WITH_MYSQL "Build with MySQL support." ON)
+option(WITH_SQLITE "Build with Sqlite support." ON)
+option(WITH_APACHE "Build with Apache modules." ON)
 option(WITH_NEKOML "Build NekoML." ON)
 
 # Process common headers in libraries
@@ -112,13 +112,10 @@ set(external_deps
 	pcre2
 	Sqlite3
 	APR
+	APRutil
 	Apache
 	MbedTLS
 )
-# Mac build uses a newer version of APR which already contains APRutil
-if (NOT APPLE)
-	list(APPEND external_deps APRutil)
-endif()
 
 if (WIN32)
 	set(STATIC_DEPS_DEFAULT "all")
@@ -137,18 +134,29 @@ set(STATIC_DEPS ${STATIC_DEPS_DEFAULT} CACHE STRING "${STATIC_DEPS_DOC}")
 
 # Validate STATIC_DEPS
 if (STATIC_DEPS STREQUAL "all")
-	set(STATIC_DEPS ${external_deps} CACHE STRING "${STATIC_DEPS_DOC}" FORCE)
+	set(STATIC_DEPS_ALL ${external_deps})
+	if (WIN32)
+		list(REMOVE_ITEM STATIC_DEPS_ALL BoehmGC)
+	endif()
+	if (APPLE)
+		list(REMOVE_ITEM STATIC_DEPS_ALL APRutil)
+	endif()
+	set(STATIC_DEPS ${STATIC_DEPS_ALL} CACHE STRING "${STATIC_DEPS_DOC}" FORCE)
 elseif (STATIC_DEPS STREQUAL "none")
 	message(STATUS "set STATIC_DEPS to nothing")
 	set(STATIC_DEPS CACHE STRING "${STATIC_DEPS_DOC}" FORCE)
+else()
+	foreach(dep ${STATIC_DEPS})
+		list(FIND external_deps ${dep} idx)
+		if(idx EQUAL -1)
+			message(FATAL_ERROR "Invalid STATIC_DEPS. There is no ${dep} in the list of ${external_deps}")
+		elseif(WIN32 AND dep STREQUAL "BoehmGC")
+			message(FATAL_ERROR "Cannot link ${dep} statically on Windows")
+		elseif(APPLE AND dep STREQUAL "APRutil")
+			message(WARNING "${dep} is redundant as it was merged into APR in version 2.0, which is the version we build with on macOS.")
+		endif()
+	endforeach()
 endif()
-
-foreach(dep ${STATIC_DEPS})
-	list(FIND external_deps ${dep} idx)
-	if(idx EQUAL -1)
-		message(FATAL_ERROR "Invalid STATIC_DEPS. There is no ${dep} in the list of ${external_deps}")
-	endif()
-endforeach()
 
 # Set STATIC_* variables according to STATIC_DEPS.
 foreach(dep ${external_deps})
@@ -270,7 +278,8 @@ add_executable(nekovm
 	vm/main.c
 )
 
-if (STATIC_BOEHMGC)
+# We need to build from source on Windows regardless
+if (STATIC_BOEHMGC OR WIN32)
 	ExternalProject_Add(libatomic_ops
 		${EP_CONFIGS}
 		URL https://github.com/ivmai/libatomic_ops/releases/download/v7.6.0/libatomic_ops-7.6.0.tar.gz
@@ -279,6 +288,7 @@ if (STATIC_BOEHMGC)
 		BUILD_COMMAND echo skip build
 		INSTALL_COMMAND echo skip install
 	)
+	set_target_properties(libatomic_ops PROPERTIES ${EP_PROPS})
 
 	set (
 		BoehmGC_CONFIGS
@@ -289,7 +299,12 @@ if (STATIC_BOEHMGC)
 		URL_MD5 bf46ccbdaccfa3186c2ab87191c8855a
 	)
 
+	set(GC_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/include)
+
 	if (WIN32)
+		set(GC_LIBRARIES
+			${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/${CMAKE_CFG_INTDIR}/gcmt-dll.lib
+		)
 		ExternalProject_Add(BoehmGC
 			${EP_CONFIGS}
 			${BoehmGC_CONFIGS}
@@ -298,15 +313,12 @@ if (STATIC_BOEHMGC)
 				-Denable_threads=ON
 				-Denable_parallel_mark=ON
 				-DCMAKE_USE_WIN32_THREADS_INIT=ON
+				-DCMAKE_CXX_STANDARD=14
 			PATCH_COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/libs/src/libatomic_ops ${CMAKE_BINARY_DIR}/libs/src/BoehmGC/libatomic_ops
 			INSTALL_COMMAND
 				${CMAKE_COMMAND} -E copy_directory
 					${CMAKE_BINARY_DIR}/libs/src/BoehmGC/include
 					${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/include/gc
-		)
-		set(GC_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/include)
-		set(GC_LIBRARIES
-			${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/${CMAKE_CFG_INTDIR}/gcmt-dll.lib
 		)
 		add_custom_command(OUTPUT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/gcmt-dll.dll
 			DEPENDS BoehmGC
@@ -323,7 +335,6 @@ if (STATIC_BOEHMGC)
 			set(GC_CFLAGS "-w")
 		endif()
 
-		set(GC_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/include)
 		set(GC_LIBRARIES
 			${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/lib/libgc.a
 		)
@@ -348,15 +359,18 @@ if (STATIC_BOEHMGC)
 			BYPRODUCTS
 				${GC_LIBRARIES}
 		)
-
-		# don't want to add libatomic_ops to external_deps,
-		# but want download_static_deps depends on it
-		add_dependencies(BoehmGC-download libatomic_ops-download)
 	endif()
+
 	set_target_properties(BoehmGC PROPERTIES ${EP_PROPS})
 	add_dependencies(libneko BoehmGC)
 else()
 	find_package(BoehmGC REQUIRED)
+endif()
+
+add_custom_target(download_deps)
+if (STATIC_BOEHMGC OR WIN32)
+	add_dependencies(download_deps libatomic_ops-download)
+	add_dependencies(download_deps BoehmGC-download)
 endif()
 
 target_include_directories(libneko PRIVATE ${GC_INCLUDE_DIR})
@@ -522,13 +536,6 @@ endif()
 
 #######################
 
-add_custom_target(download_static_deps)
-if (STATIC_BOEHMGC)
-	add_dependencies(download_static_deps BoehmGC-download)
-endif()
-
-#######################
-
 # source_archive
 # We create our own source package target instead of using CPack's package_source.
 # One reason is that the CPack VS generator doesn't generate package_source target.
@@ -569,7 +576,7 @@ add_custom_command(OUTPUT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${source_archive_fat
 		-Dsrc_dir=${CMAKE_SOURCE_DIR}
 		-Dlib_src_dir=libs/src
 		-P ${CMAKE_SOURCE_DIR}/cmake/source_archive_fat.cmake
-	DEPENDS source_archive download_static_deps
+	DEPENDS source_archive download_deps
 	VERBATIM
 )
 

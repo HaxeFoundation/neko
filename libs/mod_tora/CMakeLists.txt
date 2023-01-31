@@ -10,7 +10,7 @@ add_library(mod_tora2.ndll MODULE
 add_dependencies(mod_tora2.ndll
 	mod_neko2.ndll
 	socket
-	)
+)
 
 target_include_directories(mod_tora2.ndll
 	PRIVATE
@@ -20,7 +20,7 @@ target_include_directories(mod_tora2.ndll
 target_link_libraries(mod_tora2.ndll
 	socket
 	${APACHE_LIBRARIES}
-	)
+)
 
 if (WIN32)
 	target_link_libraries(mod_tora2.ndll ws2_32)
