@@ -27,7 +27,7 @@ jobs:
           cmake --build . --config ${{ parameters.config }} --target download_deps || \
           cmake --build . --config ${{ parameters.config }} --target download_deps || \
           cmake --build . --config ${{ parameters.config }} --target download_deps
-        displayName: Download static deps
+        displayName: Download dependencies
       - script: cmake --build . --config ${{ parameters.config }}
         displayName: Build
       - script: ctest --verbose --build-config ${{ parameters.config }}

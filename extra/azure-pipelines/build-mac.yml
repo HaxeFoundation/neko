@@ -22,12 +22,12 @@ jobs:
           brew cleanup
           brew update
           brew bundle --file="$(BREWFILE)"
-        displayName: Install dependencies
+        displayName: Install Homebrew dependencies
       - script: cmake . -DSTATIC_DEPS=$(STATIC_DEPS) -G Ninja -DCMAKE_BUILD_TYPE=${{ parameters.config }}
         displayName: CMake
       - ${{ if eq(parameters.staticDeps, 'true') }}:
         - script: ninja download_deps || ninja download_deps || ninja download_deps
-          displayName: Download static deps
+          displayName: Download dependencies
       - script: ninja
         displayName: Build
       - script: |
