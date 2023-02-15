@@ -119,7 +119,7 @@ It defines the dependencies that should be linked statically. Can be `all`, `non
 
 CMake will automatically download and build the specified dependencies into the build folder. If a library is not present in this list, it should be installed manually, and it will be linked dynamically.
 
-All third-party libraries, except GTK+2 (Linux) and BoehmGC on Windows, can be linked statically. We do not support statically linking GTK+2 due to the difficulty of building it and its own dependencies. Additionally, we do not support statically linking the BoehmGC library on Windows systems. Finally, on MacOS, APRutil cannot be linked statically as it has been merged with APR 2.0, which is used on MacOS builds.
+All third-party libraries, except GTK+2 (Linux) and BoehmGC on Windows, can be linked statically. We do not support statically linking GTK+2 due to the difficulty of building it and its own dependencies. Additionally, we do not support statically linking the BoehmGC library on Windows systems.
 
 #### `RELOCATABLE`
 

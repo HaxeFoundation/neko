@@ -41,14 +41,13 @@ if (WITH_APACHE)
 			set(APRUTIL_CONF "")
 			set(APRUTIL_DEP "")
 		endif()
-		# APACHE still uses old pcre currently
-		# if (STATIC_PCRE2)
-			set(PCRE_CONF --with-pcre=${CMAKE_BINARY_DIR}/libs/src/install-prefix)
-			set(PCRE_DEP PCRE)
-		# elseif()
-		# 	set(PCRE_CONF "")
-		# 	set(PCRE_DEP "")
-		# endif()
+		if (STATIC_PCRE2)
+			set(PCRE_CONF --with-pcre=${CMAKE_BINARY_DIR}/libs/src/install-prefix/bin/pcre2-config)
+			set(PCRE_DEP pcre2)
+		elseif()
+			set(PCRE_CONF "")
+			set(PCRE_DEP "")
+		endif()
 		if (STATIC_ZLIB)
 			set(ZLIB_CONF --with-z=${CMAKE_BINARY_DIR}/libs/src/install-prefix)
 			set(ZLIB_DEP Zlib)
@@ -85,84 +84,10 @@ if (WITH_APACHE)
 			)
 		endif()
 
-		# Apache still uses old PCRE. Remove this once they migrate
-		## Start of PCRE download info
-		set(PCRE_URL_DATA
-			URL "https://downloads.sourceforge.net/project/pcre/pcre/8.45/pcre-8.45.tar.gz"
-			URL_HASH SHA1=a19402ce56d770da1557cf331b109d33adb74062
-		)
-		if (WIN32)
-			ExternalProject_Add(PCRE
-				${EP_CONFIGS}
-				${PCRE_URL_DATA}
-				CMAKE_ARGS
-					-G ${CMAKE_GENERATOR}
-					-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/install-prefix
-					-Wno-dev
-					-DPCRE_BUILD_PCRECPP=OFF
-					-DPCRE_BUILD_PCREGREP=OFF
-					-DPCRE_BUILD_TESTS=OFF
-					-DPCRE_SUPPORT_JIT=ON
-					-DPCRE_SUPPORT_UNICODE_PROPERTIES=ON
-			)
-			set(PCRE_LIBRARIES
-				optimized ${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/pcre.lib
-				debug ${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/pcred.lib
-			)
-		else()
-			if (APPLE)
-				set(PCRE_CFLAGS "-w -mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
-			else()
-				set(PCRE_CFLAGS "-w")
-			endif()
-			set(PCRE_LIBRARIES
-				${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/libpcre.a
-			)
-			ExternalProject_Add(PCRE
-				${EP_CONFIGS}
-				${PCRE_URL_DATA}
-				CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/PCRE &&
-					autoreconf -f -i &&
-					./configure
-						--prefix=${CMAKE_BINARY_DIR}/libs/src/install-prefix
-						--with-pic
-						--enable-unicode-properties
-						--enable-silent-rules
-						--enable-jit
-						--disable-cpp
-						--enable-shared=no
-						--enable-static=yes
-						--silent
-				BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/PCRE &&
-					make "CFLAGS=${PCRE_CFLAGS}"
-				INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/PCRE &&
-					make install
-				BYPRODUCTS ${PCRE_LIBRARIES}
-			)
-		endif()
-
-		set_target_properties(PCRE PROPERTIES ${EP_PROPS})
-		# don't want to add PCRE 1 to external_deps,
-		# but want download_deps to depend on it
-		add_dependencies(download_deps PCRE-download)
-
-		## End of PCRE download info
-
-		if (APPLE) # We need to use the most up to date version on MacOS
-			set(APR_SOURCE
-				SVN_REPOSITORY https://svn.apache.org/repos/asf/apr/apr/trunk/
-				CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APR &&
-					./buildconf
-			)
-		else()
-			set(APR_SOURCE
-				URL https://archive.apache.org/dist/apr/apr-1.5.2.tar.gz
-				URL_MD5 98492e965963f852ab29f9e61b2ad700
-			)
-		endif()
 		ExternalProject_Add(APR
 			${EP_CONFIGS}
-			${APR_SOURCE}
+			URL https://archive.apache.org/dist/apr/apr-1.7.2.tar.gz
+			URL_HASH SHA256=3d8999b216f7b6235343a4e3d456ce9379aa9a380ffb308512f133f0c5eb2db9
 			${APR_CONFIGS}
 		)
 		set_target_properties(APR PROPERTIES ${EP_PROPS})
@@ -175,7 +100,7 @@ if (WITH_APACHE)
 					-DOPENSSL_ROOT_DIR=${CMAKE_BINARY_DIR}/libs/src/install-prefix
 					-DINSTALL_PDB=OFF
 			)
-		elseif(NOT APPLE)
+		else()
 			set(APRutil_CONFIGS
 				CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APRutil &&
 					./configure
@@ -190,17 +115,14 @@ if (WITH_APACHE)
 			)
 		endif()
 
-		# For apple we use APR 2.0, which contains apr-util
-		if (NOT APPLE)
-			ExternalProject_Add(APRutil
-				${EP_CONFIGS}
-				DEPENDS ${APR_DEP} ${OPENSSL_DEP}
-				URL https://archive.apache.org/dist/apr/apr-util-1.5.4.tar.gz
-				URL_MD5 866825c04da827c6e5f53daff5569f42
-				${APRutil_CONFIGS}
-			)
-			set_target_properties(APRutil PROPERTIES ${EP_PROPS})
-		endif()
+		ExternalProject_Add(APRutil
+			${EP_CONFIGS}
+			DEPENDS ${APR_DEP} ${OPENSSL_DEP}
+			URL https://archive.apache.org/dist/apr/apr-util-1.6.3.tar.gz
+			URL_HASH SHA256=2b74d8932703826862ca305b094eef2983c27b39d5c9414442e9976a9acf1983
+			${APRutil_CONFIGS}
+		)
+		set_target_properties(APRutil PROPERTIES ${EP_PROPS})
 
 		if(WIN32)
 			set(Apache_CONFIGS
@@ -208,7 +130,7 @@ if (WITH_APACHE)
 					-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/install-prefix
 					-Wno-dev
 					-DOPENSSL_ROOT_DIR=${CMAKE_BINARY_DIR}/libs/src/install-prefix
-					"-DEXTRA_COMPILE_FLAGS=/D PCRE_STATIC"
+					"-DEXTRA_COMPILE_FLAGS=/D PCRE2_STATIC"
 					-DEXTRA_LIBS=Ws2_32
 				BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/Apache-build &&
 					${CMAKE_COMMAND} --build . --target libhttpd --config ${CMAKE_CFG_INTDIR}
@@ -225,59 +147,42 @@ if (WITH_APACHE)
 				${CMAKE_BINARY_DIR}/libs/src/Apache-build/${CMAKE_CFG_INTDIR}/libhttpd.lib
 			)
 		else()
-			set(APACHE_CONFIG_SETTINGS
-					${APR_CONF}
-					${OPENSSL_CONF}
-					${PCRE_CONF}
-					${ZLIB_CONF}
-			)
-			if (NOT APPLE)
-				list(APPEND APACHE_CONFIG_SETTINGS ${APRUTIL_CONF})
-			endif()
 			set(Apache_CONFIGS
 				CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/Apache &&
 					./configure
 						--prefix=${CMAKE_BINARY_DIR}/libs/src/Apache-build
 						--silent
-						${APACHE_CONFIG_SETTINGS}
+						${APR_CONF}
+						${OPENSSL_CONF}
+						${PCRE_CONF}
+						${ZLIB_CONF}
+						${APRUTIL_CONF}
 				BUILD_COMMAND echo skip build
 				INSTALL_COMMAND echo skip install
 			)
 			set(APACHE_INCLUDE_DIRS
+				${CMAKE_BINARY_DIR}/libs/src/install-prefix/include/apr-1
 				${CMAKE_BINARY_DIR}/libs/src/Apache/include
 				${CMAKE_BINARY_DIR}/libs/src/Apache/os/unix
 			)
-			if (APPLE)
-				list(APPEND APACHE_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/install-prefix/include/apr-2)
-			else()
-				list(APPEND APACHE_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/install-prefix/include/apr-1)
-			endif()
 			set(APACHE_LIBRARIES
 
 			)
 		endif()
-		set(APACHE_DEPENDENCIES
-			${APR_DEP} ${OPENSSL_DEP} ${PCRE_DEP}
-		)
-		if (NOT APPLE)
-			list(APPEND APACHE_DEPENDENCIES ${APRUTIL_DEP})
-		endif()
 		ExternalProject_Add(Apache
 			${EP_CONFIGS}
-			DEPENDS ${APACHE_DEPENDENCIES}
+			DEPENDS ${APR_DEP} ${APRUTIL_DEP} ${OPENSSL_DEP} ${PCRE_DEP} ${ZLIB_DEP}
 			URL
-				https://archive.apache.org/dist/httpd/httpd-2.4.29.tar.gz
-				https://github.com/HaxeFoundation/neko/files/9692684/httpd-2.4.29.tar.gz
-			URL_MD5 6380b0856658f07479fdcba9e20294a6
+				https://archive.apache.org/dist/httpd/httpd-2.4.55.tar.gz
+				https://github.com/HaxeFoundation/neko/files/10745746/httpd-2.4.55.tar.gz
+			URL_HASH SHA256=5276ea8bc6fff31eed5c82132ae51a0b2ee05f9e6b61a00fa877f6cadab3b638
 			${Apache_CONFIGS}
 		)
 		set_target_properties(Apache PROPERTIES ${EP_PROPS})
 		# Download sources for fat source archive
 		add_dependencies(download_deps Apache-download)
 		add_dependencies(download_deps APR-download)
-		if (NOT APPLE)
-			add_dependencies(download_deps APRutil-download)
-		endif()
+		add_dependencies(download_deps APRutil-download)
 	else()
 		find_package(APACHE REQUIRED)
 		find_package(APR REQUIRED)
