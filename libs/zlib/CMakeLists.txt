@@ -41,7 +41,7 @@ if (STATIC_ZLIB)
 		URL
 			https://zlib.net/fossils/zlib-1.2.13.tar.gz
 			https://github.com/madler/zlib/releases/download/v1.2.13/zlib-1.2.13.tar.gz
-		URL_MD5 9b8aa094c4e5765dabf4da391f00d15c
+		URL_HASH SHA256=b3a24de97a8fdbc835b9833169501030b8977031bcb54b3b3ac13740f846ab30
 		CMAKE_ARGS ${ZLIB_CMAKE_ARGS}
 		INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/Zlib-build &&
 			${CMAKE_COMMAND} --build . --target install --config ${config}
