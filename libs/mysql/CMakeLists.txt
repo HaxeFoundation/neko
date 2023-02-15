@@ -75,6 +75,18 @@ if (STATIC_MARIADBCONNECTOR)
 		set(OPENSSL_CONF "")
 		set(OPENSSL_DEP "")
 	endif()
+	if (STATIC_ZLIB)
+		set(ZLIB_CONF
+			-DWITH_EXTERNAL_ZLIB=ON
+			-DZLIB_ROOT=${CMAKE_BINARY_DIR}/libs/src/install-prefix
+		)
+		set(ZLIB_DEP Zlib)
+	else()
+		if (UNIX)
+			set(ZLIB_CONF -DWITH_EXTERNAL_ZLIB=ON)
+		endif()
+		set(ZLIB_DEP "")
+	endif()
 	if (WIN32)
 		set(MARIADB_CONNECTOR_LIBRARIES
 			${OPENSSL_LIBRARIES}
@@ -87,7 +99,7 @@ if (STATIC_MARIADBCONNECTOR)
 	endif()
 	ExternalProject_Add(MariaDBConnector
 		${EP_CONFIGS}
-		DEPENDS ${OPENSSL_DEP}
+		DEPENDS ${OPENSSL_DEP} ${ZLIB_DEP}
 		URL https://downloads.mariadb.com/Connectors/c/connector-c-3.3.4/mariadb-connector-c-3.3.4-src.tar.gz
 		URL_HASH SHA256=486e5fdf976a8e7fadf583ae912128655e013ac575fa79b2d1af0fb8827a78ed
 		CMAKE_ARGS
@@ -96,6 +108,7 @@ if (STATIC_MARIADBCONNECTOR)
 			-DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}
 			-DWITH_SSL=ON
 			${OPENSSL_CONF}
+			${ZLIB_CONF}
 		PATCH_COMMAND ${CMAKE_COMMAND} -Dmariadb_source=${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector -P ${CMAKE_SOURCE_DIR}/cmake/patch_mariadb.cmake
 		BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector-build &&
 			${CMAKE_COMMAND} --build . --target mariadbclient --config ${CMAKE_CFG_INTDIR}
@@ -122,7 +135,7 @@ target_include_directories(mysql.ndll
 target_link_libraries(mysql.ndll libneko ${MARIADB_CONNECTOR_LIBRARIES})
 
 if (WIN32)
-	target_link_libraries(mysql.ndll ws2_32 crypt32 shlwapi)
+	target_link_libraries(mysql.ndll ws2_32 crypt32 shlwapi secur32 ${ZLIB_LIBRARIES})
 endif()
 
 set_target_properties(mysql.ndll
