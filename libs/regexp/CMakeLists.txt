@@ -6,10 +6,8 @@ add_library(regexp.ndll MODULE regexp.c)
 if (STATIC_PCRE2)
 	add_definitions(-DPCRE2_STATIC_LINK)
 	set(PCRE2_CONFIG
-		URL
-			"https://github.com/PhilipHazel/pcre2/releases/download/pcre2-10.37/pcre2-10.37.tar.gz"
-			"https://sourceforge.net/projects/pcre/files/pcre2/10.37/pcre2-10.37.tar.gz/download"
-		URL_MD5 a0b59d89828f62d2e1caac04f7c51e0b
+		URL https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.42/pcre2-10.42.tar.gz
+		URL_HASH SHA256=c33b418e3b936ee3153de2c61cc638e7e4fe3156022a5c77d0711bcbb9d64f1f
 	)
 	if (WIN32)
 		ExternalProject_Add(pcre2

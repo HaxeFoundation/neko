@@ -5,8 +5,8 @@
 if (STATIC_SQLITE3)
 	ExternalProject_Add(Sqlite3
 		${EP_CONFIGS}
-		URL https://www.sqlite.org/2018/sqlite-autoconf-3250300.tar.gz
-		URL_MD5 06db8206bc8febf07141b78ad58595ea
+		URL https://www.sqlite.org/2022/sqlite-autoconf-3400100.tar.gz
+		URL_HASH SHA256=2c5dea207fa508d765af1ef620b637dcb06572afa6f01f0815bd5bbf864b33d9
 		CONFIGURE_COMMAND echo skip config
 		BUILD_COMMAND echo skip build
 		INSTALL_COMMAND echo skip install

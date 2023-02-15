@@ -35,8 +35,8 @@ if (STATIC_MBEDTLS)
 	endif()
 	ExternalProject_Add(MbedTLS
 		${EP_CONFIGS}
-		URL https://github.com/Mbed-TLS/mbedtls/archive/refs/tags/mbedtls-2.13.1.tar.gz
-		URL_MD5 e251b86046db6c05167b5803de9c6694
+		URL https://github.com/Mbed-TLS/mbedtls/archive/refs/tags/v2.28.2.tar.gz
+		URL_HASH SHA256=bc55232bf71fd66045122ba9050a29ea7cb2e8f99b064a9e6334a82f715881a0
 		CMAKE_ARGS ${MBEDTLS_CMAKE_ARGS}
 		PATCH_COMMAND ${CMAKE_COMMAND} -Dsource=${CMAKE_SOURCE_DIR} -DMbedTLS_source=${CMAKE_BINARY_DIR}/libs/src/MbedTLS -P ${CMAKE_SOURCE_DIR}/cmake/patch_mbedtls.cmake
 		INSTALL_COMMAND echo skip install
