@@ -1,4 +1,3 @@
-include(FindPkgConfig)
 
 ######################
 # zlib.ndll
@@ -51,14 +50,13 @@ if (STATIC_ZLIB)
 	set_target_properties(Zlib PROPERTIES ${EP_PROPS})
 	set(ZLIB_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/install-prefix/include)
 	add_dependencies(zlib.ndll Zlib)
-	target_include_directories(zlib.ndll PRIVATE ${ZLIB_INCLUDE_DIRS})
 	# Download project for fat source archive
 	add_dependencies(download_deps Zlib-download)
 else()
-	pkg_check_modules(ZLIB REQUIRED zlib)
-	target_include_directories(zlib.ndll PRIVATE ${ZLIB_INCLUDEDIR} ${ZLIB_INCLUDE_DIRS})
+	find_package(ZLIB REQUIRED)
 endif()
 
+target_include_directories(zlib.ndll PRIVATE ${ZLIB_INCLUDE_DIRS})
 target_link_libraries(zlib.ndll libneko ${ZLIB_LIBRARIES})
 
 set_target_properties(zlib.ndll

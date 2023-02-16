@@ -1,3 +1,4 @@
+include(FindPkgConfig)
 
 ######################
 # sqlite.ndll

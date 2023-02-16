@@ -1,4 +1,3 @@
-include(FindPkgConfig)
 
 ######################
 # ui.ndll
@@ -11,9 +10,8 @@ if(APPLE)
 	find_library(CARBON_LIBRARY Carbon REQUIRED)
 	target_link_libraries(ui.ndll ${CARBON_LIBRARY})
 elseif(UNIX)
-	pkg_check_modules(GTK2 REQUIRED gtk+-2.0)
+	find_package(GTK2 REQUIRED)
 	target_include_directories(ui.ndll PRIVATE
-		${GTK2_INCLUDEDIR}
 		${GTK2_INCLUDE_DIRS}
 	)
 	target_link_libraries(ui.ndll ${GTK2_LIBRARIES})
