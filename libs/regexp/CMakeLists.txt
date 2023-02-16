@@ -21,10 +21,11 @@ if (STATIC_PCRE2)
 				-DPCRE2_BUILD_TESTS=OFF
 				-DPCRE2_SUPPORT_JIT=ON
 				-DPCRE2_SUPPORT_UNICODE=ON
+				-DBUILD_SHARED_LIBS=OFF
 		)
 		set(PCRE2_LIBRARIES
-			optimized ${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/pcre2-8.lib
-			debug ${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/pcre2-8d.lib
+			optimized ${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/pcre2-8-static.lib
+			debug ${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/pcre2-8-staticd.lib
 		)
 	else()
 		if (APPLE)
