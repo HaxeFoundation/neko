@@ -50,7 +50,7 @@ if (STATIC_PCRE2)
 					--enable-static=yes
 					--silent
 			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/pcre2 &&
-				make "CFLAGS=${PCRE_CFLAGS}"
+				make "CFLAGS=${PCRE2_CFLAGS}"
 			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/pcre2 &&
 				make install
 			BYPRODUCTS ${PCRE2_LIBRARIES}
