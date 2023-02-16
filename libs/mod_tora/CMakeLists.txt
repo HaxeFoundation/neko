@@ -40,7 +40,7 @@ if(APPLE)
 		PROPERTIES
 		LINK_FLAGS "-undefined dynamic_lookup ${LINK_FLAGS}"
 	)
-endif(APPLE)
+endif()
 
 install (
 	TARGETS mod_tora2.ndll

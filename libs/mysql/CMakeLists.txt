@@ -105,7 +105,7 @@ if (STATIC_MARIADBCONNECTOR)
 		BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector-build &&
 			${CMAKE_COMMAND} --build . --target mariadbclient --config ${CMAKE_CFG_INTDIR}
 		INSTALL_COMMAND echo skip install
-		BYPRODUCTS ${MARIADB_CONNECTOR_LIBRARIES}
+		BUILD_BYPRODUCTS ${MARIADB_CONNECTOR_LIBRARIES}
 	)
 	set_target_properties(MariaDBConnector PROPERTIES ${EP_PROPS})
 	set(MARIADB_CONNECTOR_INCLUDE_DIR
@@ -142,7 +142,7 @@ if(APPLE)
 		PROPERTIES
 		LINK_FLAGS "-undefined dynamic_lookup ${LINK_FLAGS}"
 	)
-endif(APPLE)
+endif()
 
 ######################
 # mysql5.ndll

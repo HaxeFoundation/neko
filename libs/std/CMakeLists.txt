@@ -26,7 +26,7 @@ add_library(std.ndll MODULE
 target_link_libraries(std.ndll
 	sha1
 	libneko
-	)
+)
 
 if(WIN32)
 	target_link_libraries(std.ndll ws2_32)
