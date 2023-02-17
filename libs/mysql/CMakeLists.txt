@@ -45,7 +45,6 @@ if (STATIC_OPENSSL)
 		URL https://www.openssl.org/source/openssl-1.1.1t.tar.gz
 		URL_HASH SHA256=8dee9b24bdb1dcbf0c3d1e9b02fb8f6bf22165e807f45adeb7c9677536859d3b
 		${OPENSSL_CONFS}
-		PATCH_COMMAND ${CMAKE_COMMAND} -Dopenssl_source=${CMAKE_BINARY_DIR}/libs/src/openssl -P ${CMAKE_SOURCE_DIR}/cmake/patch_openssl.cmake
 		SOURCE_DIR ${CMAKE_BINARY_DIR}/libs/src/openssl
 	)
 	set_target_properties(OpenSSL PROPERTIES ${EP_PROPS})
