@@ -115,7 +115,7 @@ Settings that allow to exclude libraries and their dependencies from the build; 
 
 Default value: `all` for Windows, `none` otherwise
 
-It defines the dependencies that should be linked statically. Can be `all`, `none`, or a list of library names (e.g. `BoehmGC;Zlib;OpenSSL;MariaDBConnector;pcre2;Sqlite3;APR;APRutil;Apache;MbedTLS`).
+It defines the dependencies that should be linked statically. Can be `all`, `none`, or a list of library names (e.g. `BoehmGC;Zlib;OpenSSL;MariaDBConnector;pcre2;SQLite3;APR;APRutil;Apache;MbedTLS`).
 
 CMake will automatically download and build the specified dependencies into the build folder. If a library is not present in this list, it should be installed manually, and it will be linked dynamically.
 

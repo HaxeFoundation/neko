@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10.2)
+cmake_minimum_required(VERSION 3.14)
 
 if (NOT ${CMAKE_VERSION} VERSION_LESS 3.24)
 	cmake_policy(VERSION 3.24)
@@ -55,7 +55,7 @@ option(WITH_REGEXP "Build with Perl-compatible regex support." ON)
 option(WITH_UI "Build with GTK-2 UI support." ON)
 option(WITH_SSL "Build with SSL support." ON)
 option(WITH_MYSQL "Build with MySQL support." ON)
-option(WITH_SQLITE "Build with Sqlite support." ON)
+option(WITH_SQLITE "Build with SQLite support." ON)
 option(WITH_APACHE "Build with Apache modules." ON)
 option(WITH_NEKOML "Build NekoML." ON)
 
@@ -110,7 +110,7 @@ set(external_deps
 	OpenSSL
 	MariaDBConnector
 	pcre2
-	Sqlite3
+	SQLite3
 	APR
 	APRutil
 	Apache
