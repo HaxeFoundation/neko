@@ -51,8 +51,6 @@ if (STATIC_OPENSSL)
 	endif()
 	# Download project for fat source archive
 	add_dependencies(download_deps OpenSSL-download)
-else()
-	find_package(OpenSSL)
 endif()
 
 ######################
