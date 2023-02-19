@@ -50,7 +50,6 @@ if (STATIC_OPENSSL)
 	set_target_properties(OpenSSL PROPERTIES ${EP_PROPS})
 	if (WIN32)
 		set(OPENSSL_LIBRARIES
-			Crypt32
 			${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/libcrypto.lib
 			${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/libssl.lib
 		)
@@ -67,8 +66,8 @@ endif()
 add_library(mysql.ndll MODULE mysql.c)
 
 if (STATIC_MARIADBCONNECTOR)
-	if (STATIC_OPENSSL AND NOT WIN32)
-		set(OPENSSL_CONF -DOPENSSL_ROOT_DIR=${CMAKE_BINARY_DIR}/libs/src/install-prefix)
+	if (STATIC_OPENSSL)
+		set(OPENSSL_CONF -DOPENSSL_USE_STATIC_LIBS=ON -DOPENSSL_ROOT_DIR=${CMAKE_BINARY_DIR}/libs/src/install-prefix)
 		set(OPENSSL_DEP OpenSSL)
 	elseif()
 		set(OPENSSL_CONF "")
@@ -88,7 +87,6 @@ if (STATIC_MARIADBCONNECTOR)
 	endif()
 	if (WIN32)
 		set(MARIADB_CONNECTOR_LIBRARIES
-			${OPENSSL_LIBRARIES}
 			${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector-build/libmariadb/${CMAKE_CFG_INTDIR}/mariadbclient.lib
 		)
 	else()
@@ -105,7 +103,7 @@ if (STATIC_MARIADBCONNECTOR)
 			-Wno-dev
 			-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
 			-DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}
-			-DWITH_SSL=ON
+			-DWITH_SSL=OPENSSL
 			${OPENSSL_CONF}
 			${ZLIB_CONF}
 		PATCH_COMMAND ${CMAKE_COMMAND} -Dmariadb_source=${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector -P ${CMAKE_SOURCE_DIR}/cmake/patch_mariadb.cmake
@@ -131,7 +129,7 @@ target_include_directories(mysql.ndll
 	${MARIADB_CONNECTOR_INCLUDE_DIR}
 )
 
-target_link_libraries(mysql.ndll libneko ${MARIADB_CONNECTOR_LIBRARIES})
+target_link_libraries(mysql.ndll libneko ${OPENSSL_LIBRARIES} ${MARIADB_CONNECTOR_LIBRARIES})
 
 if (WIN32)
 	target_link_libraries(mysql.ndll ws2_32 crypt32 shlwapi secur32 ${ZLIB_LIBRARIES})
