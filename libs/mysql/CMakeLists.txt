@@ -3,15 +3,6 @@
 # OpenSSL
 
 if (STATIC_OPENSSL)
-	if (APPLE)
-		if (${CMAKE_OSX_ARCHITECTURES} STREQUAL "i386")
-			set(OPENSSL_CONF ./Configure darwin-i386-cc "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
-		elseif (${CMAKE_OSX_ARCHITECTURES} STREQUAL "x86_64")
-			set(OPENSSL_CONF ./Configure darwin64-x86_64-cc "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
-		endif()
-	else()
-		set(OPENSSL_CONF ./config)
-	endif()
 	if (WIN32)
 		# perl is needed to run the openssl Configure script...
 		find_package(Perl REQUIRED)
@@ -20,31 +11,35 @@ if (STATIC_OPENSSL)
 		else()
 			set(openssl_target VC-WIN32)
 		endif()
-		message("arch_64 is ${arch_64}")
-		message("openssl_target is ${openssl_target}")
-		set(OPENSSL_CONFS
-			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/openssl &&
-				${PERL_EXECUTABLE} Configure ${openssl_target} no-asm no-tests --prefix=${CMAKE_BINARY_DIR}/libs/src/install-prefix
-			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/openssl &&
-				nmake /S
-			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/openssl &&
-				nmake /S install_sw
-		)
+
+		set(OPENSSL_CONFIGURE_COMMAND ${PERL_EXECUTABLE} Configure ${openssl_target} no-asm)
+		set(OPENSSL_MAKE_COMMAND nmake /S)
 	else()
-		set(OPENSSL_CONFS
-			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/openssl &&
-				${OPENSSL_CONF} no-tests --prefix=${CMAKE_BINARY_DIR}/libs/src/install-prefix
-			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/openssl &&
-				make
-			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/openssl &&
-				make install_sw
-		)
+		if (APPLE)
+			if (${CMAKE_OSX_ARCHITECTURES} STREQUAL "i386")
+				set(OPENSSL_CONFIGURE_COMMAND ./Configure darwin-i386-cc "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
+			elseif (${CMAKE_OSX_ARCHITECTURES} STREQUAL "x86_64")
+				set(OPENSSL_CONFIGURE_COMMAND ./Configure darwin64-x86_64-cc "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
+			endif()
+		else()
+			set(OPENSSL_CONFIGURE_COMMAND ./config)
+		endif()
+
+		set(OPENSSL_MAKE_COMMAND make)
 	endif()
+	set(OPENSSL_CONFIGS
+		CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/openssl &&
+			${OPENSSL_CONFIGURE_COMMAND} no-tests --prefix=${CMAKE_BINARY_DIR}/libs/src/install-prefix
+		BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/openssl &&
+			${OPENSSL_MAKE_COMMAND}
+		INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/openssl &&
+			${OPENSSL_MAKE_COMMAND} install_sw
+	)
 	ExternalProject_Add(OpenSSL
 		${EP_CONFIGS}
 		URL https://www.openssl.org/source/openssl-1.1.1t.tar.gz
 		URL_HASH SHA256=8dee9b24bdb1dcbf0c3d1e9b02fb8f6bf22165e807f45adeb7c9677536859d3b
-		${OPENSSL_CONFS}
+		${OPENSSL_CONFIGS}
 		SOURCE_DIR ${CMAKE_BINARY_DIR}/libs/src/openssl
 	)
 	set_target_properties(OpenSSL PROPERTIES ${EP_PROPS})
