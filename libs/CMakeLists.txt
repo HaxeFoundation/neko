@@ -106,6 +106,21 @@ if (WITH_APACHE)
 			set(ZLIB_CONF "")
 			set(ZLIB_DEP "")
 		endif()
+		if (WIN32)
+			# we need to make sure cmake finds the correct library build
+			# see: https://gitlab.kitware.com/cmake/cmake/-/merge_requests/8225
+			# this monstrosity is necessary because semicolons have to be escaped for each time the string variable is used
+			string(REPLACE ";" "\\\\\\\\\\\\\;" EXPAT_LIBRARY_SUFFIXES_ESCAPED "${CMAKE_FIND_LIBRARY_SUFFIXES};dMD.lib;MD.lib;dMT.lib;MT.lib;d.lib")
+			set(EXPAT_CONF
+				-DCMAKE_POLICY_DEFAULT_CMP0074=NEW
+				-DEXPAT_ROOT=${CMAKE_BINARY_DIR}/libs/src/install-prefix
+				"-DCMAKE_FIND_LIBRARY_SUFFIXES=${EXPAT_LIBRARY_SUFFIXES_ESCAPED}"
+			)
+			set(EXPAT_DEP EXPAT)
+		elseif()
+			set(EXPAT_CONF "")
+			set(EXPAT_DEP "")
+		endif()
 
 		if (APPLE)
 			set(APACHE_CFLAGS "-w -mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
@@ -144,11 +159,23 @@ if (WITH_APACHE)
 		set_target_properties(APR PROPERTIES ${EP_PROPS})
 
 		if(WIN32)
+			ExternalProject_Add(EXPAT
+				${EP_CONFIGS}
+				URL https://github.com/libexpat/libexpat/releases/download/R_2_5_0/expat-2.5.0.tar.gz
+				URL_HASH SHA256=6b902ab103843592be5e99504f846ec109c1abb692e85347587f237a4ffa1033
+				CMAKE_ARGS
+					-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/install-prefix
+					-Wno-dev
+					-DEXPAT_SHARED_LIBS=OFF
+			)
+			set_target_properties(EXPAT PROPERTIES ${EP_PROPS})
 			set(APRutil_CONFIGS
 				CMAKE_ARGS
 					-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/install-prefix
 					-Wno-dev
 					-DINSTALL_PDB=OFF
+					${EXPAT_CONF}
+				PATCH_COMMAND ${CMAKE_COMMAND} -Dapr-util_source=${CMAKE_BINARY_DIR}/libs/src/APRutil -P ${CMAKE_SOURCE_DIR}/cmake/patch_apr-util.cmake
 			)
 		else()
 			set(APRutil_CONFIGS
@@ -166,7 +193,7 @@ if (WITH_APACHE)
 
 		ExternalProject_Add(APRutil
 			${EP_CONFIGS}
-			DEPENDS ${APR_DEP}
+			DEPENDS ${APR_DEP} ${EXPAT_DEP}
 			URL https://archive.apache.org/dist/apr/apr-util-1.6.3.tar.gz
 			URL_HASH SHA256=2b74d8932703826862ca305b094eef2983c27b39d5c9414442e9976a9acf1983
 			${APRutil_CONFIGS}
@@ -229,6 +256,9 @@ if (WITH_APACHE)
 		)
 		set_target_properties(Apache PROPERTIES ${EP_PROPS})
 		# Download sources for fat source archive
+		if (WIN32)
+			add_dependencies(download_deps EXPAT-download)
+		endif()
 		add_dependencies(download_deps Apache-download)
 		add_dependencies(download_deps APR-download)
 		add_dependencies(download_deps APRutil-download)
