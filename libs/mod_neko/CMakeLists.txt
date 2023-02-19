@@ -17,7 +17,7 @@ target_link_libraries(mod_neko2.ndll libneko ${APACHE_LIBRARIES})
 
 # In static Apache case build dependencies first
 if (STATIC_APACHE)
-	add_dependencies(mod_neko2.ndll Apache APR APRutil)
+	add_dependencies(mod_neko2.ndll Apache)
 endif()
 
 set_target_properties(mod_neko2.ndll
