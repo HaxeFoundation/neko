@@ -6,11 +6,12 @@ elseif (NOT ${CMAKE_VERSION} VERSION_LESS 3.19)
 	cmake_policy(VERSION 3.19)
 endif()
 
+project(Neko C)
+
 include(GNUInstallDirs)
 include(CheckCCompilerFlag)
 include(CheckIncludeFile)
 include(TestBigEndian)
-project(Neko C)
 
 set(CMAKE_OSX_ARCHITECTURES x86_64)
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
