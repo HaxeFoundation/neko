@@ -148,7 +148,6 @@ if (WITH_APACHE)
 				CMAKE_ARGS
 					-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/install-prefix
 					-Wno-dev
-					-DOPENSSL_ROOT_DIR=${CMAKE_BINARY_DIR}/libs/src/install-prefix
 					-DINSTALL_PDB=OFF
 			)
 		else()
@@ -158,7 +157,6 @@ if (WITH_APACHE)
 						--prefix=${CMAKE_BINARY_DIR}/libs/src/install-prefix
 						--silent
 						${APR_CONF}
-						${OPENSSL_CONF}
 				BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APRutil &&
 					make "CFLAGS=${APACHE_CFLAGS}"
 				INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/APRutil &&
@@ -168,7 +166,7 @@ if (WITH_APACHE)
 
 		ExternalProject_Add(APRutil
 			${EP_CONFIGS}
-			DEPENDS ${APR_DEP} ${OPENSSL_DEP}
+			DEPENDS ${APR_DEP}
 			URL https://archive.apache.org/dist/apr/apr-util-1.6.3.tar.gz
 			URL_HASH SHA256=2b74d8932703826862ca305b094eef2983c27b39d5c9414442e9976a9acf1983
 			${APRutil_CONFIGS}
