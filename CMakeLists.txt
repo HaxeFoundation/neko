@@ -184,11 +184,11 @@ if (RELOCATABLE)
 endif()
 
 if(UNIX AND NOT APPLE)
-	add_definitions(-DABI_ELF)
+	add_compile_definitions(ABI_ELF)
 endif()
 
 if(UNIX)
-	add_definitions(-D_GNU_SOURCE)
+	add_compile_definitions(_GNU_SOURCE)
 	add_compile_options(-fno-omit-frame-pointer)
 
 	set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
