@@ -206,8 +206,8 @@ if (WITH_APACHE)
 					-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/install-prefix
 					-Wno-dev
 					-DOPENSSL_ROOT_DIR=${CMAKE_BINARY_DIR}/libs/src/install-prefix
-					"-DEXTRA_COMPILE_FLAGS=/D PCRE2_STATIC"
 					-DEXTRA_LIBS=Ws2_32
+				PATCH_COMMAND PATCH_COMMAND ${CMAKE_COMMAND} -Dapache_source=${CMAKE_BINARY_DIR}/libs/src/Apache -P ${CMAKE_SOURCE_DIR}/cmake/patch_apache.cmake
 				BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/Apache-build &&
 					${CMAKE_COMMAND} --build . --target libhttpd --config ${CMAKE_CFG_INTDIR}
 				INSTALL_COMMAND echo skip install
