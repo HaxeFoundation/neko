@@ -29,7 +29,7 @@ if (STATIC_OPENSSL)
 	endif()
 	set(OPENSSL_CONFIGS
 		CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/openssl &&
-			${OPENSSL_CONFIGURE_COMMAND} no-tests --prefix=${CMAKE_BINARY_DIR}/libs/src/install-prefix
+			${OPENSSL_CONFIGURE_COMMAND} no-tests no-shared --prefix=${CMAKE_BINARY_DIR}/libs/src/install-prefix --libdir=lib
 		BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/openssl &&
 			${OPENSSL_MAKE_COMMAND}
 		INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/openssl &&
@@ -37,8 +37,8 @@ if (STATIC_OPENSSL)
 	)
 	ExternalProject_Add(OpenSSL
 		${EP_CONFIGS}
-		URL https://www.openssl.org/source/openssl-1.1.1t.tar.gz
-		URL_HASH SHA256=8dee9b24bdb1dcbf0c3d1e9b02fb8f6bf22165e807f45adeb7c9677536859d3b
+		URL https://www.openssl.org/source/openssl-3.0.8.tar.gz
+		URL_HASH SHA256=6c13d2bf38fdf31eac3ce2a347073673f5d63263398f1f69d0df4a41253e4b3e
 		${OPENSSL_CONFIGS}
 		SOURCE_DIR ${CMAKE_BINARY_DIR}/libs/src/openssl
 	)
