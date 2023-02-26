@@ -45,8 +45,13 @@ if (STATIC_OPENSSL)
 	set_target_properties(OpenSSL PROPERTIES ${EP_PROPS})
 	if (WIN32)
 		set(OPENSSL_LIBRARIES
-			${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/libcrypto.lib
 			${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/libssl.lib
+			${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/libcrypto.lib
+		)
+	else()
+		set(OPENSSL_LIBRARIES
+			${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/libssl.a
+			${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/libcrypto.a
 		)
 	endif()
 	# Download project for fat source archive
@@ -122,10 +127,10 @@ target_include_directories(mysql.ndll
 	${MARIADB_CONNECTOR_INCLUDE_DIR}
 )
 
-target_link_libraries(mysql.ndll libneko ${OPENSSL_LIBRARIES} ${MARIADB_CONNECTOR_LIBRARIES})
+target_link_libraries(mysql.ndll libneko ${MARIADB_CONNECTOR_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES})
 
 if (WIN32)
-	target_link_libraries(mysql.ndll ws2_32 crypt32 shlwapi secur32 ${ZLIB_LIBRARIES})
+	target_link_libraries(mysql.ndll ws2_32 crypt32 shlwapi secur32)
 endif()
 
 set_target_properties(mysql.ndll
