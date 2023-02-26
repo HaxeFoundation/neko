@@ -107,15 +107,17 @@ if (WITH_APACHE)
 			set(ZLIB_DEP "")
 		endif()
 		if (WIN32)
-			# we need to make sure cmake finds the correct library build
-			# see: https://gitlab.kitware.com/cmake/cmake/-/merge_requests/8225
-			# this monstrosity is necessary because semicolons have to be escaped for each time the string variable is used
-			string(REPLACE ";" "\\\\\\\\\\\\\;" EXPAT_LIBRARY_SUFFIXES_ESCAPED "${CMAKE_FIND_LIBRARY_SUFFIXES};dMD.lib;MD.lib;dMT.lib;MT.lib;d.lib")
 			set(EXPAT_CONF
 				-DCMAKE_POLICY_DEFAULT_CMP0074=NEW
 				-DEXPAT_ROOT=${CMAKE_BINARY_DIR}/libs/src/install-prefix
-				"-DCMAKE_FIND_LIBRARY_SUFFIXES=${EXPAT_LIBRARY_SUFFIXES_ESCAPED}"
 			)
+			if (${CMAKE_VERSION} VERSION_LESS 3.27)
+				# we need to make sure cmake finds the correct library build
+				# see: https://gitlab.kitware.com/cmake/cmake/-/merge_requests/8225
+				# this monstrosity is necessary because semicolons have to be escaped for each time the string variable is used
+				string(REPLACE ";" "\\\\\\\\\\\\\;" EXPAT_LIBRARY_SUFFIXES_ESCAPED "${CMAKE_FIND_LIBRARY_SUFFIXES};dMD.lib;MD.lib;dMT.lib;MT.lib;d.lib")
+				list(APPEND EXPAT_CONF "-DCMAKE_FIND_LIBRARY_SUFFIXES=${EXPAT_LIBRARY_SUFFIXES_ESCAPED}")
+			endif()
 			set(EXPAT_DEP EXPAT)
 		elseif()
 			set(EXPAT_CONF "")
