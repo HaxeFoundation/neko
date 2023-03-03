@@ -5,7 +5,7 @@ variables:
   - name: AZURE_PIPELINES_BRANCH
     value: $(Build.SourceBranchName)
   - name: NEKO_VERSION
-    value: "2.3.1"
+    value: "2.4.0"
 
 trigger:
   branches:
