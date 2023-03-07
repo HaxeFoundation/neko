@@ -35,14 +35,6 @@ if (STATIC_OPENSSL)
 		INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/openssl &&
 			${OPENSSL_MAKE_COMMAND} install_sw
 	)
-	ExternalProject_Add(OpenSSL
-		${EP_CONFIGS}
-		URL https://www.openssl.org/source/openssl-3.0.8.tar.gz
-		URL_HASH SHA256=6c13d2bf38fdf31eac3ce2a347073673f5d63263398f1f69d0df4a41253e4b3e
-		${OPENSSL_CONFIGS}
-		SOURCE_DIR ${CMAKE_BINARY_DIR}/libs/src/openssl
-	)
-	set_target_properties(OpenSSL PROPERTIES ${EP_PROPS})
 	if (WIN32)
 		set(OPENSSL_LIBRARIES
 			${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/libssl.lib
@@ -54,6 +46,15 @@ if (STATIC_OPENSSL)
 			${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/libcrypto.a
 		)
 	endif()
+	ExternalProject_Add(OpenSSL
+		${EP_CONFIGS}
+		URL https://www.openssl.org/source/openssl-3.0.8.tar.gz
+		URL_HASH SHA256=6c13d2bf38fdf31eac3ce2a347073673f5d63263398f1f69d0df4a41253e4b3e
+		${OPENSSL_CONFIGS}
+		BYPRODUCTS ${OPENSSL_LIBRARIES}
+		SOURCE_DIR ${CMAKE_BINARY_DIR}/libs/src/openssl
+	)
+	set_target_properties(OpenSSL PROPERTIES ${EP_PROPS})
 	# Download project for fat source archive
 	add_dependencies(download_deps OpenSSL-download)
 endif()
