@@ -1508,6 +1508,14 @@ static value builtin_version() {
 }
 
 /**
+	$neko_build_year : void -> int
+	<doc>Return the year that Neko was compiled.</doc>
+**/
+static value builtin_neko_build_year() {
+	return alloc_int(NEKO_BUILD_YEAR);
+}
+
+/**
 	$setresolver : function:2? -> void
 	<doc>Set a function to callback with object and field id when an object field is not found.</doc>
 **/
@@ -1618,6 +1626,7 @@ void neko_init_builtins() {
 	BUILTIN(excstack,0);
 	BUILTIN(callstack,0);
 	BUILTIN(version,0);
+	BUILTIN(neko_build_year,0);
 	BUILTIN(setresolver,1);
 }
 
