@@ -48,7 +48,6 @@ DEFINE_KIND(k_regexp);
 
 static field id_pos;
 static field id_len;
-static pcre2_match_context *match_context;
 
 /**
 	<doc>
@@ -64,8 +63,8 @@ static void free_regexp( value p ) {
 	pcre2_match_data_free( PCRE(p)->match_data );
 }
 
-static int do_exec( pcredata *d, const char *str, int len, int pos ) {
-	int res = pcre2_match(d->regex,str,len,pos,0,d->match_data,match_context);
+static int do_match( pcredata *d, const char *str, int len, int pos ) {
+	int res = pcre2_match(d->regex,str,len,pos,0,d->match_data,NULL);
 	if( res >= 0 )
 		return 1;
 	d->str = val_null; // empty string prevents trying to access the data after a failed match
@@ -134,7 +133,7 @@ static value regexp_new_options( value s, value opt ) {
 		pdata->regex = p;
 		pdata->str = val_null;
 		pdata->n_groups = 0;
-		pcre2_pattern_info(p,PCRE2_INFO_CAPTURECOUNT,&pdata->n_groups);
+		pcre2_pattern_info(pdata->regex,PCRE2_INFO_CAPTURECOUNT,&pdata->n_groups);
 		pdata->n_groups++;
 		pdata->match_data = pcre2_match_data_create_from_pattern(pdata->regex,NULL);
 		val_gc(v,free_regexp);
@@ -167,7 +166,7 @@ static value regexp_match( value o, value s, value p, value len ) {
 	if( pp < 0 || ll < 0 || pp > val_strlen(s) || pp + ll > val_strlen(s) )
 		neko_error();
 	d = PCRE(o);
-	if( do_exec(d,val_string(s),ll+pp,pp) ) {
+	if( do_match(d,val_string(s),ll+pp,pp) ) {
 		d->str = s;
 		return val_true;
 	} else {
@@ -190,7 +189,7 @@ static value do_replace( value o, value s, value s2, bool all ) {
 		int pos = 0;
 		size_t *matches;
 		// TODO: Consider pcre2_substitute()
-		while( do_exec(d,str,len,pos) ) {
+		while( do_match(d,str,len,pos) ) {
 			matches = pcre2_get_ovector_pointer(d->match_data);
 			buffer_append_sub(b,str+pos,matches[0] - pos);
 			buffer_append_sub(b,str2,len2);
@@ -236,7 +235,7 @@ static value regexp_replace_fun( value o, value s, value f ) {
 		const char *str = val_string(s);
 		size_t *matches;
 		d->str = s;
-		while( do_exec(d,str,len,pos) ) {
+		while( do_match(d,str,len,pos) ) {
 			matches = pcre2_get_ovector_pointer(d->match_data);
 			buffer_append_sub(b,str+pos,matches[0] - pos);
 			val_buffer(b,val_call1(f,o));
@@ -303,9 +302,6 @@ static value regexp_matched_pos( value o, value n ) {
 void regexp_main() {
 	id_pos = val_id("pos");
 	id_len = val_id("len");
-
-	match_context = pcre2_match_context_create(NULL);
-	pcre2_set_depth_limit(match_context,3500); // adapted based on Windows 1MB stack size
 }
 
 DEFINE_PRIM(regexp_new,1);
