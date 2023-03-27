@@ -148,7 +148,7 @@ stages:
           - script: |
               set -ex
               sudo apt-get update -qqy
-              sudo apt-get install -qqy ninja-build pkg-config libgtk2.0-dev devscripts git-buildpackage ubuntu-dev-tools dh-make dh-apache2
+              sudo apt-get install -qqy ninja-build pkg-config libgtk-3-dev devscripts git-buildpackage ubuntu-dev-tools dh-make dh-apache2
             displayName: Install devscripts
           - script: cmake . -DSTATIC_DEPS=all
             displayName: CMake

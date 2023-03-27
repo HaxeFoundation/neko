@@ -41,7 +41,7 @@ Neko needs to link with various third-party libraries, which are summarized as f
 | MariaDB / MySQL (Connector/C)           | all         | libmariadb-client-lgpl-dev-compat (or libmysqlclient-dev) |
 | SQLite                                  | all         | libsqlite3-dev                                            |
 | mbed TLS                                | all         | libmbedtls-dev                                            |
-| GTK+2                                   | Linux       | libgtk2.0-dev                                             |
+| GTK+3                                   | Linux       | libgtk-3-dev                                              |
 
 On Windows, CMake will automatically download and build the libraries in the build folder during the build process. However, you need to install [Perl](http://www.activestate.com/activeperl) manually because OpenSSL needs it for configuration. On Mac/Linux, you should install the libraries manually to your system before building Neko, or use the `STATIC_DEPS` CMake option, which will be explained in [CMake options](#cmake-options).
 
@@ -99,7 +99,7 @@ cmake "-Doption=value" ..
 Settings that allow to exclude libraries and their dependencies from the build; available on all platforms. By default all are `ON`:
 
 - `WITH_REGEXP` - Build Perl-compatible regex support
-- `WITH_UI` - Build GTK-2 UI support
+- `WITH_UI` - Build GTK-3 UI support
 - `WITH_SSL` - Build SSL support
 - `WITH_MYSQL` - Build MySQL support
 - `WITH_SQLITE` - Build Sqlite support
@@ -113,7 +113,7 @@ It defines the dependencies that should be linked statically. Can be `all`, `non
 
 CMake will automatically download and build the specified dependencies into the build folder. If a library is not present in this list, it should be installed manually, and it will be linked dynamically.
 
-All third-party libraries, except GTK+2 (Linux), can be linked statically. We do not support statically linking GTK+2 due to the difficulty of building it and its own dependencies.
+All third-party libraries, except GTK+3 (Linux) and BoehmGC on Windows, can be linked statically. We do not support statically linking GTK+3 due to the difficulty of building it and its own dependencies. Additionally, we do not support statically linking the BoehmGC library on Windows systems. Finally, on MacOS, APRutil cannot be linked statically as it has been merged with APR 2.0, which is used on MacOS builds.
 
 #### `RELOCATABLE`
 
