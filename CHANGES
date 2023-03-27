@@ -1,6 +1,7 @@
 2021-10-27 : 2.3.1
 	all : deprecated neko (see README)
 	std : fixed put_env when null is passed in (#229 https://github.com/HaxeFoundation/haxe/issues/10395)
+	std : fix sys_is64 returning false on 64 bit Windows (#276)
 	cmake : updated apr version for Mac
 	all : fixed various build issues on macOS Catalina
 
