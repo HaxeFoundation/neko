@@ -18,8 +18,6 @@ jobs:
     steps:
       - script: |
           set -ex
-          sudo rm -rf /Library/Frameworks/Python.framework
-          brew cleanup
           brew update
           brew bundle --file="$(BREWFILE)"
         displayName: Install dependencies
