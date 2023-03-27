@@ -57,7 +57,7 @@ set(NEKO_VERSION ${NEKO_VERSION_MAJOR}.${NEKO_VERSION_MINOR}.${NEKO_VERSION_PATC
 TEST_BIG_ENDIAN(NEKO_BIG_ENDIAN)
 
 option(WITH_REGEXP "Build with Perl-compatible regex support." ON)
-option(WITH_UI "Build with GTK-2 UI support." ON)
+option(WITH_UI "Build with GTK-3 UI support." ON)
 option(WITH_SSL "Build with SSL support." ON)
 option(WITH_MYSQL "Build with MySQL support." ON)
 option(WITH_SQLITE "Build with Sqlite support." ON)
