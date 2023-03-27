@@ -1,5 +1,5 @@
 /*
- * Copyright (C)2005-2017 Haxe Foundation
+ * Copyright (C)2005-2022 Haxe Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -60,7 +60,7 @@ void std_main() {
 	id_cdata = val_id("cdata");
 	id_doctype = val_id("doctype");
 	id_serialize = val_id("__serialize");
-	id_unserialize = val_id("__unserialize");	
+	id_unserialize = val_id("__unserialize");
 	kind_share(&k_file,"file");
 	kind_share(&k_socket,"socket");
 	kind_share(&k_buffer,"buffer");

@@ -1,5 +1,5 @@
 /*
- * Copyright (C)2005-2017 Haxe Foundation
+ * Copyright (C)2005-2022 Haxe Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -230,6 +230,32 @@ static value sys_is64() {
 	return val_true;
 #else
 	return val_false;
+#endif
+}
+
+/**
+	sys_cpu_arch : void -> string
+	<doc>
+	Returns the cpu architecture. Current possible values:
+	<ul>
+	<li>[x86_64]</li>
+	<li>[x86]</li>
+	<li>[arm64]</li>
+	<li>[arm]</li>
+	</ul>
+	</doc>
+**/
+static value sys_cpu_arch() {
+#if defined(__x86_64__) || defined(_M_AMD64)
+	return alloc_string("x86_64");
+#elif defined(__i386__) || defined(_M_IX86)
+	return alloc_string("x86");
+#elif defined(__aarch64__) || defined(_M_ARM64)
+	return alloc_string("arm64");
+#elif defined(__arm__) || defined(_M_ARM)
+	return alloc_string("arm");
+#else
+#error Unknown CPU architecture
 #endif
 }
 
@@ -703,6 +729,7 @@ DEFINE_PRIM(sys_command,1);
 DEFINE_PRIM(sys_exit,1);
 DEFINE_PRIM(sys_string,0);
 DEFINE_PRIM(sys_is64,0);
+DEFINE_PRIM(sys_cpu_arch,0);
 DEFINE_PRIM(sys_stat,1);
 DEFINE_PRIM(sys_time,0);
 DEFINE_PRIM(sys_cpu_time,0);

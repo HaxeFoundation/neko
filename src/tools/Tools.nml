@@ -1,5 +1,5 @@
 /*
- * Copyright (C)2005-2017 Haxe Foundation
+ * Copyright (C)2005-2022 Haxe Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -30,7 +30,8 @@ function invalid_arg(f) {
 }
 
 try {
-	var head = "Neko Tools v1.0 - (c)2005-2017 Haxe Foundation\nUsage : nekotools [options]";
+	var year : int = neko "$neko_build_year()";
+	var head = "Neko Tools v1.0 - (c)2005-" + year + " Haxe Foundation\nUsage : nekotools [options]";
 	var decl = [
 		("server", Args.Void (function() {
 			erase_argument();
@@ -38,10 +39,13 @@ try {
 			throw Done
 		}) , " : start a neko web server");
 		("boot", Args.String (function(_) {
+			// separated from boot -c only for help message
+		}) , "<file.n> : build a standalone executable");
+		("boot", Args.String (function(_) {
 			erase_argument();
 			neko "$loader.loadmodule('tools/nekoboot',$loader)";
 			throw Done;
-		}) , "<file.n> : build an standalone executable");
+		}) , "-c <file.n> : build a standalone c program");
 	];
 	Args.parse head decl invalid_arg;
 } catch {

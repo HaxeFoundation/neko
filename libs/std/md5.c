@@ -1,5 +1,5 @@
 /*
- * Copyright (C)2005-2017 Haxe Foundation
+ * Copyright (C)2005-2022 Haxe Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -143,7 +143,7 @@ static void md5_process( md5_context *ctx, uint8 data[64] ) {
     P( B, C, D, A, 12, 20, 0x8D2A4C8A );
 
 #undef F
-    
+
 #define F(x,y,z) (x ^ y ^ z)
 
     P( A, B, C, D,  5,  4, 0xFFFA3942 );
@@ -272,16 +272,16 @@ typedef struct stack {
 // build some integers that are not neko ones (last bit at 0)
 // this reduce the possible collisions.
 // bit 0 = 0
-// bit 1-2 = 
+// bit 1-2 =
 //		00 : const (null, true, false, abstract)
 //		01 : ref
 //      10 : fun
 //		11 : array
 //
-// md5-similar objects can still be forged, in particular 
+// md5-similar objects can still be forged, in particular
 // due to the fact that no special flag is added to the string
 // digest in order to keep compatibility with standard md5
-// implementation. 
+// implementation.
 //
 // For example md5(null) == md5("\000\000\000\000")
 

@@ -1,0 +1,32 @@
+version: '3'
+
+services:
+  workspace:
+    # To update, use `earthly --push +devcontainer-rebuild`
+    image: haxe/neko_devcontainer:20221124162640
+    init: true
+    volumes:
+      - ..:/workspace:cached
+      # Forwards the local Docker socket to the container.
+      - /var/run/docker.sock:/var/run/docker-host.sock
+    environment:
+      - EARTHLY_BUILDKIT_HOST=tcp://earthly:8372
+      # - EARTHLY_SECRET_FILES=.envrc=/workspace/.envrc
+      - EARTHLY_USE_INLINE_CACHE=true
+      - EARTHLY_SAVE_INLINE_CACHE=true
+    entrypoint: /usr/local/share/docker-init.sh
+    command: sleep infinity
+    user: vscode
+  earthly:
+    image: earthly/buildkitd:v0.6.30
+    privileged: true
+    environment:
+      - BUILDKIT_TCP_TRANSPORT_ENABLED=true
+    expose:
+      - 8372
+    volumes:
+      # https://docs.earthly.dev/docs/guides/using-the-earthly-docker-images/buildkit-standalone#earthly_tmp_dir
+      - earthly-tmp:/tmp/earthly:rw
+
+volumes:
+  earthly-tmp:

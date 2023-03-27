@@ -1,5 +1,5 @@
 /*
- * Copyright (C)2005-2017 Haxe Foundation
+ * Copyright (C)2005-2022 Haxe Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -26,8 +26,8 @@
 	<doc>
 	<h1>Unicode</h1>
 	<p>
-	Operations on Unicode strings. 
-	Most of the operations are optimized for speed so they might still 
+	Operations on Unicode strings.
+	Most of the operations are optimized for speed so they might still
 	succeed on some malformed Unicode string. The only function that completely
 	check the Unicode format is [unicode_validate]. Other functions might raise
 	some exception or not depending on the malformed data.
@@ -362,7 +362,7 @@ static void unicode_buf_resize( uni_buf *b ) {
 	if( size2 - len < 10 ) size2 = 10 + len;
 	s = alloc_empty_string(size2);
 	memcpy(val_string(s),val_string(b->buf),len);
-	b->buf = s;	
+	b->buf = s;
 }
 
 
@@ -392,7 +392,7 @@ static value unicode_buf_add( value buf, value uc ) {
 	<doc>
 	Return the current content of the buffer.
 	This is not a copy of the buffer but the shared content.
-	Retreiving content and then continuing to add chars is 
+	Retreiving content and then continuing to add chars is
 	possible but not very efficient.
 	</doc>
 **/
@@ -455,10 +455,10 @@ static value unicode_validate( value str, value encoding ) {
 		return alloc_bool((l & 1) == 0);
 	case UTF32_LE:
 		if( l >= 4 && s[0] == 0 && s[1] == 0 && s[2] == 0xFE && s[3] == 0xFF ) return val_false; // BOM fail
-		return alloc_bool((l & 3) == 0);	
+		return alloc_bool((l & 3) == 0);
 	case UTF32_BE:
 		if( l >= 4 && s[0] == 0xFF && s[1] == 0xFE && s[2] == 0 && s[3] == 0 ) return val_false; // BOM fail
-		return alloc_bool((l & 3) == 0);	
+		return alloc_bool((l & 3) == 0);
 	case UTF16_LE:
 		if( s[0] == 0xFE && s[1] == 0xFF ) return val_false; // BOM fail
 		{
@@ -468,7 +468,7 @@ static value unicode_validate( value str, value encoding ) {
 			unsigned short c = *(unsigned short*)s;
 			if( ((c >> dec) & 0xFC) == 0xD8 ) {
 				if( s + 3 >= end ) return val_false;
-				if( ((((unsigned short*)s)[1] >> dec) & 0xFC) != 0xDC ) return val_false;			
+				if( ((((unsigned short*)s)[1] >> dec) & 0xFC) != 0xDC ) return val_false;
 				s += 4;
 			} else
 				s += 2;
@@ -600,7 +600,7 @@ static value unicode_sub( value str, value enc, value vpos, value vlen ) {
 
 /**
 	unicode_get : string -> encoding:int -> n:int -> int
-	<doc>Returns the [n]th char in an Unicode string. 
+	<doc>Returns the [n]th char in an Unicode string.
 	This might be inefficient if [n] is big and the string has variable length per char.</doc>
 **/
 static value unicode_get( value str, value enc, value pos ) {
@@ -798,7 +798,7 @@ static value unicode_convert( value str, value encoding, value to_encoding ) {
 	if( e == e_to )
 		return str;
 	// try to allocate enough space at first guess
-	switch( e ) {	
+	switch( e ) {
 	case ISO_LATIN1:
 	case UTF8:
 	case ASCII:

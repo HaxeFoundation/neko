@@ -1,6 +1,6 @@
 (*
  *  NekoML Compiler
- *  Copyright (c)2005-2017 Haxe Foundation
+ *  Copyright (c)2005-2022 Haxe Foundation
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *)
- 
+
 open Mlast
 open Mltype
 
@@ -71,7 +71,7 @@ let load_module_ref = ref (fun _ _ -> assert false)
 let add_local ctx v t =
 	if v <> "_" then ctx.current.idents <- PMap.add v t ctx.current.idents
 
-let save_locals ctx = 
+let save_locals ctx =
 	ctx.current.idents
 
 let restore_locals ctx l =
@@ -84,8 +84,8 @@ let get_module ctx path p =
 		let m = (try
 			Hashtbl.find ctx.modules path
 		with
-			Not_found -> 
-				!load_module_ref ctx path p) in		
+			Not_found ->
+				!load_module_ref ctx path p) in
 		if m != ctx.current then begin
 			if m.expr = None then error (Module_not_loaded m) p;
 			Hashtbl.replace ctx.current.deps m.path m;
@@ -151,14 +151,14 @@ let get_record ctx f p =
 	let h = Hashtbl.create 0 in
 	duplicate ctx.gen ~h rt, duplicate ctx.gen ~h ft, mut
 
-let rec is_tuple t = 
+let rec is_tuple t =
 	match t.texpr with
 	| TLink t -> is_tuple t
 	| TTuple _ -> true
 	| TNamed(_,_,t) -> is_tuple t
 	| _ -> false
 
-let rec is_recursive t1 t2 = 
+let rec is_recursive t1 t2 =
 	if t1 == t2 then
 		true
 	else match t2.texpr with
@@ -187,7 +187,7 @@ let unify_stack t1 t2 = function
 	| e -> raise e
 
 let is_alias = function
-	| TAbstract 
+	| TAbstract
 	| TRecord _
 	| TUnion _ -> false
 	| TMono _
@@ -203,7 +203,7 @@ let rec propagate k t =
 	| TPoly -> ()
 	| TUnion _
 	| TRecord _ -> assert false
-	| TMono k2 -> if k < k2 then t.texpr <- TMono k	
+	| TMono k2 -> if k < k2 then t.texpr <- TMono k
 	| TTuple tl -> List.iter (propagate k) tl
 	| TLink t -> propagate k t
 	| TFun (tl,t) -> propagate k t; List.iter (propagate k) tl
@@ -222,7 +222,7 @@ let rec unify ctx t1 t2 p =
 	| TNamed (n1,p1,_) , TNamed (n2,p2,_) when n1 = n2 ->
 		(try
 			List.iter2 (fun p1 p2 -> unify ctx p1 p2 p) p1 p2
-		with	
+		with
 			e -> unify_stack t1 t2 e)
 	| TNamed (_,_,t1) , _ when is_alias t1.texpr ->
 		(try
@@ -234,16 +234,16 @@ let rec unify ctx t1 t2 p =
 			unify ctx t1 t2 p
 		with
 			e -> unify_stack t1 t2 e)
-	| TFun (tl1,r1) , TFun (tl2,r2) when List.length tl1 = List.length tl2 -> 
+	| TFun (tl1,r1) , TFun (tl2,r2) when List.length tl1 = List.length tl2 ->
 		(try
-			List.iter2 (fun t1 t2 -> unify ctx t1 t2 p) tl1 tl2; 
+			List.iter2 (fun t1 t2 -> unify ctx t1 t2 p) tl1 tl2;
 			unify ctx r1 r2 p;
-		with	
+		with
 			e -> unify_stack t1 t2 e)
 	| TTuple tl1 , TTuple tl2 when List.length tl1 = List.length tl2 ->
 		(try
 			List.iter2 (fun t1 t2 -> unify ctx t1 t2 p) tl1 tl2
-		with	
+		with
 			e -> unify_stack t1 t2 e)
 	| _ , _ ->
 		error (Cannot_unify (t1,t2)) p
@@ -285,7 +285,7 @@ let rec type_type ?(allow=true) ?(h=Hashtbl.create 0) ctx t p =
 	| EArrow _ ->
 		let rec loop params t =
 			match t with
-			| EArrow (ta,tb) -> 
+			| EArrow (ta,tb) ->
 				let ta = type_type ~allow ~h ctx ta p in
 				loop (ta :: params) tb
 			| _ ->
@@ -303,7 +303,7 @@ let rec type_constant ctx ?(path=[]) c p =
 	| Char c -> mk (TConst (TChar c)) t_char p
 	| Ident s ->
 		let path , t = get_ident ctx path s p in
-		let t = duplicate ctx.gen t in		
+		let t = duplicate ctx.gen t in
 		mk (TConst (TModule (path,TIdent s))) t p
 	| Constr s ->
 		let path , ut , t = get_constr ctx path s p in
@@ -340,16 +340,16 @@ let type_binop ctx op e1 e2 p =
 		| NFloat , NInt -> emk t_float
 		| NInt , NString
 		| NFloat , NString
-		| NString , NInt 
+		| NString , NInt
 		| NString , NFloat
 		| NString , NString -> emk t_string
 		| NInt , NNan
-		| NFloat , NNan 
+		| NFloat , NNan
 		| NString , NNan ->
 			unify ctx e2.etype e1.etype (pos e2);
 			emk e1.etype
 		| NNan , NInt
-		| NNan , NFloat 
+		| NNan , NFloat
 		| NNan , NString ->
 			unify ctx e1.etype e2.etype (pos e1);
 			emk e2.etype
@@ -419,9 +419,9 @@ let type_unop ctx op e p =
 		let p , pt = t_poly ctx.gen "ref" in
 		unify ctx e.etype p (pos e);
 		emk pt
-	| "!" -> 
+	| "!" ->
 		unify ctx e.etype t_bool (pos e);
-		emk t_bool 
+		emk t_bool
 	| "-" ->
 		(match addable false e with
 		| NInt -> emk t_int
@@ -433,7 +433,7 @@ let type_unop ctx op e p =
 		assert false
 
 let rec type_arg ctx h binds p = function
-	| ATyped (a,t) -> 
+	| ATyped (a,t) ->
 		let n , ta = type_arg ctx h binds p a in
 		unify ctx ta (type_type ~h ctx t p) p;
 		n , ta
@@ -457,18 +457,18 @@ let register_function ctx isrec name pl e rt p =
 	let binds = ref [] in
 	let el = List.map (type_arg ctx h binds p) pl in
 	let name = (match name with None -> "_" | Some n -> n) in
-	let e = (match List.rev !binds with 
+	let e = (match List.rev !binds with
 		| [] -> e
-		| l -> 
+		| l ->
 			EBlock (List.fold_left (fun acc (v,n,v2) ->
 				(EVar ([v2,None], (ETupleGet ((EConst (Ident v),p),n),p)) , p) :: acc
 			) [e] l) , p
 	) in
-	let rt = (match rt with 
+	let rt = (match rt with
 		| None -> t_mono ctx.gen
 		| Some rt -> type_type ~h ctx rt p
 	) in
-	let ft = mk_fun ctx.gen (List.map snd el) rt in		
+	let ft = mk_fun ctx.gen (List.map snd el) rt in
 	ctx.functions <- (isrec,name,expr,ft,el,e,rt,p) :: ctx.functions;
 	if isrec then add_local ctx name ft;
 	mk (TMut expr) (if name = "_" then ft else t_void) p
@@ -481,7 +481,7 @@ let type_format ctx s p =
 		if !percent then begin
 			percent := false;
 			match c with
-			| '%' -> 
+			| '%' ->
 				()
 			| 'x' | 'X' | 'd' ->
 				types := t_int :: !types
@@ -499,7 +499,7 @@ let type_format ctx s p =
 				error (Custom "Invalid % sequence") p
 		end else
 			match c with
-			| '%' -> 
+			| '%' ->
 				percent := true
 			| _ ->
 				()
@@ -525,7 +525,7 @@ let rec type_functions ctx =
 		end;
 		List.iter (fun (p,pt) ->
 			add_local ctx p pt
-		) el;		
+		) el;
 		let e = type_expr ctx e in
 		restore_locals ctx locals;
 		ctx.curfunction <- func;
@@ -541,7 +541,7 @@ and type_expr ctx (e,p) =
 	match e with
 	| EConst c ->
 		type_constant ctx c p
-	| EBlock [] -> 
+	| EBlock [] ->
 		mk (TConst TVoid) t_void p
 	| EBlock (e :: l) ->
 		let locals = save_locals ctx in
@@ -580,7 +580,7 @@ and type_expr ctx (e,p) =
 			let rec loop acc expr l tl r =
 				match l , tl with
 				| e :: l , t :: tl ->
-					(match tlinks true t with 
+					(match tlinks true t with
 					| TNamed (["format"],[param],_) ->
 						(match e.edecl with
 						| TConst (TString s) ->
@@ -634,7 +634,7 @@ and type_expr ctx (e,p) =
 		unify ctx e.etype t (pos e);
 		mk (TArray (e,ei)) pt p
 	| EVar _ ->
-		error (Custom "Variable declaration not allowed outside a block") p	
+		error (Custom "Variable declaration not allowed outside a block") p
 	| EIf (e,e1,None) ->
 		let e = type_expr ctx e in
 		unify ctx e.etype t_bool (pos e);
@@ -654,7 +654,7 @@ and type_expr ctx (e,p) =
 		let e2 = type_expr ctx e2 in
 		unify ctx e2.etype t_void (pos e2);
 		mk (TWhile (e1,e2)) t_void p
-	| EFunction (isrec,name,pl,e,rt) ->		
+	| EFunction (isrec,name,pl,e,rt) ->
 		let r = register_function ctx isrec name pl e rt p in
 		type_functions ctx;
 		r
@@ -689,7 +689,7 @@ and type_expr ctx (e,p) =
 						let t = t_mono ctx.gen in
 						Hashtbl.add h p t;
 						t
-					) params in					
+					) params in
 					let t = {
 						tid = -1;
 						texpr = TNamed (fullname,tl,t_abstract);
@@ -733,13 +733,13 @@ and type_expr ctx (e,p) =
 		) in
 		let fl2 = ref fll in
 		let rec loop f = function
-			| [] -> 
+			| [] ->
 				if List.exists (fun (f2,_,_) -> f = f2) fll then
 					error (Custom ("Duplicate declaration for field " ^ f)) p
 				else
 					error (Have_no_field (r,f)) p
 			| (f2,_,ft) :: l when f = f2 -> ft , l
-			| x :: l -> 
+			| x :: l ->
 				let t , l = loop f l in
 				t , x :: l
 		in
@@ -786,13 +786,13 @@ and type_expr ctx (e,p) =
 		in
 		mk (TTupleGet (e,n)) (loop e.etype) p
 
-and type_block ctx ((e,p) as x)  = 
+and type_block ctx ((e,p) as x)  =
 	match e with
 	| EVar (vl,e) ->
 		type_functions ctx;
 		let e = type_expr ctx e in
 		let make v t =
-			let t = (match t with 
+			let t = (match t with
 				| None -> t_mono ctx.gen
 				| Some t -> type_type ctx t p
 			) in
@@ -802,7 +802,7 @@ and type_block ctx ((e,p) as x)  =
 		let t = (match vl with
 			| [] -> assert false
 			| [v,t] -> make v t
-			| _ -> 
+			| _ ->
 				mk_tup ctx.gen (List.map (fun (v,t) -> make v t) vl)
 		) in
 		unify ctx t e.etype (pos e);
@@ -839,7 +839,7 @@ and type_pattern (ctx:context) h ?(h2 = Hashtbl.create 0) set add (pat,p) =
 		| PTuple [p] ->
 			let pt , pat = type_pattern ctx h ~h2 set add p in
 			pt , fst pat
-		| PTuple pl -> 
+		| PTuple pl ->
 			let pl , patl = List.split (List.map (type_pattern ctx h ~h2 set add) pl) in
 			mk_tup ctx.gen pl , PTuple patl
 		| PRecord fl ->
@@ -849,24 +849,24 @@ and type_pattern (ctx:context) h ?(h2 = Hashtbl.create 0) set add (pat,p) =
 			| TRecord rl ->
 				List.map (fun (f,pat) ->
 					let pt , pat = type_pattern ctx h ~h2 set add pat in
-					let t = (try 
-						let _ , _ , t = List.find (fun (f2,_,_) -> f = f2 ) rl in t 
+					let t = (try
+						let _ , _ , t = List.find (fun (f2,_,_) -> f = f2 ) rl in t
 					with Not_found ->
 						error (Have_no_field (r,f)) p
 					) in
 					unify ctx pt t (snd pat);
 					f , pat
-				) fl 
+				) fl
 			| _ ->
 				assert false
 			) in
 			r , PRecord fl
 		| PIdent s ->
 			(if s = "_" then t_mono ctx.gen else pvar add s) , pat
-		| PConstr (path,s,param) ->	
+		| PConstr (path,s,param) ->
 			let tparam , param = (match param with
-				| None -> None , None 
-				| Some ((_,p) as param) -> 
+				| None -> None , None
+				| Some ((_,p) as param) ->
 					let t , pat = type_pattern ctx h ~h2 set add param in
 					Some (p,t) , Some pat
 			) in
@@ -879,7 +879,7 @@ and type_pattern (ctx:context) h ?(h2 = Hashtbl.create 0) set add (pat,p) =
 				let h = Hashtbl.create 0 in
 				let ut = duplicate ctx.gen ~h ut in
 				let t = duplicate ctx.gen ~h t in
-				let param , pt = (match param with 
+				let param , pt = (match param with
 					| Some (PTuple l,p) when not (is_tuple t) -> Some (PTuple [(PTuple l,p)],p) , mk_fun ctx.gen [pt] ut
 					| Some (PIdent "_",p) -> param , pt
 					| _  -> param , (match pt.texpr with TTuple l -> mk_fun ctx.gen l ut | _ -> mk_fun ctx.gen [pt] ut)
@@ -904,7 +904,7 @@ and type_pattern (ctx:context) h ?(h2 = Hashtbl.create 0) set add (pat,p) =
 				| SPattern pat ->
 					let t , p = type_pattern ctx h ~h2 set true pat in
 					unify ctx t polyt (snd p);
-					SPattern p 
+					SPattern p
 				| SExpr ([v],e) ->
 					let e = type_expr ctx e in
 					let t = pvar true v in
@@ -921,9 +921,9 @@ and type_pattern (ctx:context) h ?(h2 = Hashtbl.create 0) set add (pat,p) =
 			) l in
 			restore_locals ctx locals;
 			t , PStream (l,k)
-	) in	
+	) in
 	pt , (pat,p)
-	
+
 and type_match ctx t cl p =
 	let ret = t_mono ctx.gen in
 	let cl = List.map (fun (pl,wh,pe) ->
@@ -942,13 +942,13 @@ and type_match ctx t cl p =
 				SSet.iter (fun s -> error (Custom ("Variable " ^ s ^ " must occur in all patterns")) p) (SSet.union s1 s2);
 			end;
 			unify ctx pt t p;
-			pat 
+			pat
 		) pl in
 		let locals = save_locals ctx in
 		Hashtbl.iter (fun v t -> add_local ctx v t) h;
-		let wh = (match wh with 
+		let wh = (match wh with
 			| None -> None
-			| Some e -> 
+			| Some e ->
 				let e = type_expr ctx e in
 				unify ctx e.etype t_bool e.epos;
 				Some e
@@ -987,10 +987,10 @@ and type_match ctx t cl p =
 
 let modules ctx =
 	let h = Hashtbl.create 0 in
-	Hashtbl.iter (fun p m -> 
-		match m.expr with 
+	Hashtbl.iter (fun p m ->
+		match m.expr with
 		| None -> ()
-		| Some e -> 		
+		| Some e ->
 			let deps = ref (if m.path = ["Core"] || Hashtbl.mem m.deps ["Core"] then [] else [["Core"]]) in
 			let idents = ref [] in
 			Hashtbl.iter (fun _ m ->
@@ -1019,7 +1019,7 @@ let load_module ctx m p =
 	try
 		Hashtbl.find ctx.modules m
 	with
-		Not_found ->			
+		Not_found ->
 			let file , ch = open_file ctx (String.concat "/" m ^ ".nml") p in
 			let is_core , core = (try
 				false , Hashtbl.find ctx.modules ["Core"]
@@ -1055,11 +1055,11 @@ let load_module ctx m p =
 				| _ ->
 					type_expr ctx ast
 			) in
-			ctx.current.expr <- Some e;			
+			ctx.current.expr <- Some e;
 			if !verbose then print_endline ("Typing done with " ^ file);
 			ctx.current
 
-let context cpath = 
+let context cpath =
 	let ctx = {
 		gen = generator();
 		tmptypes = Hashtbl.create 0;
@@ -1079,10 +1079,10 @@ let context cpath =
 			records = Hashtbl.create 0;
 		};
 	} in
-	let add_type args name t = 
+	let add_type args name t =
 		ignore(type_expr ctx (ETypeDecl (args,name,t) , null_pos));
 	in
-	let add_variable name t = 
+	let add_variable name t =
 		ctx.current.idents <- PMap.add name t ctx.current.idents
 	in
 	add_type [] "bool" EAbstract;

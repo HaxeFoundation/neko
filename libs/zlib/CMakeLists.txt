@@ -39,8 +39,10 @@ if (STATIC_ZLIB)
 
 	ExternalProject_Add(Zlib
 		${EP_CONFIGS}
-		URL http://zlib.net/zlib-1.2.11.tar.gz
-		URL_MD5 1c9f62f0778697a09d36121ead88e08e
+		URL
+			https://zlib.net/fossils/zlib-1.2.13.tar.gz
+			https://github.com/madler/zlib/releases/download/v1.2.13/zlib-1.2.13.tar.gz
+		URL_MD5 9b8aa094c4e5765dabf4da391f00d15c
 		CMAKE_ARGS ${ZLIB_CMAKE_ARGS}
 		INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/Zlib-build &&
 			${CMAKE_COMMAND} --build . --target install --config ${config}
@@ -51,7 +53,7 @@ if (STATIC_ZLIB)
 	add_dependencies(zlib.ndll Zlib)
 	target_include_directories(zlib.ndll PRIVATE ${ZLIB_INCLUDE_DIRS})
 	# Download project for fat source archive
-	add_dependencies(download_static_deps Zlib-download)
+	add_dependencies(download_deps Zlib-download)
 else()
 	pkg_check_modules(ZLIB REQUIRED zlib)
 	target_include_directories(zlib.ndll PRIVATE ${ZLIB_INCLUDEDIR} ${ZLIB_INCLUDE_DIRS})

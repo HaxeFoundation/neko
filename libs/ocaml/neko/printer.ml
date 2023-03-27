@@ -1,6 +1,6 @@
 (*
  *  Neko Compiler
- *  Copyright (c)2005-2017 Haxe Foundation
+ *  Copyright (c)2005-2022 Haxe Foundation
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *)
- 
+
 open Ast
 
 type 'a ctx = {
@@ -117,7 +117,7 @@ let rec print_ast ?(binop=false) ctx (e,p) =
 		level_expr ~closed:(e2=None) ctx e;
 		(match e2 with
 		| None -> ()
-		| Some e -> 
+		| Some e ->
 			print ctx "else";
 			level_expr ctx e)
 	| ETry (e,id,e2) ->
@@ -136,17 +136,17 @@ let rec print_ast ?(binop=false) ctx (e,p) =
 		print_ast ~binop:true ctx e1;
 		print ctx " %s " op;
 		print_ast ~binop:true ctx e2;
-		if binop then (if tabs then print ctx ")" else print ctx "}");		
+		if binop then (if tabs then print ctx ")" else print ctx "}");
 	| EReturn None ->
 		print ctx "return;";
 	| EReturn (Some e) ->
 		print ctx "return ";
-		print_ast ctx e;		
+		print_ast ctx e;
 	| EBreak None ->
-		print ctx "break;";			
+		print ctx "break;";
 	| EBreak (Some e) ->
 		print ctx "break ";
-		print_ast ctx e;			
+		print_ast ctx e;
 	| EContinue ->
 		print ctx "continue"
 	| ENext (e1,e2) ->
@@ -180,7 +180,7 @@ let rec print_ast ?(binop=false) ctx (e,p) =
 
 and level_expr ?(closed=false) ctx (e,p) =
 	match e with
-	| EBlock _ -> 
+	| EBlock _ ->
 		if ctx.tabs then print ctx " ";
 		print_ast ctx (e,p)
 	| ENext _ ->

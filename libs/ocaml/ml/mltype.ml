@@ -1,6 +1,6 @@
 (*
  *  NekoML Compiler
- *  Copyright (c)2005-2017 Haxe Foundation
+ *  Copyright (c)2005-2022 Haxe Foundation
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@ type mutflag =
 	| Mutable
 	| Immutable
 
-type type_expr = 
+type type_expr =
 	| TAbstract
 	| TMono of int
 	| TPoly
@@ -87,7 +87,7 @@ and texpr_decl =
 	| TTry of texpr * match_op
 	| TTupleGet of texpr * int
 	| TErrorDecl of string * t
-	| TWhile of texpr * texpr	
+	| TWhile of texpr * texpr
 
 and texpr = {
 	edecl : texpr_decl;
@@ -131,7 +131,7 @@ let t_error = abstract "error"
 let t_bool = {
 	tid = -1;
 	texpr = TNamed (["bool"],[], {
-		tid = -1; 
+		tid = -1;
 		texpr = TUnion (2,[
 			("true",{ tid = -1; texpr = TAbstract });
 			("false",{ tid = -1; texpr = TAbstract })
@@ -151,7 +151,7 @@ let t_polymorph g = {
 	texpr = TPoly;
 }
 
-let t_poly g name = 
+let t_poly g name =
 	let param = t_mono g in
 	{
 		tid = genid g;
@@ -202,13 +202,13 @@ let s_mutable = function
 	| Mutable -> "mutable "
 	| Immutable -> ""
 
-let rec s_type ?(ext=false) ?(h=s_context()) t = 
+let rec s_type ?(ext=false) ?(h=s_context()) t =
 	match t.texpr with
 	| TAbstract -> "<abstract>"
 	| TMono _ -> Printf.sprintf "'_%s" (poly_id (try
 			if t.tid <> -2 then assert false;
 			List.assq t h.pi_ml
-		with Not_found -> 
+		with Not_found ->
 			let k = h.pi_mcount in
 			h.pi_mcount <- h.pi_mcount + 1;
 			h.pi_ml <- (t,k) :: h.pi_ml;
@@ -216,7 +216,7 @@ let rec s_type ?(ext=false) ?(h=s_context()) t =
 	| TPoly -> Printf.sprintf "'%s" (poly_id (try
 			if t.tid = -1 then assert false;
 			Hashtbl.find h.pi_ph t.tid
-		with Not_found -> 
+		with Not_found ->
 			let k = h.pi_pcount in
 			h.pi_pcount <- h.pi_pcount + 1;
 			Hashtbl.add h.pi_ph t.tid k;
@@ -225,7 +225,7 @@ let rec s_type ?(ext=false) ?(h=s_context()) t =
 	| TUnion (_,fl) -> Printf.sprintf "{ %s }" (String.concat "; " (List.map (fun (f,t) -> f ^ " : " ^ s_type ~h t) fl))
 	| TTuple l -> Printf.sprintf "(%s)" (String.concat ", " (List.map (s_type ~h) l))
 	| TLink t  -> s_type ~ext ~h t
-	| TFun (tl,r) -> 
+	| TFun (tl,r) ->
 		let l = String.concat " -> " (List.map (s_fun ~ext ~h) tl) ^ " -> " in
 		l ^ s_type ~ext ~h r
 	| TNamed (name,params,t) ->
@@ -238,7 +238,7 @@ let rec s_type ?(ext=false) ?(h=s_context()) t =
 		if ext then
 			s ^ name ^ " = " ^ s_type ~h t
 		else
-			s ^ name 
+			s ^ name
 
 and s_fun ~ext ~h t =
 	match t.texpr with

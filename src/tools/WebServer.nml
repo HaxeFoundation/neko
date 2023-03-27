@@ -1,5 +1,5 @@
 /*
- * Copyright (C)2005-2017 Haxe Foundation
+ * Copyright (C)2005-2022 Haxe Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -19,7 +19,7 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
- 
+
 type main_function;
 
 type client {
@@ -56,7 +56,7 @@ function sys_is_file(file) {
 	neko "$loader.loadprim('std@sys_file_type',1)(file)" == "file"
 }
 
-function page_404(url) {
+function default_page_404(url) {
 "<HTML><HEAD>
 <TITLE>404 Not Found</TITLE>
 </HEAD><BODY>
@@ -551,6 +551,28 @@ function config(c,r) {
 	do_print page_config()
 }
 
+function write_page(c,file,ext,code) {
+	IO.write c.out (sprintf "HTTP/1.1 %d %s\r\n" code);
+	var ctype = try { List.assoc ext mime } catch { Not_found -> "unknown/unknown" };
+	var file_size : int = neko "$loader.loadprim('std@sys_stat',1)(file).size";
+	IO.write c.out ("Content-Type: " + ctype + "\r\n");
+	IO.write c.out ("Content-Length: " + file_size + "\r\n");
+	IO.write c.out "\r\n";
+	var fin = IO.read_file file true;
+	var bufsize = 100000;
+	var n = &(file_size / bufsize);
+	try {
+		while *n > 0 {
+			IO.write c.out IO.read(fin,bufsize);
+			n := *n - 1;
+		}
+		IO.write c.out IO.read(fin,file_size % bufsize);
+	} catch {
+		e -> IO.close_in fin; throw e
+	}
+	IO.close_in fin
+}
+
 function client_msg(c) {
 	var r = parse_http_request c;
 	cur_client := Some c;
@@ -558,8 +580,21 @@ function client_msg(c) {
 		config(c,r)
 	else match find_url_file r.res true {
 	| None ->
-		c.return_code := (404,"Not Found");
-		do_print page_404(r.res);
+		function rec loop(l) {
+			match l {
+			| [] ->
+				c.return_code := (404, "Not Found");
+				do_print default_page_404(r.res);
+			| f :: l ->
+				match find_url_file f false {
+				| Some page_404 ->
+					var ext = String.lowercase (Sys.extension page_404);
+					write_page c page_404 ext (404, "Not Found")
+				| None -> loop(l)
+				}
+			}
+		}
+		loop ["404.html"; "404.htm"];
 	| Some file ->
 		var ext = String.lowercase (Sys.extension file);
 		if ext == "n" then {
@@ -570,25 +605,7 @@ function client_msg(c) {
 			mod_neko c r file
 		} else {
 			// directly send the file content
-			IO.write c.out "HTTP/1.1 200 OK\r\n";
-			var ctype = try { List.assoc ext mime } catch { Not_found -> "unknown/unknown" };
-			var file_size : int = neko "$loader.loadprim('std@sys_stat',1)(file).size";
-			IO.write c.out ("Content-Type: " + ctype + "\r\n");
-			IO.write c.out ("Content-Length: " + file_size + "\r\n");
-			IO.write c.out "\r\n";
-			var fin = IO.read_file file true;
-			var bufsize = 100000;
-			var n = &(file_size / bufsize);
-			try {
-				while *n > 0 {
-					IO.write c.out IO.read(fin,bufsize);
-					n := *n - 1;
-				}
-				IO.write c.out IO.read(fin,file_size % bufsize);
-			} catch {
-				e -> IO.close_in fin; throw e
-			}
-			IO.close_in fin
+			write_page c file ext (200, "OK");
 		}
 	}
 }
@@ -607,7 +624,7 @@ function client_msg_safe(c) {
 }
 
 function init() {
-	var head = "Neko Web Server v1.0 - (c)2005-2017 Haxe Foundation";
+	var head = "Neko Web Server v1.0 - (c)2005-2022 Haxe Foundation";
 	var port = &2000;
 	var host = &"localhost";
 	var decl = [
@@ -626,4 +643,3 @@ function init() {
 	log "Starting Neko Server on %s:%d" (*host,*port);
 	Net.start_server Net.host_resolve(*host) (*port) init_client client_msg_safe;
 }
-

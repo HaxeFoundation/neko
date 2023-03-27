@@ -1,6 +1,6 @@
 (*
  *  NekoML Compiler
- *  Copyright (c)2005-2017 Haxe Foundation
+ *  Copyright (c)2005-2022 Haxe Foundation
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -16,13 +16,13 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *)
- 
+
 open Ast
 open Mltype
 
 type comparison =
 	| Native
-	| Structural	
+	| Structural
 
 type context = {
 	module_name : string;
@@ -60,7 +60,7 @@ let null =
 let core s p =
 	EField ((EConst (Ident (module_name ["Core"])),p),s) , p
 
-let pos (p : Mlast.pos) = 
+let pos (p : Mlast.pos) =
 	{
 		pmin = p.Mlast.pmin;
 		pmax = p.Mlast.pmax;
@@ -80,7 +80,7 @@ let rec call ret f args p =
 	| EConst (Builtin _) , _ -> ECall (f,args) , p
 	| _ ->
 		match args with
-		| a :: b :: c :: d :: x :: l -> 
+		| a :: b :: c :: d :: x :: l ->
 			let app = ECall ((EConst (Builtin "apply"),p),[f;a;b;c;d]) , p in
 			call ret app (x :: l) p
 		| _ ->
@@ -94,7 +94,7 @@ let array args p =
 
 let block e =
 	match e with
-	| EBlock _ , _ -> e 
+	| EBlock _ , _ -> e
 	| _ -> EBlock [e] , snd e
 
 let rec arity t =
@@ -128,7 +128,7 @@ let rec gen_constant ctx c p =
 	| TConstr "::" | TModule (["Core"],TConstr "::") -> fst (core "@cons" p)
 	| TConstr s -> EConst (Ident s)
 	| TModule ([],c) -> fst (gen_constant ctx c p)
-	| TModule (m,c) ->		
+	| TModule (m,c) ->
 		EField ( (EConst (Ident (module_name m)),p) , (match c with TConstr x -> x | TIdent s -> s | _ -> assert false))
 	) , p
 
@@ -157,7 +157,7 @@ let rec gen_match_rec mctx fail m =
 			EBlock [] , p
 		else
 			call t_void (builtin "goto") [ident label] p
-	| MHandle (m1,m2) -> 
+	| MHandle (m1,m2) ->
 		let label = gen_label ctx in
 		let m1 = gen_rec label m1 in
 		let m2 = gen_rec fail m2 in
@@ -170,7 +170,7 @@ let rec gen_match_rec mctx fail m =
 			let reraise = EIf ( ematch , gen_rec fail MFailure, Some(ECall (builtin "throw", [ident "@exc"]) , p) ) , p in
 			mctx.first <- false;
 			match e.edecl with
-			| TConst _ -> gen_expr ctx e 
+			| TConst _ -> gen_expr ctx e
 			| _ -> ETry (gen_expr ctx e, "@exc" , reraise ) , p
 		end else begin
 			mctx.first <- true;
@@ -233,12 +233,12 @@ let rec gen_match_rec mctx fail m =
 		let fail = gen_rec fail MFailure in
 		EIf (e,m,Some fail) , p
 	| MToken (m,n) ->
-		call t_void (core "stream_token" p) [gen_rec fail m; int n] p		
+		call t_void (core "stream_token" p) [gen_rec fail m; int n] p
 	| MJunk (m,n,m2) ->
 		let m = gen_rec fail m in
 		mctx.first <- false;
 		EBlock [
-			call t_void (core "stream_junk" p) [m; int n] p;		
+			call t_void (core "stream_junk" p) [m; int n] p;
 			gen_rec fail m2
 		] , p
 
@@ -252,7 +252,7 @@ and gen_matching ctx v m p stream out =
 		next = no_label;
 	} in
 	let label = (if stream then gen_label ctx else no_label) in
-	Hashtbl.add mctx.h MRoot v;	
+	Hashtbl.add mctx.h MRoot v;
 	let e = gen_match_rec mctx label m in
 	if stream then begin
 		let vpos = gen_variable ctx in
@@ -264,7 +264,7 @@ and gen_matching ctx v m p stream out =
 		e
 
 and gen_match ctx e m stream p =
-	let out = gen_label ctx in 
+	let out = gen_label ctx in
 	let v = gen_variable ctx in
 	let m = gen_matching ctx v m p stream out in
 	let m = ENext ((EVars [v,Some e],p),m) , p in
@@ -287,7 +287,7 @@ and gen_constructor ctx tname c t p =
 	let export = EBinop ("=", (EField (ident ctx.module_name,c),p) , field) , p in
 	ENext (val_type t , export) , p
 
-and gen_type_printer ctx c t =	
+and gen_type_printer ctx c t =
 	let printer = mk (TConst (TModule (["Core"],TIdent "@print_union"))) t_void Mlast.null_pos in
 	let e = mk (TCall (printer,[
 		mk (TConst (TString c)) t_string Mlast.null_pos;
@@ -338,7 +338,7 @@ and gen_binop ctx op e1 e2 p =
 	| "and" -> make "&"
 	| "or" -> make "|"
 	| "xor" -> make "^"
-	| "==" | "!=" | ">" | "<" | ">=" | "<=" -> 
+	| "==" | "!=" | ">" | "<" | ">=" | "<=" ->
 		(match comparison e1.etype with
 		| Structural -> compare op
 		| Native -> make op)
@@ -351,7 +351,7 @@ and gen_binop ctx op e1 e2 p =
 			ECall (core "@aset" p,[gen_expr ctx a; gen_expr ctx i; gen_expr ctx e2]) , p
 		| _ ->
 			EBinop ("=",(EArray (gen_expr ctx e1,int 0),pos e1.epos),gen_expr ctx e2) , p)
-	| _ -> 
+	| _ ->
 		make op
 
 and gen_expr ctx e =
@@ -366,11 +366,11 @@ and gen_expr ctx e =
 		let ch = IO.input_string (String.concat "\"" (ExtString.String.nsplit s "'")) in
 		let file = "neko@" ^ p.pfile in
 		Parser.parse (Lexing.from_function (fun s p -> try IO.input ch s 0 p with IO.No_more_input -> 0)) file
-	| TCall (f,el) -> 
+	| TCall (f,el) ->
 		let f = gen_expr ctx f in
 		call e.etype f (List.map (gen_expr ctx) el) p
 	| TField (e,s) -> EField (gen_expr ctx e, s) , p
-	| TArray (e1,e2) -> 
+	| TArray (e1,e2) ->
 		let e1 = gen_expr ctx e1 in
 		ECall (core "@aget" p,[e1;gen_expr ctx e2]) , p
 	| TVar ([v],e) ->
@@ -383,7 +383,7 @@ and gen_expr ctx e =
 			incr n;
 			v , Some (EArray (ident "@tmp",int !n),p)
 		) vl) , p
-	| TIf (e,e1,e2) -> 
+	| TIf (e,e1,e2) ->
 		let e = gen_expr ctx e in
 		let e1 = gen_expr ctx e1 in
 		EIf (e, e1, match e2 with None -> None | Some e2 -> Some (gen_expr ctx e2)) , p
@@ -398,7 +398,7 @@ and gen_expr ctx e =
 	| TTupleDecl tl -> array (List.map (gen_expr ctx) tl) p
 	| TTypeDecl t -> gen_type ctx "<assert>" t p
 	| TMut e -> gen_expr ctx (!e)
-	| TRecordDecl fl -> 
+	| TRecordDecl fl ->
 		EObject (("__string", core "@print_record" p) :: List.map (fun (s,e) -> s , gen_expr ctx e) fl) , p
 	| TListDecl el ->
 		(match el with
@@ -406,7 +406,7 @@ and gen_expr ctx e =
 		| x :: l ->
 			let x = gen_expr ctx x in
 			array [x; gen_expr ctx { e with edecl = TListDecl l }] p)
-	| TUnop (op,e) -> 
+	| TUnop (op,e) ->
 		(match op with
 		| "-" -> EBinop ("-",int 0,gen_expr ctx e) , p
 		| "*" -> EArray (gen_expr ctx e,int 0) , p
@@ -468,7 +468,7 @@ and gen_block ctx el p =
 			ell := gen_expr ctx x :: !ell;
 			loop [] l
 	in
-	loop [] el;	
+	loop [] el;
 	ctx.refvars <- old;
 	List.rev !ell
 
@@ -481,7 +481,7 @@ let generate e deps idents m =
 	} in
 	if !verbose then print_endline ("Generating " ^ m ^ ".neko");
 	let init = EBinop ("=",ident m,builtin "exports"), null_pos in
-	let deps = List.map (fun m -> 
+	let deps = List.map (fun m ->
 		let file = String.concat "/" m in
 		let load = ECall ((EField (builtin "loader","loadmodule"),null_pos),[gen_constant ctx (TString file) null_pos;builtin "loader"]) , null_pos in
 		EBinop ("=", ident (module_name m), load ) , null_pos
@@ -490,6 +490,6 @@ let generate e deps idents m =
 		EBinop ("=", (EField (builtin "exports",i),null_pos) , ident i) , null_pos
 	) idents in
 	match gen_expr ctx e with
-	| EBlock e , p -> EBlock (init :: deps @ e @ exports) , p 
+	| EBlock e , p -> EBlock (init :: deps @ e @ exports) , p
 	| e -> EBlock (init :: deps @ e :: exports) , null_pos
 
