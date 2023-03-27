@@ -3,7 +3,7 @@ version: '3'
 services:
   workspace:
     # To update, use `earthly --push +devcontainer-rebuild`
-    image: haxe/neko_devcontainer:20220105030948
+    image: haxe/neko_devcontainer:20221124162640
     init: true
     volumes:
       - ..:/workspace:cached
@@ -18,7 +18,7 @@ services:
     command: sleep infinity
     user: vscode
   earthly:
-    image: earthly/buildkitd:v0.6.2
+    image: earthly/buildkitd:v0.6.30
     privileged: true
     environment:
       - BUILDKIT_TCP_TRANSPORT_ENABLED=true

@@ -302,7 +302,7 @@ int main( int argc, char *argv[] ) {
 #			ifdef NEKO_STANDALONE
 			report(vm,alloc_string("No embedded module in this executable"),0);
 #			else
-			printf("NekoVM %d.%d.%d (c)2005-2022 Haxe Foundation\n  Usage : neko <file>\n",NEKO_VERSION_MAJOR,NEKO_VERSION_MINOR,NEKO_VERSION_PATCH);
+			printf("NekoVM %d.%d.%d (c)2005-%d Haxe Foundation\n  Usage : neko <file>\n",NEKO_VERSION_MAJOR,NEKO_VERSION_MINOR,NEKO_VERSION_PATCH,NEKO_BUILD_YEAR);
 #			endif
 			mload = NULL;
 			r = 1;

@@ -1,5 +1,5 @@
 VERSION 0.6
-FROM ubuntu:bionic
+FROM ubuntu:jammy
 
 ARG DEVCONTAINER_IMAGE_NAME_DEFAULT=haxe/neko_devcontainer
 
@@ -18,7 +18,7 @@ vscode-dev-containers-scripts:
     SAVE ARTIFACT --keep-ts *.sh AS LOCAL .devcontainer/library-scripts/
 
 devcontainer-base:
-    FROM mcr.microsoft.com/vscode/devcontainers/base:0-bionic
+    FROM mcr.microsoft.com/vscode/devcontainers/base:0-jammy
     ARG --required TARGETARCH
 
     # Avoid warnings by switching to noninteractive
@@ -27,7 +27,7 @@ devcontainer-base:
     ARG INSTALL_ZSH="false"
     ARG UPGRADE_PACKAGES="true"
     ARG ENABLE_NONROOT_DOCKER="true"
-    ARG USE_MOBY="false" # moby-buildx is missing in bionic
+    ARG USE_MOBY="true"
     COPY .devcontainer/library-scripts/*.sh /tmp/library-scripts/
     RUN apt-get update \
         && /bin/bash /tmp/library-scripts/common-debian.sh "${INSTALL_ZSH}" "${USERNAME}" "${USER_UID}" "${USER_GID}" "${UPGRADE_PACKAGES}" "true" "true" \
@@ -81,7 +81,7 @@ devcontainer-base:
 earthly:
     FROM +devcontainer-base
     ARG --required TARGETARCH
-    RUN curl -fsSL https://github.com/earthly/earthly/releases/download/v0.6.2/earthly-linux-${TARGETARCH} -o /usr/local/bin/earthly \
+    RUN curl -fsSL https://github.com/earthly/earthly/releases/download/v0.6.30/earthly-linux-${TARGETARCH} -o /usr/local/bin/earthly \
         && chmod +x /usr/local/bin/earthly
     SAVE ARTIFACT /usr/local/bin/earthly
 
@@ -144,6 +144,10 @@ build-env:
             software-properties-common \
             curl \
             build-essential \
+            autoconf \
+            automake \
+            libtool \
+            file \
             git \
             ninja-build \
             pkg-config \
@@ -155,14 +159,15 @@ build-env:
         && rm -rf /var/lib/apt/lists/*
     # install a recent CMake
     ARG --required TARGETARCH
-    ARG CMAKE_VERSION=3.22.1
+    ARG CMAKE_VERSION=3.25.0
     RUN case "$TARGETARCH" in \
             amd64) curl -fsSL "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.sh" -o cmake-install.sh;; \
             arm64) curl -fsSL "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-aarch64.sh" -o cmake-install.sh;; \
             *) exit 1;; \
         esac \
-        && sh cmake-install.sh --skip-license --prefix /usr/local \
-        && rm cmake-install.sh
+        && sh cmake-install.sh --skip-license --prefix=/usr/local \
+        && rm cmake-install.sh \
+        && cmake --version | grep -q "$CMAKE_VERSION"
     ARG LINK_TYPE="$LINK_TYPE_DEFAULT" # static or dynamic
     RUN if [ "$LINK_TYPE" = "dynamic" ]; then \
         apt-get update && apt-get install -qqy --no-install-recommends $LINK_DYNAMIC_PACKAGES \
@@ -185,7 +190,7 @@ build:
             dynamic) cmake .. -DSTATIC_DEPS=none -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo;; \
             *) exit 1;; \
         esac
-    RUN if [ "$LINK_TYPE" = "static" ]; then ninja download_static_deps; fi
+    RUN if [ "$LINK_TYPE" = "static" ]; then ninja download_deps; fi
     RUN ninja
     RUN ninja test
     SAVE ARTIFACT bin/*

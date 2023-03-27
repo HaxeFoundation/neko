@@ -47,7 +47,7 @@ if (STATIC_MBEDTLS)
 
 	add_dependencies(ssl.ndll MbedTLS)
 	# Download project for fat source archive
-	add_dependencies(download_static_deps MbedTLS-download)
+	add_dependencies(download_deps MbedTLS-download)
 else()
 	find_package(MbedTLS REQUIRED)
 endif()

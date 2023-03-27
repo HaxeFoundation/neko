@@ -8,6 +8,8 @@ if (STATIC_OPENSSL)
 			set(OPENSSL_CONF ./Configure darwin-i386-cc "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
 		elseif (${CMAKE_OSX_ARCHITECTURES} STREQUAL "x86_64")
 			set(OPENSSL_CONF ./Configure darwin64-x86_64-cc "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
+		elseif (${CMAKE_OSX_ARCHITECTURES} STREQUAL "arm64")
+			set(OPENSSL_CONF ./Configure darwin64-arm64-cc "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
 		endif()
 	else()
 		set(OPENSSL_CONF ./config)
@@ -57,7 +59,7 @@ if (STATIC_OPENSSL)
 		)
 	endif()
 	# Download project for fat source archive
-	add_dependencies(download_static_deps OpenSSL-download)
+	add_dependencies(download_deps OpenSSL-download)
 else()
 	find_package(OpenSSL)
 endif()
@@ -109,7 +111,7 @@ if (STATIC_MARIADBCONNECTOR)
 	)
 	add_dependencies(mysql.ndll MariaDBConnector)
 	# Download project for fat source archive
-	add_dependencies(download_static_deps MariaDBConnector-download)
+	add_dependencies(download_deps MariaDBConnector-download)
 else()
 	find_package(MariaDBConnector REQUIRED)
 endif()
@@ -157,7 +159,7 @@ target_link_libraries(mysql5.ndll
 	socket
 	sha1
 	libneko
-	)
+)
 
 if (WIN32)
 	target_link_libraries(mysql5.ndll ws2_32)

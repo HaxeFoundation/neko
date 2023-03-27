@@ -74,7 +74,7 @@
 #	define NEKO_PPC
 #endif
 
-#if defined(_64BITS) || defined(__x86_64__)
+#if defined(_64BITS) || defined(__x86_64__) || defined(_M_AMD64)
 #	define NEKO_64BITS
 #endif
 
@@ -115,6 +115,8 @@
 #define NEKO_VERSION_MINOR	@NEKO_VERSION_MINOR@
 #define NEKO_VERSION_PATCH	@NEKO_VERSION_PATCH@
 #define NEKO_VERSION		@NEKO_VERSION_MAJOR@@NEKO_VERSION_MINOR@@NEKO_VERSION_PATCH@
+
+#define NEKO_BUILD_YEAR		@NEKO_BUILD_YEAR@
 
 #define NEKO_MODULE_PATH	"@NEKO_MODULE_PATH@"
 

@@ -4,18 +4,17 @@
 
 add_library(regexp.ndll MODULE regexp.c)
 if (STATIC_PCRE2)
-	add_compile_definitions(PCRE2_STATIC_LINK)
+	add_definitions(-DPCRE2_STATIC_LINK)
+	set(PCRE2_CONFIG
+		URL
+			"https://github.com/PhilipHazel/pcre2/releases/download/pcre2-10.37/pcre2-10.37.tar.gz"
+			"https://sourceforge.net/projects/pcre/files/pcre2/10.37/pcre2-10.37.tar.gz/download"
+		URL_MD5 a0b59d89828f62d2e1caac04f7c51e0b
+	)
 	if (WIN32)
-		set(PCRE2_URL "https://github.com/PhilipHazel/pcre2/releases/download/pcre2-10.37/pcre2-10.37.tar.gz")
-		if (NOT ${CMAKE_VERSION} VERSION_LESS 3.7)
-			list(APPEND PCRE2_URL
-				"https://sourceforge.net/projects/pcre/files/pcre2/10.37/pcre2-10.37.tar.gz/download"
-			)
-		endif()
 		ExternalProject_Add(pcre2
 			${EP_CONFIGS}
-			URL ${PCRE2_URL}
-			URL_MD5 a0b59d89828f62d2e1caac04f7c51e0b
+			${PCRE2_CONFIG}
 			CMAKE_ARGS
 				-G ${CMAKE_GENERATOR}
 				-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/install-prefix
@@ -38,24 +37,16 @@ if (STATIC_PCRE2)
 		set(PCRE2_LIBRARIES
 			${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/libpcre2-8.a
 		)
-		set(PCRE2_URL "https://github.com/PhilipHazel/pcre2/releases/download/pcre2-10.37/pcre2-10.37.tar.gz")
-		if (NOT ${CMAKE_VERSION} VERSION_LESS 3.7)
-			list(APPEND PCRE2_URL
-				"https://sourceforge.net/projects/pcre/files/pcre2/10.37/pcre2-10.37.tar.gz/download"
-			)
-		endif()
 		ExternalProject_Add(pcre2
 			${EP_CONFIGS}
-			URL ${PCRE2_URL}
-			URL_MD5 a0b59d89828f62d2e1caac04f7c51e0b
+			${PCRE2_CONFIG}
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/pcre2 &&
+				autoreconf -f -i &&
 				./configure
 					--prefix=${CMAKE_BINARY_DIR}/libs/src/install-prefix
 					--with-pic
-					--enable-unicode-properties
 					--enable-silent-rules
 					--enable-jit
-					--disable-cpp
 					--enable-shared=no
 					--enable-static=yes
 					--silent
@@ -70,7 +61,7 @@ if (STATIC_PCRE2)
 	set(PCRE2_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/libs/src/install-prefix/include)
 	add_dependencies(regexp.ndll pcre2)
 	# Download project for fat source archive
-	add_dependencies(download_static_deps pcre2-download)
+	add_dependencies(download_deps pcre2-download)
 else()
 	find_package(PCRE2 REQUIRED)
 endif()
