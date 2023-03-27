@@ -1,6 +1,6 @@
 (*
  *  Neko Compiler
- *  Copyright (c)2005-2017 Haxe Foundation
+ *  Copyright (c)2005-2022 Haxe Foundation
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -44,7 +44,7 @@ let register source dest trans exc =
 		exceptions = exc;
 	} :: !plugins
 
-let exn_infos name msg pos = 
+let exn_infos name msg pos =
 	{
 		exn_name = name;
 		exn_pos = pos;
@@ -52,8 +52,8 @@ let exn_infos name msg pos =
 	}
 
 let open_file ?(bin=false) f =
-	let rec loop = function 
-		| [] -> None 
+	let rec loop = function
+		| [] -> None
 		| path :: l ->
 			let file = path ^ f in
 			try
@@ -63,7 +63,7 @@ let open_file ?(bin=false) f =
 				_ -> loop l
 	in
 	loop (!paths)
-	
+
 let switch_ext file ext =
 	try
 		Filename.chop_extension file ^ ext
@@ -102,7 +102,7 @@ let generate_loop file ch fext ext =
 	let ftarget = switch_ext file ("." ^ ext) in
 	let genlist = (try
 		List.rev (loop fext [] (!plugins))
-	with Not_found -> 
+	with Not_found ->
 		let fbase = Filename.basename file in
 		failwith ("Don't know how to generate " ^ Filename.basename ftarget ^ " from " ^ fbase)
 	) in
@@ -114,7 +114,7 @@ let generate_loop file ch fext ext =
 	in
 	let rec loop file ch = function
 		| [] -> assert false
-		| [x] -> 
+		| [x] ->
 			let out = IO.output_channel (open_out_bin ftarget) in
 			execute x file ch out;
 			(try IO.close_in ch with IO.Input_closed -> ());

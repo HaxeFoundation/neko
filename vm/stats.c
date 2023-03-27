@@ -1,5 +1,5 @@
 /*
- * Copyright (C)2005-2017 Haxe Foundation
+ * Copyright (C)2005-2022 Haxe Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -103,7 +103,7 @@ void neko_stats_measure( neko_vm *vm, const char *kind, int start ) {
 		// add to stack
 		s->ncalls++;
 		s->stack = stack;
-		stack = s;		
+		stack = s;
 		s->starttime = time;
 	} else {
 		// lookup on stack
@@ -156,11 +156,11 @@ static statinfos *sort( statinfos *list ) {
 			qsize = insize;
 			while (psize > 0 || (qsize > 0 && q)) {
 				if( psize == 0 ) {
-					e = q; q = q->next; qsize--;					
+					e = q; q = q->next; qsize--;
 				} else if( qsize == 0 || !q ) {
-					e = p; p = p->next; psize--;					
+					e = p; p = p->next; psize--;
 				} else if( cmp(p,q) <= 0 ) {
-					e = p; p = p->next; psize--;					
+					e = p; p = p->next; psize--;
 				} else {
 					e = q; q = q->next; qsize--;
 				}
@@ -174,7 +174,7 @@ static statinfos *sort( statinfos *list ) {
 		}
 		tail->next = NULL;
 		if( nmerges <= 1 )
-            return list;        
+            return list;
         insize *= 2;
     }
 	return NULL;

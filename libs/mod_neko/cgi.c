@@ -1,5 +1,5 @@
 /*
- * Copyright (C)2005-2017 Haxe Foundation
+ * Copyright (C)2005-2022 Haxe Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -27,6 +27,11 @@ DEFINE_KIND(k_mod_neko);
 
 #ifndef NEKO_WINDOWS
 #	define strcmpi	strcasecmp
+#endif
+
+// recent versions of APR include "stdbool.h" somewhere which causes conflicts.
+#ifdef bool
+#	undef bool
 #endif
 
 #ifdef APACHE_2_X

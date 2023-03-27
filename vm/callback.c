@@ -1,5 +1,5 @@
 /*
- * Copyright (C)2005-2017 Haxe Foundation
+ * Copyright (C)2005-2022 Haxe Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -93,16 +93,16 @@ EXTERN value val_callEx( value vthis, value f, value *args, int nargs, value *ex
 		} else if( ((vfunction*)f)->nargs == -1 )
 			ret = (value)((c_primN)((vfunction*)f)->addr)(args,nargs);
 		else
-			val_throw(alloc_string("Invalid call"));		
+			val_throw(alloc_string("Invalid call"));
 		if( ret == NULL )
-			val_throw( (value)((vfunction*)f)->module );		
+			val_throw( (value)((vfunction*)f)->module );
 	} else if( val_short_tag(f) == VAL_FUNCTION ) {
 		if( nargs == ((vfunction*)f)->nargs )  {
 			int n;
 			if( vm->csp + 4 >= vm->sp - nargs && !neko_stack_expand(vm->sp,vm->csp,vm) ) {
 				if( exc ) {
 					neko_process_trap(vm);
-					memcpy(&vm->start,&oldjmp,sizeof(jmp_buf));	
+					memcpy(&vm->start,&oldjmp,sizeof(jmp_buf));
 				}
 				failure("Stack Overflow");
 			} else {
@@ -117,7 +117,7 @@ EXTERN value val_callEx( value vthis, value f, value *args, int nargs, value *ex
 					ret = neko_interp(vm,((vfunction*)f)->module,(int_val)val_null,(int_val*)((vfunction*)f)->addr);
 				} else {
 					neko_module *m = (neko_module*)((vfunction*)f)->module;
-					ret = ((jit_prim)jit_boot_seq)(vm,((vfunction*)f)->addr,val_null,m);			
+					ret = ((jit_prim)jit_boot_seq)(vm,((vfunction*)f)->addr,val_null,m);
 				}
 			}
 		}
@@ -127,7 +127,7 @@ EXTERN value val_callEx( value vthis, value f, value *args, int nargs, value *ex
 		val_throw(alloc_string("Invalid call"));
 	if( exc ) {
 		neko_process_trap(vm);
-		memcpy(&vm->start,&oldjmp,sizeof(jmp_buf));	
+		memcpy(&vm->start,&oldjmp,sizeof(jmp_buf));
 	}
 	vm->vthis = old_this;
 	vm->env = old_env;

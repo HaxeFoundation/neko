@@ -1,5 +1,5 @@
 /*
- * Copyright (C)2005-2017 Haxe Foundation
+ * Copyright (C)2005-2022 Haxe Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -27,6 +27,7 @@
 #	include <sys/types.h>
 #	include <unistd.h>
 #	include <errno.h>
+#	include <signal.h>
 #	if !defined(NEKO_MAC)
 #		if defined(NEKO_BSD)
 #			include <sys/wait.h>
@@ -96,7 +97,7 @@ static void free_process( value vp ) {
 	<doc>
 	Start a process using a command and the specified arguments.
 	When args is not null, cmd and args will be auto-quoted/escaped.
-	If no auto-quoting/escaping is desired, you should append necessary 
+	If no auto-quoting/escaping is desired, you should append necessary
 	arguments to cmd as if it is inputted to the shell directly, and pass
 	null as args.
 	</doc>
@@ -110,8 +111,8 @@ static value process_run( value cmd, value vargs ) {
 		val_check(vargs,array);
 	}
 #	ifdef NEKO_WINDOWS
-	{		 
-		SECURITY_ATTRIBUTES sattr;		
+	{
+		SECURITY_ATTRIBUTES sattr;
 		STARTUPINFO sinf;
 		HANDLE proc = GetCurrentProcess();
 		HANDLE oread,eread,iwrite;
@@ -189,7 +190,7 @@ static value process_run( value cmd, value vargs ) {
 		CloseHandle(oread);
 		CloseHandle(eread);
 		CloseHandle(iwrite);
-		if( !CreateProcess(NULL,val_string(sargs),NULL,NULL,TRUE,0,NULL,NULL,&sinf,&p->pinf) )			
+		if( !CreateProcess(NULL,val_string(sargs),NULL,NULL,TRUE,0,NULL,NULL,&sinf,&p->pinf) )
 			neko_error();
 		// close unused pipes
 		CloseHandle(sinf.hStdOutput);
@@ -439,7 +440,7 @@ static value process_pid( value vp ) {
 	Close the process I/O.
 	</doc>
 **/
-static value process_close( value vp ) {	
+static value process_close( value vp ) {
 	val_check_kind(vp,k_process);
 	free_process(vp);
 	val_kind(vp) = NULL;

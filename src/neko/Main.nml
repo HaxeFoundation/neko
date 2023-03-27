@@ -1,5 +1,5 @@
 /*
- * Copyright (C)2005-2017 Haxe Foundation
+ * Copyright (C)2005-2022 Haxe Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -135,7 +135,8 @@ function complete(dir) {
 
 try {
 	var v = Sys.version;
-	var head = "Neko Compiler v" + v.maj + "." + v.min + "." + v.build + " - (c)2005-2017 Haxe Foundation\n Usage : neko [options] files...";
+	var year : int = neko "$neko_build_year()";
+	var head = "Neko Compiler v" + v.maj + "." + v.min + "." + v.build + " - (c)2005-" + year + " Haxe Foundation\n Usage : nekoc [options] files...";
 	var link = &None;
 	var links = &[];
 	var version = &0;

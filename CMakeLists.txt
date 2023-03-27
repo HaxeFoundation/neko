@@ -1,4 +1,11 @@
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.10.2)
+
+if (NOT ${CMAKE_VERSION} VERSION_LESS 3.24)
+	cmake_policy(VERSION 3.24)
+elseif (NOT ${CMAKE_VERSION} VERSION_LESS 3.19)
+	cmake_policy(VERSION 3.19)
+endif()
+cmake_policy(SET CMP0068 NEW)
 
 include(GNUInstallDirs)
 include(CheckCCompilerFlag)
@@ -6,7 +13,9 @@ include(CheckIncludeFile)
 include(TestBigEndian)
 project(Neko C)
 
-set(CMAKE_OSX_ARCHITECTURES x86_64)
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
+	EXECUTE_PROCESS(COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE CMAKE_OSX_ARCHITECTURES)
+endif()
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
@@ -22,7 +31,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${OUTPUT_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_DIR})
 
 # avoid the extra "Debug", "Release" directories
-# http://stackoverflow.com/questions/7747857/in-cmake-how-do-i-work-around-the-debug-and-release-directories-visual-studio-2
+# https://stackoverflow.com/questions/7747857/in-cmake-how-do-i-work-around-the-debug-and-release-directories-visual-studio-2
 foreach( OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES} )
 	string( TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG )
 	set( CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${OUTPUT_DIR} )
@@ -36,19 +45,23 @@ if(IS_ABSOLUTE ${CMAKE_INSTALL_LIBDIR})
 endif()
 
 set(NEKO_VERSION_MAJOR 2)
-set(NEKO_VERSION_MINOR 3)
+set(NEKO_VERSION_MINOR 4)
 set(NEKO_VERSION_PATCH 0)
-set(NEKO_VERSION ${NEKO_VERSION_MAJOR}.${NEKO_VERSION_MINOR}.${NEKO_VERSION_PATCH})
+
+string(TIMESTAMP NEKO_BUILD_YEAR "%Y")
+
+# NEKO_VERSION is cached such that we can query it by `cmake -L -N -B . | grep NEKO_VERSION`
+set(NEKO_VERSION ${NEKO_VERSION_MAJOR}.${NEKO_VERSION_MINOR}.${NEKO_VERSION_PATCH} CACHE STRING INTERNAL)
 
 # Determine target endianness
 TEST_BIG_ENDIAN(NEKO_BIG_ENDIAN)
 
-option(WITH_REGEXP "Build Perl-compatible regex support." ON)
-option(WITH_UI "Build GTK-3 UI support." ON)
-option(WITH_SSL "Build SSL support." ON)
-option(WITH_MYSQL "Build MySQL support." ON)
-option(WITH_SQLITE "Build Sqlite support." ON)
-option(WITH_APACHE "Build Apach modules." ON)
+option(WITH_REGEXP "Build with Perl-compatible regex support." ON)
+option(WITH_UI "Build with GTK-3 UI support." ON)
+option(WITH_SSL "Build with SSL support." ON)
+option(WITH_MYSQL "Build with MySQL support." ON)
+option(WITH_SQLITE "Build with Sqlite support." ON)
+option(WITH_APACHE "Build with Apache modules." ON)
 option(WITH_NEKOML "Build NekoML." ON)
 
 # Process common headers in libraries
@@ -60,8 +73,10 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
 		set(arch_64 "")
 	elseif (${CMAKE_OSX_ARCHITECTURES} STREQUAL "x86_64")
 		set(arch_64 "64")
+	elseif (${CMAKE_OSX_ARCHITECTURES} STREQUAL "arm64")
+		set(arch_64 "64")
 	else()
-		message( FATAL_ERROR "CMAKE_OSX_ARCHITECTURES should be i386 or x86_64." )
+		message( FATAL_ERROR "CMAKE_OSX_ARCHITECTURES should be i386, arm64, or x86_64." )
 	endif()
 else()
 	if(CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -101,7 +116,7 @@ set(external_deps
 	Zlib
 	OpenSSL
 	MariaDBConnector
-	PCRE
+	pcre2
 	Sqlite3
 	APR
 	APRutil
@@ -126,18 +141,29 @@ set(STATIC_DEPS ${STATIC_DEPS_DEFAULT} CACHE STRING "${STATIC_DEPS_DOC}")
 
 # Validate STATIC_DEPS
 if (STATIC_DEPS STREQUAL "all")
-	set(STATIC_DEPS ${external_deps} CACHE STRING "${STATIC_DEPS_DOC}" FORCE)
+	set(STATIC_DEPS_ALL ${external_deps})
+	if (WIN32)
+		list(REMOVE_ITEM STATIC_DEPS_ALL BoehmGC)
+	endif()
+	if (APPLE)
+		list(REMOVE_ITEM STATIC_DEPS_ALL APRutil)
+	endif()
+	set(STATIC_DEPS ${STATIC_DEPS_ALL} CACHE STRING "${STATIC_DEPS_DOC}" FORCE)
 elseif (STATIC_DEPS STREQUAL "none")
 	message(STATUS "set STATIC_DEPS to nothing")
 	set(STATIC_DEPS CACHE STRING "${STATIC_DEPS_DOC}" FORCE)
+else()
+	foreach(dep ${STATIC_DEPS})
+		list(FIND external_deps ${dep} idx)
+		if(idx EQUAL -1)
+			message(FATAL_ERROR "Invalid STATIC_DEPS. There is no ${dep} in the list of ${external_deps}")
+		elseif(WIN32 AND dep STREQUAL "BoehmGC")
+			message(FATAL_ERROR "Cannot link ${dep} statically on Windows")
+		elseif(APPLE AND dep STREQUAL "APRutil")
+			message(WARNING "${dep} is redundant as it was merged into APR in version 2.0, which is the version we build with on macOS.")
+		endif()
+	endforeach()
 endif()
-
-foreach(dep ${STATIC_DEPS})
-	list(FIND external_deps ${dep} idx)
-	if(idx EQUAL -1)
-		message(FATAL_ERROR "Invalid STATIC_DEPS. There is no ${dep} in the list of ${external_deps}")
-	endif()
-endforeach()
 
 # Set STATIC_* variables according to STATIC_DEPS.
 foreach(dep ${external_deps})
@@ -208,18 +234,17 @@ set(EP_CONFIGS
 	PREFIX ${CMAKE_BINARY_DIR}/libs
 	DOWNLOAD_DIR ${CMAKE_BINARY_DIR}/libs/download
 )
-if(NOT ${CMAKE_VERSION} VERSION_LESS 3.1)
-	list(APPEND EP_CONFIGS
-		DOWNLOAD_NO_PROGRESS 1
-	)
-endif()
-if(${CMAKE_VERSION} VERSION_LESS 3.2)
-	list(APPEND EP_CONFIGS
-		STEP_TARGETS download
-	)
-else()
+list(APPEND EP_CONFIGS
+	DOWNLOAD_NO_PROGRESS 1
+)
+if (${CMAKE_VERSION} VERSION_LESS 3.19)
 	list(APPEND EP_CONFIGS
 		INDEPENDENT_STEP_TARGETS download
+	)
+else()
+	# download is independent by default in 3.19
+	list(APPEND EP_CONFIGS
+		STEP_TARGETS download
 	)
 endif()
 set(EP_PROPS
@@ -260,7 +285,8 @@ add_executable(nekovm
 	vm/main.c
 )
 
-if (STATIC_BOEHMGC)
+# We need to build from source on Windows regardless
+if (STATIC_BOEHMGC OR WIN32)
 	ExternalProject_Add(libatomic_ops
 		${EP_CONFIGS}
 		URL https://github.com/ivmai/libatomic_ops/releases/download/v7.6.0/libatomic_ops-7.6.0.tar.gz
@@ -269,22 +295,23 @@ if (STATIC_BOEHMGC)
 		BUILD_COMMAND echo skip build
 		INSTALL_COMMAND echo skip install
 	)
-
-	set(BoehmGC_URL "http://www.hboehm.info/gc/gc_source/gc-7.6.0.tar.gz")
-	if (NOT ${CMAKE_VERSION} VERSION_LESS 3.7)
-		list(APPEND BoehmGC_URL
-			"https://github.com/ivmai/bdwgc/files/1005477/gc-7.6.0.tar.gz"
-		)
-	endif()
+	set_target_properties(libatomic_ops PROPERTIES ${EP_PROPS})
 
 	set (
 		BoehmGC_CONFIGS
 		DEPENDS libatomic_ops
-		URL ${BoehmGC_URL}
+		URL
+			"https://www.hboehm.info/gc/gc_source/gc-7.6.0.tar.gz"
+			"https://github.com/ivmai/bdwgc/files/1005477/gc-7.6.0.tar.gz"
 		URL_MD5 bf46ccbdaccfa3186c2ab87191c8855a
 	)
 
+	set(GC_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/include)
+
 	if (WIN32)
+		set(GC_LIBRARIES
+			${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/${CMAKE_CFG_INTDIR}/gcmt-dll.lib
+		)
 		ExternalProject_Add(BoehmGC
 			${EP_CONFIGS}
 			${BoehmGC_CONFIGS}
@@ -293,15 +320,12 @@ if (STATIC_BOEHMGC)
 				-Denable_threads=ON
 				-Denable_parallel_mark=ON
 				-DCMAKE_USE_WIN32_THREADS_INIT=ON
+				-DCMAKE_CXX_STANDARD=14
 			PATCH_COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/libs/src/libatomic_ops ${CMAKE_BINARY_DIR}/libs/src/BoehmGC/libatomic_ops
 			INSTALL_COMMAND
 				${CMAKE_COMMAND} -E copy_directory
 					${CMAKE_BINARY_DIR}/libs/src/BoehmGC/include
 					${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/include/gc
-		)
-		set(GC_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/include)
-		set(GC_LIBRARIES
-			${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/${CMAKE_CFG_INTDIR}/gcmt-dll.lib
 		)
 		add_custom_command(OUTPUT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/gcmt-dll.dll
 			DEPENDS BoehmGC
@@ -318,7 +342,6 @@ if (STATIC_BOEHMGC)
 			set(GC_CFLAGS "-w")
 		endif()
 
-		set(GC_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/include)
 		set(GC_LIBRARIES
 			${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/lib/libgc.a
 		)
@@ -343,15 +366,18 @@ if (STATIC_BOEHMGC)
 			BYPRODUCTS
 				${GC_LIBRARIES}
 		)
-
-		# don't want to add libatomic_ops to external_deps,
-		# but want download_static_deps depends on it
-		add_dependencies(BoehmGC-download libatomic_ops-download)
 	endif()
+
 	set_target_properties(BoehmGC PROPERTIES ${EP_PROPS})
 	add_dependencies(libneko BoehmGC)
 else()
 	find_package(BoehmGC REQUIRED)
+endif()
+
+add_custom_target(download_deps)
+if (STATIC_BOEHMGC OR WIN32)
+	add_dependencies(download_deps libatomic_ops-download)
+	add_dependencies(download_deps BoehmGC-download)
 endif()
 
 target_include_directories(libneko PRIVATE ${GC_INCLUDE_DIR})
@@ -517,13 +543,6 @@ endif()
 
 #######################
 
-add_custom_target(download_static_deps)
-if (STATIC_BOEHMGC)
-	add_dependencies(download_static_deps BoehmGC-download)
-endif()
-
-#######################
-
 # source_archive
 # We create our own source package target instead of using CPack's package_source.
 # One reason is that the CPack VS generator doesn't generate package_source target.
@@ -564,7 +583,7 @@ add_custom_command(OUTPUT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${source_archive_fat
 		-Dsrc_dir=${CMAKE_SOURCE_DIR}
 		-Dlib_src_dir=libs/src
 		-P ${CMAKE_SOURCE_DIR}/cmake/source_archive_fat.cmake
-	DEPENDS source_archive download_static_deps
+	DEPENDS source_archive download_deps
 	VERBATIM
 )
 
@@ -645,6 +664,7 @@ export(TARGETS
 if (WITH_NEKOML)
 	export(TARGETS
 		nekoml
+		APPEND
 		FILE "${CMAKE_BINARY_DIR}/NekoTargets.cmake")
 endif()
 
@@ -733,22 +753,6 @@ if (WIN32)
 else()
 	set(CPACK_GENERATOR "TGZ")
 	set(bin_archive_format tar.gz)
-endif()
-
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
-	if (${CMAKE_OSX_ARCHITECTURES} STREQUAL "i386")
-		set(arch_64 "")
-	elseif (${CMAKE_OSX_ARCHITECTURES} STREQUAL "x86_64")
-		set(arch_64 "64")
-	else()
-		message( FATAL_ERROR "CMAKE_OSX_ARCHITECTURES should be i386 or x86_64." )
-	endif()
-else()
-	if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-		set(arch_64 "64")
-	else()
-		set(arch_64 "")
-	endif()
 endif()
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")

@@ -8,6 +8,8 @@ if (STATIC_OPENSSL)
 			set(OPENSSL_CONF ./Configure darwin-i386-cc "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
 		elseif (${CMAKE_OSX_ARCHITECTURES} STREQUAL "x86_64")
 			set(OPENSSL_CONF ./Configure darwin64-x86_64-cc "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
+		elseif (${CMAKE_OSX_ARCHITECTURES} STREQUAL "arm64")
+			set(OPENSSL_CONF ./Configure darwin64-arm64-cc "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
 		endif()
 	else()
 		set(OPENSSL_CONF ./config)
@@ -42,7 +44,7 @@ if (STATIC_OPENSSL)
 	endif()
 	ExternalProject_Add(OpenSSL
 		${EP_CONFIGS}
-		URL https://www.openssl.org/source/openssl-1.1.1.tar.gz
+		URL https://www.openssl.org/source/old/1.1.1/openssl-1.1.1.tar.gz
 		URL_MD5 7079eb017429e0ffb9efb42bf80ccb21
 		${OPENSSL_CONFS}
 		PATCH_COMMAND ${CMAKE_COMMAND} -Dopenssl_source=${CMAKE_BINARY_DIR}/libs/src/openssl -P ${CMAKE_SOURCE_DIR}/cmake/patch_openssl.cmake
@@ -57,7 +59,7 @@ if (STATIC_OPENSSL)
 		)
 	endif()
 	# Download project for fat source archive
-	add_dependencies(download_static_deps OpenSSL-download)
+	add_dependencies(download_deps OpenSSL-download)
 else()
 	find_package(OpenSSL)
 endif()
@@ -88,7 +90,7 @@ if (STATIC_MARIADBCONNECTOR)
 	ExternalProject_Add(MariaDBConnector
 		${EP_CONFIGS}
 		DEPENDS ${OPENSSL_DEP}
-		URL https://downloads.mariadb.org/f/connector-c-3.0.9/mariadb-connector-c-3.0.9-src.tar.gz
+		URL https://downloads.mariadb.com/Connectors/c/connector-c-3.0.9/mariadb-connector-c-3.0.9-src.tar.gz
 		URL_MD5 e7fdb17e26e779f4bd15b6a32e1c8472
 		CMAKE_ARGS
 			-Wno-dev
@@ -109,7 +111,7 @@ if (STATIC_MARIADBCONNECTOR)
 	)
 	add_dependencies(mysql.ndll MariaDBConnector)
 	# Download project for fat source archive
-	add_dependencies(download_static_deps MariaDBConnector-download)
+	add_dependencies(download_deps MariaDBConnector-download)
 else()
 	find_package(MariaDBConnector REQUIRED)
 endif()
@@ -157,7 +159,7 @@ target_link_libraries(mysql5.ndll
 	socket
 	sha1
 	libneko
-	)
+)
 
 if (WIN32)
 	target_link_libraries(mysql5.ndll ws2_32)

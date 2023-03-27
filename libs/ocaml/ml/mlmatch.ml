@@ -1,6 +1,6 @@
 (*
  *  NekoML Compiler
- *  Copyright (c)2005-2017 Haxe Foundation
+ *  Copyright (c)2005-2022 Haxe Foundation
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,10 +20,10 @@
 (* -----
 	We're using the same algorithm and source code as described in
 	chapter 5.2.4 of "The Zinc experiment" by X. Leroy
-	( http://citeseer.ist.psu.edu/leroy90zinc.html )
+	( https://citeseer.ist.psu.edu/viewdoc/summary?doi=10.1.1.43.6772 )
 	also described in "The Implementation of Functional Programming Languages"
 	by Simon Peyton Jones, in the Chapter 5 by Philip Wadler
-	( http://research.microsoft.com/Users/simonpj/Papers/slpj-book-1987/ )
+	( https://www.microsoft.com/en-us/research/publication/the-implementation-of-functional-programming-languages/ )
 *)
 
 open Mlast
@@ -97,7 +97,7 @@ let total p1 p2 =
 	| _ , Partial -> Partial
 	| _ , _ -> Dubious
 
-let partial p1 p2 = 
+let partial p1 p2 =
 	match p1 , p2 with
 	| Total , _ -> p2
 	| _ , Total -> Total
@@ -178,7 +178,7 @@ let split_matching (m:matching) =
 		in
 		split_rec casel
 
-let divide_matching (m:matching) = 
+let divide_matching (m:matching) =
 	match m with
 	| _ , [] ->
 		assert false
@@ -195,7 +195,7 @@ let divide_matching (m:matching) =
 			| ((PConst c,_) :: l, act) :: rest ->
 				let constant , constrs, others = divide_rec rest in
 				add_to_division (make_constant_match pathl) constant (t_const c) (l, act), constrs , others
-			| ((PConstr (path,c,arg),_) :: l,act) :: rest ->				
+			| ((PConstr (path,c,arg),_) :: l,act) :: rest ->
 				let constants , constrs, others = divide_rec rest in
 				let args = flatten arg in
 				constants , add_to_division (make_construct_match false (List.length args) pathl) constrs (TModule (path,TConstr c)) (args @ l,act) , others
@@ -244,7 +244,7 @@ and conquer_matching (m:matching) =
 			handle action a , p , r
 		else
 			action , Total, rest
-	| _ , [] -> 
+	| _ , [] ->
 		assert false
 	| (p :: _,_) :: _ , _ :: _ when start_by_a_variable p ->
 		let vars , rest = split_matching m in
@@ -273,8 +273,8 @@ and conquer_matching (m:matching) =
 			assert false
 
 let make (cases : (pattern list * texpr option * texpr) list) p =
-	let cases = List.concat (List.map (fun (pl,wcond,e) ->		
-		let e = exec e in 
+	let cases = List.concat (List.map (fun (pl,wcond,e) ->
+		let e = exec e in
 		let e = (match wcond with None -> e | Some e2 -> ewhen e2 e) in
 		List.map (fun p -> [p] , e) pl
 	) cases) in

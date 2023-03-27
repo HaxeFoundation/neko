@@ -1,6 +1,6 @@
 (*
  *  NekoML Compiler
- *  Copyright (c)2005-2017 Haxe Foundation
+ *  Copyright (c)2005-2022 Haxe Foundation
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@ let nekoml file ch out =
 	ignore(Mltyper.load_module ctx modname Mlast.null_pos);
 	Hashtbl.iter (fun m (e,deps,idents) ->
 		let e = Mlneko.generate e deps idents m in
-		let file = String.concat "/" m ^ ".neko" in		
+		let file = String.concat "/" m ^ ".neko" in
 		let ch = (if m = modname then out else IO.output_channel (open_out file)) in
 		let ctx = Printer.create ch in
 		Printer.print ctx e;

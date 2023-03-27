@@ -1,5 +1,5 @@
 /*
- * Copyright (C)2005-2017 Haxe Foundation
+ * Copyright (C)2005-2022 Haxe Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -28,7 +28,7 @@
 	<h1>SQLite</h1>
 	<p>
 	Sqlite is a small embeddable SQL database that store all its data into
-	a single file. See http://sqlite.org for more details.
+	a single file. See https://sqlite.org for more details.
 	</p>
 	</doc>
 **/

@@ -1,5 +1,5 @@
 /*
- * Copyright (C)2005-2017 Haxe Foundation
+ * Copyright (C)2005-2022 Haxe Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -36,6 +36,8 @@
 #	define UIEvent		0xFFFFAA00
 #	define eCall		0x0
 enum { pFunc = 'func' };
+extern void RunApplicationEventLoop(void);
+extern void QuitApplicationEventLoop(void);
 #else
 #	include <gtk/gtk.h>
 #	include <glib.h>
