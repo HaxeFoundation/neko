@@ -55,7 +55,13 @@ devcontainer-base:
             cmake \
             ninja-build \
             pkg-config \
-            libgtk2.0-dev \
+            libgtk-3-dev \
+            libgc-dev \
+            libpcre3-dev \
+            zlib1g-dev \
+            apache2-dev \
+            libmysqlclient-dev \
+            libsqlite3-dev \
             $LINK_DYNAMIC_PACKAGES \
         #
         # Clean up
@@ -151,7 +157,13 @@ build-env:
             git \
             ninja-build \
             pkg-config \
-            libgtk2.0-dev \
+            libgtk-3-dev \
+            libgc-dev \
+            libpcre3-dev \
+            zlib1g-dev \
+            apache2-dev \
+            libmysqlclient-dev \
+            libsqlite3-dev \
         #
         # Clean up
         && apt-get autoremove -y \
