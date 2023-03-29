@@ -148,6 +148,12 @@ static value date_format( value o, value fmt ) {
 			continue;
 		}
 		i++;
+		if (str[i] == '#') {
+			i++;
+		}
+		if (str[i] == 'E' || str[i] == 'O') {
+			i++;
+		}
 		bool is_valid = false;
 		const char* format_code = VALID_FORMAT_CODES;
 		while (*format_code) {
