@@ -163,6 +163,7 @@ stages:
               aws s3 cp LinuxStaticArm64Binaries/neko-*.tar.gz  $(HXBUILDS_S3ADDR)/neko/linux-arm64/${FILE_NAME}.tar.gz
               aws s3 cp MacStaticBinaries/neko-*.tar.gz    $(HXBUILDS_S3ADDR)/neko/mac/${FILE_NAME}.tar.gz
               aws s3 cp WinVS2017Binaries/neko-*.zip       $(HXBUILDS_S3ADDR)/neko/windows/${FILE_NAME}.zip
+              aws s3 cp WinVS2017x64Binaries/neko-*.zip    $(HXBUILDS_S3ADDR)/neko/windows64/${FILE_NAME}.zip
               aws s3 cp Chocolatey/*.nupkg                 $(HXBUILDS_S3ADDR)/neko/windows64-choco/
             env:
               AWS_ACCESS_KEY_ID: $(HXBUILDS_AWS_ACCESS_KEY_ID)
