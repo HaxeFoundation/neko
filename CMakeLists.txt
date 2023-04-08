@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.10.2)
 
 if (${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.24)
 	cmake_policy(VERSION 3.24)
@@ -177,11 +177,11 @@ if (RELOCATABLE)
 endif()
 
 if(UNIX AND NOT APPLE)
-	add_compile_definitions(ABI_ELF)
+	add_definitions(-DABI_ELF)
 endif()
 
 if(UNIX)
-	add_compile_definitions(_GNU_SOURCE)
+	add_definitions(-D_GNU_SOURCE)
 	add_compile_options(-fno-omit-frame-pointer)
 
 	set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
