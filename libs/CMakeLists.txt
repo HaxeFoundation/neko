@@ -111,6 +111,9 @@ if (WITH_APACHE)
 				-DCMAKE_POLICY_DEFAULT_CMP0074=NEW
 				-DEXPAT_ROOT=${CMAKE_BINARY_DIR}/libs/src/install-prefix
 			)
+			if (${CMAKE_VERSION} VERSION_LESS 3.12)
+				message(WARNING "CMake 3.12 or above is required for building APRutil on Windows")
+			endif()
 			if (${CMAKE_VERSION} VERSION_LESS 3.27)
 				# we need to make sure cmake finds the correct library build
 				# see: https://gitlab.kitware.com/cmake/cmake/-/merge_requests/8225
