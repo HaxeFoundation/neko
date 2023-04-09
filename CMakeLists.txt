@@ -5,7 +5,6 @@ if (${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.24)
 elseif (${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.19)
 	cmake_policy(VERSION 3.19)
 endif()
-cmake_policy(SET CMP0068 NEW)
 
 project(Neko C)
 
