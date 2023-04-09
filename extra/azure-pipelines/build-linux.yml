@@ -1,6 +1,6 @@
 parameters:
   name: 'BuildLinux'
-  vmImage: 'ubuntu-18.04'
+  vmImage: 'ubuntu-20.04'
   linkType: 'static'
   arch: 'amd64'
 
