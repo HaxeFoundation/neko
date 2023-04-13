@@ -4,12 +4,13 @@
 
 add_library(regexp.ndll MODULE regexp.c)
 if (STATIC_PCRE2)
-	add_definitions(-DPCRE2_STATIC_LINK)
+	set_target_properties(regexp.ndll
+		PROPERTIES
+		COMPILE_DEFINITIONS PCRE2_STATIC_LINK
+	)
 	set(PCRE2_CONFIG
-		URL
-			"https://github.com/PhilipHazel/pcre2/releases/download/pcre2-10.37/pcre2-10.37.tar.gz"
-			"https://sourceforge.net/projects/pcre/files/pcre2/10.37/pcre2-10.37.tar.gz/download"
-		URL_MD5 a0b59d89828f62d2e1caac04f7c51e0b
+		URL https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.42/pcre2-10.42.tar.gz
+		URL_HASH SHA256=c33b418e3b936ee3153de2c61cc638e7e4fe3156022a5c77d0711bcbb9d64f1f
 	)
 	if (WIN32)
 		ExternalProject_Add(pcre2
@@ -23,10 +24,11 @@ if (STATIC_PCRE2)
 				-DPCRE2_BUILD_TESTS=OFF
 				-DPCRE2_SUPPORT_JIT=ON
 				-DPCRE2_SUPPORT_UNICODE=ON
+				-DBUILD_SHARED_LIBS=OFF
 		)
 		set(PCRE2_LIBRARIES
-			optimized ${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/pcre2-8.lib
-			debug ${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/pcre2-8d.lib
+			optimized ${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/pcre2-8-static.lib
+			debug ${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/pcre2-8-staticd.lib
 		)
 	else()
 		if (APPLE)
@@ -51,7 +53,7 @@ if (STATIC_PCRE2)
 					--enable-static=yes
 					--silent
 			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/pcre2 &&
-				make "CFLAGS=${PCRE_CFLAGS}"
+				make "CFLAGS=${PCRE2_CFLAGS}"
 			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/pcre2 &&
 				make install
 			BYPRODUCTS ${PCRE2_LIBRARIES}

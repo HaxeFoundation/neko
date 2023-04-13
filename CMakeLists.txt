@@ -1,17 +1,17 @@
 cmake_minimum_required(VERSION 3.10.2)
 
-if (NOT ${CMAKE_VERSION} VERSION_LESS 3.24)
+if (${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.24)
 	cmake_policy(VERSION 3.24)
-elseif (NOT ${CMAKE_VERSION} VERSION_LESS 3.19)
+elseif (${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.19)
 	cmake_policy(VERSION 3.19)
 endif()
-cmake_policy(SET CMP0068 NEW)
+
+project(Neko C)
 
 include(GNUInstallDirs)
 include(CheckCCompilerFlag)
 include(CheckIncludeFile)
 include(TestBigEndian)
-project(Neko C)
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 
@@ -57,7 +57,7 @@ option(WITH_REGEXP "Build with Perl-compatible regex support." ON)
 option(WITH_UI "Build with GTK-3 UI support." ON)
 option(WITH_SSL "Build with SSL support." ON)
 option(WITH_MYSQL "Build with MySQL support." ON)
-option(WITH_SQLITE "Build with Sqlite support." ON)
+option(WITH_SQLITE "Build with SQLite support." ON)
 option(WITH_APACHE "Build with Apache modules." ON)
 option(WITH_NEKOML "Build NekoML." ON)
 
@@ -102,7 +102,7 @@ set(external_deps
 	OpenSSL
 	MariaDBConnector
 	pcre2
-	Sqlite3
+	SQLite3
 	APR
 	APRutil
 	Apache
@@ -130,9 +130,6 @@ if (STATIC_DEPS STREQUAL "all")
 	if (WIN32)
 		list(REMOVE_ITEM STATIC_DEPS_ALL BoehmGC)
 	endif()
-	if (APPLE)
-		list(REMOVE_ITEM STATIC_DEPS_ALL APRutil)
-	endif()
 	set(STATIC_DEPS ${STATIC_DEPS_ALL} CACHE STRING "${STATIC_DEPS_DOC}" FORCE)
 elseif (STATIC_DEPS STREQUAL "none")
 	message(STATUS "set STATIC_DEPS to nothing")
@@ -144,8 +141,6 @@ else()
 			message(FATAL_ERROR "Invalid STATIC_DEPS. There is no ${dep} in the list of ${external_deps}")
 		elseif(WIN32 AND dep STREQUAL "BoehmGC")
 			message(FATAL_ERROR "Cannot link ${dep} statically on Windows")
-		elseif(APPLE AND dep STREQUAL "APRutil")
-			message(WARNING "${dep} is redundant as it was merged into APR in version 2.0, which is the version we build with on macOS.")
 		endif()
 	endforeach()
 endif()

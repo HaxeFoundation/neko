@@ -3,17 +3,6 @@
 # OpenSSL
 
 if (STATIC_OPENSSL)
-	if (APPLE)
-		if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "i386")
-			set(OPENSSL_CONF ./Configure $CMAKE_C_COMPILER "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
-		elseif (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64")
-			set(OPENSSL_CONF ./Configure darwin64-x86_64-cc "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
-		elseif (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "arm64")
-			set(OPENSSL_CONF ./Configure darwin64-arm64-cc "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
-		endif()
-	else()
-		set(OPENSSL_CONF ./config)
-	endif()
 	if (WIN32)
 		# perl is needed to run the openssl Configure script...
 		find_package(Perl REQUIRED)
@@ -22,46 +11,54 @@ if (STATIC_OPENSSL)
 		else()
 			set(openssl_target VC-WIN32)
 		endif()
-		message("arch_64 is ${arch_64}")
-		message("openssl_target is ${openssl_target}")
-		set(OPENSSL_CONFS
-			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/openssl &&
-				${PERL_EXECUTABLE} Configure ${openssl_target} no-asm no-tests --prefix=${CMAKE_BINARY_DIR}/libs/src/install-prefix
-			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/openssl &&
-				nmake /S
-			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/openssl &&
-				nmake /S install_sw
+
+		set(OPENSSL_CONFIGURE_COMMAND ${PERL_EXECUTABLE} Configure ${openssl_target} no-asm)
+		set(OPENSSL_MAKE_COMMAND nmake /S)
+	else()
+		if (APPLE)
+			if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "i386")
+				set(OPENSSL_CONFIGURE_COMMAND ./Configure darwin-i386-cc "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
+			elseif (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64")
+				set(OPENSSL_CONFIGURE_COMMAND ./Configure darwin64-x86_64-cc "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
+			elseif (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "arm64")
+				set(OPENSSL_CONFIGURE_COMMAND ./Configure darwin64-arm64-cc "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
+			endif()
+		else()
+			set(OPENSSL_CONFIGURE_COMMAND ./config)
+		endif()
+
+		set(OPENSSL_MAKE_COMMAND make)
+	endif()
+	set(OPENSSL_CONFIGS
+		CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/openssl &&
+			${OPENSSL_CONFIGURE_COMMAND} no-tests no-shared --prefix=${CMAKE_BINARY_DIR}/libs/src/install-prefix --libdir=lib
+		BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/openssl &&
+			${OPENSSL_MAKE_COMMAND}
+		INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/openssl &&
+			${OPENSSL_MAKE_COMMAND} install_sw
+	)
+	if (WIN32)
+		set(OPENSSL_LIBRARIES
+			${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/libssl.lib
+			${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/libcrypto.lib
 		)
 	else()
-		set(OPENSSL_CONFS
-			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/openssl &&
-				${OPENSSL_CONF} no-tests --prefix=${CMAKE_BINARY_DIR}/libs/src/install-prefix
-			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/openssl &&
-				make
-			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/openssl &&
-				make install_sw
+		set(OPENSSL_LIBRARIES
+			${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/libssl.a
+			${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/libcrypto.a
 		)
 	endif()
 	ExternalProject_Add(OpenSSL
 		${EP_CONFIGS}
-		URL https://www.openssl.org/source/old/1.1.1/openssl-1.1.1k.tar.gz
-		URL_HASH SHA256=892a0875b9872acd04a9fde79b1f943075d5ea162415de3047c327df33fbaee5
-		${OPENSSL_CONFS}
-		PATCH_COMMAND ${CMAKE_COMMAND} -Dopenssl_source=${CMAKE_BINARY_DIR}/libs/src/openssl -P ${CMAKE_SOURCE_DIR}/cmake/patch_openssl.cmake
+		URL https://www.openssl.org/source/openssl-3.0.8.tar.gz
+		URL_HASH SHA256=6c13d2bf38fdf31eac3ce2a347073673f5d63263398f1f69d0df4a41253e4b3e
+		${OPENSSL_CONFIGS}
+		BYPRODUCTS ${OPENSSL_LIBRARIES}
 		SOURCE_DIR ${CMAKE_BINARY_DIR}/libs/src/openssl
 	)
 	set_target_properties(OpenSSL PROPERTIES ${EP_PROPS})
-	if (WIN32)
-		set(OPENSSL_LIBRARIES
-			Crypt32
-			${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/libcrypto.lib
-			${CMAKE_BINARY_DIR}/libs/src/install-prefix/lib/libssl.lib
-		)
-	endif()
 	# Download project for fat source archive
 	add_dependencies(download_deps OpenSSL-download)
-else()
-	find_package(OpenSSL)
 endif()
 
 ######################
@@ -70,16 +67,27 @@ endif()
 add_library(mysql.ndll MODULE mysql.c)
 
 if (STATIC_MARIADBCONNECTOR)
-	if (STATIC_OPENSSL AND NOT WIN32)
-		set(OPENSSL_CONF -DOPENSSL_ROOT_DIR=${CMAKE_BINARY_DIR}/libs/src/install-prefix)
+	if (STATIC_OPENSSL)
+		set(OPENSSL_CONF -DOPENSSL_USE_STATIC_LIBS=ON -DOPENSSL_ROOT_DIR=${CMAKE_BINARY_DIR}/libs/src/install-prefix)
 		set(OPENSSL_DEP OpenSSL)
 	elseif()
 		set(OPENSSL_CONF "")
 		set(OPENSSL_DEP "")
 	endif()
+	if (STATIC_ZLIB)
+		set(ZLIB_CONF
+			-DWITH_EXTERNAL_ZLIB=ON
+			-DZLIB_ROOT=${CMAKE_BINARY_DIR}/libs/src/install-prefix
+		)
+		set(ZLIB_DEP Zlib)
+	else()
+		if (UNIX)
+			set(ZLIB_CONF -DWITH_EXTERNAL_ZLIB=ON)
+		endif()
+		set(ZLIB_DEP "")
+	endif()
 	if (WIN32)
 		set(MARIADB_CONNECTOR_LIBRARIES
-			${OPENSSL_LIBRARIES}
 			${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector-build/libmariadb/${CMAKE_CFG_INTDIR}/mariadbclient.lib
 		)
 	else()
@@ -89,20 +97,21 @@ if (STATIC_MARIADBCONNECTOR)
 	endif()
 	ExternalProject_Add(MariaDBConnector
 		${EP_CONFIGS}
-		DEPENDS ${OPENSSL_DEP}
-		URL https://downloads.mariadb.com/Connectors/c/connector-c-3.0.9/mariadb-connector-c-3.0.9-src.tar.gz
-		URL_MD5 e7fdb17e26e779f4bd15b6a32e1c8472
+		DEPENDS ${OPENSSL_DEP} ${ZLIB_DEP}
+		URL https://downloads.mariadb.com/Connectors/c/connector-c-3.3.4/mariadb-connector-c-3.3.4-src.tar.gz
+		URL_HASH SHA256=486e5fdf976a8e7fadf583ae912128655e013ac575fa79b2d1af0fb8827a78ed
 		CMAKE_ARGS
 			-Wno-dev
 			-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
 			-DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}
-			-DWITH_SSL=ON
+			-DWITH_SSL=OPENSSL
 			${OPENSSL_CONF}
+			${ZLIB_CONF}
 		PATCH_COMMAND ${CMAKE_COMMAND} -Dmariadb_source=${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector -P ${CMAKE_SOURCE_DIR}/cmake/patch_mariadb.cmake
 		BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector-build &&
 			${CMAKE_COMMAND} --build . --target mariadbclient --config ${CMAKE_CFG_INTDIR}
 		INSTALL_COMMAND echo skip install
-		BYPRODUCTS ${MARIADB_CONNECTOR_LIBRARIES}
+		BUILD_BYPRODUCTS ${MARIADB_CONNECTOR_LIBRARIES}
 	)
 	set_target_properties(MariaDBConnector PROPERTIES ${EP_PROPS})
 	set(MARIADB_CONNECTOR_INCLUDE_DIR
@@ -121,10 +130,10 @@ target_include_directories(mysql.ndll
 	${MARIADB_CONNECTOR_INCLUDE_DIR}
 )
 
-target_link_libraries(mysql.ndll libneko ${MARIADB_CONNECTOR_LIBRARIES})
+target_link_libraries(mysql.ndll libneko ${MARIADB_CONNECTOR_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES})
 
 if (WIN32)
-	target_link_libraries(mysql.ndll ws2_32 crypt32 shlwapi)
+	target_link_libraries(mysql.ndll ws2_32 crypt32 shlwapi secur32)
 endif()
 
 set_target_properties(mysql.ndll
@@ -139,7 +148,7 @@ if(APPLE)
 		PROPERTIES
 		LINK_FLAGS "-undefined dynamic_lookup ${LINK_FLAGS}"
 	)
-endif(APPLE)
+endif()
 
 ######################
 # mysql5.ndll

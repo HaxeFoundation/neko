@@ -3,8 +3,8 @@
 	std : fixed put_env when null is passed in (#229 https://github.com/HaxeFoundation/haxe/issues/10395)
 	std : added sys_cpu_arch (#275)
 	std : fix sys_is64 returning false on 64 bit Windows (#276)
-	cmake : updated apr version for Mac
-	all : fixed various build issues on macOS Catalina
+	all : fixed various build issues on macOS Catalina and Big Sur
+	cmake : update all dependencies
 
 2019-10-19 : 2.3.0
 	std : added socket_set_broadcast function (#190)
