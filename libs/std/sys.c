@@ -242,6 +242,7 @@ static value sys_is64() {
 	<li>[x86]</li>
 	<li>[arm64]</li>
 	<li>[arm]</li>
+	<li>[riscv64]</li>
 	</ul>
 	</doc>
 **/
@@ -254,6 +255,8 @@ static value sys_cpu_arch() {
 	return alloc_string("arm64");
 #elif defined(__arm__) || defined(_M_ARM)
 	return alloc_string("arm");
+#elif (defined(__riscv) && (__riscv_xlen == 64)) || defined(_M_RISCV64)
+	return alloc_string("riscv64");
 #else
 #error Unknown CPU architecture
 #endif
