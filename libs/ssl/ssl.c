@@ -35,6 +35,10 @@ typedef int SOCKET;
 #include "mbedtls/x509_crt.h"
 #include "mbedtls/ssl.h"
 
+#ifdef MBEDTLS_PSA_CRYPTO_C
+#include <psa/crypto.h>
+#endif
+
 #define val_ssl(o)	(mbedtls_ssl_context*)val_data(o)
 #define val_conf(o)	(mbedtls_ssl_config*)val_data(o)
 #define val_cert(o) (mbedtls_x509_crt*)val_data(o)
@@ -807,6 +811,10 @@ void ssl_main() {
 	mbedtls_entropy_init( &entropy );
 	mbedtls_ctr_drbg_init( &ctr_drbg );
 	mbedtls_ctr_drbg_seed( &ctr_drbg, mbedtls_entropy_func, &entropy, NULL, 0 );
+
+#ifdef MBEDTLS_PSA_CRYPTO_C
+	psa_crypto_init();
+#endif
 }
 
 DEFINE_PRIM( ssl_new, 1 );
