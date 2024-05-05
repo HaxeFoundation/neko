@@ -1,6 +1,6 @@
 parameters:
   name: 'BuildMac'
-  vmImage: 'macOS-11'
+  vmImage: 'macOS-12'
   staticDeps: 'true'
   config: 'RelWithDebInfo'
 
