@@ -11,10 +11,10 @@ jobs:
       vmImage: ${{ parameters.vmImage }}
     variables:
       ${{ if eq(parameters.staticDeps, 'true') }}:
-        BREWFILE: extra/azure-pipelines/Brewfile-STATIC_DEPS_ALL
+        BREWFILE: extra/Brewfile-STATIC_DEPS_ALL
         STATIC_DEPS: all
       ${{ if eq(parameters.staticDeps, 'false') }}:
-        BREWFILE: extra/azure-pipelines/Brewfile-STATIC_DEPS_NONE
+        BREWFILE: extra/Brewfile-STATIC_DEPS_NONE
         STATIC_DEPS: none
     steps:
       - script: |
