@@ -158,17 +158,11 @@ endforeach()
 
 include(ExternalProject)
 
-
-# CMAKE_BUILD_WITH_INSTALL_RPATH should be set to true.
-# It is because `nekotools boot` will use the neko in build dir during build.
-set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
-
 if (RELOCATABLE)
-	# https://cmake.org/Wiki/CMake_RPATH_handling
-	set(CMAKE_SKIP_BUILD_RPATH FALSE)
-	set(CMAKE_SKIP_INSTALL_RPATH FALSE)
+	# https://gitlab.kitware.com/cmake/community/-/wikis/doc/cmake/RPATH-handling
+	# Set this to true, otherwise the binaries won't be relocatable until after installation:
+	set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 	if(APPLE)
-		set(CMAKE_MACOSX_RPATH TRUE)
 		set(CMAKE_INSTALL_RPATH @executable_path/)
 	elseif(UNIX)
 		set(CMAKE_INSTALL_RPATH \$ORIGIN)
