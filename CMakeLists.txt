@@ -158,22 +158,18 @@ endforeach()
 
 include(ExternalProject)
 
-
-# CMAKE_BUILD_WITH_INSTALL_RPATH should be set to true.
-# It is because `nekotools boot` will use the neko in build dir during build.
-set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
-
 if (RELOCATABLE)
-	# https://cmake.org/Wiki/CMake_RPATH_handling
-	set(CMAKE_SKIP_BUILD_RPATH FALSE)
-	set(CMAKE_SKIP_INSTALL_RPATH FALSE)
+	# https://gitlab.kitware.com/cmake/community/-/wikis/doc/cmake/RPATH-handling
+	# Set this to true, otherwise the binaries won't be relocatable until after installation:
+	set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 	if(APPLE)
-		set(CMAKE_MACOSX_RPATH TRUE)
 		set(CMAKE_INSTALL_RPATH @executable_path/)
 	elseif(UNIX)
 		set(CMAKE_INSTALL_RPATH \$ORIGIN)
 	endif()
 endif()
+
+list(APPEND CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_FULL_LIBDIR})
 
 if(UNIX AND NOT APPLE)
 	add_definitions(-DABI_ELF)
@@ -395,12 +391,9 @@ set_target_properties(libneko
 if (CMAKE_HOST_WIN32)
 	set(set_neko_env set NEKOPATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 	set(neko_exec $<TARGET_FILE:nekovm>)
-elseif(CMAKE_HOST_APPLE)
-	set(set_neko_env "")
-	set(neko_exec DYLD_FALLBACK_LIBRARY_PATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY} NEKOPATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY} $<TARGET_FILE:nekovm>)
 else()
 	set(set_neko_env "")
-	set(neko_exec LD_LIBRARY_PATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY} NEKOPATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY} $<TARGET_FILE:nekovm>)
+	set(neko_exec NEKOPATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY} $<TARGET_FILE:nekovm>)
 endif()
 
 file(GLOB compilers_src
@@ -781,25 +774,12 @@ if (WITH_NEKOML)
 		COMMAND nekoml
 		WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
 	)
-
-	set_tests_properties(nekoml
-		PROPERTIES
-		ENVIRONMENT LD_LIBRARY_PATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
-	)
 endif()
 
 add_test(NAME nekotools
 	COMMAND nekotools
 	WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
 )
-
-if (UNIX AND NOT APPLE)
-	set_tests_properties(-version test.n nekoc nekotools
-		PROPERTIES
-		ENVIRONMENT LD_LIBRARY_PATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
-	)
-endif()
-
 
 #######################
 
