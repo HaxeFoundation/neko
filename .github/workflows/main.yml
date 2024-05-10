@@ -1,0 +1,359 @@
+name: CI
+on: [push, pull_request]
+
+env:
+  NEKO_VERSION: 2.4.0
+
+jobs:
+  linux-build:
+    name: linux
+    strategy:
+      matrix:
+        arch: [arm64, amd64]
+        link_type: [static, dynamic]
+        include:
+          - link_type: static
+            name_suffix: -static
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Earthly
+        run: sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly && /usr/local/bin/earthly bootstrap --with-autocomplete'
+
+      - name: Install QEMU
+        run: |
+          sudo apt-get install qemu binfmt-support qemu-user-static
+          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+          docker stop earthly-buildkitd || true
+
+      - name: Build package
+        run: earthly --platform=linux/${{ matrix.arch }} +package --LINK_TYPE=${{ matrix.link_type }}
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux${{ matrix.name_suffix }}-${{ matrix.arch }}-binaries
+          path: bin/${{ matrix.link_type }}/linux/${{ matrix.arch }}/neko-${{ env.NEKO_VERSION }}-linux64.tar.gz
+
+  mac-build:
+    name: mac
+    strategy:
+      matrix:
+        arch: [arm64, amd64]
+        link_type: [static, dynamic]
+        include:
+          - arch: arm64
+            os: macos-14
+          - arch: amd64
+            os: macos-12
+          - link_type: static
+            BREWFILE: extra/Brewfile-STATIC_DEPS_ALL
+            STATIC_DEPS: all
+            name_suffix: -static
+          - link_type: dynamic
+            BREWFILE: extra/Brewfile-STATIC_DEPS_NONE
+            STATIC_DEPS: none
+
+    runs-on: ${{ matrix.os }}
+    env:
+      CMAKE_BUILD_TYPE: RelWithDebInfo
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Homebrew dependencies
+        run: |
+          set -ex
+          brew update
+          brew bundle --file="${{ matrix.BREWFILE }}"
+
+      - name: CMake
+        run: cmake . -DSTATIC_DEPS=${{ matrix.STATIC_DEPS }} -G Ninja -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE
+
+      - name: Download dependencies
+        run: ninja download_deps || ninja download_deps || ninja download_deps
+        if: ${{ matrix.link_type == 'static' }}
+
+      - name: Build
+        run: ninja
+
+      - name: Check runtime dependencies
+        run: |
+          set -ex
+          otool -L ./bin/neko
+          otool -L ./bin/nekoc
+          otool -L ./bin/nekoml
+          otool -L ./bin/nekotools
+
+      - name: Test
+        run: ctest --verbose
+
+      - name: Package
+        run: ninja package
+
+      - name: Check version
+        shell: bash
+        run: |
+          set -ex
+          [ "`./bin/neko -version`" == "$NEKO_VERSION" ]
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac${{ matrix.name_suffix }}-${{ matrix.arch }}-binaries
+          path: bin/neko-${{ env.NEKO_VERSION }}-osx64.tar.gz
+
+  windows-build:
+    name: windows
+    strategy:
+      matrix:
+        arch: [Win32, x64]
+        vstools: [vs2017, vs2019]
+        include:
+          - arch: x64
+            name_suffix: 64
+
+          - vstools: vs2017
+            arch: Win32
+            cmake_generator: Visual Studio 15 2017
+
+          - vstools: vs2017
+            arch: x64
+            cmake_generator: Visual Studio 15 2017 Win64
+
+          - vstools: vs2019
+            cmake_generator: Visual Studio 16 2019
+
+    env:
+      CMAKE_BUILD_TYPE: RelWithDebInfo
+
+    runs-on: windows-2019
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install VS2017 tools
+        run: |
+          choco install visualstudio2017buildtools visualstudio2017-workload-vctools
+        if: ${{ matrix.vstools == 'vs2017' }}
+
+      - name: CMake
+        run: |
+          cmake . -G "${{ matrix.cmake_generator }}" ${{ env.CMAKE_ARCH_FLAG }}
+        env:
+          CMAKE_ARCH_FLAG: ${{ matrix.vstools == 'vs2019' && format('-A {0}', matrix.arch) || ' ' }}
+
+      - name: Download dependencies
+        run: |
+          cmake --build . --config $env:CMAKE_BUILD_TYPE --target download_deps || \
+          cmake --build . --config $env:CMAKE_BUILD_TYPE --target download_deps || \
+          cmake --build . --config $env:CMAKE_BUILD_TYPE --target download_deps
+
+      - name: Build
+        run: cmake --build . --config $env:CMAKE_BUILD_TYPE
+
+      - name: Test
+        run: ctest --verbose --build-config $env:CMAKE_BUILD_TYPE
+
+      - name: Package binaries
+        run: cmake --build . --config $env:CMAKE_BUILD_TYPE --target PACKAGE
+
+      - name: Check version
+        shell: bash
+        run: |
+          set -ex
+          [ "`./bin/neko -version`" == "$NEKO_VERSION" ]
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows${{ matrix.name_suffix }}-${{ matrix.vstools }}-binaries
+          path: bin/neko-${{ env.NEKO_VERSION }}-win${{ matrix.name_suffix }}.zip
+
+  package-choco:
+    name: chocolatey
+    needs: [windows-build]
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download windows-vs2017-binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-vs2017-binaries
+          path: windows-vs2017-binaries
+
+      - name: Download windows64-vs2017-binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: windows64-vs2017-binaries
+          path: windows64-vs2017-binaries
+
+      - name: Prepare Chocolatey Package
+        run: |
+          .\extra\chocolatey\generatePackage.ps1 $env:NEKO_VERSION
+          Get-ChildItem extra\chocolatey\out
+
+      - name: Format package version string
+        run: |
+          $commitSha = git rev-parse --short HEAD
+          $commitTime = git show -s --format=%cI HEAD
+          $commitTime = $commitTime.substring(0,19) -replace '[^0-9]',''
+          $sourceBranch = '$(Build.SourceBranch)'
+          $chocoVersion = If ($sourceBranch.StartsWith('refs/tags/v')) {'$env:NEKO_VERSION'} Else {"$env:NEKO_VERSION-SNAP$commitTime"}
+          echo chocoVersion=$chocoVersion >> $env:GITHUB_ENV
+
+      - name: choco pack
+        run: choco pack --version $env:chocoVersion -Out ..\pack
+        working-directory: extra/chocolatey/out/
+
+      - name: Upload package
+        uses: actions/upload-artifact@v4
+        with:
+          name: chocolatey
+          path: extra/chocolatey/pack/
+
+  deploy-s3:
+    name: deploy s3
+    needs: [windows-build, package-choco, mac-build, linux-build]
+    runs-on: ubuntu-latest
+    if: success() && github.repository_owner == 'HaxeFoundation' && github.event_name != 'pull_request'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download linux-static-amd64-binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-static-amd64-binaries
+
+      - name: Download linux-static-arm64-binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-static-arm64-binaries
+
+      - name: Download mac-static-amd64-binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: mac-static-amd64-binaries
+
+      - name: Download mac-static-arm64-binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: mac-static-arm64-binaries
+
+      - name: Download windows-vs2017-binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-vs2017-binaries
+
+      - name: Download windows64-vs2017-binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: windows64-vs2017-binaries
+
+      - name: Download chocolatey
+        uses: actions/download-artifact@v4
+        with:
+          name: chocolatey
+
+      - name: Install awscli
+        run: |
+          set -ex
+          sudo apt-get update -qqy
+          sudo apt-get install -qqy awscli
+
+        # https://stackoverflow.com/questions/58033366/how-to-get-current-branch-within-github-actions
+      - name: Extract branch name
+        id: extract_branch
+        shell: bash
+        run: echo "branch=${GITHUB_REF#refs/heads/}" >> $GITHUB_OUTPUT
+
+      - name: Upload binaries
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.HXBUILDS_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.HXBUILDS_AWS_SECRET_ACCESS_KEY }}
+          AWS_EC2_METADATA_DISABLED: true
+          HXBUILDS_S3ADDR: ${{ vars.HXBUILDS_S3ADDR }}
+        run: |
+          set -ex
+          COMMIT_HASH=`git rev-parse HEAD`
+          COMMIT_HASH_SHORT=${GITHUB_SHA:0:7}
+          COMMIT_DATE=`TZ=UTC git show --quiet --date='format-local:%Y-%m-%d' --format="%cd"`
+          FILE_NAME=neko_${COMMIT_DATE}_$(steps.extract_branch.outputs.branch)_${COMMIT_HASH_SHORT}
+          aws s3 cp linux-static-amd64-binaries/neko-*.tar.gz   $HXBUILDS_S3ADDR/neko/linux64/${FILE_NAME}.tar.gz
+          aws s3 cp linux-static-arm64-binaries/neko-*.tar.gz   $HXBUILDS_S3ADDR/neko/linux-arm64/${FILE_NAME}.tar.gz
+          aws s3 cp mac-static-amd64-binaries/neko-*.tar.gz     $HXBUILDS_S3ADDR/neko/mac/${FILE_NAME}.tar.gz
+          aws s3 cp mac-static-arm64-binaries/neko-*.tar.gz     $HXBUILDS_S3ADDR/neko/mac-arm64/${FILE_NAME}.tar.gz
+          aws s3 cp windows-vs2017-binaries/neko-*.zip          $HXBUILDS_S3ADDR/neko/windows/${FILE_NAME}.zip
+          aws s3 cp windows64-vs2017-binaries/neko-*.zip        $HXBUILDS_S3ADDR/neko/windows64/${FILE_NAME}.zip
+          aws s3 cp chocolatey/*.nupkg                          $HXBUILDS_S3ADDR/neko/windows64-choco/
+
+      - name: Update "latest"
+        if: github.ref == 'refs/heads/master'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.HXBUILDS_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.HXBUILDS_AWS_SECRET_ACCESS_KEY }}
+          AWS_EC2_METADATA_DISABLED: true
+          HXBUILDS_S3ADDR: ${{ vars.HXBUILDS_S3ADDR }}
+        run: |
+          set -ex
+          aws s3 cp linux-static-amd64-binaries/neko-*.tar.gz   $HXBUILDS_S3ADDR/neko/linux64/neko_latest.tar.gz
+          aws s3 cp linux-static-arm64-binaries/neko-*.tar.gz   $HXBUILDS_S3ADDR/neko/linux-arm64/neko_latest.tar.gz
+          aws s3 cp mac-static-arm64-binaries/neko-*.tar.gz     $HXBUILDS_S3ADDR/neko/mac/neko_latest.tar.gz
+          aws s3 cp mac-static-arm64-binaries/neko-*.tar.gz     $HXBUILDS_S3ADDR/neko/mac-arm64/neko_latest.tar.gz
+          aws s3 cp windows-vs2017-binaries/neko-*.zip          $HXBUILDS_S3ADDR/neko/windows/neko_latest.zip
+          aws s3 cp windows64-vs2017-binaries/neko-*.zip        $HXBUILDS_S3ADDR/neko/windows64/neko_latest.zip
+
+          # Chocolatey packages have to be named with version number,
+          # so let's use web redirection to keep the original file name.
+          [[ "$HXBUILDS_S3ADDR" =~ s3://([^/]+)(.*) ]] && HXBUILDS_S3BUCKET="${BASH_REMATCH[1]}" && HXBUILDS_S3PATH="${BASH_REMATCH[2]}"
+          [[ `echo chocolatey/*.nupkg` =~ Chocolatey/(.+) ]] && FILE_NAME="${BASH_REMATCH[1]}"
+          aws s3 cp $HXBUILDS_S3ADDR/neko/windows64-choco/${FILE_NAME}   $HXBUILDS_S3ADDR/neko/windows64-choco/neko_latest.nupkg   --acl public-read --website-redirect "${HXBUILDS_S3ADDR}/neko/windows64-choco/${FILE_NAME}"
+
+  deploy-ppa:
+    name: deploy ppa
+    needs: [windows-build, package-choco, mac-build, linux-build]
+    runs-on: ubuntu-latest
+    if: success() && github.repository_owner == 'HaxeFoundation' && github.event_name != 'pull_request'
+    steps:
+      - name: Download haxeci_sec.gpg
+        run: '# TODO'
+
+      - name: Download haxeci_ssh
+        run: '# TODO'
+
+      - name: Setup credentials
+        run: |
+          # TODO
+          set -ex
+          chmod 600 $CREDENTIAL_PATH/haxeci_ssh
+          eval `ssh-agent -s`
+          ssh-add $CREDENTIAL_PATH/haxeci_ssh
+          gpg --allow-secret-key-import --import $CREDENTIAL_PATH/haxeci_sec.gpg
+          git config --global user.name "$DEBFULLNAME"
+          git config --global user.email "$DEBEMAIL"
+        env:
+          CREDENTIAL_PATH: . # TODO
+          DEBFULLNAME: ${{ secrets.DEBFULLNAME }}
+          DEBEMAIL: ${{ secrets.DEBEMAIL }}
+
+      - name: Install devscripts
+        run: |
+          set -ex
+          sudo apt-get update -qqy
+          sudo apt-get install -qqy ninja-build pkg-config libgtk-3-dev devscripts git-buildpackage ubuntu-dev-tools dh-make dh-apache2
+
+      - name: CMake
+        run: cmake . -DSTATIC_DEPS=all
+
+      - name: Upload to PPA
+        run: make upload_to_ppa
