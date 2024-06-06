@@ -314,8 +314,8 @@ jobs:
           aws s3 cp linux-static-arm64-binaries/neko-*.tar.gz   $HXBUILDS_S3ADDR/neko/linux-arm64/neko_latest.tar.gz
           aws s3 cp mac-static-arm64-binaries/neko-*.tar.gz     $HXBUILDS_S3ADDR/neko/mac/neko_latest.tar.gz
           aws s3 cp mac-static-arm64-binaries/neko-*.tar.gz     $HXBUILDS_S3ADDR/neko/mac-arm64/neko_latest.tar.gz
-          aws s3 cp windows-vs2017-binaries/neko-*.zip          $HXBUILDS_S3ADDR/neko/windows/neko_latest.zip
-          aws s3 cp windows64-vs2017-binaries/neko-*.zip        $HXBUILDS_S3ADDR/neko/windows64/neko_latest.zip
+          aws s3 cp neko-*-win.zip                              $HXBUILDS_S3ADDR/neko/windows/neko_latest.zip
+          aws s3 cp neko-*-win64.zip                            $HXBUILDS_S3ADDR/neko/windows64/neko_latest.zip
 
           # Chocolatey packages have to be named with version number,
           # so let's use web redirection to keep the original file name.
