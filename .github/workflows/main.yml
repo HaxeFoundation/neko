@@ -321,7 +321,7 @@ jobs:
           # so let's use web redirection to keep the original file name.
           [[ "$HXBUILDS_S3ADDR" =~ s3://([^/]+)(.*) ]] && HXBUILDS_S3BUCKET="${BASH_REMATCH[1]}" && HXBUILDS_S3PATH="${BASH_REMATCH[2]}"
           FILE_NAME=$(echo neko.*.nupkg)
-          aws s3 cp $HXBUILDS_S3ADDR/neko/windows64-choco/${FILE_NAME}   $HXBUILDS_S3ADDR/neko/windows64-choco/neko_latest.nupkg   --acl public-read --website-redirect "${HXBUILDS_S3ADDR}/neko/windows64-choco/${FILE_NAME}"
+          aws s3 cp $HXBUILDS_S3ADDR/neko/windows64-choco/${FILE_NAME}   $HXBUILDS_S3ADDR/neko/windows64-choco/neko_latest.nupkg   --acl public-read --website-redirect "${HXBUILDS_S3PATH}/neko/windows64-choco/${FILE_NAME}"
 
   deploy-ppa:
     name: deploy ppa
