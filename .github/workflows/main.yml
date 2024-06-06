@@ -288,7 +288,7 @@ jobs:
           COMMIT_HASH=`git rev-parse HEAD`
           COMMIT_HASH_SHORT=${GITHUB_SHA:0:7}
           COMMIT_DATE=`TZ=UTC git show --quiet --date='format-local:%Y-%m-%d' --format="%cd"`
-          FILE_NAME=neko_${COMMIT_DATE}_$(steps.extract_branch.outputs.branch)_${COMMIT_HASH_SHORT}
+          FILE_NAME=neko_${COMMIT_DATE}_${{ steps.extract_branch.outputs.branch }}_${COMMIT_HASH_SHORT}
           aws s3 cp linux-static-amd64-binaries/neko-*.tar.gz   $HXBUILDS_S3ADDR/neko/linux64/${FILE_NAME}.tar.gz
           aws s3 cp linux-static-arm64-binaries/neko-*.tar.gz   $HXBUILDS_S3ADDR/neko/linux-arm64/${FILE_NAME}.tar.gz
           aws s3 cp mac-static-amd64-binaries/neko-*.tar.gz     $HXBUILDS_S3ADDR/neko/mac/${FILE_NAME}.tar.gz
