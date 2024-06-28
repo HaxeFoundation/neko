@@ -741,7 +741,13 @@ else()
 	set(OS_NAME "")
 endif()
 
-set(bin_archive_name_we "neko-${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}-${OS_NAME}${arch_64}")
+if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "arm64")
+	set(arch_suffix "-arm64")
+else()
+	set(arch_suffix ${arch_64})
+endif()
+
+set(bin_archive_name_we "neko-${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}-${OS_NAME}${arch_suffix}")
 set(bin_archive_name "${bin_archive_name_we}.${bin_archive_format}")
 set(CPACK_PACKAGE_FILE_NAME ${bin_archive_name_we})
 # set(CPACK_SOURCE_PACKAGE_FILE_NAME
