@@ -741,7 +741,7 @@ else()
 	set(OS_NAME "")
 endif()
 
-if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "arm64")
+if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "arm64" OR ${CMAKE_SYSTEM_PROCESSOR} STREQUAL "aarch64")
 	set(arch_suffix "-arm64")
 else()
 	set(arch_suffix ${arch_64})

@@ -35,7 +35,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: linux${{ matrix.name_suffix }}-${{ matrix.arch }}-binaries
-          path: bin/${{ matrix.link_type }}/linux/${{ matrix.arch }}/neko-${{ env.NEKO_VERSION }}-linux64.tar.gz
+          path: bin/${{ matrix.link_type }}/linux/${{ matrix.arch }}/neko-${{ env.NEKO_VERSION }}-linux*.tar.gz
 
   mac-build:
     name: mac
