@@ -221,6 +221,53 @@ jobs:
           name: chocolatey
           path: extra/chocolatey/pack/
 
+  mac-universal:
+    name: mac universal
+    needs: [mac-build]
+    runs-on: macos-latest
+
+    env:
+      INPUT_AMD64: mac-static-amd64-binaries
+      INPUT_ARM64: mac-static-arm64-binaries
+      OUTPUT: mac-static-universal-binaries
+
+    steps:
+      - name: Download ${{ env.INPUT_AMD64 }}
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.INPUT_AMD64 }}
+          path: ${{ env.INPUT_AMD64 }}
+
+      - name: Download ${{ env.INPUT_ARM64 }}
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.INPUT_ARM64 }}
+          path: ${{ env.INPUT_ARM64 }}
+
+      - name: Create universal binaries
+        run: |
+          mkdir $OUTPUT
+
+          # put amd64 files straight into output to make sure all non-binary files are also included
+          tar -xf $INPUT_AMD64/neko-*.tar.gz \
+            -C $OUTPUT --strip-components=1
+          tar -xf $INPUT_ARM64/neko-*.tar.gz \
+            -C $INPUT_ARM64 --strip-components=1
+
+          for filename in $OUTPUT/{*.ndll,libneko.*.*.*.dylib,neko,nekoc,nekoml,nekotools}; do
+            filename_amd64=$filename
+            filename_arm64=${filename/$OUTPUT/$INPUT_ARM64}
+            lipo -create -output $filename $filename_amd64 $filename_arm64
+          done
+
+          file $OUTPUT/*
+
+      - name: Upload universal binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.OUTPUT }}
+          path: ${{ env.OUTPUT }}
+
   deploy-s3:
     name: deploy s3
     needs: [windows-build, package-choco, mac-build, linux-build]
