@@ -6,7 +6,7 @@
 	std : fixed $int to respect whitespace and signs in hex notation and to ignore trailing text (#258)
 	all : fixed various build issues on macOS Catalina and Big Sur
 	cmake : update all dependencies
-	all : added arm64 binaries for Linux and macOS
+	all : added arm64 binaries for Linux and macOS, and universal binaries for macOS
 	regexp : migrated to pcre2, fixing matches with null characters (#249)
 	regexp : fixed stack overflow with large strings (#262)
 	regexp : added regexp_matched_num function (#257)
