@@ -10,6 +10,7 @@ if (STATIC_MBEDTLS)
 		-DENABLE_PROGRAMS=OFF
 		-DENABLE_TESTING=OFF
 		-DUSE_STATIC_MBEDTLS_LIBRARY=ON
+		-DMBEDTLS_USER_CONFIG_FILE=${CMAKE_CURRENT_SOURCE_DIR}/mbedtls_config.h
 	)
 	if (UNIX)
 		list(APPEND MBEDTLS_CMAKE_ARGS
@@ -35,8 +36,8 @@ if (STATIC_MBEDTLS)
 	endif()
 	ExternalProject_Add(MbedTLS
 		${EP_CONFIGS}
-		URL https://github.com/Mbed-TLS/mbedtls/archive/refs/tags/v2.28.3.tar.gz
-		URL_HASH SHA256=bdf7c5bbdc338da3edad89b2885d4f8668f9a6fffeba6ec17a60333e36dade6f
+		URL https://github.com/Mbed-TLS/mbedtls/releases/download/v3.6.0/mbedtls-3.6.0.tar.bz2
+		URL_HASH SHA256=3ecf94fcfdaacafb757786a01b7538a61750ebd85c4b024f56ff8ba1490fcd38
 		CMAKE_ARGS ${MBEDTLS_CMAKE_ARGS}
 		PATCH_COMMAND ${CMAKE_COMMAND} -Dsource=${CMAKE_SOURCE_DIR} -DMbedTLS_source=${CMAKE_BINARY_DIR}/libs/src/MbedTLS -P ${CMAKE_SOURCE_DIR}/cmake/patch_mbedtls.cmake
 		INSTALL_COMMAND echo skip install
