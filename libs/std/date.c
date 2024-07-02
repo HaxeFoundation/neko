@@ -119,6 +119,10 @@ static value date_new( value s ) {
 	return alloc_int32(o);
 }
 
+#ifdef NEKO_WINDOWS
+static char VALID_FORMAT_CODES[] = "aAbBcCdDeFgGhHIjmMnprRStTuUVwWxXyYzZ%";
+#endif
+
 /**
 	date_format : #int32 -> fmt:string? -> string
 	<doc>Format a date using [strftime]. If [fmt] is [null] then default format is used</doc>
@@ -134,6 +138,37 @@ static value date_format( value o, value fmt ) {
 	d = val_any_int(o);
 	if( localtime_r(&d,&t) == NULL )
 		neko_error();
+	#ifdef NEKO_WINDOWS
+	int len = val_strlen(fmt);
+	const char* str = val_string(fmt);
+	int i = 0;
+	while (i < len) {
+		if (str[i] != '%') {
+			i++;
+			continue;
+		}
+		i++;
+		if (str[i] == '#') {
+			i++;
+		}
+		if (str[i] == 'E' || str[i] == 'O') {
+			i++;
+		}
+		bool is_valid = false;
+		const char* format_code = VALID_FORMAT_CODES;
+		while (*format_code) {
+			if (*format_code == str[i]) {
+				is_valid = true;
+				break;
+			}
+			format_code++;
+		}
+		if (!is_valid) {
+			neko_error();
+		}
+		i++;
+	}
+	#endif
 	if( strftime(buf,127,val_string(fmt),&t) == 0 )
 		neko_error();
 	return alloc_string(buf);
