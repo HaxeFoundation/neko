@@ -265,8 +265,8 @@ add_executable(nekovm
 if (STATIC_BOEHMGC OR WIN32)
 	ExternalProject_Add(libatomic_ops
 		${EP_CONFIGS}
-		URL https://github.com/ivmai/libatomic_ops/releases/download/v7.6.0/libatomic_ops-7.6.0.tar.gz
-		URL_MD5 4d4cd729e55fafb56d48f667c3e46331
+		URL https://github.com/ivmai/libatomic_ops/releases/download/v7.6.14/libatomic_ops-7.6.14.tar.gz
+		URL_MD5 ee8251f5091b7938d18be4dda843a515
 		CONFIGURE_COMMAND echo skip config
 		BUILD_COMMAND echo skip build
 		INSTALL_COMMAND echo skip install
@@ -276,10 +276,8 @@ if (STATIC_BOEHMGC OR WIN32)
 	set (
 		BoehmGC_CONFIGS
 		DEPENDS libatomic_ops
-		URL
-			"https://www.hboehm.info/gc/gc_source/gc-7.6.0.tar.gz"
-			"https://github.com/ivmai/bdwgc/files/1005477/gc-7.6.0.tar.gz"
-		URL_MD5 bf46ccbdaccfa3186c2ab87191c8855a
+		URL https://github.com/ivmai/bdwgc/releases/download/v7.6.16/gc-7.6.16.tar.gz
+		URL_MD5 74fb76b6bccf0874cec65b794535a7dd
 	)
 
 	set(GC_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/include)
@@ -294,7 +292,7 @@ if (STATIC_BOEHMGC OR WIN32)
 			CMAKE_ARGS
 				-Wno-dev
 				-Denable_threads=ON
-				-Denable_parallel_mark=ON
+				-Denable_parallel_mark=OFF
 				-DCMAKE_USE_WIN32_THREADS_INIT=ON
 				-DCMAKE_CXX_STANDARD=14
 			PATCH_COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/libs/src/libatomic_ops ${CMAKE_BINARY_DIR}/libs/src/BoehmGC/libatomic_ops
