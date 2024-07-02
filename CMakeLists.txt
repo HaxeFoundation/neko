@@ -1,21 +1,18 @@
 cmake_minimum_required(VERSION 3.10.2)
 
-if (NOT ${CMAKE_VERSION} VERSION_LESS 3.24)
+if (${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.24)
 	cmake_policy(VERSION 3.24)
-elseif (NOT ${CMAKE_VERSION} VERSION_LESS 3.19)
+elseif (${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.19)
 	cmake_policy(VERSION 3.19)
 endif()
-cmake_policy(SET CMP0068 NEW)
+
+project(Neko C)
 
 include(GNUInstallDirs)
 include(CheckCCompilerFlag)
 include(CheckIncludeFile)
 include(TestBigEndian)
-project(Neko C)
 
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
-	EXECUTE_PROCESS(COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE CMAKE_OSX_ARCHITECTURES)
-endif()
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
@@ -57,10 +54,10 @@ set(NEKO_VERSION ${NEKO_VERSION_MAJOR}.${NEKO_VERSION_MINOR}.${NEKO_VERSION_PATC
 TEST_BIG_ENDIAN(NEKO_BIG_ENDIAN)
 
 option(WITH_REGEXP "Build with Perl-compatible regex support." ON)
-option(WITH_UI "Build with GTK-2 UI support." ON)
+option(WITH_UI "Build with GTK-3 UI support." ON)
 option(WITH_SSL "Build with SSL support." ON)
 option(WITH_MYSQL "Build with MySQL support." ON)
-option(WITH_SQLITE "Build with Sqlite support." ON)
+option(WITH_SQLITE "Build with SQLite support." ON)
 option(WITH_APACHE "Build with Apache modules." ON)
 option(WITH_NEKOML "Build NekoML." ON)
 
@@ -68,22 +65,10 @@ option(WITH_NEKOML "Build NekoML." ON)
 # TODO libraries should not be built from this file, but rather by traversing the tree using add_subdirectory
 #add_subdirectory(libs)
 
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
-	if (${CMAKE_OSX_ARCHITECTURES} STREQUAL "i386")
-		set(arch_64 "")
-	elseif (${CMAKE_OSX_ARCHITECTURES} STREQUAL "x86_64")
-		set(arch_64 "64")
-	elseif (${CMAKE_OSX_ARCHITECTURES} STREQUAL "arm64")
-		set(arch_64 "64")
-	else()
-		message( FATAL_ERROR "CMAKE_OSX_ARCHITECTURES should be i386, arm64, or x86_64." )
-	endif()
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+	set(arch_64 "64")
 else()
-	if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-		set(arch_64 "64")
-	else()
-		set(arch_64 "")
-	endif()
+	set(arch_64 "")
 endif()
 
 if(WIN32)
@@ -97,7 +82,7 @@ endif()
 
 if(APPLE AND STATIC_DEPS STREQUAL "all")
 	if(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
-		set(CMAKE_OSX_DEPLOYMENT_TARGET "10.9" CACHE STRING "CMAKE_OSX_DEPLOYMENT_TARGET" FORCE)
+		set(CMAKE_OSX_DEPLOYMENT_TARGET "11" CACHE STRING "CMAKE_OSX_DEPLOYMENT_TARGET" FORCE)
 	endif()
 endif()
 
@@ -117,7 +102,7 @@ set(external_deps
 	OpenSSL
 	MariaDBConnector
 	pcre2
-	Sqlite3
+	SQLite3
 	APR
 	APRutil
 	Apache
@@ -145,9 +130,6 @@ if (STATIC_DEPS STREQUAL "all")
 	if (WIN32)
 		list(REMOVE_ITEM STATIC_DEPS_ALL BoehmGC)
 	endif()
-	if (APPLE)
-		list(REMOVE_ITEM STATIC_DEPS_ALL APRutil)
-	endif()
 	set(STATIC_DEPS ${STATIC_DEPS_ALL} CACHE STRING "${STATIC_DEPS_DOC}" FORCE)
 elseif (STATIC_DEPS STREQUAL "none")
 	message(STATUS "set STATIC_DEPS to nothing")
@@ -159,8 +141,6 @@ else()
 			message(FATAL_ERROR "Invalid STATIC_DEPS. There is no ${dep} in the list of ${external_deps}")
 		elseif(WIN32 AND dep STREQUAL "BoehmGC")
 			message(FATAL_ERROR "Cannot link ${dep} statically on Windows")
-		elseif(APPLE AND dep STREQUAL "APRutil")
-			message(WARNING "${dep} is redundant as it was merged into APR in version 2.0, which is the version we build with on macOS.")
 		endif()
 	endforeach()
 endif()
@@ -178,22 +158,18 @@ endforeach()
 
 include(ExternalProject)
 
-
-# CMAKE_BUILD_WITH_INSTALL_RPATH should be set to true.
-# It is because `nekotools boot` will use the neko in build dir during build.
-set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
-
 if (RELOCATABLE)
-	# https://cmake.org/Wiki/CMake_RPATH_handling
-	set(CMAKE_SKIP_BUILD_RPATH FALSE)
-	set(CMAKE_SKIP_INSTALL_RPATH FALSE)
+	# https://gitlab.kitware.com/cmake/community/-/wikis/doc/cmake/RPATH-handling
+	# Set this to true, otherwise the binaries won't be relocatable until after installation:
+	set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 	if(APPLE)
-		set(CMAKE_MACOSX_RPATH TRUE)
 		set(CMAKE_INSTALL_RPATH @executable_path/)
 	elseif(UNIX)
 		set(CMAKE_INSTALL_RPATH \$ORIGIN)
 	endif()
 endif()
+
+list(APPEND CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_FULL_LIBDIR})
 
 if(UNIX AND NOT APPLE)
 	add_definitions(-DABI_ELF)
@@ -413,12 +389,9 @@ set_target_properties(libneko
 if (CMAKE_HOST_WIN32)
 	set(set_neko_env set NEKOPATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 	set(neko_exec $<TARGET_FILE:nekovm>)
-elseif(CMAKE_HOST_APPLE)
-	set(set_neko_env "")
-	set(neko_exec DYLD_FALLBACK_LIBRARY_PATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY} NEKOPATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY} $<TARGET_FILE:nekovm>)
 else()
 	set(set_neko_env "")
-	set(neko_exec LD_LIBRARY_PATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY} NEKOPATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY} $<TARGET_FILE:nekovm>)
+	set(neko_exec NEKOPATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY} $<TARGET_FILE:nekovm>)
 endif()
 
 file(GLOB compilers_src
@@ -766,7 +739,13 @@ else()
 	set(OS_NAME "")
 endif()
 
-set(bin_archive_name_we "neko-${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}-${OS_NAME}${arch_64}")
+if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "arm64" OR ${CMAKE_SYSTEM_PROCESSOR} STREQUAL "aarch64")
+	set(arch_suffix "-arm64")
+else()
+	set(arch_suffix ${arch_64})
+endif()
+
+set(bin_archive_name_we "neko-${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}-${OS_NAME}${arch_suffix}")
 set(bin_archive_name "${bin_archive_name_we}.${bin_archive_format}")
 set(CPACK_PACKAGE_FILE_NAME ${bin_archive_name_we})
 # set(CPACK_SOURCE_PACKAGE_FILE_NAME
@@ -799,25 +778,12 @@ if (WITH_NEKOML)
 		COMMAND nekoml
 		WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
 	)
-
-	set_tests_properties(nekoml
-		PROPERTIES
-		ENVIRONMENT LD_LIBRARY_PATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
-	)
 endif()
 
 add_test(NAME nekotools
 	COMMAND nekotools
 	WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
 )
-
-if (UNIX AND NOT APPLE)
-	set_tests_properties(-version test.n nekoc nekotools
-		PROPERTIES
-		ENVIRONMENT LD_LIBRARY_PATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
-	)
-endif()
-
 
 #######################
 
