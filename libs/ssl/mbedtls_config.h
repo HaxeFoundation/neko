@@ -1,0 +1,10 @@
+#ifdef _WIN32
+#define MBEDTLS_THREADING_ALT
+#endif
+#ifndef _WIN32
+#define MBEDTLS_THREADING_PTHREAD
+#endif
+
+#undef MBEDTLS_NET_C
+
+#define MBEDTLS_THREADING_C

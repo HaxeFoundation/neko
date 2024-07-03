@@ -138,7 +138,7 @@ devcontainer-update-ref:
 build-env:
     # We specifically use an old distro to build against an old glibc.
     # https://repology.org/project/glibc/versions
-    FROM ubuntu:xenial
+    FROM ubuntu:bionic
     RUN apt-get update \
         && apt-get install -qqy --no-install-recommends \
             software-properties-common \
@@ -216,7 +216,7 @@ extract-package:
     SAVE ARTIFACT /tmp/neko neko
 
 test-static-package:
-    ARG IMAGE=ubuntu:xenial
+    ARG IMAGE=ubuntu:bionic
     FROM $IMAGE
     WORKDIR /tmp/neko
     COPY +extract-package/neko .
@@ -234,5 +234,5 @@ test-static-package:
     RUN nekotools
 
 test-static-package-all-platforms:
-    ARG IMAGE=ubuntu:xenial
+    ARG IMAGE=ubuntu:bionic
     BUILD --platform=linux/amd64 --platform=linux/arm64 +test-static-package --IMAGE="$IMAGE"
