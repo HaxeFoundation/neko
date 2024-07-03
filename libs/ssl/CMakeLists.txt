@@ -58,6 +58,11 @@ target_include_directories(ssl.ndll
 	${MBEDTLS_INCLUDE_DIR}
 )
 
+target_compile_definitions(ssl.ndll
+	PRIVATE
+	-DMBEDTLS_USER_CONFIG_FILE="${CMAKE_CURRENT_SOURCE_DIR}/mbedtls_config.h"
+)
+
 if(APPLE)
 	find_library(SECURITY_LIBRARY Security REQUIRED)
 	find_library(COREFOUNDATION_LIBRARY CoreFoundation REQUIRED)
