@@ -228,7 +228,7 @@ static value ssl_recv_char(value ssl) {
 	val_check_kind(ssl,k_ssl);
 	r = mbedtls_ssl_read( val_ssl(ssl), &c, 1 );
 	if( r <= 0 )
-		neko_error();
+		ssl_error(r);
 	return alloc_int( c );
 }
 
@@ -248,10 +248,15 @@ static value ssl_recv( value ssl, value data, value pos, value len ) {
 		HANDLE_EINTR(recv_again);
 		return block_error();
 	}
-	if( dlen == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY )
+	if (dlen == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY
+		|| dlen == MBEDTLS_ERR_SSL_WANT_READ
+	#ifdef MBEDTLS_ERR_SSL_RECEIVED_NEW_SESSION_TICKET
+		|| dlen == MBEDTLS_ERR_SSL_RECEIVED_NEW_SESSION_TICKET
+	#endif
+	)
 		return alloc_int(0);
 	if( dlen < 0 )
-		neko_error();
+		ssl_error(dlen);
 	return alloc_int( dlen );
 }
 
@@ -270,7 +275,11 @@ static  value ssl_read( value ssl ) {
 			HANDLE_EINTR(read_again);
 			return block_error();
 		}
-		if( len == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY )
+		if( len == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY || len == MBEDTLS_ERR_SSL_WANT_READ
+#ifdef MBEDTLS_ERR_SSL_RECEIVED_NEW_SESSION_TICKET
+		|| len == MBEDTLS_ERR_SSL_RECEIVED_NEW_SESSION_TICKET
+#endif
+		)
 			break;
 		if( len == 0 )
 			break;
