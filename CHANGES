@@ -15,6 +15,11 @@
 	ui : migrated to gtk3 on Linux (#220)
 	sqlite : fixed early finalizer call (#200)
 	cmake : fixed loading error when installing to /usr/local on Unix (#271)
+	gc : fixed "GetThreadContext failed" error on Windows (#264)
+	std : fixed date_format crash on windows (#279)
+	vm : added more detailed errors for failed stack checks (#284)
+	ssl : migrated to mbedtls 3 (#290)
+	ssl : ignored MBEDTLS_ERR_SSL_WANT_READ and MBEDTLS_ERR_SSL_RECEIVED_NEW_SESSION_TICKET (#291)
 
 2019-10-19 : 2.3.0
 	std : added socket_set_broadcast function (#190)
