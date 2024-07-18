@@ -1,4 +1,4 @@
-????-??-?? : 2.4.0
+2024-07-18 : 2.4.0
 	all : deprecated neko (see README)
 	std : fixed put_env when null is passed in (#229 https://github.com/HaxeFoundation/haxe/issues/10395)
 	std : added sys_cpu_arch (#275)
