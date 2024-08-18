@@ -169,10 +169,7 @@ if (RELOCATABLE)
 	endif()
 endif()
 
-# https://github.com/HaxeFoundation/neko/pull/288#issuecomment-2102504348
-if(APPLE)
-	list(APPEND CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_FULL_LIBDIR})
-endif()
+list(APPEND CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_FULL_LIBDIR})
 
 if(UNIX AND NOT APPLE)
 	add_definitions(-DABI_ELF)
