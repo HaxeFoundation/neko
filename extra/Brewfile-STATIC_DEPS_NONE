@@ -2,6 +2,6 @@ brew "cmake"
 brew "ninja"
 brew "pkg-config"
 brew "bdw-gc"
-brew "mariadb-connector-c"
+brew "mariadb-connector-c", link: true
 brew "mbedtls"
 brew "pcre2"

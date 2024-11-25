@@ -67,6 +67,8 @@ jobs:
         run: |
           set -ex
           brew update
+          brew uninstall --force pkg-config
+          brew install pkgconf --overwrite
           brew bundle --file="${{ matrix.BREWFILE }}"
 
       - name: CMake
