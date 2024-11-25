@@ -1,5 +1,5 @@
 brew "cmake"
 brew "ninja"
-brew "pkg-config"
+brew "pkgconf"
 brew "automake"
 brew "libtool"
