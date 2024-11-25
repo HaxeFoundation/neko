@@ -69,7 +69,7 @@ jobs:
           brew update
           brew uninstall --force pkg-config
           brew install pkgconf --overwrite
-          brew bundle --verbose --file="${{ matrix.BREWFILE }}"
+          brew bundle --file="${{ matrix.BREWFILE }}"
 
       - name: CMake
         run: cmake . -DSTATIC_DEPS=${{ matrix.STATIC_DEPS }} -G Ninja -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE
