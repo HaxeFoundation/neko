@@ -47,7 +47,7 @@ jobs:
           - arch: arm64
             os: macos-14
           - arch: amd64
-            os: macos-12
+            os: macos-13
           - link_type: static
             BREWFILE: extra/Brewfile-STATIC_DEPS_ALL
             STATIC_DEPS: all
