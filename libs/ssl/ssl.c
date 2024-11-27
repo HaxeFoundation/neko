@@ -288,6 +288,50 @@ static  value ssl_read( value ssl ) {
 	return buffer_to_string(b);
 }
 
+#ifdef _WIN32
+static int verify_callback(void* param, mbedtls_x509_crt *crt, int depth, uint32_t *flags) {
+	if (*flags == 0 || *flags & MBEDTLS_X509_BADCERT_CN_MISMATCH) {
+		return 0;
+	}
+
+	HCERTSTORE store = CertOpenStore(CERT_STORE_PROV_MEMORY, 0, 0, CERT_STORE_DEFER_CLOSE_UNTIL_LAST_FREE_FLAG, NULL);
+	if(store == NULL) {
+		return MBEDTLS_ERR_X509_FATAL_ERROR;
+	}
+	PCCERT_CONTEXT primary_context = {0};
+	if(!CertAddEncodedCertificateToStore(store, X509_ASN_ENCODING, crt->raw.p, crt->raw.len, CERT_STORE_ADD_REPLACE_EXISTING, &primary_context)) {
+		CertCloseStore(store, 0);
+		return MBEDTLS_ERR_X509_FATAL_ERROR;
+	}
+	PCCERT_CHAIN_CONTEXT chain_context = {0};
+	CERT_CHAIN_PARA parameters = {0};
+	if(!CertGetCertificateChain(NULL, primary_context, NULL, store, &parameters, 0, NULL, &chain_context)) {
+		CertFreeCertificateContext(primary_context);
+		CertCloseStore(store, 0);
+		return MBEDTLS_ERR_X509_FATAL_ERROR;
+	}
+	CERT_CHAIN_POLICY_PARA policy_parameters = {0};
+	CERT_CHAIN_POLICY_STATUS policy_status = {0};
+	if(!CertVerifyCertificateChainPolicy(CERT_CHAIN_POLICY_SSL, chain_context, &policy_parameters, &policy_status)) {
+		CertFreeCertificateChain(chain_context);
+		CertFreeCertificateContext(primary_context);
+		CertCloseStore(store, 0);
+		return MBEDTLS_ERR_X509_FATAL_ERROR;
+	}
+	if(policy_status.dwError == 0) {
+		*flags = 0;
+	} else {
+		// if we ever want to read the verification result,
+		// we need to properly map dwError to flags
+		*flags |= MBEDTLS_X509_BADCERT_OTHER;
+	}
+	CertFreeCertificateChain(chain_context);
+	CertFreeCertificateContext(primary_context);
+	CertCloseStore(store, 0);
+	return 0;
+}
+#endif
+
 static value conf_new( value server ) {
 	int ret;
 	mbedtls_ssl_config *conf;
@@ -299,6 +343,9 @@ static value conf_new( value server ) {
 		mbedtls_ssl_config_free(conf);
 		return ssl_error( ret );
 	}
+#ifdef NEKO_WINDOWS
+	mbedtls_ssl_conf_verify( conf, verify_callback, NULL );
+#endif
 	mbedtls_ssl_conf_rng( conf, mbedtls_ctr_drbg_random, &ctr_drbg );
 	return alloc_abstract( k_ssl_conf, conf );
 }
