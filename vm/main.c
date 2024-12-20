@@ -81,7 +81,7 @@ static char *executable_path() {
 	if ( _NSGetExecutablePath(path, &path_len) )
 		return NULL;
 	return path;
-#elif defined(NEKO_BSD)
+#elif defined(NEKO_BSD) && defined(KERN_PROC_PATHNAME)
         int mib[4];
         mib[0] = CTL_KERN;
         mib[1] = KERN_PROC;
