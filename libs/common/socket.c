@@ -73,7 +73,7 @@ void psock_init() {
 
 PSOCK psock_create() {
 	PSOCK s = socket(AF_INET,SOCK_STREAM,0);
-#	if defined(OS_MAC) || (defined(OS_BSD) && !defined(SO_NOSIGPIPE))
+#	if defined(OS_MAC) || (defined(OS_BSD) && defined(SO_NOSIGPIPE))
 	if( s != INVALID_SOCKET )
 		setsockopt(s,SOL_SOCKET,SO_NOSIGPIPE,NULL,0);
 #	endif
