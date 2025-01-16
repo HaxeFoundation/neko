@@ -82,7 +82,9 @@ static void free_process( value vp ) {
 #	ifdef NEKO_WINDOWS
 	CloseHandle(p->eread);
 	CloseHandle(p->oread);
-	CloseHandle(p->iwrite);
+	if (p->iwrite != NULL) {
+		CloseHandle(p->iwrite);
+	}
 	CloseHandle(p->pinf.hProcess);
 	CloseHandle(p->pinf.hThread);
 #	else
@@ -371,6 +373,7 @@ static value process_stdin_close( value vp ) {
 #	ifdef NEKO_WINDOWS
 	if( !CloseHandle(p->iwrite) )
 		neko_error();
+	p->iwrite = NULL;
 #	else
 	if( do_close(p->iwrite) )
 		neko_error();
