@@ -296,10 +296,12 @@ typedef struct _mt_lock mt_lock;
 #else
 #	define C_FUNCTION_BEGIN
 #	define C_FUNCTION_END
-#	ifndef true
-#		define true 1
-#		define false 0
-		typedef int bool;
+#	if !defined(__STDC_VERSION__) || __STDC_VERSION__ < 202000L
+#		ifndef true
+#			define true 1
+#			define false 0
+			typedef int bool;
+#		endif
 #	endif
 #endif
 
