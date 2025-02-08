@@ -14,7 +14,7 @@ See https://nekovm.org/
 
 ## Snapshot Builds
 
-Compiled binaries can be found in the "artifacts" section in the summary of each [Github Actions build](https://github.com/HaxeFoundation/neko/actions).
+Compiled binaries can be found in the "artifacts" section in the summary of each [Github Actions build](https://github.com/HaxeFoundation/neko/actions?query=branch%3Amaster+is%3Asuccess).
 
 For macOS, Neko snapshot of the latest master branch can be built using [homebrew](https://brew.sh/) in a single command: `brew install neko --HEAD`. It will install required dependencies, build, and install Neko to the system. The binaries can be found at `brew --prefix neko`. Use `brew reinstall neko --HEAD` to upgrade in the future.
 
