@@ -354,12 +354,6 @@ jobs:
         with:
           name: chocolatey
 
-      - name: Install awscli
-        run: |
-          set -ex
-          sudo apt-get update -qqy
-          sudo apt-get install -qqy awscli
-
         # https://stackoverflow.com/questions/58033366/how-to-get-current-branch-within-github-actions
       - name: Extract branch name
         id: extract_branch
