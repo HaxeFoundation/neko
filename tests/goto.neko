@@ -1,0 +1,17 @@
+$print("start");
+$goto(forward);
+
+$print("skip");
+
+backward:
+$print("continue2");
+$goto(end);
+
+forward:
+$print("continue1");
+$goto(backward);
+
+$print("skip");
+
+end:
+$print("end");
