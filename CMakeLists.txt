@@ -782,6 +782,8 @@ add_test(NAME nekotools
 	WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
 )
 
+add_subdirectory(tests)
+
 #######################
 
 # debian source packages

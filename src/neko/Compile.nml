@@ -718,7 +718,7 @@ function rec compile_builtin(ctx,tail,b,el,p) {
 		ctx.stack := os;
 		match l.lpos {
 		| None -> l.lwait := jmp ctx :: l.lwait
-		| Some p -> write ctx (Jump p)
+		| Some p -> goto ctx p
 		};
 		List.iter (function(t) {
 			t();
