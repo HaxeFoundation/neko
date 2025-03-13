@@ -194,6 +194,23 @@ static value set_header( value s, value k ) {
 }
 
 /**
+	add_header : name:string -> val:string -> void
+	<doc>Add a HTTP header value</doc>
+**/
+static value add_header( value s, value k ) {
+	mcontext *c = CONTEXT();
+	val_check(s,string);
+	val_check(k,string);
+	HEADERS_NOT_SENT("Header");
+	if( strcmpi(val_string(s),"Content-Type") == 0 ) {
+		c->content_type = alloc_string(val_string(k));
+		c->r->content_type = val_string(c->content_type);
+	} else
+		ap_table_add(c->r->headers_out,val_string(s),val_string(k));
+	return val_true;
+}
+
+/**
 	get_client_header : name:string -> string?
 	<doc>Get a HTTP header sent by the client</doc>
 **/
@@ -599,6 +616,7 @@ DEFINE_PRIM(get_params,0);
 DEFINE_PRIM(get_params_string,0);
 DEFINE_PRIM(get_post_data,0);
 DEFINE_PRIM(set_header,2);
+DEFINE_PRIM(add_header,2);
 DEFINE_PRIM(set_return_code,1);
 DEFINE_PRIM(get_client_header,1);
 DEFINE_PRIM(get_client_headers,0);
