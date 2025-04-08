@@ -77,16 +77,17 @@ jobs:
     strategy:
       matrix:
         arch: [arm64, amd64]
-        link_type: [static, dynamic]
+        # link_type: [static, dynamic]
+        link_type: [dynamic]
         include:
           - arch: arm64
             os: macos-14
           - arch: amd64
             os: macos-13
-          - link_type: static
-            BREWFILE: extra/Brewfile-STATIC_DEPS_ALL
-            STATIC_DEPS: all
-            name_suffix: -static
+          # - link_type: static
+          #   BREWFILE: extra/Brewfile-STATIC_DEPS_ALL
+          #   STATIC_DEPS: all
+          #   name_suffix: -static
           - link_type: dynamic
             BREWFILE: extra/Brewfile-STATIC_DEPS_NONE
             STATIC_DEPS: none
@@ -256,55 +257,55 @@ jobs:
           name: chocolatey
           path: extra/chocolatey/pack/
 
-  mac-universal:
-    name: mac universal
-    needs: [mac-build]
-    runs-on: macos-latest
+  # mac-universal:
+  #   name: mac universal
+  #   needs: [mac-build]
+  #   runs-on: macos-latest
 
-    env:
-      INPUT_AMD64: mac-static-amd64-binaries
-      INPUT_ARM64: mac-static-arm64-binaries
+  #   env:
+  #     INPUT_AMD64: mac-static-amd64-binaries
+  #     INPUT_ARM64: mac-static-arm64-binaries
 
-    steps:
-      - name: Download ${{ env.INPUT_AMD64 }}
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ env.INPUT_AMD64 }}
-          path: ${{ env.INPUT_AMD64 }}
+  #   steps:
+  #     - name: Download ${{ env.INPUT_AMD64 }}
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: ${{ env.INPUT_AMD64 }}
+  #         path: ${{ env.INPUT_AMD64 }}
 
-      - name: Download ${{ env.INPUT_ARM64 }}
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ env.INPUT_ARM64 }}
-          path: ${{ env.INPUT_ARM64 }}
+  #     - name: Download ${{ env.INPUT_ARM64 }}
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: ${{ env.INPUT_ARM64 }}
+  #         path: ${{ env.INPUT_ARM64 }}
 
-      - name: Create universal binaries
-        run: |
-          tar_filename_amd64=$(basename $INPUT_AMD64/neko-*-osx64.tar.gz .tar.gz)
-          OUTPUT=${tar_filename_amd64/osx64/osx-universal}
+  #     - name: Create universal binaries
+  #       run: |
+  #         tar_filename_amd64=$(basename $INPUT_AMD64/neko-*-osx64.tar.gz .tar.gz)
+  #         OUTPUT=${tar_filename_amd64/osx64/osx-universal}
 
-          mkdir $OUTPUT
+  #         mkdir $OUTPUT
 
-          # put amd64 files straight into output to make sure all non-binary files are also included
-          tar -xf $INPUT_AMD64/neko-*.tar.gz \
-            -C $OUTPUT --strip-components=1
-          tar -xf $INPUT_ARM64/neko-*.tar.gz \
-            -C $INPUT_ARM64 --strip-components=1
+  #         # put amd64 files straight into output to make sure all non-binary files are also included
+  #         tar -xf $INPUT_AMD64/neko-*.tar.gz \
+  #           -C $OUTPUT --strip-components=1
+  #         tar -xf $INPUT_ARM64/neko-*.tar.gz \
+  #           -C $INPUT_ARM64 --strip-components=1
 
-          for filename in $OUTPUT/{*.ndll,libneko.*.*.*.dylib,neko,nekoc,nekoml,nekotools}; do
-            filename_amd64=$filename
-            filename_arm64=${filename/$OUTPUT/$INPUT_ARM64}
-            lipo -create -output $filename $filename_amd64 $filename_arm64
-          done
+  #         for filename in $OUTPUT/{*.ndll,libneko.*.*.*.dylib,neko,nekoc,nekoml,nekotools}; do
+  #           filename_amd64=$filename
+  #           filename_arm64=${filename/$OUTPUT/$INPUT_ARM64}
+  #           lipo -create -output $filename $filename_amd64 $filename_arm64
+  #         done
 
-          file $OUTPUT/*
-          tar -czvf $OUTPUT.tar.gz $OUTPUT
+  #         file $OUTPUT/*
+  #         tar -czvf $OUTPUT.tar.gz $OUTPUT
 
-      - name: Upload universal binaries
-        uses: actions/upload-artifact@v4
-        with:
-          name: mac-static-universal-binaries
-          path: neko-*-osx-universal.tar.gz
+  #     - name: Upload universal binaries
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: mac-static-universal-binaries
+  #         path: neko-*-osx-universal.tar.gz
 
   deploy-s3:
     name: deploy s3
@@ -327,17 +328,17 @@ jobs:
           name: linux-static-arm64-binaries
           path: linux-static-arm64-binaries
 
-      - name: Download mac-static-amd64-binaries
-        uses: actions/download-artifact@v4
-        with:
-          name: mac-static-amd64-binaries
-          path: mac-static-amd64-binaries
+      # - name: Download mac-static-amd64-binaries
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: mac-static-amd64-binaries
+      #     path: mac-static-amd64-binaries
 
-      - name: Download mac-static-arm64-binaries
-        uses: actions/download-artifact@v4
-        with:
-          name: mac-static-arm64-binaries
-          path: mac-static-arm64-binaries
+      # - name: Download mac-static-arm64-binaries
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: mac-static-arm64-binaries
+      #     path: mac-static-arm64-binaries
 
       - name: Download windows-vs2017-binaries
         uses: actions/download-artifact@v4
@@ -374,8 +375,8 @@ jobs:
           FILE_NAME=neko_${COMMIT_DATE}_${{ steps.extract_branch.outputs.branch }}_${COMMIT_HASH_SHORT}
           aws s3 cp linux-static-amd64-binaries/neko-*.tar.gz   $HXBUILDS_S3ADDR/neko/linux64/${FILE_NAME}.tar.gz
           aws s3 cp linux-static-arm64-binaries/neko-*.tar.gz   $HXBUILDS_S3ADDR/neko/linux-arm64/${FILE_NAME}.tar.gz
-          aws s3 cp mac-static-amd64-binaries/neko-*.tar.gz     $HXBUILDS_S3ADDR/neko/mac/${FILE_NAME}.tar.gz
-          aws s3 cp mac-static-arm64-binaries/neko-*.tar.gz     $HXBUILDS_S3ADDR/neko/mac-arm64/${FILE_NAME}.tar.gz
+          # aws s3 cp mac-static-amd64-binaries/neko-*.tar.gz     $HXBUILDS_S3ADDR/neko/mac/${FILE_NAME}.tar.gz
+          # aws s3 cp mac-static-arm64-binaries/neko-*.tar.gz     $HXBUILDS_S3ADDR/neko/mac-arm64/${FILE_NAME}.tar.gz
           aws s3 cp neko-*-win.zip                              $HXBUILDS_S3ADDR/neko/windows/${FILE_NAME}.zip
           aws s3 cp neko-*-win64.zip                            $HXBUILDS_S3ADDR/neko/windows64/${FILE_NAME}.zip
           aws s3 cp neko.*.nupkg                                $HXBUILDS_S3ADDR/neko/windows64-choco/
@@ -391,8 +392,8 @@ jobs:
           set -ex
           aws s3 cp linux-static-amd64-binaries/neko-*.tar.gz   $HXBUILDS_S3ADDR/neko/linux64/neko_latest.tar.gz
           aws s3 cp linux-static-arm64-binaries/neko-*.tar.gz   $HXBUILDS_S3ADDR/neko/linux-arm64/neko_latest.tar.gz
-          aws s3 cp mac-static-amd64-binaries/neko-*.tar.gz     $HXBUILDS_S3ADDR/neko/mac/neko_latest.tar.gz
-          aws s3 cp mac-static-arm64-binaries/neko-*.tar.gz     $HXBUILDS_S3ADDR/neko/mac-arm64/neko_latest.tar.gz
+          # aws s3 cp mac-static-amd64-binaries/neko-*.tar.gz     $HXBUILDS_S3ADDR/neko/mac/neko_latest.tar.gz
+          # aws s3 cp mac-static-arm64-binaries/neko-*.tar.gz     $HXBUILDS_S3ADDR/neko/mac-arm64/neko_latest.tar.gz
           aws s3 cp neko-*-win.zip                              $HXBUILDS_S3ADDR/neko/windows/neko_latest.zip
           aws s3 cp neko-*-win64.zip                            $HXBUILDS_S3ADDR/neko/windows64/neko_latest.zip
 
