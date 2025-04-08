@@ -98,8 +98,8 @@ if (STATIC_MARIADBCONNECTOR)
 	ExternalProject_Add(MariaDBConnector
 		${EP_CONFIGS}
 		DEPENDS ${OPENSSL_DEP} ${ZLIB_DEP}
-		URL https://downloads.mariadb.com/Connectors/c/connector-c-3.3.4/mariadb-connector-c-3.3.4-src.tar.gz
-		URL_HASH SHA256=486e5fdf976a8e7fadf583ae912128655e013ac575fa79b2d1af0fb8827a78ed
+		URL https://downloads.mariadb.com/Connectors/c/connector-c-3.4.4/mariadb-connector-c-3.4.4-src.tar.gz
+		URL_HASH SHA256=58876fad1c2d33979d78bbfa61d7a3476e8faa2cd0af0f7f8bfeb06deaa1034e
 		CMAKE_ARGS
 			-Wno-dev
 			-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
