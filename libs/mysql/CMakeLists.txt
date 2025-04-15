@@ -107,7 +107,10 @@ if (STATIC_MARIADBCONNECTOR)
 			-DWITH_SSL=OPENSSL
 			${OPENSSL_CONF}
 			${ZLIB_CONF}
-		PATCH_COMMAND ${CMAKE_COMMAND} -Dmariadb_source=${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector -P ${CMAKE_SOURCE_DIR}/cmake/patch_mariadb.cmake
+		PATCH_COMMAND ${CMAKE_COMMAND}
+			-Dmariadb_source=${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector
+			-Dprocessor=${CMAKE_SYSTEM_PROCESSOR}
+			-P ${CMAKE_SOURCE_DIR}/cmake/patch_mariadb.cmake
 		BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector-build &&
 			${CMAKE_COMMAND} --build . --target mariadbclient --config ${CMAKE_CFG_INTDIR}
 		INSTALL_COMMAND echo skip install
