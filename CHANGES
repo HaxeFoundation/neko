@@ -1,3 +1,12 @@
+2025-04-15 : 2.4.1
+	ssl : fixed certificate verification failure on windows (#293)
+	all : fixed build issues on BSD based systems (#296 #297 #298 #299)
+	std : fixed double close when using process_stdin_close (#300)
+	all : fixed for c standards with builtin bool
+	all : fixed thread usage causing global cleanup crashes (#304)
+	cmake : updated zlib and mariadb-connector-c for newer cmake compatibility (#309)
+	cmake : updated mariadb-connector-c for compatibility with new clang on arm64 (#309)
+
 2024-07-18 : 2.4.0
 	all : deprecated neko (see README)
 	std : fixed put_env when null is passed in (#229 https://github.com/HaxeFoundation/haxe/issues/10395)
