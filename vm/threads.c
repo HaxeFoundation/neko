@@ -86,6 +86,8 @@ typedef struct {
 	HANDLE lock;
 #	else
 	pthread_mutex_t lock;
+	pthread_cond_t cond;
+	volatile bool is_ready;
 #	endif
 #endif
 } tparams;
@@ -116,6 +118,9 @@ static THREAD_FUN ThreadMain( void *_p ) {
 #	ifdef NEKO_WINDOWS
 	ReleaseSemaphore(p.lock,1,NULL);
 #	else
+	pthread_mutex_lock(&lp->lock);
+	lp->is_ready = true;
+	pthread_cond_signal(&lp->cond);
 	pthread_mutex_unlock(&lp->lock);
 #	endif
 	clean_c_stack(40,clean_c_stack);
@@ -151,17 +156,24 @@ EXTERN int neko_thread_create( thread_main_func init, thread_main_func main, voi
 	pthread_attr_init(&attr);
 	pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED);
 	pthread_mutex_init(&p.lock,NULL);
-	pthread_mutex_lock(&p.lock);
+	pthread_cond_init(&p.cond,NULL);
+	p.is_ready = false;
 	// force the use of a the GC method to capture created threads
 	// this function should be defined in gc/gc.h
 	if( GC_pthread_create((pthread_t*)handle,&attr,&ThreadMain,&p) != 0 ) {
 		pthread_attr_destroy(&attr);
 		pthread_mutex_destroy(&p.lock);
+		pthread_cond_destroy(&p.cond);
 		return 0;
 	}
 	pthread_mutex_lock(&p.lock);
+	while (!p.is_ready) {
+		pthread_cond_wait(&p.cond,&p.lock);
+	}
+	pthread_mutex_unlock(&p.lock);
 	pthread_attr_destroy(&attr);
 	pthread_mutex_destroy(&p.lock);
+	pthread_cond_destroy(&p.cond);
 	return 1;
 #	endif
 }
