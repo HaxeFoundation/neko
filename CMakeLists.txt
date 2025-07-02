@@ -265,7 +265,7 @@ add_executable(nekovm
 if (STATIC_BOEHMGC OR WIN32)
 	ExternalProject_Add(libatomic_ops
 		${EP_CONFIGS}
-		URL https://github.com/ivmai/libatomic_ops/releases/download/v7.6.14/libatomic_ops-7.6.14.tar.gz
+		URL https://github.com/bdwgc/libatomic_ops/releases/download/v7.6.14/libatomic_ops-7.6.14.tar.gz
 		URL_MD5 ee8251f5091b7938d18be4dda843a515
 		CONFIGURE_COMMAND echo skip config
 		BUILD_COMMAND echo skip build
