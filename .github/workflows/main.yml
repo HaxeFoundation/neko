@@ -18,7 +18,7 @@ jobs:
           - link_type: dynamic
             STATIC_DEPS: none
           - arch: amd64
-            runner: ubuntu-20.04
+            runner: ubuntu-22.04
           - arch: arm64
             runner: ubuntu-22.04-arm
     runs-on: ${{ matrix.runner }}
