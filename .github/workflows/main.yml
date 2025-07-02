@@ -145,7 +145,7 @@ jobs:
     strategy:
       matrix:
         arch: [Win32, x64]
-        vstools: [vs2017, vs2019]
+        vstools: [vs2017, vs2022]
         include:
           - arch: x64
             name_suffix: 64
@@ -158,13 +158,13 @@ jobs:
             arch: x64
             cmake_generator: Visual Studio 15 2017 Win64
 
-          - vstools: vs2019
-            cmake_generator: Visual Studio 16 2019
+          - vstools: vs2022
+            cmake_generator: Visual Studio 17 2022
 
     env:
       CMAKE_BUILD_TYPE: RelWithDebInfo
 
-    runs-on: windows-2019
+    runs-on: windows-2022
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -178,7 +178,7 @@ jobs:
         run: |
           cmake . -G "${{ matrix.cmake_generator }}" ${{ env.CMAKE_ARCH_FLAG }}
         env:
-          CMAKE_ARCH_FLAG: ${{ matrix.vstools == 'vs2019' && format('-A {0}', matrix.arch) || ' ' }}
+          CMAKE_ARCH_FLAG: ${{ matrix.vstools == 'vs2022' && format('-A {0}', matrix.arch) || ' ' }}
 
       - name: Download dependencies
         run: |
