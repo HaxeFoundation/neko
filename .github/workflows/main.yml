@@ -339,6 +339,12 @@ jobs:
           name: mac-static-arm64-binaries
           path: mac-static-arm64-binaries
 
+      - name: Download mac-static-universal-binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: mac-static-universal-binaries
+          path: mac-static-universal-binaries
+
       - name: Download windows-vs2017-binaries
         uses: actions/download-artifact@v4
         with:
@@ -376,6 +382,7 @@ jobs:
           aws s3 cp linux-static-arm64-binaries/neko-*.tar.gz   $HXBUILDS_S3ADDR/neko/linux-arm64/${FILE_NAME}.tar.gz
           aws s3 cp mac-static-amd64-binaries/neko-*.tar.gz     $HXBUILDS_S3ADDR/neko/mac/${FILE_NAME}.tar.gz
           aws s3 cp mac-static-arm64-binaries/neko-*.tar.gz     $HXBUILDS_S3ADDR/neko/mac-arm64/${FILE_NAME}.tar.gz
+          aws s3 cp mac-static-universal-binaries/neko-*.tar.gz $HXBUILDS_S3ADDR/neko/mac-universal/${FILE_NAME}.tar.gz
           aws s3 cp neko-*-win.zip                              $HXBUILDS_S3ADDR/neko/windows/${FILE_NAME}.zip
           aws s3 cp neko-*-win64.zip                            $HXBUILDS_S3ADDR/neko/windows64/${FILE_NAME}.zip
           aws s3 cp neko.*.nupkg                                $HXBUILDS_S3ADDR/neko/windows64-choco/
@@ -393,6 +400,7 @@ jobs:
           aws s3 cp linux-static-arm64-binaries/neko-*.tar.gz   $HXBUILDS_S3ADDR/neko/linux-arm64/neko_latest.tar.gz
           aws s3 cp mac-static-amd64-binaries/neko-*.tar.gz     $HXBUILDS_S3ADDR/neko/mac/neko_latest.tar.gz
           aws s3 cp mac-static-arm64-binaries/neko-*.tar.gz     $HXBUILDS_S3ADDR/neko/mac-arm64/neko_latest.tar.gz
+          aws s3 cp mac-static-universal-binaries/neko-*.tar.gz $HXBUILDS_S3ADDR/neko/mac-universal/neko_latest.tar.gz
           aws s3 cp neko-*-win.zip                              $HXBUILDS_S3ADDR/neko/windows/neko_latest.zip
           aws s3 cp neko-*-win64.zip                            $HXBUILDS_S3ADDR/neko/windows64/neko_latest.zip
 
