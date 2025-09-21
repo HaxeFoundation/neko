@@ -80,9 +80,9 @@ jobs:
         link_type: [static, dynamic]
         include:
           - arch: arm64
-            os: macos-14
+            os: macos-latest
           - arch: amd64
-            os: macos-13
+            os: macos-15-intel
           - link_type: static
             BREWFILE: extra/Brewfile-STATIC_DEPS_ALL
             STATIC_DEPS: all
