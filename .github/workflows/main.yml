@@ -308,7 +308,7 @@ jobs:
 
   deploy-s3:
     name: deploy s3
-    needs: [windows-build, package-choco, mac-build, linux-build]
+    needs: [windows-build, package-choco, mac-build, mac-universal, linux-build]
     runs-on: ubuntu-latest
     if: success() && github.repository_owner == 'HaxeFoundation' && github.event_name != 'pull_request'
     steps:
