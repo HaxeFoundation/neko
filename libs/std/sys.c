@@ -368,10 +368,16 @@ static value sys_rename( value path, value newname ) {
 	<doc>Run the [stat] command on the given file or directory.</doc>
 **/
 static value sys_stat( value path ) {
-	struct stat s;
 	value o;
 	val_check(path,string);
+#ifdef NEKO_WINDOWS
+	struct _stat s;
+	CONVERT_TO_WPATH(path, wide_path);
+	if( _wstat(wide_path,&s) != 0 )
+#else
+	struct stat s;
 	if( stat(val_string(path),&s) != 0 )
+#endif
 		neko_error();
 	o = alloc_object(NULL);
 	STATF(gid);
