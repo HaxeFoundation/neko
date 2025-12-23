@@ -290,6 +290,16 @@ static value sys_exit( value ecode ) {
 	return val_true;
 }
 
+#ifdef NEKO_WINDOWS
+#define CONVERT_TO_WPATH(str, wpath) \
+	WCHAR wpath[MAX_PATH]; \
+	{ \
+		int result = MultiByteToWideChar(CP_UTF8, 0, val_string(str), val_strlen(str) + 1, wpath, MAX_PATH); \
+		if (result == 0) \
+			neko_error(); \
+	}
+#endif
+
 /**
 	sys_exists : string -> bool
 	<doc>Returns true if the file or directory exists.</doc>
@@ -297,10 +307,7 @@ static value sys_exit( value ecode ) {
 static value sys_exists( value path ) {
 	val_check(path,string);
 	#ifdef NEKO_WINDOWS
-	WCHAR wide_path[MAX_PATH];
-	int out = MultiByteToWideChar(CP_UTF8, 0, val_string(path), val_strlen(path) + 1, wide_path, MAX_PATH);
-	if (out == 0)
-		neko_error();
+	CONVERT_TO_WPATH(path, wide_path);
 	bool result = GetFileAttributesW(wide_path) != INVALID_FILE_ATTRIBUTES;
 	#else
 	struct stat st;
@@ -398,9 +405,15 @@ static value sys_stat( value path ) {
 	</doc>
 **/
 static value sys_file_type( value path ) {
-	struct stat s;
 	val_check(path,string);
+#ifdef NEKO_WINDOWS
+	struct _stat s;
+	CONVERT_TO_WPATH(path, wide_path);
+	if( _wstat(wide_path,&s) != 0 )
+#else
+	struct stat s;
 	if( stat(val_string(path),&s) != 0 )
+#endif
 		neko_error();
 	if( s.st_mode & S_IFREG )
 		return alloc_string("file");
