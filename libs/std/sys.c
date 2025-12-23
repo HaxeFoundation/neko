@@ -295,9 +295,19 @@ static value sys_exit( value ecode ) {
 	<doc>Returns true if the file or directory exists.</doc>
 **/
 static value sys_exists( value path ) {
-	struct stat st;
 	val_check(path,string);
-	return alloc_bool(stat(val_string(path),&st) == 0);
+	#ifdef NEKO_WINDOWS
+	WCHAR wide_path[MAX_PATH];
+	int out = MultiByteToWideChar(CP_UTF8, 0, val_string(path), val_strlen(path) + 1, wide_path, MAX_PATH);
+	if (out == 0)
+		neko_error();
+	bool result = GetFileAttributesW(wide_path) != INVALID_FILE_ATTRIBUTES;
+	#else
+	struct stat st;
+	bool result = stat(val_string(path),&st) == 0;
+	#endif
+
+	return alloc_bool(result);
 }
 
 /**
