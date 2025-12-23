@@ -511,7 +511,7 @@ static value sys_read_dir( value path ) {
 	value h = val_null;
 	value cur = NULL, tmp;
 #ifdef NEKO_WINDOWS
-	WIN32_FIND_DATA d;
+	WIN32_FIND_DATAW d;
 	HANDLE handle;
 	buffer b;
 	int len;
@@ -524,14 +524,29 @@ static value sys_read_dir( value path ) {
 	else
 		buffer_append(b,"*.*");
 	path = buffer_to_string(b);
-	handle = FindFirstFile(val_string(path),&d);
+	WCHAR wide_path[MAX_PATH];
+	int result = MultiByteToWideChar(CP_UTF8, 0, val_string(path), val_strlen(path) + 1, wide_path, MAX_PATH);
+	if (result == 0)
+		neko_error();
+	handle = FindFirstFileW(wide_path,&d);
 	if( handle == INVALID_HANDLE_VALUE )
 		neko_error();
 	while( true ) {
 		// skip magic dirs
-		if( d.cFileName[0] != '.' || (d.cFileName[1] != 0 && (d.cFileName[1] != '.' || d.cFileName[2] != 0)) ) {
+		if( d.cFileName[0] != L'.' || (d.cFileName[1] != 0 && (d.cFileName[1] != L'.' || d.cFileName[2] != 0)) ) {
 			tmp = alloc_array(2);
-			val_array_ptr(tmp)[0] = alloc_string(d.cFileName);
+			int len = WideCharToMultiByte(CP_UTF8, 0, d.cFileName, -1, NULL, 0, NULL, NULL);
+			if (len == 0) {
+				FindClose(handle);
+				neko_error();
+			}
+			value item = alloc_empty_string(len - 1);
+			len = WideCharToMultiByte(CP_UTF8, 0, d.cFileName, -1, val_string(item), len, NULL, NULL);
+			if (len == 0) {
+				FindClose(handle);
+				neko_error();
+			}
+			val_array_ptr(tmp)[0] = item;
 			val_array_ptr(tmp)[1] = val_null;
 			if( cur )
 				val_array_ptr(cur)[1] = tmp;
@@ -539,7 +554,7 @@ static value sys_read_dir( value path ) {
 				h = tmp;
 			cur = tmp;
 		}
-		if( !FindNextFile(handle,&d) )
+		if( !FindNextFileW(handle,&d) )
 			break;
 	}
 	FindClose(handle);
