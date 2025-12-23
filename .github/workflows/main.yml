@@ -182,8 +182,8 @@ jobs:
 
       - name: Download dependencies
         run: |
-          cmake --build . --config $env:CMAKE_BUILD_TYPE --target download_deps || \
-          cmake --build . --config $env:CMAKE_BUILD_TYPE --target download_deps || \
+          cmake --build . --config $env:CMAKE_BUILD_TYPE --target download_deps || `
+          cmake --build . --config $env:CMAKE_BUILD_TYPE --target download_deps || `
           cmake --build . --config $env:CMAKE_BUILD_TYPE --target download_deps
 
       - name: Build
