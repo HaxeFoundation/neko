@@ -263,24 +263,27 @@ add_executable(nekovm
 
 # We need to build from source on Windows regardless
 if (STATIC_BOEHMGC OR WIN32)
-	ExternalProject_Add(libatomic_ops
-		${EP_CONFIGS}
-		URL https://github.com/ivmai/libatomic_ops/releases/download/v7.8.10/libatomic_ops-7.8.10.tar.gz
-		URL_HASH SHA256=0db3ebff755db170f65e74a64ec4511812e9ee3185c232eeffeacd274190dfb0
-		CONFIGURE_COMMAND echo skip config
-		BUILD_COMMAND echo skip build
-		INSTALL_COMMAND echo skip install
-	)
-	set_target_properties(libatomic_ops PROPERTIES ${EP_PROPS})
-
 	set (
 		BoehmGC_CONFIGS
-		DEPENDS libatomic_ops
 		URL https://github.com/ivmai/bdwgc/releases/download/v8.2.10/gc-8.2.10.tar.gz
 		URL_HASH SHA256=832cf4f7cf676b59582ed3b1bbd90a8d0e0ddbc3b11cb3b2096c5177ce39cc47
 	)
 
 	set(GC_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/include)
+
+	if (MSVC)
+		ExternalProject_Add(libatomic_ops
+			${EP_CONFIGS}
+			URL https://github.com/ivmai/libatomic_ops/releases/download/v7.8.10/libatomic_ops-7.8.10.tar.gz
+			URL_HASH SHA256=0db3ebff755db170f65e74a64ec4511812e9ee3185c232eeffeacd274190dfb0
+			CONFIGURE_COMMAND echo skip config
+			BUILD_COMMAND echo skip build
+			INSTALL_COMMAND echo skip install
+		)
+		set_target_properties(libatomic_ops PROPERTIES ${EP_PROPS})
+
+		list(APPEND BoehmGC_CONFIGS DEPENDS libatomic_ops)
+	endif()
 
 	if (WIN32)
 		set(GC_LIBRARIES
