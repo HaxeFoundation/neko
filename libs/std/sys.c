@@ -553,10 +553,7 @@ static value sys_read_dir( value path ) {
 	else
 		buffer_append(b,"*.*");
 	path = buffer_to_string(b);
-	WCHAR wide_path[MAX_PATH];
-	int result = MultiByteToWideChar(CP_UTF8, 0, val_string(path), val_strlen(path) + 1, wide_path, MAX_PATH);
-	if (result == 0)
-		neko_error();
+	CONVERT_TO_WPATH(path, wide_path);
 	handle = FindFirstFileW(wide_path,&d);
 	if( handle == INVALID_HANDLE_VALUE )
 		neko_error();
