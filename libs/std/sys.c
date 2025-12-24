@@ -32,6 +32,7 @@
 #	include <windows.h>
 #	include <direct.h>
 #	include <conio.h>
+#	include "win_api_strings.h"
 #else
 #	include <errno.h>
 #	include <unistd.h>
@@ -289,16 +290,6 @@ static value sys_exit( value ecode ) {
 	exit(val_int(ecode));
 	return val_true;
 }
-
-#ifdef NEKO_WINDOWS
-#define CONVERT_TO_WPATH(str, wpath) \
-	WCHAR wpath[MAX_PATH]; \
-	{ \
-		int result = MultiByteToWideChar(CP_UTF8, 0, val_string(str), val_strlen(str) + 1, wpath, MAX_PATH); \
-		if (result == 0) \
-			neko_error(); \
-	}
-#endif
 
 /**
 	sys_exists : string -> bool
