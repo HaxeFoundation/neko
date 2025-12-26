@@ -185,15 +185,6 @@ static int neko_handler_rec( request_rec *r ) {
 	const char *ctype;
 	value exc = NULL;
 
-/*
-	Seems to crash on Windows. And on Linux, we rarely have libGC 7.x installed anyway
-
-#	if defined(APACHE_2_X) || defined(NEKO_WINDOWS)
-	// we are using threads, so let's make sure that the current thread is registered
-	neko_thread_register(true);
-#	endif
-*/
-
 	config.hits++;
 
 	ctx.r = r;
@@ -310,11 +301,14 @@ static int neko_handler( request_rec *r ) {
 	int ret;
 	if( strcmp(r->handler,"neko-handler") != 0)
 		return DECLINED;
+
+	neko_thread_register(true);
 	if( config.use_stats ) neko_stats_measure(NULL,r->hostname,1);
 	ret = neko_handler_rec(r);
 	neko_vm_select(NULL);
 	if( config.use_stats ) neko_stats_measure(NULL,r->hostname,0);
 	gc_major();
+	neko_thread_register(false);
 	return ret;
 }
 
