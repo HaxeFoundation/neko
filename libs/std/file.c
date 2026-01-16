@@ -23,6 +23,7 @@
 #include <stdio.h>
 #ifdef NEKO_WINDOWS
 #	include <windows.h>
+#	include "win_api_strings.h"
 #endif
 
 /**
@@ -63,7 +64,13 @@ static value file_open( value name, value r ) {
 	val_check(r,string);
 	f = (fio*)alloc(sizeof(fio));
 	f->name = alloc_string(val_string(name));
+#ifdef NEKO_WINDOWS
+	CONVERT_TO_WPATH(name,wide_path);
+	CONVERT_TO_WSTR(r, wide_r);
+	f->io = _wfopen(wide_path,wide_r);
+#else
 	f->io = fopen(val_string(name),val_string(r));
+#endif
 	if( f->io == NULL )
 		file_error("file_open",f);
 	return alloc_abstract(k_file,f);
