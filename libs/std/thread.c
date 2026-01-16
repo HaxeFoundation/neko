@@ -651,3 +651,140 @@ DEFINE_PRIM(deque_create,0);
 DEFINE_PRIM(deque_add,2);
 DEFINE_PRIM(deque_push,2);
 DEFINE_PRIM(deque_pop,2);
+
+typedef struct {
+#ifdef NEKO_WINDOWS
+  SRWLOCK lock;
+  CONDITION_VARIABLE cond;
+#else
+  pthread_mutex_t lock;
+  pthread_cond_t cond;
+#endif
+} vcondition;
+
+DEFINE_KIND(k_condition);
+#define val_cond(c) ((vcondition *)val_data(c))
+
+static void _cond_init(vcondition *cond) {
+#ifdef NEKO_WINDOWS
+	InitializeSRWLock(&cond->lock);
+	InitializeConditionVariable(&cond->cond);
+#else
+	pthread_mutex_init(&cond->lock, NULL);
+	pthread_cond_init(&cond->cond, NULL);
+#endif
+}
+
+static void _cond_acquire(vcondition *cond) {
+#ifdef NEKO_WINDOWS
+	AcquireSRWLockExclusive(&cond->lock);
+#else
+	pthread_mutex_lock(&cond->lock);
+#endif
+}
+
+static bool _cond_try_acquire(vcondition *cond) {
+#ifdef NEKO_WINDOWS
+	return TryAcquireSRWLockExclusive(&cond->lock);
+#else
+	return pthread_mutex_trylock(&cond->lock) == 0;
+#endif
+}
+
+static void _cond_release(vcondition *cond) {
+#ifdef NEKO_WINDOWS
+	ReleaseSRWLockExclusive(&cond->lock);
+#else
+	pthread_mutex_unlock(&cond->lock);
+#endif
+}
+
+static void _cond_wait(vcondition *cond) {
+#ifdef NEKO_WINDOWS
+	SleepConditionVariableSRW(&cond->cond, &cond->lock, INFINITE, 0);
+#else
+	pthread_cond_wait(&cond->cond, &cond->lock);
+#endif
+}
+
+static void _cond_signal(vcondition *cond) {
+#ifdef NEKO_WINDOWS
+	WakeConditionVariable(&cond->cond);
+#else
+	pthread_cond_signal(&cond->cond);
+#endif
+}
+
+static void _cond_broadcast(vcondition *cond) {
+#ifdef NEKO_WINDOWS
+	WakeAllConditionVariable(&cond->cond);
+#else
+	pthread_cond_broadcast(&cond->cond);
+#endif
+}
+
+static void _cond_destroy(vcondition *cond) {
+#ifdef NEKO_WINDOWS
+  // Condition Variables and SRW Locks have no destructors
+#else
+  pthread_cond_destroy(&cond->cond);
+  pthread_mutex_destroy(&cond->lock);
+#endif
+}
+
+static void free_condition(value v) { _cond_destroy(val_cond(v)); }
+
+static value cond_create() {
+  vcondition *c = (vcondition *)alloc_private(sizeof(vcondition));
+  value v = alloc_abstract(k_condition, c);
+  val_gc(v, free_condition);
+  _cond_init(c);
+  return v;
+}
+
+static value cond_acquire(value *cond) {
+	val_check_kind(cond, k_condition);
+	_cond_acquire(val_cond(cond));
+	return val_null;
+}
+
+static value cond_try_acquire(value *cond) {
+	val_check_kind(cond, k_condition);
+	if(_cond_try_acquire(val_cond(cond))) {
+		return val_true;
+	} else {
+		return val_false;
+	}
+}
+
+static value cond_release(value *cond) {
+	val_check_kind(cond, k_condition);
+	_cond_release(val_cond(cond));
+	return val_null;
+}
+
+static value cond_wait(value *cond) {
+	val_check_kind(cond, k_condition);
+	_cond_wait(val_cond(cond));
+	return val_null;
+}
+
+static value cond_signal(value *cond) {
+	val_check_kind(cond, k_condition);
+	_cond_signal(val_cond(cond));
+	return val_null;
+}
+
+static value cond_broadcast(value *cond) {
+	val_check_kind(cond, k_condition);
+	_cond_broadcast(val_cond(cond));
+	return val_null;
+}
+
+DEFINE_PRIM(cond_create, 0)
+DEFINE_PRIM(cond_acquire, 1)
+DEFINE_PRIM(cond_try_acquire, 1)
+DEFINE_PRIM(cond_release, 1)
+DEFINE_PRIM(cond_wait, 1)
+DEFINE_PRIM(cond_signal, 1)
+DEFINE_PRIM(cond_broadcast, 1)
