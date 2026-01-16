@@ -788,3 +788,144 @@ DEFINE_PRIM(cond_release, 1)
 DEFINE_PRIM(cond_wait, 1)
 DEFINE_PRIM(cond_signal, 1)
 DEFINE_PRIM(cond_broadcast, 1)
+
+typedef struct {
+	vcondition c;
+	int counter;
+} vsemaphore;
+
+DEFINE_KIND(k_semaphore);
+#define val_semaphore(s) ((vsemaphore *)val_data(s))
+
+static void _semaphore_init(vsemaphore *s, int value) {
+	_cond_init(&s->c);
+	s->counter = value;
+}
+static void _semaphore_acquire(vsemaphore *s) {
+	_cond_acquire(&s->c);
+	// wait until s->counter is greater than zero
+	while(s->counter == 0) {
+		_cond_wait(&s->c);
+	}
+	// s->counter is now greater than zero, decrease it
+	s->counter--;
+	_cond_release(&s->c);
+}
+
+#ifdef NEKO_WINDOWS
+static long long now_ms() {
+  static LARGE_INTEGER freq = {0};
+  if (freq.QuadPart == 0) {
+	QueryPerformanceFrequency(&freq);
+  }
+  LARGE_INTEGER time;
+  QueryPerformanceCounter(&time);
+  return time.QuadPart * 1000LL / freq.QuadPart;
+}
+#endif
+
+static bool _semaphore_try_acquire(vsemaphore *s, double *timeout) {
+  bool success = false;
+  _cond_acquire(&s->c);
+  if (timeout) {
+		#ifdef NEKO_WINDOWS
+		long long start_ms = now_ms();
+
+		long timeout_ms = *timeout * 1000;
+		while (s->counter == 0) {
+			long long elapsed = now_ms() - start_ms;
+			long long ms = elapsed - timeout_ms;
+			if (ms <= 0 || SleepConditionVariableSRW(&s->c.cond, &s->c.lock, ms, 0) == 0) {
+				break;
+			}
+		}
+		#else
+		double seconds = *timeout;
+		struct timespec ts;
+		clock_gettime(CLOCK_REALTIME, &ts);
+		time_t whole_seconds = seconds;
+		long nanoseconds =
+			((seconds - whole_seconds) * 1e9) + ts.tv_nsec;
+		whole_seconds += ts.tv_sec;
+		long sec_in_ns = (long)(nanoseconds / 1e9);
+		whole_seconds += sec_in_ns;
+		nanoseconds -= sec_in_ns * 1e9;
+		ts.tv_sec = whole_seconds;
+		ts.tv_nsec = nanoseconds;
+		while (s->counter == 0) {
+			if (pthread_cond_timedwait(&s->c.cond, &s->c.lock, &ts) == ETIMEDOUT) {
+				break;
+			}
+		}
+		#endif
+		if (s->counter > 0) {
+			s->counter--;
+			success = true;
+		}
+	} else {
+		if (s->counter > 0) {
+			s->counter--;
+			success = true;
+		}
+	}
+	_cond_release(&s->c);
+	return success;
+}
+
+static void _semaphore_release(vsemaphore *s) {
+	_cond_acquire(&s->c);
+	s->counter++;
+	_cond_signal(&s->c);
+	_cond_release(&s->c);
+}
+
+static void _semaphore_destroy(vsemaphore *s) {
+	_cond_destroy(&s->c);
+}
+
+static void free_semaphore(value s) {
+	_semaphore_destroy(val_semaphore(s));
+}
+
+static value semaphore_create(value initial_count) {
+	if (!val_is_any_int(initial_count)) {
+		neko_error();
+	}
+	vsemaphore *c = (vsemaphore *)alloc(sizeof(vsemaphore));
+	value v = alloc_abstract(k_semaphore, c);
+	val_gc(v, free_semaphore);
+	_semaphore_init(c, val_any_int(initial_count));
+	return v;
+}
+
+static value semaphore_acquire(value s) {
+	val_check_kind(s, k_semaphore);
+	_semaphore_acquire(val_semaphore(s));
+	return val_null;
+}
+
+static value semaphore_try_acquire(value s, value timeout) {
+  int has_timeout = !val_is_null(timeout);
+  val_check_kind(s, k_semaphore);
+  double time = 0.0;
+  if (has_timeout) {
+    val_check(timeout, number);
+	time = val_number(timeout);
+  }
+  if (_semaphore_try_acquire(val_semaphore(s), has_timeout ? &time : NULL)) {
+	return val_true;
+  } else {
+	return val_false;
+  }
+}
+
+static value semaphore_release(value s) {
+  val_check_kind(s, k_semaphore);
+  _semaphore_release(val_semaphore(s));
+  return val_null;
+}
+
+DEFINE_PRIM(semaphore_create, 1)
+DEFINE_PRIM(semaphore_acquire, 1)
+DEFINE_PRIM(semaphore_try_acquire, 2)
+DEFINE_PRIM(semaphore_release, 1)
