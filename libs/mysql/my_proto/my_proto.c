@@ -336,6 +336,7 @@ const char *myp_charset_name( int charset ) {
 	// 101+ : utf16
 	// 160+ : utf32
 	case 33:
+	case 76:
 	case 83:
 	case 223:
 	case 254:
@@ -344,10 +345,12 @@ const char *myp_charset_name( int charset ) {
 	case 46:
 		return "utf8mb4"; // superset of utf8 with up to 4 bytes per-char
 	default:
-		if( charset >= 192 && charset <= 211 )
+		if( charset >= 192 && charset <= 215 )
 			return "utf8";
-		if( charset >= 224 && charset <= 243 )
+		if( charset >= 224 && charset <= 247 )
 			return "utf8mb4";
+		if( charset >= 255 && charset <= 309 )
+			return "utf8mb4"; // utf8mb4 collation version 9.0.0
 	}
 	return NULL;
 }
