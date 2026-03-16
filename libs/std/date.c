@@ -28,7 +28,7 @@
 	<doc>
 	<h1>Date</h1>
 	<p>
-	Date are using standard C functions in order to manipulate a 32 bit integer.
+	Date are using standard C functions in order to manipulate a 64 bit integer.
 	Dates are then represented as the number of seconds elapsed since 1st January
 	1970.
 	</p>
@@ -60,16 +60,16 @@ static struct tm *gmtime_r( time_t *t, struct tm *r ) {
 #endif
 
 /**
-	date_now : void -> 'int32
+	date_now : void -> 'int64
 	<doc>Return current date and time</doc>
 **/
 static value date_now() {
-	int t = (int)time(NULL);
-	return alloc_int32(t);
+	time_t t = time(NULL);
+	return alloc_int64((int64)t);
 }
 
 /**
-	date_new : string? -> 'int32
+	date_new : string? -> 'int64
 	<doc>
 	Parse a date format. The following formats are accepted :
 	<ul>
@@ -81,9 +81,9 @@ static value date_now() {
 	</doc>
 **/
 static value date_new( value s ) {
-	int o = 0;
+	int64 o = 0;
 	if( val_is_null(s) )
-		o = (int)time(NULL);
+		o = (int64)time(NULL);
 	else {
 		struct tm t;
 		bool recal = true;
@@ -113,10 +113,10 @@ static value date_new( value s ) {
 		if( recal ) {
 			t.tm_year -= 1900;
 			t.tm_mon--;
-			o = (int)mktime(&t);
+			o = (int64)mktime(&t);
 		}
 	}
-	return alloc_int32(o);
+	return alloc_int64(o);
 }
 
 #ifdef NEKO_WINDOWS
@@ -124,18 +124,18 @@ static char VALID_FORMAT_CODES[] = "aAbBcCdDeFgGhHIjmMnprRStTuUVwWxXyYzZ%";
 #endif
 
 /**
-	date_format : #int32 -> fmt:string? -> string
+	date_format : #int64 -> fmt:string? -> string
 	<doc>Format a date using [strftime]. If [fmt] is [null] then default format is used</doc>
 **/
 static value date_format( value o, value fmt ) {
 	char buf[128];
 	struct tm t;
 	time_t d;
-	val_check(o,any_int);
+	val_check(o,int64);
 	if( val_is_null(fmt) )
 		fmt = alloc_string("%Y-%m-%d %H:%M:%S");
 	val_check(fmt,string);
-	d = val_any_int(o);
+	d = (time_t)val_int64(o);
 	if( localtime_r(&d,&t) == NULL )
 		neko_error();
 	#ifdef NEKO_WINDOWS
@@ -175,18 +175,18 @@ static value date_format( value o, value fmt ) {
 }
 
 /**
-	date_utc_format : #int32 -> fmt:string? -> string
+	date_utc_format : #int64 -> fmt:string? -> string
 	<doc>Format a date in UTC using [strftime]. If [fmt] is [null] then default format is used</doc>
 **/
 static value date_utc_format( value o, value fmt ) {
 	char buf[128];
 	struct tm t;
 	time_t d;
-	val_check(o,any_int);
+	val_check(o,int64);
 	if( val_is_null(fmt) )
 		fmt = alloc_string("%Y-%m-%d %H:%M:%S");
 	val_check(fmt,string);
-	d = val_any_int(o);
+	d = (time_t)val_int64(o);
 	if( gmtime_r(&d,&t) == NULL )
 		neko_error();
 	if( strftime(buf,127,val_string(fmt),&t) == 0 )
@@ -195,17 +195,17 @@ static value date_utc_format( value o, value fmt ) {
 }
 
 /**
-	date_set_hour : #int32 -> h:int -> m:int -> s:int -> 'int32
+	date_set_hour : #int64 -> h:int -> m:int -> s:int -> 'int64
 	<doc>Change the time of a date. Return the modified date</doc>
 **/
 static value date_set_hour( value o, value h, value m, value s ) {
 	struct tm t;
 	time_t d;
-	val_check(o,any_int);
+	val_check(o,int64);
 	val_check(h,int);
 	val_check(m,int);
 	val_check(s,int);
-	d = val_any_int(o);
+	d = (time_t)val_int64(o);
 	if( localtime_r(&d,&t) == NULL )
 		neko_error();
 	t.tm_hour = val_int(h);
@@ -214,21 +214,21 @@ static value date_set_hour( value o, value h, value m, value s ) {
 	d = mktime(&t);
 	if( d == -1 )
 		neko_error();
-	return alloc_int32((int)d);
+	return alloc_int64((int64)d);
 }
 
 /**
-	date_set_day : #int32 -> y:int -> m:int -> d:int -> 'int32
+	date_set_day : #int64 -> y:int -> m:int -> d:int -> 'int64
 	<doc>Change the day of a date. Return the modified date</doc>
 **/
 static value date_set_day( value o, value y, value m, value d ) {
 	struct tm t;
 	time_t date;
-	val_check(o,any_int);
+	val_check(o,int64);
 	val_check(y,int);
 	val_check(m,int);
 	val_check(d,int);
-	date = val_any_int(o);
+	date = (time_t)val_int64(o);
 	if( localtime_r(&date,&t) == NULL )
 		neko_error();
 	t.tm_year = val_int(y) - 1900;
@@ -237,19 +237,19 @@ static value date_set_day( value o, value y, value m, value d ) {
 	date = mktime(&t);
 	if( date == -1 )
 		neko_error();
-	return alloc_int32((int)date);
+	return alloc_int64((int64)date);
 }
 
 /**
-	date_get_day : #int32 -> { y => int, m => int, d => int }
+	date_get_day : #int64 -> { y => int, m => int, d => int }
 	<doc>Return the year month and day of a date</doc>
 **/
 static value date_get_day( value o ) {
 	value r;
 	struct tm t;
 	time_t d;
-	val_check(o,any_int);
-	d = val_any_int(o);
+	val_check(o,int64);
+	d = (time_t)val_int64(o);
 	if( localtime_r(&d,&t) == NULL )
 		neko_error();
 	r = alloc_object(NULL);
@@ -260,15 +260,15 @@ static value date_get_day( value o ) {
 }
 
 /**
-	date_get_utc_day : #int32 -> { y => int, m => int, d => int }
+	date_get_utc_day : #int64 -> { y => int, m => int, d => int }
 	<doc>Return the year month and day of a date in UTC</doc>
 **/
 static value date_get_utc_day( value o ) {
 	value r;
 	struct tm t;
 	time_t d;
-	val_check(o,any_int);
-	d = val_any_int(o);
+	val_check(o,int64);
+	d = (time_t)val_int64(o);
 	if( gmtime_r(&d,&t) == NULL )
 		neko_error();
 	r = alloc_object(NULL);
@@ -279,15 +279,15 @@ static value date_get_utc_day( value o ) {
 }
 
 /**
-	date_get_hour : #int32 -> { h => int, m => int, s => int }
+	date_get_hour : #int64 -> { h => int, m => int, s => int }
 	<doc>Return the hour minutes and seconds of a date</doc>
 **/
 static value date_get_hour( value o ) {
 	value r;
 	struct tm t;
 	time_t d;
-	val_check(o,any_int);
-	d = val_any_int(o);
+	val_check(o,int64);
+	d = (time_t)val_int64(o);
 	if( localtime_r(&d,&t) == NULL )
 		neko_error();
 	r = alloc_object(NULL);
@@ -298,15 +298,15 @@ static value date_get_hour( value o ) {
 }
 
 /**
-	date_get_utc_hour : #int32 -> { h => int, m => int, s => int }
+	date_get_utc_hour : #int64 -> { h => int, m => int, s => int }
 	<doc>Return the hour minutes and seconds of a date in UTC</doc>
 **/
 static value date_get_utc_hour( value o ) {
 	value r;
 	struct tm t;
 	time_t d;
-	val_check(o,any_int);
-	d = val_any_int(o);
+	val_check(o,int64);
+	d = (time_t)val_int64(o);
 	if( gmtime_r(&d,&t) == NULL )
 		neko_error();
 	r = alloc_object(NULL);
@@ -317,7 +317,7 @@ static value date_get_utc_hour( value o ) {
 }
 
 /**
-	date_get_tz : #int32 -> int
+	date_get_tz : #int64 -> int
 	<doc>Return the timezone offset from UTC (in minutes) for the given date</doc>
 **/
 static value date_get_tz( value o ) {
@@ -325,8 +325,8 @@ static value date_get_tz( value o ) {
 	struct tm gmt;
 	int diff;
 	time_t raw;
-	val_check(o,any_int);
-	raw = val_any_int(o);
+	val_check(o,int64);
+	raw = (time_t)val_int64(o);
 	if( localtime_r(&raw, &local) == NULL || gmtime_r(&raw, &gmt) == NULL )
 		neko_error();
 	diff = (local.tm_hour - gmt.tm_hour) * 60 + (local.tm_min - gmt.tm_min);
