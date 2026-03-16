@@ -172,7 +172,7 @@ static value result_next( value o ) {
 				value v;
 				switch( r->fields_convs[i] ) {
 				case CONV_INT:
-					v = alloc_best_int(atoi(row[i]));
+					v = alloc_int64(strtoll(row[i],NULL,10));
 					break;
 				case CONV_STRING:
 					v = alloc_string(row[i]);
@@ -207,7 +207,7 @@ static value result_next( value o ) {
 						t.tm_isdst = -1;
 						t.tm_year -= 1900;
 						t.tm_mon--;
-						v = val_call1(r->conv_date,alloc_int32((int)mktime(&t)));
+						v = val_call1(r->conv_date,alloc_int64((int64)mktime(&t)));
 					}
 					break;
 				case CONV_DATETIME:
@@ -219,7 +219,7 @@ static value result_next( value o ) {
 						t.tm_isdst = -1;
 						t.tm_year -= 1900;
 						t.tm_mon--;
-						v = val_call1(r->conv_date,alloc_int32((int)mktime(&t)));
+						v = val_call1(r->conv_date,alloc_int64((int64)mktime(&t)));
 					}
 					break;
 				default:
