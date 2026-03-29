@@ -32,6 +32,7 @@
 #	include <windows.h>
 #	include <direct.h>
 #	include <conio.h>
+#	include "win_api_strings.h"
 #else
 #	include <errno.h>
 #	include <unistd.h>
@@ -295,9 +296,16 @@ static value sys_exit( value ecode ) {
 	<doc>Returns true if the file or directory exists.</doc>
 **/
 static value sys_exists( value path ) {
-	struct stat st;
 	val_check(path,string);
-	return alloc_bool(stat(val_string(path),&st) == 0);
+	#ifdef NEKO_WINDOWS
+	CONVERT_TO_WPATH(path, wide_path);
+	bool result = GetFileAttributesW(wide_path) != INVALID_FILE_ATTRIBUTES;
+	#else
+	struct stat st;
+	bool result = stat(val_string(path),&st) == 0;
+	#endif
+
+	return alloc_bool(result);
 }
 
 /**
@@ -351,10 +359,16 @@ static value sys_rename( value path, value newname ) {
 	<doc>Run the [stat] command on the given file or directory.</doc>
 **/
 static value sys_stat( value path ) {
-	struct stat s;
 	value o;
 	val_check(path,string);
+#ifdef NEKO_WINDOWS
+	struct _stat s;
+	CONVERT_TO_WPATH(path, wide_path);
+	if( _wstat(wide_path,&s) != 0 )
+#else
+	struct stat s;
 	if( stat(val_string(path),&s) != 0 )
+#endif
 		neko_error();
 	o = alloc_object(NULL);
 	STATF(gid);
@@ -388,9 +402,15 @@ static value sys_stat( value path ) {
 	</doc>
 **/
 static value sys_file_type( value path ) {
-	struct stat s;
 	val_check(path,string);
+#ifdef NEKO_WINDOWS
+	struct _stat s;
+	CONVERT_TO_WPATH(path, wide_path);
+	if( _wstat(wide_path,&s) != 0 )
+#else
+	struct stat s;
 	if( stat(val_string(path),&s) != 0 )
+#endif
 		neko_error();
 	if( s.st_mode & S_IFREG )
 		return alloc_string("file");
@@ -511,7 +531,7 @@ static value sys_read_dir( value path ) {
 	value h = val_null;
 	value cur = NULL, tmp;
 #ifdef NEKO_WINDOWS
-	WIN32_FIND_DATA d;
+	WIN32_FIND_DATAW d;
 	HANDLE handle;
 	buffer b;
 	int len;
@@ -524,14 +544,26 @@ static value sys_read_dir( value path ) {
 	else
 		buffer_append(b,"*.*");
 	path = buffer_to_string(b);
-	handle = FindFirstFile(val_string(path),&d);
+	CONVERT_TO_WPATH(path, wide_path);
+	handle = FindFirstFileW(wide_path,&d);
 	if( handle == INVALID_HANDLE_VALUE )
 		neko_error();
 	while( true ) {
 		// skip magic dirs
-		if( d.cFileName[0] != '.' || (d.cFileName[1] != 0 && (d.cFileName[1] != '.' || d.cFileName[2] != 0)) ) {
+		if( d.cFileName[0] != L'.' || (d.cFileName[1] != 0 && (d.cFileName[1] != L'.' || d.cFileName[2] != 0)) ) {
 			tmp = alloc_array(2);
-			val_array_ptr(tmp)[0] = alloc_string(d.cFileName);
+			int len = WideCharToMultiByte(CP_UTF8, 0, d.cFileName, -1, NULL, 0, NULL, NULL);
+			if (len == 0) {
+				FindClose(handle);
+				neko_error();
+			}
+			value item = alloc_empty_string(len - 1);
+			len = WideCharToMultiByte(CP_UTF8, 0, d.cFileName, -1, val_string(item), len, NULL, NULL);
+			if (len == 0) {
+				FindClose(handle);
+				neko_error();
+			}
+			val_array_ptr(tmp)[0] = item;
 			val_array_ptr(tmp)[1] = val_null;
 			if( cur )
 				val_array_ptr(cur)[1] = tmp;
@@ -539,7 +571,7 @@ static value sys_read_dir( value path ) {
 				h = tmp;
 			cur = tmp;
 		}
-		if( !FindNextFile(handle,&d) )
+		if( !FindNextFileW(handle,&d) )
 			break;
 	}
 	FindClose(handle);
