@@ -26,6 +26,10 @@ set_target_properties(ui.ndll
 	SUFFIX .ndll
 )
 
+if (UNIX AND NOT APPLE)
+	target_link_options(ui.ndll PRIVATE "-Wl,--no-undefined")
+endif()
+
 install (
 	TARGETS ui.ndll
 	DESTINATION ${DEST_NDLL}
