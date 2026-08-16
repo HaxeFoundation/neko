@@ -18,6 +18,10 @@ set_target_properties(zlib.ndll
 	SUFFIX .ndll
 )
 
+if (UNIX AND NOT APPLE)
+	target_link_options(zlib.ndll PRIVATE "-Wl,--no-undefined")
+endif()
+
 install (
 	TARGETS zlib.ndll
 	DESTINATION ${DEST_NDLL}

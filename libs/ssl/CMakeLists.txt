@@ -78,6 +78,10 @@ set_target_properties(ssl.ndll
 	SUFFIX .ndll
 )
 
+if (UNIX AND NOT APPLE)
+	target_link_options(ssl.ndll PRIVATE "-Wl,--no-undefined")
+endif()
+
 install (
 	TARGETS ssl.ndll
 	DESTINATION ${DEST_NDLL}

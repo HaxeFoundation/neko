@@ -78,6 +78,10 @@ set_target_properties(regexp.ndll
 	SUFFIX .ndll
 )
 
+if (UNIX AND NOT APPLE)
+	target_link_options(regexp.ndll PRIVATE "-Wl,--no-undefined")
+endif()
+
 install (
 	TARGETS regexp.ndll
 	DESTINATION ${DEST_NDLL}
