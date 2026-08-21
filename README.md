@@ -1,4 +1,4 @@
-![NekoVM](https://cloud.githubusercontent.com/assets/576184/14234981/10528a0e-f9f1-11e5-8922-894569b2feea.png)
+🕴️![NekoVM](https://cloud.githubusercontent.com/assets/576184/14234981/10528a0e-f9f1-11e5-8922-894569b2feea.png)
 
 [![CI](https://github.com/HaxeFoundation/neko/actions/workflows/main.yml/badge.svg?branch=master)](https://github.com/HaxeFoundation/neko/actions/workflows/main.yml)
 
