@@ -40,6 +40,10 @@ set_target_properties(sqlite.ndll
 	SUFFIX .ndll
 )
 
+if (UNIX AND NOT APPLE)
+	target_link_options(sqlite.ndll PRIVATE "-Wl,--no-undefined")
+endif()
+
 install (
 	TARGETS sqlite.ndll
 	DESTINATION ${DEST_NDLL}

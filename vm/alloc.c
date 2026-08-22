@@ -117,6 +117,9 @@ static void null_warn_proc( char *msg, int arg ) {
 }
 
 void neko_gc_init() {
+#ifdef NEKO_JIT_ENABLE
+	GC_set_pages_executable(1);
+#endif
 #	ifndef NEKO_WINDOWS
 	// we can't set this on windows with old GC since
 	// it's already initialized through its own DllMain
