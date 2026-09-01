@@ -70,7 +70,7 @@ if (STATIC_MARIADBCONNECTOR)
 	if (STATIC_OPENSSL)
 		set(OPENSSL_CONF -DOPENSSL_USE_STATIC_LIBS=ON -DOPENSSL_ROOT_DIR=${CMAKE_BINARY_DIR}/libs/src/install-prefix)
 		set(OPENSSL_DEP OpenSSL)
-	elseif()
+	else()
 		set(OPENSSL_CONF "")
 		set(OPENSSL_DEP "")
 	endif()
@@ -98,8 +98,8 @@ if (STATIC_MARIADBCONNECTOR)
 	ExternalProject_Add(MariaDBConnector
 		${EP_CONFIGS}
 		DEPENDS ${OPENSSL_DEP} ${ZLIB_DEP}
-		URL https://downloads.mariadb.com/Connectors/c/connector-c-3.3.4/mariadb-connector-c-3.3.4-src.tar.gz
-		URL_HASH SHA256=486e5fdf976a8e7fadf583ae912128655e013ac575fa79b2d1af0fb8827a78ed
+		URL https://dlm.mariadb.com/4516944/Connectors/c/connector-c-3.4.8/mariadb-connector-c-3.4.8-src.tar.gz
+		URL_HASH SHA256=156aed3b49f857d0ac74fb76f1982968bcbfd8382da3f5b6ae71f616729920d7
 		CMAKE_ARGS
 			-Wno-dev
 			-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
@@ -107,7 +107,10 @@ if (STATIC_MARIADBCONNECTOR)
 			-DWITH_SSL=OPENSSL
 			${OPENSSL_CONF}
 			${ZLIB_CONF}
-		PATCH_COMMAND ${CMAKE_COMMAND} -Dmariadb_source=${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector -P ${CMAKE_SOURCE_DIR}/cmake/patch_mariadb.cmake
+		PATCH_COMMAND ${CMAKE_COMMAND}
+			-Dmariadb_source=${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector
+			-Dprocessor=${CMAKE_SYSTEM_PROCESSOR}
+			-P ${CMAKE_SOURCE_DIR}/cmake/patch_mariadb.cmake
 		BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/MariaDBConnector-build &&
 			${CMAKE_COMMAND} --build . --target mariadbclient --config ${CMAKE_CFG_INTDIR}
 		INSTALL_COMMAND echo skip install

@@ -35,9 +35,9 @@ if (STATIC_ZLIB)
 	ExternalProject_Add(Zlib
 		${EP_CONFIGS}
 		URL
-			https://zlib.net/fossils/zlib-1.2.13.tar.gz
-			https://github.com/madler/zlib/releases/download/v1.2.13/zlib-1.2.13.tar.gz
-		URL_HASH SHA256=b3a24de97a8fdbc835b9833169501030b8977031bcb54b3b3ac13740f846ab30
+			https://zlib.net/zlib-1.3.1.tar.gz
+			https://github.com/madler/zlib/releases/download/v1.3.1/zlib-1.3.1.tar.gz
+		URL_HASH SHA256=9a93b2b7dfdac77ceba5a558a580e74667dd6fede4585b91eefb60f03b72df23
 		CMAKE_ARGS ${ZLIB_CMAKE_ARGS}
 		INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/Zlib-build &&
 			${CMAKE_COMMAND} --build . --target install --config ${config}
@@ -74,35 +74,35 @@ if (WITH_APACHE)
 		if (STATIC_OPENSSL)
 			set(OPENSSL_CONF --with-openssl=${CMAKE_BINARY_DIR}/libs/src/install-prefix)
 			set(OPENSSL_DEP OpenSSL)
-		elseif()
+		else()
 			set(OPENSSL_CONF "")
 			set(OPENSSL_DEP "")
 		endif()
 		if (STATIC_APR)
 			set(APR_CONF --with-apr=${CMAKE_BINARY_DIR}/libs/src/install-prefix)
 			set(APR_DEP APR)
-		elseif()
+		else()
 			set(APR_CONF "")
 			set(APR_DEP "")
 		endif()
 		if (STATIC_APRUTIL)
 			set(APRUTIL_CONF --with-apr-util=${CMAKE_BINARY_DIR}/libs/src/install-prefix)
 			set(APRUTIL_DEP APRutil)
-		elseif()
+		else()
 			set(APRUTIL_CONF "")
 			set(APRUTIL_DEP "")
 		endif()
 		if (STATIC_PCRE2)
 			set(PCRE_CONF --with-pcre=${CMAKE_BINARY_DIR}/libs/src/install-prefix/bin/pcre2-config)
 			set(PCRE_DEP pcre2)
-		elseif()
+		else()
 			set(PCRE_CONF "")
 			set(PCRE_DEP "")
 		endif()
 		if (STATIC_ZLIB)
 			set(ZLIB_CONF --with-z=${CMAKE_BINARY_DIR}/libs/src/install-prefix)
 			set(ZLIB_DEP Zlib)
-		elseif()
+		else()
 			set(ZLIB_CONF "")
 			set(ZLIB_DEP "")
 		endif()
@@ -122,7 +122,7 @@ if (WITH_APACHE)
 				list(APPEND EXPAT_CONF "-DCMAKE_FIND_LIBRARY_SUFFIXES=${EXPAT_LIBRARY_SUFFIXES_ESCAPED}")
 			endif()
 			set(EXPAT_DEP EXPAT)
-		elseif()
+		else()
 			set(EXPAT_CONF "")
 			set(EXPAT_DEP "")
 		endif()

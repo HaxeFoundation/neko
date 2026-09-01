@@ -340,7 +340,13 @@ int main( int argc, char *argv[] ) {
 	vm = NULL;
 	mload = NULL;
 	neko_vm_select(NULL);
+	#ifdef NEKO_THREADS
+	/* With threads enabled, other threads may crash if globals are freed,
+	   so only do a garbage collection there. */
+	neko_gc_major();
+	#else
 	neko_global_free();
+	#endif
 	return r;
 }
 

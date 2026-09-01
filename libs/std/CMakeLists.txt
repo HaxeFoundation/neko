@@ -39,6 +39,10 @@ set_target_properties(std.ndll
 	SUFFIX .ndll
 )
 
+if (UNIX AND NOT APPLE)
+	target_link_options(std.ndll PRIVATE "-Wl,--no-undefined")
+endif()
+
 install (
 	TARGETS std.ndll
 	DESTINATION ${DEST_NDLL}
