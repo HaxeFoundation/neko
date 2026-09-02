@@ -35,3 +35,5 @@ bin
 /extra/chocolatey/LICENSE
 /extra/chocolatey/*.zip
 /extra/chocolatey/*.nupkg
+
+/tests/*.n

@@ -475,7 +475,7 @@ and compile_builtin ctx b el p =
 		ctx.stack <- os;
 		(match l.lpos with
 		| None -> l.lwait <- jmp ctx :: l.lwait
-		| Some p -> write ctx (Jump p));
+		| Some p -> goto ctx p);
 		if !etraps <> [] then begin
 			List.iter (fun p ->
 				DynArray.set ctx.ops p (Trap (pos ctx - p));
