@@ -52,8 +52,8 @@ if (STATIC_OPENSSL)
 	endif()
 	ExternalProject_Add(OpenSSL
 		${EP_CONFIGS}
-		URL https://www.openssl.org/source/openssl-3.0.8.tar.gz
-		URL_HASH SHA256=6c13d2bf38fdf31eac3ce2a347073673f5d63263398f1f69d0df4a41253e4b3e
+		URL https://github.com/openssl/openssl/releases/download/openssl-3.6.4/openssl-3.6.4.tar.gz
+		URL_HASH SHA256=9bffaa1ad1e07b354c21bd3324ec02fa15579f45a7d0494b3e74bc449b7333ef
 		${OPENSSL_CONFIGS}
 		BYPRODUCTS ${OPENSSL_LIBRARIES}
 		SOURCE_DIR ${CMAKE_BINARY_DIR}/libs/src/openssl
