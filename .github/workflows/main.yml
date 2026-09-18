@@ -24,7 +24,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install dependencies
         run: |
@@ -67,7 +67,7 @@ jobs:
           [ "`./bin/neko -version`" == "$NEKO_VERSION" ]
 
       - name: Upload binaries
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: linux${{ matrix.name_suffix }}-${{ matrix.arch }}-binaries
           path: bin/neko-${{ env.NEKO_VERSION }}-linux*.tar.gz
@@ -96,7 +96,7 @@ jobs:
       CMAKE_BUILD_TYPE: RelWithDebInfo
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Homebrew dependencies
         run: |
@@ -135,7 +135,7 @@ jobs:
           [ "`./bin/neko -version`" == "$NEKO_VERSION" ]
 
       - name: Upload binaries
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: mac${{ matrix.name_suffix }}-${{ matrix.arch }}-binaries
           path: bin/neko-${{ env.NEKO_VERSION }}-osx*.tar.gz
@@ -167,7 +167,7 @@ jobs:
     runs-on: windows-2022
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install VS2017 tools
         run: |
@@ -202,7 +202,7 @@ jobs:
           [ "`./bin/neko -version`" == "$NEKO_VERSION" ]
 
       - name: Upload binaries
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: windows${{ matrix.name_suffix }}-${{ matrix.vstools }}-binaries
           path: bin/neko-${{ env.NEKO_VERSION }}-win${{ matrix.name_suffix }}.zip
@@ -218,16 +218,16 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Download windows-vs2017-binaries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: windows-vs2017-binaries
           path: windows-vs2017-binaries
 
       - name: Download windows64-vs2017-binaries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: windows64-vs2017-binaries
           path: windows64-vs2017-binaries
@@ -251,7 +251,7 @@ jobs:
         working-directory: extra/chocolatey/out/
 
       - name: Upload package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: chocolatey
           path: extra/chocolatey/pack/
@@ -267,13 +267,13 @@ jobs:
 
     steps:
       - name: Download ${{ env.INPUT_AMD64 }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ${{ env.INPUT_AMD64 }}
           path: ${{ env.INPUT_AMD64 }}
 
       - name: Download ${{ env.INPUT_ARM64 }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ${{ env.INPUT_ARM64 }}
           path: ${{ env.INPUT_ARM64 }}
@@ -301,7 +301,7 @@ jobs:
           tar -czvf $OUTPUT.tar.gz $OUTPUT
 
       - name: Upload universal binaries
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: mac-static-universal-binaries
           path: neko-*-osx-universal.tar.gz
@@ -313,50 +313,50 @@ jobs:
     if: success() && github.repository_owner == 'HaxeFoundation' && github.event_name != 'pull_request'
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Download linux-static-amd64-binaries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: linux-static-amd64-binaries
           path: linux-static-amd64-binaries
 
       - name: Download linux-static-arm64-binaries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: linux-static-arm64-binaries
           path: linux-static-arm64-binaries
 
       - name: Download mac-static-amd64-binaries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: mac-static-amd64-binaries
           path: mac-static-amd64-binaries
 
       - name: Download mac-static-arm64-binaries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: mac-static-arm64-binaries
           path: mac-static-arm64-binaries
 
       - name: Download mac-static-universal-binaries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: mac-static-universal-binaries
           path: mac-static-universal-binaries
 
       - name: Download windows-vs2017-binaries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: windows-vs2017-binaries
 
       - name: Download windows64-vs2017-binaries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: windows64-vs2017-binaries
 
       - name: Download chocolatey
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: chocolatey
 
