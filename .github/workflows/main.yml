@@ -153,6 +153,7 @@ jobs:
           - arch: Arm64
             name_suffix: -arm64
             runner: windows-11-arm
+            CMAKE_FLAGS: -DWITH_APACHE=OFF
 
           - vstools: vs2017
             cmake_generator: Visual Studio 15 2017
@@ -179,7 +180,7 @@ jobs:
 
       - name: CMake
         run: |
-          cmake . -G "${{ matrix.cmake_generator }}" -A ${{ matrix.arch }}
+          cmake . -G "${{ matrix.cmake_generator }}" -A ${{ matrix.arch }} ${{ matrix.CMAKE_FLAGS }}
 
       - name: Download dependencies
         run: |
