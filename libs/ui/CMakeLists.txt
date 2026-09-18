@@ -26,7 +26,7 @@ set_target_properties(ui.ndll
 	SUFFIX .ndll
 )
 
-if (UNIX AND NOT APPLE)
+if (UNIX AND NOT APPLE AND NOT ${CMAKE_SYSTEM_NAME} STREQUAL "OpenBSD")
 	target_link_options(ui.ndll PRIVATE "-Wl,--no-undefined")
 endif()
 
