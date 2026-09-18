@@ -144,27 +144,30 @@ jobs:
     name: windows
     strategy:
       matrix:
-        arch: [Win32, x64]
+        arch: [Win32, x64, Arm64]
         vstools: [vs2017, vs2022]
         include:
           - arch: x64
             name_suffix: 64
 
-          - vstools: vs2017
-            arch: Win32
-            cmake_generator: Visual Studio 15 2017
+          - arch: Arm64
+            name_suffix: -arm64
+            runner: windows-11-arm
 
           - vstools: vs2017
-            arch: x64
-            cmake_generator: Visual Studio 15 2017 Win64
+            cmake_generator: Visual Studio 15 2017
 
           - vstools: vs2022
             cmake_generator: Visual Studio 17 2022
 
+        exclude:
+          - vstools: vs2017
+            arch: Arm64
+
     env:
       CMAKE_BUILD_TYPE: RelWithDebInfo
 
-    runs-on: windows-2022
+    runs-on: ${{ matrix.runner || 'windows-2022' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -176,9 +179,7 @@ jobs:
 
       - name: CMake
         run: |
-          cmake . -G "${{ matrix.cmake_generator }}" ${{ env.CMAKE_ARCH_FLAG }}
-        env:
-          CMAKE_ARCH_FLAG: ${{ matrix.vstools == 'vs2022' && format('-A {0}', matrix.arch) || ' ' }}
+          cmake . -G "${{ matrix.cmake_generator }}" -A ${{ matrix.arch }}
 
       - name: Download dependencies
         run: |
@@ -449,7 +450,7 @@ jobs:
           rclone copyto neko-*-win.zip                              "s3:hxbuilds/builds/neko/windows/neko_latest.zip"
           rclone copyto neko-*-win64.zip                            "s3:hxbuilds/builds/neko/windows64/neko_latest.zip"
           rclone copyto neko.*.nupkg                                "s3:hxbuilds/builds/neko/windows64-choco/neko_latest.nupkg"
-          
+
           curl "https://api.cloudflare.com/client/v4/zones/$CLOUDFLARE_ZONE_ID/purge_cache" \
               -fsS \
               -H 'Content-Type: application/json' \
