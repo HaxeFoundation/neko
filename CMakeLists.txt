@@ -261,30 +261,39 @@ add_executable(nekovm
 	vm/main.c
 )
 
+add_custom_target(download_deps)
+
 # We need to build from source on Windows regardless
 if (STATIC_BOEHMGC OR WIN32)
-	ExternalProject_Add(libatomic_ops
-		${EP_CONFIGS}
-		URL https://github.com/bdwgc/libatomic_ops/releases/download/v7.10.0/libatomic_ops-7.10.0.tar.gz
-		URL_HASH SHA256=0db3ebff755db170f65e74a64ec4511812e9ee3185c232eeffeacd274190dfb0
-		CONFIGURE_COMMAND echo skip config
-		BUILD_COMMAND echo skip build
-		INSTALL_COMMAND echo skip install
-	)
-	set_target_properties(libatomic_ops PROPERTIES ${EP_PROPS})
-
 	set (
 		BoehmGC_CONFIGS
-		DEPENDS libatomic_ops
-		URL https://github.com/ivmai/bdwgc/releases/download/v7.6.26/gc-7.6.26.tar.gz
-		URL_HASH SHA256=d38e306efa54e1aebaf283b462a6396849e88b80c350f40a2e9715519374ff0b
+		URL https://github.com/bdwgc/bdwgc/releases/download/v8.2.12/gc-8.2.12.tar.gz
+		URL_HASH SHA256=42e5194ad06ab6ffb806c83eb99c03462b495d979cda782f3c72c08af833cd4e
 	)
 
 	set(GC_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/include)
 
+	if (MSVC)
+		ExternalProject_Add(libatomic_ops
+			${EP_CONFIGS}
+			URL https://github.com/bdwgc/libatomic_ops/releases/download/v7.10.0/libatomic_ops-7.10.0.tar.gz
+			URL_HASH SHA256=0db3ebff755db170f65e74a64ec4511812e9ee3185c232eeffeacd274190dfb0
+			CONFIGURE_COMMAND echo skip config
+			BUILD_COMMAND echo skip build
+			INSTALL_COMMAND echo skip install
+		)
+		set_target_properties(libatomic_ops PROPERTIES ${EP_PROPS})
+
+		list(APPEND BoehmGC_CONFIGS
+			DEPENDS libatomic_ops
+			PATCH_COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/libs/src/libatomic_ops ${CMAKE_BINARY_DIR}/libs/src/BoehmGC/libatomic_ops
+		)
+		add_dependencies(download_deps libatomic_ops-download)
+	endif()
+
 	if (WIN32)
 		set(GC_LIBRARIES
-			${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/${CMAKE_CFG_INTDIR}/gcmt-dll.lib
+			${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/${CMAKE_CFG_INTDIR}/gc.lib
 		)
 		ExternalProject_Add(BoehmGC
 			${EP_CONFIGS}
@@ -292,23 +301,22 @@ if (STATIC_BOEHMGC OR WIN32)
 			CMAKE_ARGS
 				-Wno-dev
 				-Denable_threads=ON
-				-Denable_parallel_mark=OFF
+				-Denable_thread_local_alloc=OFF
 				-DCMAKE_USE_WIN32_THREADS_INIT=ON
 				-DCMAKE_CXX_STANDARD=14
-			PATCH_COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/libs/src/libatomic_ops ${CMAKE_BINARY_DIR}/libs/src/BoehmGC/libatomic_ops
 			INSTALL_COMMAND
 				${CMAKE_COMMAND} -E copy_directory
 					${CMAKE_BINARY_DIR}/libs/src/BoehmGC/include
 					${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/include/gc
 		)
-		add_custom_command(OUTPUT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/gcmt-dll.dll
+		add_custom_command(OUTPUT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/gc.dll
 			DEPENDS BoehmGC
-			COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/${CMAKE_CFG_INTDIR}/gcmt-dll.dll ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+			COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build/${CMAKE_CFG_INTDIR}/gc.dll ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
 		)
-		add_custom_target(gcmt-dll.dll ALL
-			DEPENDS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/gcmt-dll.dll
+		add_custom_target(gc.dll ALL
+			DEPENDS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/gc.dll
 		)
-		add_dependencies(nekovm gcmt-dll.dll)
+		add_dependencies(nekovm gc.dll)
 	else()
 		if (APPLE)
 			set(GC_CFLAGS "-w -mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
@@ -323,7 +331,6 @@ if (STATIC_BOEHMGC OR WIN32)
 		ExternalProject_Add(BoehmGC
 			${EP_CONFIGS}
 			${BoehmGC_CONFIGS}
-			PATCH_COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/libs/src/libatomic_ops ${CMAKE_BINARY_DIR}/libs/src/BoehmGC/libatomic_ops
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/libs/src/BoehmGC &&
 				./configure
 					--prefix=${CMAKE_BINARY_DIR}/libs/src/BoehmGC-build
@@ -344,14 +351,9 @@ if (STATIC_BOEHMGC OR WIN32)
 
 	set_target_properties(BoehmGC PROPERTIES ${EP_PROPS})
 	add_dependencies(libneko BoehmGC)
+	add_dependencies(download_deps BoehmGC-download)
 else()
 	find_package(BoehmGC REQUIRED)
-endif()
-
-add_custom_target(download_deps)
-if (STATIC_BOEHMGC OR WIN32)
-	add_dependencies(download_deps libatomic_ops-download)
-	add_dependencies(download_deps BoehmGC-download)
 endif()
 
 target_include_directories(libneko PRIVATE ${GC_INCLUDE_DIR})
@@ -573,7 +575,7 @@ if (WIN32)
 	include(InstallRequiredSystemLibraries)
 	install (
 		FILES
-			${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/gcmt-dll.dll
+			${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/gc.dll
 		DESTINATION .
 	)
 else()
