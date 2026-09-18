@@ -261,6 +261,8 @@ add_executable(nekovm
 	vm/main.c
 )
 
+add_custom_target(download_deps)
+
 # We need to build from source on Windows regardless
 if (STATIC_BOEHMGC OR WIN32)
 	set (
@@ -286,6 +288,7 @@ if (STATIC_BOEHMGC OR WIN32)
 			DEPENDS libatomic_ops
 			PATCH_COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/libs/src/libatomic_ops ${CMAKE_BINARY_DIR}/libs/src/BoehmGC/libatomic_ops
 		)
+		add_dependencies(download_deps libatomic_ops-download)
 	endif()
 
 	if (WIN32)
@@ -348,14 +351,9 @@ if (STATIC_BOEHMGC OR WIN32)
 
 	set_target_properties(BoehmGC PROPERTIES ${EP_PROPS})
 	add_dependencies(libneko BoehmGC)
+	add_dependencies(download_deps BoehmGC-download)
 else()
 	find_package(BoehmGC REQUIRED)
-endif()
-
-add_custom_target(download_deps)
-if (STATIC_BOEHMGC OR WIN32)
-	add_dependencies(download_deps libatomic_ops-download)
-	add_dependencies(download_deps BoehmGC-download)
 endif()
 
 target_include_directories(libneko PRIVATE ${GC_INCLUDE_DIR})
