@@ -140,6 +140,7 @@ if (WITH_APACHE)
 					-Wno-dev
 					-DAPR_INSTALL_PRIVATE_H=ON
 					-DINSTALL_PDB=OFF
+					-DCMAKE_POLICY_VERSION_MINIMUM=3.5
 			)
 		else()
 			set(APR_CONFIGS
@@ -179,6 +180,7 @@ if (WITH_APACHE)
 					-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/install-prefix
 					-Wno-dev
 					-DINSTALL_PDB=OFF
+					-DCMAKE_POLICY_VERSION_MINIMUM=3.5
 					${EXPAT_CONF}
 				PATCH_COMMAND ${CMAKE_COMMAND} -Dapr-util_source=${CMAKE_BINARY_DIR}/libs/src/APRutil -P ${CMAKE_SOURCE_DIR}/cmake/patch_apr-util.cmake
 			)
