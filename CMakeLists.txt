@@ -11,6 +11,7 @@ project(Neko C)
 include(GNUInstallDirs)
 include(CheckCCompilerFlag)
 include(CheckIncludeFile)
+include(CheckSymbolExists)
 include(TestBigEndian)
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
@@ -87,6 +88,8 @@ if(APPLE AND STATIC_DEPS STREQUAL "all")
 endif()
 
 check_include_file(xlocale.h NEKO_XLOCALE_H)
+
+check_symbol_exists(getexecpath unistd.h HAVE_GETEXECPATH)
 
 option(NEKO_JIT_DISABLE "Disable Neko JIT." OFF)
 option(NEKO_JIT_DEBUG "Debug Neko JIT." OFF)

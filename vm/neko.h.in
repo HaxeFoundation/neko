@@ -96,6 +96,8 @@
 #	include <stdint.h>
 #endif
 
+#cmakedefine HAVE_GETEXECPATH
+
 #cmakedefine NEKO_XLOCALE_H
 
 #cmakedefine NEKO_BIG_ENDIAN
