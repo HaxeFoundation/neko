@@ -43,6 +43,18 @@
 #	define NEKO_BSD
 #endif
 
+#if defined(__FreeBSD__)
+#	define NEKO_FREEBSD
+#endif
+
+#if defined(__NetBSD__)
+#	define NEKO_NETBSD
+#endif
+
+#if defined(__OpenBSD__)
+#	define NEKO_OPENBSD
+#endif
+
 #if defined(__GNU__)
 #	define NEKO_HURD
 #endif
