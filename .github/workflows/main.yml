@@ -144,27 +144,31 @@ jobs:
     name: windows
     strategy:
       matrix:
-        arch: [Win32, x64]
+        arch: [Win32, x64, Arm64]
         vstools: [vs2017, vs2022]
         include:
           - arch: x64
             name_suffix: 64
 
-          - vstools: vs2017
-            arch: Win32
-            cmake_generator: Visual Studio 15 2017
+          - arch: Arm64
+            name_suffix: -arm64
+            runner: windows-11-arm
+            CMAKE_FLAGS: -DWITH_APACHE=OFF
 
           - vstools: vs2017
-            arch: x64
-            cmake_generator: Visual Studio 15 2017 Win64
+            cmake_generator: Visual Studio 15 2017
 
           - vstools: vs2022
             cmake_generator: Visual Studio 17 2022
 
+        exclude:
+          - vstools: vs2017
+            arch: Arm64
+
     env:
       CMAKE_BUILD_TYPE: RelWithDebInfo
 
-    runs-on: windows-2022
+    runs-on: ${{ matrix.runner || 'windows-2022' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -176,9 +180,7 @@ jobs:
 
       - name: CMake
         run: |
-          cmake . -G "${{ matrix.cmake_generator }}" ${{ env.CMAKE_ARCH_FLAG }}
-        env:
-          CMAKE_ARCH_FLAG: ${{ matrix.vstools == 'vs2022' && format('-A {0}', matrix.arch) || ' ' }}
+          cmake . -G "${{ matrix.cmake_generator }}" -A ${{ matrix.arch }} ${{ matrix.CMAKE_FLAGS }}
 
       - name: Download dependencies
         run: |
@@ -355,6 +357,11 @@ jobs:
         with:
           name: windows64-vs2017-binaries
 
+      - name: Download windows-arm64-vs2022-binaries
+        uses: actions/download-artifact@v8
+        with:
+          name: windows-arm64-vs2022-binaries
+
       - name: Download chocolatey
         uses: actions/download-artifact@v8
         with:
@@ -401,6 +408,7 @@ jobs:
           rclone copyto mac-static-universal-binaries/neko-*.tar.gz "r2:hxbuilds-hjtpx7fj/builds/neko/mac-universal/${FILE_NAME}.tar.gz"
           rclone copyto neko-*-win.zip                              "r2:hxbuilds-hjtpx7fj/builds/neko/windows/${FILE_NAME}.zip"
           rclone copyto neko-*-win64.zip                            "r2:hxbuilds-hjtpx7fj/builds/neko/windows64/${FILE_NAME}.zip"
+          rclone copyto neko-*-win-arm64.zip                        "r2:hxbuilds-hjtpx7fj/builds/neko/windows-arm64/${FILE_NAME}.zip"
           rclone copy neko.*.nupkg                                  "r2:hxbuilds-hjtpx7fj/builds/neko/windows64-choco/"
 
           rclone copyto linux-static-amd64-binaries/neko-*.tar.gz   "s3:hxbuilds/builds/neko/linux64/${FILE_NAME}.tar.gz"
@@ -410,6 +418,7 @@ jobs:
           rclone copyto mac-static-universal-binaries/neko-*.tar.gz "s3:hxbuilds/builds/neko/mac-universal/${FILE_NAME}.tar.gz"
           rclone copyto neko-*-win.zip                              "s3:hxbuilds/builds/neko/windows/${FILE_NAME}.zip"
           rclone copyto neko-*-win64.zip                            "s3:hxbuilds/builds/neko/windows64/${FILE_NAME}.zip"
+          rclone copyto neko-*-win-arm64.zip                        "s3:hxbuilds/builds/neko/windows-arm64/${FILE_NAME}.zip"
           rclone copy neko.*.nupkg                                  "s3:hxbuilds/builds/neko/windows64-choco/"
 
       - name: Update "latest"
@@ -439,6 +448,7 @@ jobs:
           rclone copyto mac-static-universal-binaries/neko-*.tar.gz "r2:hxbuilds-hjtpx7fj/builds/neko/mac-universal/neko_latest.tar.gz"
           rclone copyto neko-*-win.zip                              "r2:hxbuilds-hjtpx7fj/builds/neko/windows/neko_latest.zip"
           rclone copyto neko-*-win64.zip                            "r2:hxbuilds-hjtpx7fj/builds/neko/windows64/neko_latest.zip"
+          rclone copyto neko-*-win-arm64.zip                        "r2:hxbuilds-hjtpx7fj/builds/neko/windows-arm64/neko_latest.zip"
           rclone copyto neko.*.nupkg                                "r2:hxbuilds-hjtpx7fj/builds/neko/windows64-choco/neko_latest.nupkg"
 
           rclone copyto linux-static-amd64-binaries/neko-*.tar.gz   "s3:hxbuilds/builds/neko/linux64/neko_latest.tar.gz"
@@ -448,8 +458,9 @@ jobs:
           rclone copyto mac-static-universal-binaries/neko-*.tar.gz "s3:hxbuilds/builds/neko/mac-universal/neko_latest.tar.gz"
           rclone copyto neko-*-win.zip                              "s3:hxbuilds/builds/neko/windows/neko_latest.zip"
           rclone copyto neko-*-win64.zip                            "s3:hxbuilds/builds/neko/windows64/neko_latest.zip"
+          rclone copyto neko-*-win-arm64.zip                        "s3:hxbuilds/builds/neko/windows-arm64/neko_latest.zip"
           rclone copyto neko.*.nupkg                                "s3:hxbuilds/builds/neko/windows64-choco/neko_latest.nupkg"
-          
+
           curl "https://api.cloudflare.com/client/v4/zones/$CLOUDFLARE_ZONE_ID/purge_cache" \
               -fsS \
               -H 'Content-Type: application/json' \
@@ -463,6 +474,7 @@ jobs:
                           "https://build.haxe.org/builds/neko/mac-universal/neko_latest.tar.gz",
                           "https://build.haxe.org/builds/neko/windows/neko_latest.zip",
                           "https://build.haxe.org/builds/neko/windows64/neko_latest.zip",
+                          "https://build.haxe.org/builds/neko/windows-arm64/neko_latest.zip",
                           "https://build.haxe.org/builds/neko/windows64-choco/neko_latest.nupkg"
                       ]
                   }'
