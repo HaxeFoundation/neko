@@ -39,7 +39,7 @@ set_target_properties(std.ndll
 	SUFFIX .ndll
 )
 
-if (UNIX AND NOT APPLE)
+if (UNIX AND NOT APPLE AND NOT ${CMAKE_SYSTEM_NAME} STREQUAL "OpenBSD")
 	target_link_options(std.ndll PRIVATE "-Wl,--no-undefined")
 endif()
 
