@@ -42,11 +42,11 @@
 #elif defined(NEKO_GCC) && defined(NEKO_PPC)
 #	define ACC_BACKUP
 #	define ACC_RESTORE
-#	define ACC_REG asm("26")
-#	define PC_REG asm("27")
-#	define SP_REG asm("28")
-#	define CSP_REG asm("29")
-#	define VM_REG asm("30")
+#	define ACC_REG asm("25")
+#	define PC_REG asm("26")
+#	define SP_REG asm("27")
+#	define CSP_REG asm("28")
+#	define VM_REG asm("29")
 #	define VM_ARG _vm
 #else
 #	define ACC_BACKUP
