@@ -31,11 +31,10 @@
 #	include <limits.h>
 #endif
 #ifdef NEKO_MAC
-#	include <sys/param.h>
 #	include <mach-o/dyld.h>
 #endif
-#ifdef NEKO_BSD
-#	include <sys/param.h>
+#if defined(NEKO_BSD) && defined(KERN_PROC_PATHNAME)
+#	include <sys/types.h>
 #	include <sys/sysctl.h>
 #endif
 #ifdef NEKO_POSIX
@@ -76,8 +75,8 @@ static char *executable_path() {
 		return NULL;
 	return path;
 #elif defined(NEKO_MAC)
-	static char path[MAXPATHLEN+1];
-	uint32_t path_len = MAXPATHLEN;
+	static char path[PATH_MAX+1];
+	uint32_t path_len = PATH_MAX;
 	if ( _NSGetExecutablePath(path, &path_len) )
 		return NULL;
 	return path;
@@ -87,7 +86,7 @@ static char *executable_path() {
         mib[1] = KERN_PROC;
         mib[2] = KERN_PROC_PATHNAME;
         mib[3] = -1;
-	static char path[MAXPATHLEN];
+	static char path[PATH_MAX];
         size_t cb = sizeof(path);
         sysctl(mib, 4, path, &cb, NULL, 0);
         if (!cb) return NULL;
