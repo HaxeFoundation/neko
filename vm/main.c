@@ -91,7 +91,7 @@ static char *executable_path() {
         sysctl(mib, 4, path, &cb, NULL, 0);
         if (!cb) return NULL;
         return path;
-#elif defined(__OpenBSD__) && defined(HAVE_GETEXECPATH)
+#elif defined(NEKO_OPENBSD) && defined(HAVE_GETEXECPATH)
 	static char path[PATH_MAX];
 	if (getexecpath(path, sizeof(path)) == -1)
 		return NULL;

@@ -371,7 +371,8 @@ static value host_resolve( value host ) {
 	ip = inet_addr(val_string(host));
 	if( ip == INADDR_NONE ) {
 		struct hostent *h;
-#	if defined(NEKO_WINDOWS) || defined(NEKO_MAC) || defined(NEKO_CYGWIN) || defined(__NetBSD__) || defined(__OpenBSD__)
+#	if defined(NEKO_WINDOWS) || defined(NEKO_MAC) || defined(NEKO_CYGWIN) || \
+	    defined(NEKO_NETBSD) || defined(NEKO_OPENBSD)
 		h = gethostbyname(val_string(host));
 #	else
 		struct hostent hbase;
