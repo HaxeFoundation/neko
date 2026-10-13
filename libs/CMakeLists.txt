@@ -140,6 +140,7 @@ if (WITH_APACHE)
 					-Wno-dev
 					-DAPR_INSTALL_PRIVATE_H=ON
 					-DINSTALL_PDB=OFF
+					-DCMAKE_POLICY_VERSION_MINIMUM=3.5
 			)
 		else()
 			set(APR_CONFIGS
@@ -166,8 +167,8 @@ if (WITH_APACHE)
 		if(WIN32)
 			ExternalProject_Add(EXPAT
 				${EP_CONFIGS}
-				URL https://github.com/libexpat/libexpat/releases/download/R_2_5_0/expat-2.5.0.tar.gz
-				URL_HASH SHA256=6b902ab103843592be5e99504f846ec109c1abb692e85347587f237a4ffa1033
+				URL https://github.com/libexpat/libexpat/releases/download/R_2_8_4/expat-2.8.4.tar.gz
+				URL_HASH SHA256=b8ece2437692dad44d851c4532723390a5a330990007706be9c8d2b90d294f36
 				CMAKE_ARGS
 					-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/install-prefix
 					-Wno-dev
@@ -179,6 +180,7 @@ if (WITH_APACHE)
 					-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libs/src/install-prefix
 					-Wno-dev
 					-DINSTALL_PDB=OFF
+					-DCMAKE_POLICY_VERSION_MINIMUM=3.5
 					${EXPAT_CONF}
 				PATCH_COMMAND ${CMAKE_COMMAND} -Dapr-util_source=${CMAKE_BINARY_DIR}/libs/src/APRutil -P ${CMAKE_SOURCE_DIR}/cmake/patch_apr-util.cmake
 			)
@@ -254,9 +256,8 @@ if (WITH_APACHE)
 			${EP_CONFIGS}
 			DEPENDS ${APR_DEP} ${APRUTIL_DEP} ${OPENSSL_DEP} ${PCRE_DEP} ${ZLIB_DEP}
 			URL
-				https://archive.apache.org/dist/httpd/httpd-2.4.55.tar.gz
-				https://github.com/HaxeFoundation/neko/files/10745746/httpd-2.4.55.tar.gz
-			URL_HASH SHA256=5276ea8bc6fff31eed5c82132ae51a0b2ee05f9e6b61a00fa877f6cadab3b638
+				https://archive.apache.org/dist/httpd/httpd-2.4.68.tar.gz
+			URL_HASH SHA256=ed9a9d4500fb48bb28eaffb3ba71d06ccf86d498fa13ab9f781da010cc488498
 			${Apache_CONFIGS}
 		)
 		set_target_properties(Apache PROPERTIES ${EP_PROPS})
