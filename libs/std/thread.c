@@ -719,6 +719,42 @@ static void _cond_wait(vcondition *cond) {
 #endif
 }
 
+// Upper bound for timed waits in seconds (about 31 years), so that deadlines
+// and millisecond counts do not overflow. Non-positive and NaN timeouts become 0.
+#define MAX_WAIT_SECONDS 1e9
+
+static double _clamp_wait_timeout(double timeout) {
+	if (!(timeout > 0))
+		return 0;
+	if (timeout > MAX_WAIT_SECONDS)
+		return MAX_WAIT_SECONDS;
+	return timeout;
+}
+
+static bool _cond_timed_wait(vcondition *cond, double timeout) {
+#ifdef NEKO_WINDOWS
+	double ms = _clamp_wait_timeout(timeout) * 1000.0;
+	// INFINITE (0xFFFFFFFF) would mean no timeout at all
+	DWORD dms = ms >= (double)(INFINITE - 1) ? INFINITE - 1 : (DWORD)ms;
+	if (SleepConditionVariableSRW(&cond->cond, &cond->lock, dms, 0))
+		return true;
+	return GetLastError() != ERROR_TIMEOUT;
+#else
+	struct timeval tv;
+	struct timespec t;
+	double delta = _clamp_wait_timeout(timeout);
+	long long sec = (long long)delta;
+	long long nsec = (long long)((delta - (double)sec) * 1e9);
+	gettimeofday(&tv, NULL);
+	nsec += (long long)tv.tv_usec * 1000;
+	sec += tv.tv_sec + nsec / 1000000000;
+	nsec %= 1000000000;
+	t.tv_sec = (time_t)sec;
+	t.tv_nsec = (long)nsec;
+	return pthread_cond_timedwait(&cond->cond, &cond->lock, &t) == 0;
+#endif
+}
+
 static void _cond_signal(vcondition *cond) {
 #ifdef NEKO_WINDOWS
 	WakeConditionVariable(&cond->cond);
@@ -781,6 +817,19 @@ static value cond_wait(value *cond) {
 	return val_null;
 }
 
+/**
+	cond_timed_wait : 'condition -> timeout:number -> bool
+	<doc>
+	Waits on the condition variable for at most [timeout] seconds.
+	Returns false if the timeout expired, true otherwise.
+	</doc>
+**/
+static value cond_timed_wait(value cond, value timeout) {
+	val_check_kind(cond, k_condition);
+	val_check(timeout, number);
+	return alloc_bool(_cond_timed_wait(val_cond(cond), val_number(timeout)));
+}
+
 static value cond_signal(value *cond) {
 	val_check_kind(cond, k_condition);
 	_cond_signal(val_cond(cond));
@@ -798,5 +847,6 @@ DEFINE_PRIM(cond_acquire, 1)
 DEFINE_PRIM(cond_try_acquire, 1)
 DEFINE_PRIM(cond_release, 1)
 DEFINE_PRIM(cond_wait, 1)
+DEFINE_PRIM(cond_timed_wait, 2)
 DEFINE_PRIM(cond_signal, 1)
 DEFINE_PRIM(cond_broadcast, 1)
