@@ -734,11 +734,15 @@ static double _clamp_wait_timeout(double timeout) {
 static bool _cond_timed_wait(vcondition *cond, double timeout) {
 #ifdef NEKO_WINDOWS
 	double ms = _clamp_wait_timeout(timeout) * 1000.0;
-	// INFINITE (0xFFFFFFFF) would mean no timeout at all
-	DWORD dms = ms >= (double)(INFINITE - 1) ? INFINITE - 1 : (DWORD)ms;
+	// INFINITE (0xFFFFFFFF) would mean no timeout at all, so waits of more than
+	// about 49.7 days are cut short
+	bool capped = ms >= (double)(INFINITE - 1);
+	DWORD dms = capped ? INFINITE - 1 : (DWORD)ms;
 	if (SleepConditionVariableSRW(&cond->cond, &cond->lock, dms, 0))
 		return true;
-	return GetLastError() != ERROR_TIMEOUT;
+	// a capped wait that runs out did not reach the requested timeout, so it
+	// counts as a spurious wakeup
+	return GetLastError() != ERROR_TIMEOUT || capped;
 #else
 	struct timeval tv;
 	struct timespec t;
