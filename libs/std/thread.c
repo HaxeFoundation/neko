@@ -741,8 +741,8 @@ static bool _cond_timed_wait(vcondition *cond, double timeout) {
 	if (SleepConditionVariableSRW(&cond->cond, &cond->lock, dms, 0))
 		return true;
 	// a capped wait that runs out did not reach the requested timeout, so it
-	// counts as a spurious wakeup
-	return GetLastError() != ERROR_TIMEOUT || capped;
+	// counts as a spurious wakeup. Other errors return false like on POSIX.
+	return capped && GetLastError() == ERROR_TIMEOUT;
 #else
 	struct timeval tv;
 	struct timespec t;
