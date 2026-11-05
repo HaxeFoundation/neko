@@ -33,6 +33,7 @@
 #else
 #	include <pthread.h>
 #	include <sys/time.h>
+#	include <time.h>
 	typedef struct _vlock {
 		pthread_mutex_t lock;
 		pthread_cond_t cond;
@@ -683,7 +684,19 @@ static void _cond_init(vcondition *cond) {
 	InitializeConditionVariable(&cond->cond);
 #else
 	pthread_mutex_init(&cond->lock, NULL);
+#	ifdef NEKO_MAC
+	// macOS has no pthread_condattr_setclock; _cond_timed_wait uses a
+	// relative timeout there instead
 	pthread_cond_init(&cond->cond, NULL);
+#	else
+	// measure timed waits on the monotonic clock, so that changes to the
+	// system time don't shorten or lengthen them
+	pthread_condattr_t attr;
+	pthread_condattr_init(&attr);
+	pthread_condattr_setclock(&attr, CLOCK_MONOTONIC);
+	pthread_cond_init(&cond->cond, &attr);
+	pthread_condattr_destroy(&attr);
+#	endif
 #endif
 }
 
@@ -744,18 +757,25 @@ static bool _cond_timed_wait(vcondition *cond, double timeout) {
 	// counts as a spurious wakeup. Other errors return false like on POSIX.
 	return capped && GetLastError() == ERROR_TIMEOUT;
 #else
-	struct timeval tv;
 	struct timespec t;
 	double delta = _clamp_wait_timeout(timeout);
 	long long sec = (long long)delta;
 	long long nsec = (long long)((delta - (double)sec) * 1e9);
-	gettimeofday(&tv, NULL);
-	nsec += (long long)tv.tv_usec * 1000;
-	sec += tv.tv_sec + nsec / 1000000000;
+#	ifdef NEKO_MAC
+	t.tv_sec = (time_t)sec;
+	t.tv_nsec = (long)nsec;
+	return pthread_cond_timedwait_relative_np(&cond->cond, &cond->lock, &t) == 0;
+#	else
+	struct timespec now;
+	// the condition variable uses CLOCK_MONOTONIC, see _cond_init
+	clock_gettime(CLOCK_MONOTONIC, &now);
+	nsec += now.tv_nsec;
+	sec += now.tv_sec + nsec / 1000000000;
 	nsec %= 1000000000;
 	t.tv_sec = (time_t)sec;
 	t.tv_nsec = (long)nsec;
 	return pthread_cond_timedwait(&cond->cond, &cond->lock, &t) == 0;
+#	endif
 #endif
 }
 

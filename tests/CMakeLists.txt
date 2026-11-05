@@ -32,4 +32,5 @@ add_test(NAME run_cond_timed_wait.n
 set_tests_properties(run_cond_timed_wait.n PROPERTIES
   PASS_REGULAR_EXPRESSION "timeout:false,true;held:false;nonpositive:false,false,false,false;huge:true,false,true;"
   FIXTURES_REQUIRED cond_timed_wait
+  TIMEOUT 60
 )
