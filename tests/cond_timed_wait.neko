@@ -1,0 +1,33 @@
+// Tests std@cond_timed_wait: timing out, keeping the mutex, non-positive
+// timeouts and huge timeouts that are signaled.
+// Closures capture locals by value, so shared state lives in an array.
+var create = $loader.loadprim("std@cond_create",0);
+var acquire = $loader.loadprim("std@cond_acquire",1);
+var try_acquire = $loader.loadprim("std@cond_try_acquire",1);
+var release = $loader.loadprim("std@cond_release",1);
+var timed_wait = $loader.loadprim("std@cond_timed_wait",2);
+var signal = $loader.loadprim("std@cond_signal",1);
+var thread_create = $loader.loadprim("std@thread_create",2);
+var sleep = $loader.loadprim("std@sys_sleep",1);
+var time = $loader.loadprim("std@sys_time",0);
+var lock_create = $loader.loadprim("std@lock_create",0);
+var lock_wait = $loader.loadprim("std@lock_wait",2);
+var lock_release = $loader.loadprim("std@lock_release",1);
+
+var c = create();
+acquire(c);
+var t = time();
+var r = timed_wait(c, 0.1);
+$print("timeout:", r, ",", time() - t >= 0.09, ";");
+var l = lock_create();
+var st = $array(null, false);
+thread_create(function(_) { st[0] = try_acquire(c); if( st[0] ) release(c); lock_release(l); }, null);
+lock_wait(l, null);
+$print("held:", st[0], ";");
+$print("nonpositive:", timed_wait(c, 0.0), ",", timed_wait(c, -1), ",", timed_wait(c, 0.0/0.0), ",", timed_wait(c, 0), ";");
+thread_create(function(_) { sleep(0.1); acquire(c); st[1] = true; signal(c); release(c); }, null);
+var timedOut = false;
+t = time();
+while( $not(st[1]) && $not(timedOut) ) if( $not(timed_wait(c, 1000000000000.0)) ) timedOut = true;
+$print("huge:", st[1], ",", timedOut, ",", time() - t < 5, ";");
+release(c);
